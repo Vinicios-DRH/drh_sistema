@@ -10,19 +10,19 @@ async function carregarMilitares(page = 1, search = '') {
             tabela.row.add([
                 `<a href="/exibir-militar/${militar.id}">${militar.nome_completo}</a>`,
                 militar.nome_guerra,
-                militar.especialidade,
+//                militar.especialidade,
                 militar.cpf,
                 militar.rg,
                 militar.matricula,
-                militar.posto_grad_sigla,
+//                militar.posto_grad_sigla,
                 militar.obms[0] || '',
                 militar.funcoes[0] || '',
                 militar.obms[1] || '',
                 militar.funcoes[1] || '',
                 militar.quadro,
                 militar.localidade,
-                militar.situacao,
-                militar.agregacoes,
+//                militar.situacao,
+//                militar.agregacoes,
                 militar.destino
             ]);
         });
