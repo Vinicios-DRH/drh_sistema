@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+
+{% block body %}
+<section class="bg-light py-3 py-md-5 mt-2">
+    <div class="container mt-3">
+        <h2>Militares de Licença para Tratamento de Saúde</h2>
+        <a class="btn btn-primary" aria-current="page"
+           href="#">Baixar Excel</a>
+        <div class="table-responsive">
+            <table id="example" class="table table-light table-bordered table-striped" style="width:100%">
+                <thead class="table-info">
+                <tr>
+                    <th>Posto/Graduação</th>
+                    <th>Quadro</th>
+                    <th class="col-nome_completo">Nome Completo</th>
+                    <th>Destino</th>
+                    <th>Situação</th>
+                    <th>A contar de</th>
+                    <th>Término</th>
+                    <th>Status da Licença</th>
+                    <th>Documento Autorizador</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for militar in militares_lts %}
+                <tr class="table-active">
+                    <td>{{ militar.posto_grad.sigla }}</td>
+                    <td>{{ militar.quadro.quadro }}</td>
+                    <td>
+                        <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}">
+                            {{ militar.militar.nome_completo }}
+                        </a>
+                    </td>
+                    <td>{{ militar.destino.local }}</td>
+                    <td>{{ militar.situacao.condicao }}</td>
+                    <td>{{ militar.inicio_periodo_lts.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ militar.fim_periodo_lts.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                    <span style="background-color:
+                        {% if militar.status == 'Vigente' %}
+                            lightgreen
+                        {% elif militar.status == 'Término da Licença para Tratamento de Saúde' %}
+                            lightcoral
+                        {% else %}
+                            transparent
+                        {% endif %}; padding: 5px;">
+                        {{ militar.status }}
+                    </span>
+                    </td>
+                    <td>{{ militar.publicacao_bg.boletim_geral }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

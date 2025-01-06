@@ -1,0 +1,105 @@
+<nav class="navbar fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <img class="img-responsive" style="width:30px; max-width:100% !important;"
+                 src="{{ url_for('static', filename='img/logobm.png') }}" alt="">
+        </a>
+        <button id="buttonNav" class="navbar-toggler" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvasNavbar"
+                aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+            <img class="img-responsive" style="width:40px; max-width:100% !important;"
+                 src="{{ url_for('static', filename='img/menu.png') }}" alt="">
+        </button>
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-tittle" id="offcanvasNavbarLabel">DRH</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <strong class="offcanvas-title">{{ current_user.nome }}</strong> <br>
+                <strong class="offcanvas-title" style="color: rgba(0, 191, 255, 1)">
+                    {% if current_user.is_authenticated %}
+                    {{ current_user.obm1.sigla }}
+                    {% else %}
+                    Visitante
+                    {% endif %}
+                </strong>
+                -
+                <strong class="offcanvas-title" style="color: rgba(0, 191, 255, 1)">
+                    {% if current_user.is_authenticated %}
+                    {{ current_user.obm2.sigla }}
+                    {% else %}
+                    Visitante
+                    {% endif %}
+                </strong>
+                <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                    {% set is_obm_allowed = (current_user.obm_id_1 == 37 or current_user.obm_id_2 == 37) %}
+                    {% if is_obm_allowed %}
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('home') }}">Início</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            Militares Ativos
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('militares') }}">Mapa da Força</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('adicionar_militar') }}">Adicionar Militar</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('militares_a_disposicao') }}">Militares a
+                                    disposição</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('militares_agregados') }}">Militares
+                                    agregados</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('licenca_especial') }}">Licença Especial</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('lts') }}">Licença para Tratamento de
+                                    Saúde</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            Utilidades
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('usuarios') }}">Usuários</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('criar_conta') }}">Adicionar Usuário</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#">Something else here</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.funcao_user_id != 1 and current_user.funcao_user_id != 6 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('exibir_ferias_chefe') }}">Férias Chefe</a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated %}
+                    <li>
+                        <a class="nav-link" href="{{ url_for('sair') }}">Sair</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

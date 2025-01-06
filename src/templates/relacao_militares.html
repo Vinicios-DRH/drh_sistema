@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+
+{% block body %}
+<section class="bg-light py-3 py-md-5 mt-2">
+    <div class="container mt-3">
+        <div class="table-responsive">
+            <h2>Relação de Militares</h2>
+            <a class="btn btn-primary" aria-current="page" href="{{ url_for('export_excel') }}">Baixar Excel</a>
+            <table id="example" class="table table-bordered table-striped" style="width:100%">
+                <thead>
+                <tr>
+                    <th class="col-nome_completo">Nome Completo</th>
+                    <th>Nome de Guerra</th>
+                    <th class="col-cpf">CPF</th>
+                    <th class="col-rg">RG</th>
+                    <th class="col-especialidade">Matrícula</th>
+                    <th>Posto/Graduação</th>
+                    <th>Quadro</th>
+                    <th class="col-especialidade">Especialidade</th>
+                    <th>Localidade</th>
+                    <th>Situação</th>
+                    <th class="col-obm1">OBM 1</th>
+                    <th class="col-funcao1">Função 1</th>
+                    <th class="col-obm2">OBM 2</th>
+                    <th class="col-funcao2">Função 2</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for militar in militares %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}">
+                            {{ militar.nome_completo }}
+                        </a>
+                    </td>
+                    <td>{{ militar.nome_guerra }}</td>
+                    <td>{{ militar.cpf }}</td>
+                    <td>{{ militar.rg }}</td>
+                    <td>{{ militar.matricula }}</td>
+                    <td>{{ militar.posto_grad }}</td>
+                    <td>{{ militar.quadro }}</td>
+                    <td>{{ militar.especialidade }}</td>
+                    <td>{{ militar.localidade }}</td>
+                    <td>{{ militar.situacao }}</td>
+                    <td>
+                        {{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}
+                    </td>
+                    <td>
+                        {{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}
+                    </td>
+                    <td>
+                        {{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}
+                    </td>
+                    <td>
+                        {{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
