@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/sistema'
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///drh-sistema.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:drhsistema2025@db.cselsnczhbsinizmwtcv.supabase.co:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.cselsnczhbsinizmwtcv:drhsistema2025@aws-0-us-west-1.pooler.supabase.com:5432/postgres'
 
 app.config['SECRET_KEY'] = '60cc737479829f9462369024bee383ce'
 app.config["UPLOAD_FOLDER"] = "static/boletim_geral"
