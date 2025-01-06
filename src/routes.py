@@ -1112,11 +1112,11 @@ def militares():
     for militar in militares_paginados.items:
         especialidade = Especialidade.query.get(militar.especialidade_id)
         posto_grad = PostoGrad.query.get(militar.posto_grad_id)
-        quadro = Quadro.query.get(militar.quadro_id)
-        situacao = Situacao.query.get(militar.situacao_id)
-        agregacoes = Agregacoes.query.get(militar.agregacoes_id)
-        destino = Destino.query.get(militar.destino_id)
-        localidade = Localidade.query.get(militar.localidade_id)
+        # quadro = Quadro.query.get(militar.quadro_id)
+        # situacao = Situacao.query.get(militar.situacao_id)
+        # agregacoes = Agregacoes.query.get(militar.agregacoes_id)
+        # destino = Destino.query.get(militar.destino_id)
+        # localidade = Localidade.query.get(militar.localidade_id)
 
         obm_funcoes_ativas = MilitarObmFuncao.query.filter_by(militar_id=militar.id).filter(
             MilitarObmFuncao.data_fim == None
@@ -1138,11 +1138,11 @@ def militares():
             'posto_grad_sigla': posto_grad.sigla if posto_grad else None,
             'obms': obms_ativas,
             'funcoes': funcoes_ativas,
-            'quadro': quadro.quadro if quadro else None,
-            'situacao': situacao.condicao if situacao else None,
-            'agregacoes': agregacoes.tipo if agregacoes else None,
-            'destino': destino.local if destino else None,
-            'localidade': localidade.sigla if localidade else None,
+            # 'quadro': quadro.quadro if quadro else None,
+            # 'situacao': situacao.condicao if situacao else None,
+            # 'agregacoes': agregacoes.tipo if agregacoes else None,
+            # 'destino': destino.local if destino else None,
+            # 'localidade': localidade.sigla if localidade else None,
             'matricula': militar.matricula
         })
 
