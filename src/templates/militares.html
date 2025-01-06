@@ -19,16 +19,16 @@
                     <th>CPF</th>
                     <th>RG</th>
                     <th>Matrícula</th>
-                    <th>Posto/Grad</th>
+<!--                     <th>Posto/Grad</th> -->
                     <th>OBM 1</th>
                     <th>Função 1</th>
                     <th>OBM 2</th>
                     <th>Função 2</th>
-                    <th>Quadro</th>
-                    <th>Localidade</th>
-                    <th>Situação</th>
-                    <th>Agregações</th>
-                    <th>Destino</th>
+<!--                     <th>Quadro</th> -->
+<!--                     <th>Localidade</th> -->
+<!--                     <th>Situação</th> -->
+<!--                     <th>Agregações</th> -->
+<!--                     <th>Destino</th> -->
                 </tr>
                 </thead>
                 <tbody>
@@ -40,16 +40,16 @@
                     <td>{{ militar.cpf }}</td>
                     <td>{{ militar.rg }}</td>
                     <td>{{ militar.matricula }}</td>
-                    <td>{{ militar.posto_grad_sigla }}</td>
+<!--                     <td>{{ militar.posto_grad_sigla }}</td> -->
                     <td>{{ militar.obms[0] if militar.obms|length > 0 else '' }}</td>
                     <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else '' }}</td>
                     <td>{{ militar.obms[1] if militar.obms|length > 1 else '' }}</td>
                     <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else '' }}</td>
-                    <td>{{ militar.quadro }}</td>
-                    <td>{{ militar.localidade }}</td>
-                    <td>{{ militar.situacao }}</td>
-                    <td>{{ militar.agregacoes }}</td>
-                    <td>{{ militar.destino }}</td>
+<!--                     <td>{{ militar.quadro }}</td> -->
+<!--                     <td>{{ militar.localidade }}</td> -->
+<!--                     <td>{{ militar.situacao }}</td> -->
+<!--                     <td>{{ militar.agregacoes }}</td> -->
+<!--                     <td>{{ militar.destino }}</td> -->
                 </tr>
                 {% endfor %}
                 </tbody>
