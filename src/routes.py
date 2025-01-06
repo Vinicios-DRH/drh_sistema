@@ -680,7 +680,7 @@ def exibir_militar(militar_id):
         militar.meses = form_militar.meses.data
         militar.dias = form_militar.dias.data
         militar.total_dias = form_militar.total_dias.data
-        militar.idade_reserva_grad = form_militar.idade_reserva_grad.data
+        militar.idade_reserva_grad = 0
         militar.estado_civil = form_militar.estado_civil.data
         militar.especialidade_id = form_militar.especialidade_id.data
         militar.pronto = form_militar.pronto.data
