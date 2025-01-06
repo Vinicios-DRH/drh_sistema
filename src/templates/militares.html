@@ -1,118 +1,71 @@
 {% extends 'base.html' %}
 
-{% block head %}
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<script src="{{ url_for('static', filename='js/militares.js') }}"></script>
-{% endblock %}
-
 {% block body %}
 <section class="py-3 py-md-5 mt-2">
     <div class="mt-3">
         <h3>Militares</h3>
-        <button style="text-decoration: none" href="#" class="btn btn-primary" id="btn-filtro" data-bs-toggle="modal"
-                data-bs-target="#filtrarMilitar">Filtros avançados
-        </button>
-
-        <!-- Container para busca e paginação fora da tabela -->
-        <div class="search-pagination-container">
-            <input type="text" id="search-input" placeholder="Buscar militar..." class="form-control"
-                   style="width: 300px;">
-            <nav class="pagination-container">
-                <ul class="pagination">
-                    <!-- Paginação será preenchida dinamicamente -->
-                </ul>
-            </nav>
-        </div>
+        <form method="get" action="{{ url_for('militares') }}">
+            <input type="text" name="search" placeholder="Buscar militar..." value="{{ request.args.get('search', '') }}" class="form-control mb-3" style="width: 300px;">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
 
         <div class="table-responsive">
-            <table id="example" class="table table-bordered table-striped" style="width:100%">
+            <table class="table table-bordered table-striped" style="width:100%">
                 <thead>
                 <tr>
                     <th>Nome Completo</th>
                     <th>Nome de Guerra</th>
-<!--                     <th>Especialidade</th> -->
+                    <th>Especialidade</th>
                     <th>CPF</th>
                     <th>RG</th>
                     <th>Matrícula</th>
-<!--                     <th>Posto/Grad</th> -->
+                    <th>Posto/Grad</th>
                     <th>OBM 1</th>
                     <th>Função 1</th>
                     <th>OBM 2</th>
                     <th>Função 2</th>
                     <th>Quadro</th>
                     <th>Localidade</th>
-<!--                     <th>Situação</th> -->
-<!--                     <th>Agregações</th> -->
+                    <th>Situação</th>
+                    <th>Agregações</th>
                     <th>Destino</th>
                 </tr>
                 </thead>
                 <tbody>
-                <!-- O corpo da tabela será preenchido dinamicamente pelo JavaScript -->
+                {% for militar in militares %}
+                <tr>
+                    <td><a href="/exibir-militar/{{ militar.id }}">{{ militar.nome_completo }}</a></td>
+                    <td>{{ militar.nome_guerra }}</td>
+                    <td>{{ militar.especialidade }}</td>
+                    <td>{{ militar.cpf }}</td>
+                    <td>{{ militar.rg }}</td>
+                    <td>{{ militar.matricula }}</td>
+                    <td>{{ militar.posto_grad_sigla }}</td>
+                    <td>{{ militar.obms[0] if militar.obms|length > 0 else '' }}</td>
+                    <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else '' }}</td>
+                    <td>{{ militar.obms[1] if militar.obms|length > 1 else '' }}</td>
+                    <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else '' }}</td>
+                    <td>{{ militar.quadro }}</td>
+                    <td>{{ militar.localidade }}</td>
+                    <td>{{ militar.situacao }}</td>
+                    <td>{{ militar.agregacoes }}</td>
+                    <td>{{ militar.destino }}</td>
+                </tr>
+                {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <nav class="pagination-container">
+            <ul class="pagination">
+                <li class="page-item {{ 'disabled' if not has_prev }}">
+                    <a class="page-link" href="{{ url_for('militares', page=prev_page, search=request.args.get('search', '')) }}">Anterior</a>
+                </li>
+                <li class="page-item {{ 'disabled' if not has_next }}">
+                    <a class="page-link" href="{{ url_for('militares', page=next_page, search=request.args.get('search', '')) }}">Próxima</a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </section>
-
-<div class="modal fade " id="filtrarMilitar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Filtros Avançados</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-3 p-md-4 p-xl-5">
-                <form class="row g-3" id="formFiltros" method="POST" action="{{ url_for('tabela_militares') }}">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.obm_ids_1.label(class="form-control-label") }}
-                            {{ form_militar.obm_ids_1(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.posto_grad_id.label(class="form-control-label") }}
-                            {{ form_militar.posto_grad_id(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.quadro_id.label(class="form-control-label") }}
-                            {{ form_militar.quadro_id(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.especialidade_id.label(class="form-control-label") }}
-                            {{ form_militar.especialidade_id(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.localidade_id.label(class="form-control-label") }}
-                            {{ form_militar.localidade_id(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.situacao_id.label(class="form-control-label") }}
-                            {{ form_militar.situacao_id(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.funcao_ids_1.label(class="form-control-label") }}
-                            {{ form_militar.funcao_ids_1(class="form-control") }}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="btnEnviarFiltros">Filtrar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
