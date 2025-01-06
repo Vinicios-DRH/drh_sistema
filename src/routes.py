@@ -976,7 +976,7 @@ def exibir_militar(militar_id):
 
 @app.route("/api/militares", methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER')
+# @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER')
 def api_militares():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
