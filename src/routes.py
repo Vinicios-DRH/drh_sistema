@@ -1111,7 +1111,7 @@ def militares():
     militares = []
     for militar in militares_paginados.items:
         especialidade = Especialidade.query.get(militar.especialidade_id)
-        posto_grad = PostoGrad.query.get(militar.posto_grad_id)
+        # posto_grad = PostoGrad.query.get(militar.posto_grad_id)
         # quadro = Quadro.query.get(militar.quadro_id)
         # situacao = Situacao.query.get(militar.situacao_id)
         # agregacoes = Agregacoes.query.get(militar.agregacoes_id)
@@ -1132,10 +1132,10 @@ def militares():
             'id': militar.id,
             'nome_completo': militar.nome_completo,
             'nome_guerra': militar.nome_guerra,
-            'especialidade': especialidade.ocupacao if especialidade else None,
+            # 'especialidade': especialidade.ocupacao if especialidade else None,
             'cpf': militar.cpf,
             'rg': militar.rg,
-            'posto_grad_sigla': posto_grad.sigla if posto_grad else None,
+            # 'posto_grad_sigla': posto_grad.sigla if posto_grad else None,
             'obms': obms_ativas,
             'funcoes': funcoes_ativas,
             # 'quadro': quadro.quadro if quadro else None,
