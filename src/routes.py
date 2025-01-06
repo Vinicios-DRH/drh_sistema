@@ -981,11 +981,11 @@ def api_militares():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     nome_completo = request.args.get('nome_completo', '', type=str)
-    posto_grad_id = request.args.get('posto_grad_id', '', type=int)
-    especialidade_id = request.args.get('especialidade_id', '', type=int)
+    # posto_grad_id = request.args.get('posto_grad_id', '', type=int)
+    # especialidade_id = request.args.get('especialidade_id', '', type=int)
     quadro_id = request.args.get('quadro_id', '', type=int)
-    situacao_id = request.args.get('situacao_id', '', type=int)
-    agregacoes_id = request.args.get('agregacoes_id', '', type=int)
+    # situacao_id = request.args.get('situacao_id', '', type=int)
+    # agregacoes_id = request.args.get('agregacoes_id', '', type=int)
     destino_id = request.args.get('destino_id', '', type=int)
     localidade_id = request.args.get('localidade_id', '', type=int)
     matricula = request.args.get('matricula', '', type=str)
@@ -996,16 +996,16 @@ def api_militares():
         query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
     if nome_completo:
         query = query.filter(Militar.nome_completo.ilike(f'%{nome_completo}%'))
-    if posto_grad_id:
-        query = query.filter(Militar.posto_grad_id == posto_grad_id)
-    if especialidade_id:
-        query = query.filter(Militar.especialidade_id == especialidade_id)
+    # if posto_grad_id:
+    #     query = query.filter(Militar.posto_grad_id == posto_grad_id)
+    # if especialidade_id:
+    #     query = query.filter(Militar.especialidade_id == especialidade_id)
     if quadro_id:
         query = query.filter(Militar.quadro_id == quadro_id)
-    if situacao_id:
-        query = query.filter(Militar.situacao_id == situacao_id)
-    if agregacoes_id:
-        query = query.filter(Militar.agregacoes_id == agregacoes_id)
+    # if situacao_id:
+    #     query = query.filter(Militar.situacao_id == situacao_id)
+    # if agregacoes_id:
+    #     query = query.filter(Militar.agregacoes_id == agregacoes_id)
     if destino_id:
         query = query.filter(Militar.destino_id == destino_id)
     if localidade_id:
@@ -1019,10 +1019,10 @@ def api_militares():
     for militar in militares_paginados.items:
         # Consultas adicionais para buscar as informações relacionadas
         especialidade = Especialidade.query.get(militar.especialidade_id)
-        posto_grad = PostoGrad.query.get(militar.posto_grad_id)
+        # posto_grad = PostoGrad.query.get(militar.posto_grad_id)
         quadro = Quadro.query.get(militar.quadro_id)
-        situacao = Situacao.query.get(militar.situacao_id)
-        agregacoes = Agregacoes.query.get(militar.agregacoes_id)
+        # situacao = Situacao.query.get(militar.situacao_id)
+        # agregacoes = Agregacoes.query.get(militar.agregacoes_id)
         destino = Destino.query.get(militar.destino_id)
         localidade = Localidade.query.get(militar.localidade_id)
 
@@ -1045,12 +1045,12 @@ def api_militares():
             'especialidade': especialidade.ocupacao if especialidade else None,
             'cpf': militar.cpf,
             'rg': militar.rg,
-            'posto_grad_sigla': posto_grad.sigla if posto_grad else None,  # Sigla do posto/graduação
+            # 'posto_grad_sigla': posto_grad.sigla if posto_grad else None,  # Sigla do posto/graduação
             'obms': obms_ativas,  # Siglas das OBMs ativas
             'funcoes': funcoes_ativas,  # Descrições das funções ativas
             'quadro': quadro.quadro if quadro else None,  # Nome do quadro
-            'situacao': situacao.condicao if situacao else None,  # Nome da situação
-            'agregacoes': agregacoes.tipo if agregacoes else None,  # Nome da agregação
+            # 'situacao': situacao.condicao if situacao else None,  # Nome da situação
+            # 'agregacoes': agregacoes.tipo if agregacoes else None,  # Nome da agregação
             'destino': destino.local if destino else None,  # Nome do destino
             'localidade': localidade.sigla if localidade else None,
             'matricula': militar.matricula
