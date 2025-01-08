@@ -1076,7 +1076,9 @@ def militares():
     # Consulta paginada com pré-carregamento de relações
     query = Militar.query.options(
         selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
-        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao)
+        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao),
+        selectinload(Militar.posto_grad),  # Pré-carrega a relação posto_grad
+        selectinload(Militar.quadro)
     )
     if search:
         query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
@@ -1094,6 +1096,8 @@ def militares():
             'obms': [of.obm.sigla if of.obm else 'OBM não encontrada' for of in militar.obm_funcoes],
             'funcoes': [of.funcao.ocupacao if of.funcao else 'Função não encontrada' for of in
                         militar.obm_funcoes],
+            'posto_grad': militar.posto_grad.sigla if militar.posto_grad else '',
+            'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
         }
         for militar in militares_paginados.items
