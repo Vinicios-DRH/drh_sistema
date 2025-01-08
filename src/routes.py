@@ -1070,87 +1070,45 @@ def exibir_militar(militar_id):
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER')
 def militares():
-    form_militar = FormMilitar()
-
-    form_militar.obm_ids_1.choices = [
-                                         ('', '-- Selecione OBM --')
-                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_militar.obm_ids_2.choices = [
-                                         ('', '-- Selecione OBM --')
-                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_militar.posto_grad_id.choices = [
-                                             ('', '-- Selecione Posto/Grad --')
-                                         ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_militar.quadro_id.choices = [
-                                         ('', '-- Selecione Quadro --')
-                                     ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
-    form_militar.especialidade_id.choices = [
-                                                ('', '-- Selecione Especialidade --')
-                                            ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
-                                                 Especialidade.query.all()]
-    form_militar.localidade_id.choices = [
-                                             ('', '-- Selecione Localidade --')
-                                         ] + [(localidade.id, localidade.sigla) for localidade in
-                                              Localidade.query.all()]
-    form_militar.situacao_id.choices = [
-                                           ('', '-- Selecione Situação --')
-                                       ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
-    form_militar.funcao_ids_1.choices = [
-                                            ('', '-- Selecione Função --')] + [(funcao.id, funcao.ocupacao) for
-                                                                               funcao in Funcao.query.all()]
-
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
 
-    query = Militar.query
+    # Consulta paginada com pré-carregamento de relações
+    query = Militar.query.options(
+        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
+        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao)
+    )
     if search:
         query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
-    militares_paginados = query.paginate(page=page, per_page=500)
+    militares_paginados = query.paginate(page=page, per_page=100)  # Reduzir per_page melhora desempenho
 
-    militares = []
-    for militar in militares_paginados.items:
-        especialidade = Especialidade.query.get(militar.especialidade_id)
-        # posto_grad = PostoGrad.query.get(militar.posto_grad_id)
-        # quadro = Quadro.query.get(militar.quadro_id)
-        # situacao = Situacao.query.get(militar.situacao_id)
-        # agregacoes = Agregacoes.query.get(militar.agregacoes_id)
-        # destino = Destino.query.get(militar.destino_id)
-        # localidade = Localidade.query.get(militar.localidade_id)
-
-        obm_funcoes_ativas = MilitarObmFuncao.query.filter_by(militar_id=militar.id).filter(
-            MilitarObmFuncao.data_fim == None
-        ).all()
-
-        obms_ativas = [Obm.query.get(of.obm_id).sigla if Obm.query.get(of.obm_id) else 'OBM não encontrada' for of in
-                       obm_funcoes_ativas]
-        funcoes_ativas = [
-            Funcao.query.get(of.funcao_id).ocupacao if Funcao.query.get(of.funcao_id) else 'Função não encontrada' for
-            of in obm_funcoes_ativas]
-
-        militares.append({
+    # Preparar dados para renderização
+    militares = [
+        {
             'id': militar.id,
             'nome_completo': militar.nome_completo,
             'nome_guerra': militar.nome_guerra,
-            # 'especialidade': especialidade.ocupacao if especialidade else None,
             'cpf': militar.cpf,
             'rg': militar.rg,
-            # 'posto_grad_sigla': posto_grad.sigla if posto_grad else None,
-            'obms': obms_ativas,
-            'funcoes': funcoes_ativas,
-            # 'quadro': quadro.quadro if quadro else None,
-            # 'situacao': situacao.condicao if situacao else None,
-            # 'agregacoes': agregacoes.tipo if agregacoes else None,
-            # 'destino': destino.local if destino else None,
-            # 'localidade': localidade.sigla if localidade else None,
-            'matricula': militar.matricula
-        })
+            'obms': [of.obm.sigla if of.obm else 'OBM não encontrada' for of in militar.obm_funcoes],
+            'funcoes': [of.funcao.ocupacao if of.funcao else 'Função não encontrada' for of in
+                        militar.obm_funcoes],
+            'matricula': militar.matricula,
+        }
+        for militar in militares_paginados.items
+    ]
 
-    return render_template('militares.html', militares=militares, form_militar=form_militar, page=page,
-                           has_next=militares_paginados.has_next,
-                           has_prev=militares_paginados.has_prev,
-                           next_page=militares_paginados.next_num,
-                           prev_page=militares_paginados.prev_num)
+    return render_template(
+        'militares.html',
+        militares=militares,
+        page=page,
+        has_next=militares_paginados.has_next,
+        has_prev=militares_paginados.has_prev,
+        next_page=militares_paginados.next_num,
+        prev_page=militares_paginados.prev_num
+    )
+
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])
 @login_required
