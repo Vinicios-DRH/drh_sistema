@@ -22,7 +22,7 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta
 from io import BytesIO
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import joinedload, selectinload, aliased
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
