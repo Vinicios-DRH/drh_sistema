@@ -5,7 +5,8 @@
     <div class="mt-3">
         <h3>Militares</h3>
         <form method="get" action="{{ url_for('militares') }}">
-            <input type="text" name="search" placeholder="Buscar militar..." value="{{ request.args.get('search', '') }}" class="form-control mb-3" style="width: 300px;">
+            <input type="text" name="search" placeholder="Buscar militar..."
+                   value="{{ request.args.get('search', '') }}" class="form-control mb-3" style="width: 300px;">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
 
@@ -15,20 +16,11 @@
                 <tr>
                     <th>Nome Completo</th>
                     <th>Nome de Guerra</th>
-<!--                     <th>Especialidade</th> -->
                     <th>CPF</th>
                     <th>RG</th>
                     <th>Matrícula</th>
-<!--                     <th>Posto/Grad</th> -->
-                    <th>OBM 1</th>
-                    <th>Função 1</th>
-                    <th>OBM 2</th>
-                    <th>Função 2</th>
-<!--                     <th>Quadro</th> -->
-<!--                     <th>Localidade</th> -->
-<!--                     <th>Situação</th> -->
-<!--                     <th>Agregações</th> -->
-<!--                     <th>Destino</th> -->
+                    <th>OBMs</th>
+                    <th>Funções</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -36,20 +28,11 @@
                 <tr>
                     <td><a href="/exibir-militar/{{ militar.id }}">{{ militar.nome_completo }}</a></td>
                     <td>{{ militar.nome_guerra }}</td>
-<!--                     <td>{{ militar.especialidade }}</td> -->
                     <td>{{ militar.cpf }}</td>
                     <td>{{ militar.rg }}</td>
                     <td>{{ militar.matricula }}</td>
-<!--                     <td>{{ militar.posto_grad_sigla }}</td> -->
-                    <td>{{ militar.obms[0] if militar.obms|length > 0 else '' }}</td>
-                    <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else '' }}</td>
-                    <td>{{ militar.obms[1] if militar.obms|length > 1 else '' }}</td>
-                    <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else '' }}</td>
-<!--                     <td>{{ militar.quadro }}</td> -->
-<!--                     <td>{{ militar.localidade }}</td> -->
-<!--                     <td>{{ militar.situacao }}</td> -->
-<!--                     <td>{{ militar.agregacoes }}</td> -->
-<!--                     <td>{{ militar.destino }}</td> -->
+                    <td>{{ militar.obms | join(', ') }}</td> <!-- Aqui foi aplicado o filtro join -->
+                    <td>{{ militar.funcoes | join(', ') }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -59,10 +42,12 @@
         <nav class="pagination-container">
             <ul class="pagination">
                 <li class="page-item {{ 'disabled' if not has_prev }}">
-                    <a class="page-link" href="{{ url_for('militares', page=prev_page, search=request.args.get('search', '')) }}">Anterior</a>
+                    <a class="page-link"
+                       href="{{ url_for('militares', page=prev_page, search=request.args.get('search', '')) }}">Anterior</a>
                 </li>
                 <li class="page-item {{ 'disabled' if not has_next }}">
-                    <a class="page-link" href="{{ url_for('militares', page=next_page, search=request.args.get('search', '')) }}">Próxima</a>
+                    <a class="page-link"
+                       href="{{ url_for('militares', page=next_page, search=request.args.get('search', '')) }}">Próxima</a>
                 </li>
             </ul>
         </nav>
