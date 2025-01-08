@@ -257,7 +257,7 @@ def adicionar_militar():
             meses=form_militar.meses.data,
             dias=form_militar.dias.data,
             total_dias=form_militar.total_dias.data or None,
-            idade_reserva_grad=form_militar.idade_reserva_grad.data or None,
+            idade_reserva_grad= 0,
             estado_civil=form_militar.estado_civil.data,
             especialidade_id=form_militar.especialidade_id.data,
             pronto=form_militar.pronto.data,
@@ -314,24 +314,24 @@ def adicionar_militar():
             ip_address=get_user_ip(),
             usuario_id=current_user.id
         )
-        arquivos = form_militar.arquivo.data
+        # arquivos = form_militar.arquivo.data
 
-        # Se for um único arquivo, transforme-o em uma lista para uniformizar o processamento
-        if not isinstance(arquivos, list):
-            arquivos = [arquivos]
+        # # Se for um único arquivo, transforme-o em uma lista para uniformizar o processamento
+        # if not isinstance(arquivos, list):
+        #     arquivos = [arquivos]
 
-        for arquivo in arquivos:
-            if isinstance(arquivo, str):
-                # Esse erro não deve acontecer se o upload foi feito corretamente, mas informe o usuário se ocorrer
-                print(f"Erro: Esperado um objeto FileStorage, mas obtido uma string: {arquivo}")
-            elif arquivo:  # Verifica se o arquivo não está vazio
-                nome_seguro = secure_filename(arquivo.filename)
-                caminho = os.path.join(os.path.abspath(os.path.dirname(__file__)), app.config["UPLOAD_FOLDER"],
-                                       nome_seguro)
-                arquivo.save(caminho)  # Salva o arquivo no caminho especificado
-                print(f"Arquivo {nome_seguro} salvo com sucesso em {caminho}")
-            else:
-                print("Erro: O arquivo está vazio ou é inválido.")
+        # for arquivo in arquivos:
+        #     if isinstance(arquivo, str):
+        #         # Esse erro não deve acontecer se o upload foi feito corretamente, mas informe o usuário se ocorrer
+        #         print(f"Erro: Esperado um objeto FileStorage, mas obtido uma string: {arquivo}")
+        #     elif arquivo:  # Verifica se o arquivo não está vazio
+        #         nome_seguro = secure_filename(arquivo.filename)
+        #         caminho = os.path.join(os.path.abspath(os.path.dirname(__file__)), app.config["UPLOAD_FOLDER"],
+        #                                nome_seguro)
+        #         arquivo.save(caminho)  # Salva o arquivo no caminho especificado
+        #         print(f"Arquivo {nome_seguro} salvo com sucesso em {caminho}")
+        #     else:
+        #         print("Erro: O arquivo está vazio ou é inválido.")
 
         database.session.add(militar)
         database.session.commit()
