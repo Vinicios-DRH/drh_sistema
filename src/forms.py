@@ -34,7 +34,7 @@ class FormMilitar(FlaskForm):
     sexo = StringField("Sexo")
     raca = StringField("Raça")
     data_nascimento = DateField("Data de Nascimento", format='%Y-%m-%d', validators=[Optional()])
-    idade_atual = IntegerField("Idade Atual", validators=[NumberRange(0, 120)])
+    # idade_atual = IntegerField("Idade Atual", validators=[NumberRange(0, 120)])
     inclusao = DateField("Inclusão", format='%Y-%m-%d')
     completa_25_inclusao = StringField("Completa 25 anos de inclusão")
     completa_30_inclusao = StringField("Completa 30 anos de inclusão")
