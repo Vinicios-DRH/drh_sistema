@@ -411,7 +411,7 @@ class Paf(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
                                  nullable=False)  # Relaciona com Militar
-    mes_usufruto = database.Column(database.Integer, database.ForeignKey('meses.id'))
+    mes_usufruto = database.Column(database.String(50))
     qtd_dias_primeiro_periodo = database.Column(database.Integer)
     primeiro_periodo_ferias = database.Column(database.Date)
     fim_primeiro_periodo = database.Column(database.Date)
@@ -425,8 +425,6 @@ class Paf(database.Model):
 
     # Relacionamentos
     militar = database.relationship('Militar', backref='ferias', lazy=True)
-    mes_usufruto_rel = database.relationship('Meses', foreign_keys=[mes_usufruto], backref='ferias_usufruto',
-                                             lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
 
