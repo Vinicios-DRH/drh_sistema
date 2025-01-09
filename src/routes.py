@@ -109,6 +109,12 @@ def login():
                 flash('Redirecionando para o painel de chefia.', 'alert-info')
                 return redirect(url_for('exibir_ferias_chefe'))
 
+            
+            # Verificação da função do usuário
+            if cpf.funcao_user_id == 6:
+                flash('Redirecionando para o painel de chefia.', 'alert-info')
+                return redirect(url_for('home'))
+
             return redirect(url_for('home'))
         else:
             flash('Falha no Login, e-mail ou senha incorretos.', 'alert-danger')
