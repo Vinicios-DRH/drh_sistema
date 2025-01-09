@@ -127,7 +127,7 @@
             {% for militar, paf in militares %}
             <tr>
                 <td>{{ militar.posto_grad.sigla }}</td>
-                <td><a href="/exibir-militar/{{ militar.id }}">{{ militar.nome_completo }}</a></td>
+                <td>{{ militar.nome_completo }}</td>
                 <td>{{ militar.matricula }}</td>
                 <td>{{ militar.quadro.quadro }}</td>
                 <td>
