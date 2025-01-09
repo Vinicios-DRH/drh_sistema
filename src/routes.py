@@ -1511,7 +1511,7 @@ def exibir_usuario(id_usuario):
         usuario.funcao_user_id = form.funcao_user_id.data
         usuario.obm_id_1 = form.obm_id_1.data
         usuario.obm_id_2 = form.obm_id_2.data
-        usuario.localidade_id = form.localidade.data
+        usuario.localidade_id = form.localidade_id.data
 
         if form.senha.data:
             usuario.senha = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
