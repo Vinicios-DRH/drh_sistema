@@ -132,7 +132,7 @@ def criar_conta():
     form_criar_usuario.funcao_user_id.choices = choices
 
     if form_criar_usuario.validate_on_submit():
-        senha_cript = bcrypt.generate_password_hash(form_criar_usuario.senha.data)
+        senha_cript = bcrypt.generate_password_hash(form_criar_usuario.senha.data).decode('utf-8')
         usuarios = User(nome=form_criar_usuario.nome.data,
                         email=form_criar_usuario.email.data,
                         funcao_user_id=form_criar_usuario.funcao_user_id.data,
