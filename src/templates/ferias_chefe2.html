@@ -177,9 +177,7 @@
                            value="{{ paf.fim_terceiro_periodo if paf }}" readonly>
                 </td>
                 <td>
-                    <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if current_user.obm1.id !=obm.id
-                            and paf %}disabled{% endif %}>Salvar
-                    </button>
+                    <button class="botao-salvar" data-militar-id="{{ militar.id }}">Salvar</button>
                 </td>
             </tr>
             {% endfor %}
