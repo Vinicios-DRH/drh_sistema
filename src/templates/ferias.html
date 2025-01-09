@@ -96,7 +96,7 @@
                                data-period="1"
                                data-militar-id="{{ militar.id }}"
                                value="{{ paf.primeiro_periodo_ferias if paf }}"
-                               min="2025-01-01"></td>
+                               min="2025-02-01"></td>
                     <td><input type="date"
                                name="fim_1_{{ militar.id }}"
                                class="form-control inicio-periodo"
@@ -122,14 +122,14 @@
                                data-period="2"
                                data-militar-id="{{ militar.id }}"
                                value="{{ paf.segundo_periodo_ferias if paf }}"
-                               min="2025-01-01"></td>
+                               min="2025-02-01"></td>
                     <td><input type="date"
                                name="fim_2_{{ militar.id }}"
                                class="form-control inicio-periodo"
                                data-period="2"
                                data-militar-id="{{ militar.id }}"
                                value="{{ paf.fim_segundo_periodo if paf }}"
-                               min="2025-01-01"></td>
+                               min="2025-02-01"></td>
 
                     <td>
                         <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
@@ -149,14 +149,14 @@
                                data-period="3"
                                data-militar-id="{{ militar.id }}"
                                value="{{ paf.terceiro_periodo_ferias if paf }}"
-                               min="2025-01-01"></td>
+                               min="2025-02-01"></td>
                     <td><input type="date"
                                name="fim_3_{{ militar.id }}"
                                class="form-control inicio-periodo"
                                data-period="3"
                                data-militar-id="{{ militar.id }}"
                                value="{{ paf.fim_terceiro_periodo if paf }}"
-                               min="2025-01-01"></td>
+                               min="2025-02-01"></td>
                     <td>
                         <button class="botao-salvar" data-militar-id="{{ militar.id }}">Salvar</button>
                     </td>
