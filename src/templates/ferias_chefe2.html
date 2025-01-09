@@ -3,30 +3,6 @@
 {% block head %}
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<script>
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const tables = document.querySelectorAll('table[id^="militaresTable_"]');
-        tables.forEach(table => {
-            $(table).DataTable({
-                dom: '<"table-controls"f>t<"table-footer"ip>',
-                scrollY: "300px",
-                scrollX: true,
-                scrollCollapse: true,
-                paging: true,
-                language: {
-                    search: "Pesquisar:",
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    paginate: {
-                        previous: "Anterior",
-                        next: "Próximo"
-                    }
-                }
-            });
-        });
-    });
-</script>
 
 <style>
     .dataTables_wrapper {
@@ -230,39 +206,48 @@
 
 <script>
     // Script para abrir o modal e exibir o gráfico
-    document.querySelectorAll('.abrir-modal').forEach(button => {
-        button.addEventListener('click', function() {
-            const obmId = this.getAttribute('data-obm-id');
-            fetch(`/grafico-ferias/${obmId}`)
-                .then(response => response.text())
-                .then(data => {
-                    let graficoImg = document.getElementById('grafico-img');
-                    graficoImg.src = 'data:image/png;base64,' + data;
+    (function () {
+        document.querySelectorAll('.abrir-modal').forEach(button => {
+            button.addEventListener('click', function () {
+                const obmId = this.getAttribute('data-obm-id');
+                fetch(`/grafico-ferias/${obmId}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        let graficoImg = document.getElementById('grafico-img');
+                        graficoImg.src = 'data:image/png;base64,' + data;
 
-                    // Exibe o modal
-                    let modal = document.getElementById('graficoModal');
-                    modal.style.display = 'block';
+                        let modal = document.getElementById('graficoModal');
+                        modal.style.display = 'block';
 
-                    // Evento para fechar o modal
-                    let span = document.getElementsByClassName('close')[0];
-                    span.onclick = function() {
-                        modal.style.display = 'none';
-                    }
-                    window.onclick = function(event) {
-                        if (event.target == modal) {
+                        let span = document.getElementsByClassName('close')[0];
+                        span.onclick = function () {
                             modal.style.display = 'none';
-                        }
-                    }
-                });
+                        };
+                        window.onclick = function (event) {
+                            if (event.target == modal) {
+                                modal.style.display = 'none';
+                            }
+                        };
+                    });
+            });
         });
-    });
+    })();
 
-    document.addEventListener('DOMContentLoaded', function () {
+    // Script principal
+    (function () {
+        const MAX_DIAS = 30;
         const maxDate = new Date('2025-12-31');
 
         function calculateEndDate(startDateInput, daysInput, endDateInput) {
             const startDate = new Date(startDateInput.value);
             const days = parseInt(daysInput.value, 10);
+            console.log(`Calculando data final: Início = ${startDateInput.value}, Dias = ${days}`);
+
+            if (isNaN(startDate.getTime()) || isNaN(days)) {
+                console.warn('Data de início inválida ou quantidade de dias inválida');
+                endDateInput.value = '';
+                return;
+            }
 
             if (!startDate || isNaN(days)) {
                 endDateInput.value = '';
@@ -280,24 +265,8 @@
             } else {
                 endDateInput.value = endDate.toISOString().split('T')[0];
             }
-        }
 
-        function setupPeriodListeners(period, militarId) {
-            const startDateInput = document.querySelector(`[name="inicio_${period}_${militarId}"]`);
-            const daysInput = document.querySelector(`[name="qtd_dias_${period}_${militarId}"]`);
-            const endDateInput = document.querySelector(`[name="fim_${period}_${militarId}"]`);
-
-            if (!startDateInput || !daysInput || !endDateInput) return;
-
-            startDateInput.addEventListener('change', () => {
-                calculateEndDate(startDateInput, daysInput, endDateInput);
-                validatePeriods(militarId); // Revalida ao alterar a data de início
-            });
-
-            daysInput.addEventListener('change', () => {
-                calculateEndDate(startDateInput, daysInput, endDateInput);
-                validatePeriods(militarId); // Revalida ao alterar a quantidade de dias
-            });
+            console.log(`Data final calculada: ${endDateInput.value}`);
         }
 
         function validatePeriods(militarId) {
@@ -322,28 +291,6 @@
             }
         }
 
-        // Configure os listeners para cada militar e período
-        document.querySelectorAll('.qtd-dias, .inicio-periodo').forEach((element) => {
-            const militarId = element.dataset.militarId;
-            const period = element.dataset.period;
-
-            if (period && militarId) {
-                setupPeriodListeners(period, militarId);
-            }
-        });
-
-        // Revalida ao alterar diretamente os períodos
-        document.querySelectorAll('.inicio-periodo').forEach((input) => {
-            input.addEventListener('change', function () {
-                const militarId = this.dataset.militarId;
-                validatePeriods(militarId);
-            });
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const MAX_DIAS = 30;
-
         function atualizarCampos(militarId) {
             const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`)?.value || 0, 10);
             const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`)?.value || 0, 10);
@@ -357,7 +304,6 @@
 
             if (!dias2Select || !dias3Select) return;
 
-            // Limpeza e ajustes
             desbloquearOpcoes(dias2Select, [10, 15, 20]);
             desbloquearOpcoes(dias3Select, [10]);
 
@@ -371,15 +317,13 @@
                 bloquearTudo(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
             }
 
-            // Verificação total de dias
             if (dias1 + dias2 >= MAX_DIAS) {
                 bloquearTudo(dias3Select, inicio3, fim3);
             }
         }
 
-
         function bloquearTudo(...elementos) {
-            elementos.forEach((el) => {
+            elementos.forEach(el => {
                 if (el) {
                     el.disabled = true;
                     if (el.tagName === 'SELECT') {
@@ -390,14 +334,14 @@
         }
 
         function desbloquearOpcoes(select, valores) {
-            Array.from(select.options).forEach((option) => {
+            Array.from(select.options).forEach(option => {
                 option.disabled = !valores.includes(parseInt(option.value, 10));
             });
             select.disabled = false;
         }
 
         function bloquearOpcoes(select, valores) {
-            Array.from(select.options).forEach((option) => {
+            Array.from(select.options).forEach(option => {
                 if (valores.includes(parseInt(option.value, 10))) {
                     option.disabled = true;
                 }
@@ -408,23 +352,43 @@
             atualizarCampos(militarId);
         }
 
-        document.querySelectorAll('.qtd-dias, .inicio-periodo').forEach((element) => {
-            const militarId = element.dataset.militarId;
-            if (militarId) {
-                inicializarValores(militarId);
-                element.addEventListener('change', () => {
-                    atualizarCampos(militarId);
-                });
-            }
-        });
+        // Função que armazena temporariamente os valores e calcula a data final assim que ambos estiverem preenchidos
+        function anexarListeners() {
+            document.querySelectorAll('.qtd-dias, .inicio-periodo').forEach(element => {
+                const militarId = element.dataset.militarId;
+                const period = element.dataset.period;
 
-        // Eventos
-        document.querySelectorAll('.qtd-dias').forEach((select) => {
-            select.addEventListener('change', (event) => {
-                const militarId = event.target.dataset.militarId;
-                atualizarCampos(militarId);
+                if (militarId && period) {
+                    const startDateInput = document.querySelector(`[name="inicio_${period}_${militarId}"]`);
+                    const daysInput = document.querySelector(`[name="qtd_dias_${period}_${militarId}"]`);
+                    const endDateInput = document.querySelector(`[name="fim_${period}_${militarId}"]`);
+
+                    let startDateValue = '';  // Armazena temporariamente a data de início
+                    let daysValue = '';       // Armazena temporariamente a quantidade de dias
+
+                    const atualizarTudo = () => {
+                        console.log(`Atualizando período ${period} do militar ${militarId}`);
+                        console.log(`Data de início: ${startDateInput.value}, Dias: ${daysInput.value}`);
+
+                        startDateValue = startDateInput.value;
+                        daysValue = daysInput.value;
+
+                        if (startDateValue && daysValue) {
+                            calculateEndDate(startDateInput, daysInput, endDateInput);
+                        }
+
+                        atualizarCampos(militarId);
+                        validatePeriods(militarId);
+                    };
+
+                    // Adiciona os listeners separados
+                    startDateInput.addEventListener('change', atualizarTudo);
+                    daysInput.addEventListener('change', atualizarTudo);
+                }
             });
-        });
+        }
+
+
 
         function enviarDados(militarId) {
             const dados = {
@@ -441,7 +405,6 @@
                 fim_3: document.querySelector(`[name="fim_3_${militarId}"]`).value,
             };
 
-            // Enviar os dados para o backend
             fetch('/pafs/update', {
                 method: 'POST',
                 headers: {
@@ -456,7 +419,7 @@
                     return response.json();
                 })
                 .then(result => {
-                    alert(result.message); // Exibe uma mensagem de sucesso
+                    alert(result.message);
                 })
                 .catch(error => {
                     console.error('Erro ao salvar os dados:', error);
@@ -464,14 +427,40 @@
                 });
         }
 
-        // Evento para enviar os dados ao backend
         document.querySelectorAll('.botao-salvar').forEach(button => {
             button.addEventListener('click', function () {
                 const militarId = this.dataset.militarId;
                 enviarDados(militarId);
             });
         });
-    });
+
+        const tables = document.querySelectorAll('table[id^="militaresTable_"]');
+        tables.forEach(table => {
+            const dataTable = $(table).DataTable({
+                dom: '<"table-controls"f>t<"table-footer"ip>',
+                scrollY: "300px",
+                scrollX: true,
+                scrollCollapse: true,
+                paging: true,
+                language: {
+                    search: "Pesquisar:",
+                    lengthMenu: "Mostrar _MENU_ registros",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    paginate: {
+                        previous: "Anterior",
+                        next: "Próximo"
+                    }
+                }
+            });
+
+            dataTable.on('draw', function () {
+                anexarListeners();
+            });
+        });
+
+        anexarListeners();
+    })();
+
 
 </script>
 {% endblock %}
