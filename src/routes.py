@@ -155,7 +155,7 @@ def criar_conta():
 
 @app.route("/adicionar-militar", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER')
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER')
 def adicionar_militar():
     form_militar = FormMilitar()
 
@@ -520,7 +520,7 @@ def verificar_arquivos():
 
 @app.route("/exibir-militar/<int:militar_id>", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER')
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER')
 def exibir_militar(militar_id):
     militar = Militar.query.get_or_404(militar_id)
 
