@@ -82,25 +82,25 @@ def login():
             cpf.ip_address = get_user_ip()
 
             # Capturar latitude e longitude do formulário
-            # latitude = request.form.get('latitude')
-            # longitude = request.form.get('longitude')
+            latitude = request.form.get('latitude')
+            longitude = request.form.get('longitude')
 
-            # # Atualizar os campos de latitude e longitude no banco de dados
-            # cpf.latitude = latitude
-            # cpf.longitude = longitude
+            # Atualizar os campos de latitude e longitude no banco de dados
+            cpf.latitude = latitude
+            cpf.longitude = longitude
 
-            # # Usar geopy com Nominatim para obter o endereço
-            # if latitude and longitude:
-            #     try:
-            #         geolocator = Nominatim(user_agent="MeuApp")
-            #         location = geolocator.reverse((latitude, longitude), exactly_one=True, zoom=18)
-            #         if location and location.address:
-            #             cpf.endereco_acesso = location.address
-            #         else:
-            #             cpf.endereco_acesso = 'Endereço não encontrado'
-            #     except GeocoderServiceError as e:
-            #         print(f"Erro na geocodificação reversa: {e}")
-            #         cpf.endereco_acesso = 'Erro na API de geocodificação'
+            # Usar geopy com Nominatim para obter o endereço
+            if latitude and longitude:
+                try:
+                    geolocator = Nominatim(user_agent="MeuApp")
+                    location = geolocator.reverse((latitude, longitude), exactly_one=True, zoom=18)
+                    if location and location.address:
+                        cpf.endereco_acesso = location.address
+                    else:
+                        cpf.endereco_acesso = 'Endereço não encontrado'
+                except GeocoderServiceError as e:
+                    print(f"Erro na geocodificação reversa: {e}")
+                    cpf.endereco_acesso = 'Erro na API de geocodificação'
 
             database.session.commit()
 
