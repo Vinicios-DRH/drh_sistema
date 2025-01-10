@@ -244,7 +244,7 @@ class User(database.Model, UserMixin):
     id = database.Column(database.Integer, primary_key=True)
     nome = database.Column(database.String(100))
     email = database.Column(database.String(50))
-    cpf = database.Column(database.String(50))
+    cpf = database.Column(database.String(50), unique=True)
     senha = database.Column(database.String(500))
     funcao_user_id = database.Column(database.Integer, database.ForeignKey('funcao_user.id'))
     obm_id_1 = database.Column(database.Integer, database.ForeignKey('obm.id'))
