@@ -1091,22 +1091,42 @@ def militares():
     militares_paginados = query.paginate(page=page, per_page=100)  # Reduzir per_page melhora desempenho
 
     # Preparar dados para renderização
-    militares = [
-        {
+    militares = []
+    for militar in militares_paginados.items:
+        # Selecionar apenas OBMs e funções ativas (data_fim is None)
+        obm_funcoes_ativas = [
+            of for of in militar.obm_funcoes if of.data_fim is None
+        ]
+
+        # Ordenar OBMs e funções ativas por data_criacao (opcional)
+        obm_funcoes_ativas = sorted(
+            obm_funcoes_ativas,
+            key=lambda of: of.data_criacao,
+            reverse=True
+        )
+
+        # Extrair OBMs e Funções ativas
+        obms_recentes = [
+            of.obm.sigla if of.obm else 'OBM não encontrada'
+            for of in obm_funcoes_ativas
+        ]
+        funcoes_recentes = [
+            of.funcao.ocupacao if of.funcao else 'Função não encontrada'
+            for of in obm_funcoes_ativas
+        ]
+
+        militares.append({
             'id': militar.id,
             'nome_completo': militar.nome_completo,
             'nome_guerra': militar.nome_guerra,
             'cpf': militar.cpf,
             'rg': militar.rg,
-            'obms': [of.obm.sigla if of.obm else 'OBM não encontrada' for of in militar.obm_funcoes],
-            'funcoes': [of.funcao.ocupacao if of.funcao else 'Função não encontrada' for of in
-                        militar.obm_funcoes],
+            'obms': obms_recentes,  # Lista com as OBMs ativas
+            'funcoes': funcoes_recentes,  # Lista com as funções ativas
             'posto_grad': militar.posto_grad.sigla if militar.posto_grad else '',
             'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
-        }
-        for militar in militares_paginados.items
-    ]
+        })
 
     return render_template(
         'militares.html',
@@ -1117,6 +1137,7 @@ def militares():
         next_page=militares_paginados.next_num,
         prev_page=militares_paginados.prev_num
     )
+
 
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])
