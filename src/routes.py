@@ -601,10 +601,10 @@ def exibir_militar(militar_id):
     form_militar.raca.data = militar.raca if militar.raca else None
 
     # Calculando a idade do militar
-    hoje = datetime.today().date()
-    idade = hoje.year - militar.data_nascimento.year - (
-            (hoje.month, hoje.day) < (militar.data_nascimento.month, militar.data_nascimento.day))
-    form_militar.idade_atual.data = idade
+    # hoje = datetime.today().date()
+    # idade = hoje.year - militar.data_nascimento.year - (
+    #         (hoje.month, hoje.day) < (militar.data_nascimento.month, militar.data_nascimento.day))
+    # form_militar.idade_atual.data = idade
 
     campos_bg = [
         'transferencia', 'situacao_militar', 'cfsd', 'cfc', 'cfs', 'cas',
