@@ -92,28 +92,21 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td><input type="date"
-                               name="inicio_1_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="1"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.primeiro_periodo_ferias if paf }}"
-                               min="2025-02-01"></td>
-                    <td><input type="date"
-                               name="fim_1_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="1"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.fim_primeiro_periodo if paf }}"
-                               min="2025-02-01"></td>
+                    <td><<input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
+                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-02-01" max="2025-12-31"
+                                {% if paf and paf.mes_usufruto== 'Janeiro' %}disabled{% endif %}>
+                    <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
+                               value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
 
                     <td>
+
                         <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
                                 data-militar-id="{{ militar.id }}">
                             <option value="">Selecione...</option>
                             {% for dias in [10, 15, 20] %}
                             <option value="{{ dias }}" {% if paf and paf.qtd_dias_segundo_periodo== dias %}selected{%
-                                    endif %}>{{ dias }}
+                                    endif
+                                    %}>{{ dias }}
                             </option>
                             {% endfor %}
                         </select>
