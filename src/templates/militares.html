@@ -35,8 +35,16 @@
                     <td>{{ militar.cpf }}</td>
                     <td>{{ militar.rg }}</td>
                     <td>{{ militar.matricula }}</td>
-                    <td>{{ militar.obms | join(', ') }}</td> <!-- Aqui foi aplicado o filtro join -->
-                    <td>{{ militar.funcoes | join(', ') }}</td>
+                    <td>
+                        {% for obm in militar.obms %}
+                        {{ obm }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td><!-- Aqui foi aplicado o filtro join -->
+                    <td>
+                        {% for funcao in militar.funcoes %}
+                        {{ funcao }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
                 </tr>
                 {% endfor %}
                 </tbody>
