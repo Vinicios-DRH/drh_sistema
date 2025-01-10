@@ -252,8 +252,6 @@ class User(database.Model, UserMixin):
     localidade_id = database.Column(database.Integer, database.ForeignKey('localidade.id'))
 
     ip_address = database.Column(database.String(45))
-    latitude = database.Column(database.String(50))
-    longitude = database.Column(database.String(50))
     data_criacao = database.Column(database.DateTime, default=datetime.utcnow())
     data_ultimo_acesso = database.Column(database.DateTime, default=datetime.utcnow())
     endereco_acesso = database.Column(database.String(100))
