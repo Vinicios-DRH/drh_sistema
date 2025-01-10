@@ -92,7 +92,7 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td><<input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
+                    <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
                                 value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-02-01" max="2025-12-31"
                                 {% if paf and paf.mes_usufruto== 'Janeiro' %}disabled{% endif %}>
                     <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
