@@ -1551,6 +1551,11 @@ def exibir_usuario(id_usuario):
 @app.route('/perfil/<int:id_usuario>', methods=['GET', 'POST'])
 @login_required
 def perfil(id_usuario):
+    # Verificar se o usuário logado está acessando seu próprio perfil
+    if current_user.id != id_usuario:
+        flash('Você não tem permissão para acessar este perfil.', 'alert-danger')
+        return redirect(url_for('home'))
+    
     usuario = User.query.get_or_404(id_usuario)
 
     usuario_info = User.query \
