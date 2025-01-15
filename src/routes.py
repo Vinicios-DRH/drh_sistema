@@ -1548,6 +1548,53 @@ def exibir_usuario(id_usuario):
     return render_template('usuario_detalhes.html', usuario=usuario_info, form=form)
 
 
+@app.route('/perfil/<int:id_usuario>', methods=['GET', 'POST'])
+@login_required
+def perfil(id_usuario):
+    usuario = User.query.get_or_404(id_usuario)
+
+    usuario_info = User.query \
+        .join(FuncaoUser, User.funcao_user_id == FuncaoUser.id) \
+        .add_columns(User.nome, User.cpf, User.id, User.email,
+                     FuncaoUser.ocupacao.label('funcao_ocupacao')) \
+        .filter(User.id == id_usuario) \
+        .first_or_404()
+
+    form = FormCriarUsuario(obj=usuario)
+    form.current_user_id = id_usuario
+    form.funcao_user_id.choices = [(funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
+    form.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
+                                                                   Obm.query.all()]
+    form.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
+                                                                   Obm.query.all()]
+    form.localidade_id.choices = [
+                                     ('', '-- Selecione uma opção --')
+                                 ] + [(localidade.id, localidade.sigla) for localidade in
+                                      Localidade.query.all()]
+
+    if form.validate_on_submit():
+        usuario.nome = form.nome.data
+        usuario.email = form.email.data
+        usuario.cpf = form.cpf.data
+        usuario.funcao_user_id = form.funcao_user_id.data
+        usuario.obm_id_1 = form.obm_id_1.data
+        usuario.obm_id_2 = form.obm_id_2.data
+        usuario.localidade_id = form.localidade_id.data
+
+        if form.senha.data:
+            usuario.senha = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+
+        try:
+            database.session.commit()
+            flash('Usuário atualizado com sucesso!', 'alert-success')
+            return redirect(url_for('home', id_usuario=id_usuario))
+        except Exception as e:
+            database.session.rollback()
+            flash(f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
+
+    return render_template('perfil.html', usuario=usuario_info, form=form)
+    
+
 @app.route("/exportar-pafs/<string:tabela>")
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER')
