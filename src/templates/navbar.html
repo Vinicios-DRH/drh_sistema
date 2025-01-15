@@ -16,7 +16,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
-                <strong class="offcanvas-title">{{ current_user.nome }}</strong> <br>
+                <a href="{{ url_for('perfil', id_usuario=current_user.id) }}"><strong class="offcanvas-title">{{ current_user.nome }}</strong></a> <br>
                 <strong class="offcanvas-title" style="color: rgba(0, 191, 255, 1)">
                     {% if current_user.is_authenticated %}
                     {{ current_user.obm1.sigla }}
