@@ -1757,8 +1757,9 @@ def exibir_ferias_chefe():
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
             .filter(
-                (MilitarObmFuncao.obm_id == current_user.obm_id_1) |
-                (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)
+                ((MilitarObmFuncao.obm_id == current_user.obm_id_1) |
+                 (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)) &
+                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
             )
             .all()
         )
@@ -1766,7 +1767,10 @@ def exibir_ferias_chefe():
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(MilitarObmFuncao.obm_id == current_user.obm_id_2)
+            .filter(
+                (MilitarObmFuncao.obm_id == current_user.obm_id_2) &
+                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
+            )
             .all()
         )
     else:
@@ -1776,8 +1780,9 @@ def exibir_ferias_chefe():
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
             .filter(
-                (MilitarObmFuncao.obm_id == current_user.obm_id_1) |
-                (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)
+                ((MilitarObmFuncao.obm_id == current_user.obm_id_1) |
+                 (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)) &
+                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
             )
             .all()
         )
@@ -1785,7 +1790,10 @@ def exibir_ferias_chefe():
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(MilitarObmFuncao.obm_id == current_user.obm_id_2)
+            .filter(
+                (MilitarObmFuncao.obm_id == current_user.obm_id_2) &
+                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
+            )
             .all()
         )
 
