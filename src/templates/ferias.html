@@ -71,8 +71,7 @@
                             <option value="">Selecione...</option>
                             {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
                             'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
-                            <option value="{{ mes }}">
-                                {% if paf and paf.mes_usufruto== mes %}selected{% endif %}
+                            <option value="{{ mes }}"{% if paf and paf.mes_usufruto== mes %}selected{% endif %}>
                                 {{ mes }}
                             </option>
                             {% endfor %}
