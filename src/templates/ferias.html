@@ -71,7 +71,7 @@
                             <option value="">Selecione...</option>
                             {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
                             'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
-                            <option value="{{ mes }}"{% if paf and paf.mes_usufruto== mes %}selected{% endif %}>
+                            <option value="{{ mes }}" {% if paf and paf.mes_usufruto== mes %}selected{% endif %}>
                                 {{ mes }}
                             </option>
                             {% endfor %}
@@ -89,7 +89,7 @@
                         </select>
                     </td>
                     <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
-                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31">
+                               value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31">
                     <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
                                value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
 
