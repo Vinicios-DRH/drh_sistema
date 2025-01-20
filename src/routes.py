@@ -1191,59 +1191,41 @@ def tabela_militares():
                 query = query.filter(Militar.situacao_id == situacao_id)
 
             query = query.distinct()  # Evitar duplicações
-            militares_filtrados = query.all()
+            militares_filtrados_query = query.all()
 
-            # Limpar a sessão antes de armazenar novos dados
-            session['militares_filtrados'] = []
-
-            # Adicionando OBMs e funções ativas aos militares
-            for militar in militares_filtrados:
-                # Filtrar apenas as relações OBM + Função ativas (sem data_fim)
+            # Preparar os dados para o template
+            for militar in militares_filtrados_query:
+                # Buscar relações OBM + Função ativas
                 obm_funcoes_ativas = MilitarObmFuncao.query.filter_by(militar_id=militar.id).filter(
                     MilitarObmFuncao.data_fim == None
                 ).all()
 
-                # Coletar as siglas das OBMs e ocupações das Funções ativas
-                obms_ativas = [Obm.query.get(of.obm_id).sigla if Obm.query.get(of.obm_id) else 'OBM não encontrada' for
-                               of in obm_funcoes_ativas]
-                funcoes_ativas = [Funcao.query.get(of.funcao_id).ocupacao if Funcao.query.get(
-                    of.funcao_id) else 'Função não encontrada' for of in obm_funcoes_ativas]
+                obms_ativas = [
+                    Obm.query.get(of.obm_id).sigla if Obm.query.get(of.obm_id) else 'OBM não encontrada'
+                    for of in obm_funcoes_ativas
+                ]
+                funcoes_ativas = [
+                    Funcao.query.get(of.funcao_id).ocupacao if Funcao.query.get(
+                        of.funcao_id) else 'Função não encontrada'
+                    for of in obm_funcoes_ativas
+                ]
 
-                militar.obms = obms_ativas
-                militar.funcoes = funcoes_ativas
-
-                militar.posto_grad = PostoGrad.query.get(
-                    militar.posto_grad_id).sigla if militar.posto_grad_id else 'Posto/Graduação não encontrada'
-                militar.quadro = Quadro.query.get(
-                    militar.quadro_id).quadro if militar.quadro_id else 'Quadro não encontrado'
-                militar.especialidade = Especialidade.query.get(
-                    militar.especialidade_id).ocupacao if militar.especialidade_id else 'Especialidade não encontrada'
-                militar.localidade = Localidade.query.get(
-                    militar.localidade_id).sigla if militar.localidade_id else 'Localidade não encontrada'
-                militar.situacao = Situacao.query.get(
-                    militar.situacao_id).condicao if militar.situacao_id else 'Situação não encontrada'
-
-                militar_info = {
-                    'Nome Completo': militar.nome_completo,
-                    'Nome de Guerra': militar.nome_guerra,
-                    'CPF': militar.cpf,
-                    'RG': militar.rg,
-                    'Matrícula': militar.matricula,
-                    'Posto/Graduação': PostoGrad.query.get(
-                        militar.posto_grad_id).sigla if militar.posto_grad_id else 'N/A',
-                    'Quadro': Quadro.query.get(militar.quadro_id).quadro if militar.quadro_id else 'N/A',
-                    'Especialidade': Especialidade.query.get(
+                militares_filtrados.append({
+                    'id': militar.id,
+                    'nome_completo': militar.nome_completo,
+                    'nome_guerra': militar.nome_guerra,
+                    'cpf': militar.cpf,
+                    'rg': militar.rg,
+                    'matricula': militar.matricula,
+                    'posto_grad': PostoGrad.query.get(militar.posto_grad_id).sigla if militar.posto_grad_id else 'N/A',
+                    'quadro': Quadro.query.get(militar.quadro_id).quadro if militar.quadro_id else 'N/A',
+                    'especialidade': Especialidade.query.get(
                         militar.especialidade_id).ocupacao if militar.especialidade_id else 'N/A',
-                    'Localidade': Localidade.query.get(militar.localidade_id).sigla if militar.localidade_id else 'N/A',
-                    'Situação': Situacao.query.get(militar.situacao_id).condicao if militar.situacao_id else 'N/A',
-                    'OBM 1': obms_ativas[0] if len(obms_ativas) > 0 else 'N/A',
-                    'Função 1': funcoes_ativas[0] if len(funcoes_ativas) > 0 else 'N/A',
-                    'OBM 2': obms_ativas[1] if len(obms_ativas) > 1 else 'N/A',
-                    'Função 2': funcoes_ativas[1] if len(funcoes_ativas) > 1 else 'N/A'
-                }
-                if 'militares_filtrados' not in session:
-                    session['militares_filtrados'] = []
-                session['militares_filtrados'].append(militar_info)
+                    'localidade': Localidade.query.get(militar.localidade_id).sigla if militar.localidade_id else 'N/A',
+                    'situacao': Situacao.query.get(militar.situacao_id).condicao if militar.situacao_id else 'N/A',
+                    'obms': obms_ativas,
+                    'funcoes': funcoes_ativas,
+                })
 
         return render_template('relacao_militares.html', militares=militares_filtrados)
 
