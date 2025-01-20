@@ -1075,6 +1075,35 @@ def exibir_militar(militar_id):
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER')
 def militares():
+    form_militar = FormMilitar()
+
+    form_militar.obm_ids_1.choices = [
+                                         ('', '-- Selecione OBM --')
+                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_militar.obm_ids_2.choices = [
+                                         ('', '-- Selecione OBM --')
+                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_militar.posto_grad_id.choices = [
+                                             ('', '-- Selecione Posto/Grad --')
+                                         ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_militar.quadro_id.choices = [
+                                         ('', '-- Selecione Quadro --')
+                                     ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
+    form_militar.especialidade_id.choices = [
+                                                ('', '-- Selecione Especialidade --')
+                                            ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
+                                                 Especialidade.query.all()]
+    form_militar.localidade_id.choices = [
+                                             ('', '-- Selecione Localidade --')
+                                         ] + [(localidade.id, localidade.sigla) for localidade in
+                                              Localidade.query.all()]
+    form_militar.situacao_id.choices = [
+                                           ('', '-- Selecione Situação --')
+                                       ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
+    form_militar.funcao_ids_1.choices = [
+                                            ('', '-- Selecione Função --')] + [(funcao.id, funcao.ocupacao) for
+                                                                               funcao in Funcao.query.all()]
+    
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
 
