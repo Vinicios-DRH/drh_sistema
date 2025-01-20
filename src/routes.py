@@ -1160,6 +1160,7 @@ def militares():
     return render_template(
         'militares.html',
         militares=militares,
+        form_militar=form_militar,
         page=page,
         has_next=militares_paginados.has_next,
         has_prev=militares_paginados.has_prev,
