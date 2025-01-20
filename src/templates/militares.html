@@ -4,6 +4,9 @@
 <section class="py-3 py-md-5 mt-2">
     <div class="mt-3">
         <h3>Militares</h3>
+        <button style="text-decoration: none" href="#" class="btn btn-primary" id="btn-filtro" data-bs-toggle="modal"
+                data-bs-target="#filtrarMilitar">Filtros avançados
+        </button>
         <form method="get" action="{{ url_for('militares') }}">
             <input type="text" name="search" placeholder="Buscar militar..."
                    value="{{ request.args.get('search', '') }}" class="form-control mb-3" style="width: 300px;">
@@ -65,4 +68,65 @@
         </nav>
     </div>
 </section>
+
+<div class="modal fade " id="filtrarMilitar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Filtros Avançados</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4 p-xl-5">
+                <form class="row g-3" id="formFiltros" method="POST" action="{{ url_for('tabela_militares') }}">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.obm_ids_1.label(class="form-control-label") }}
+                            {{ form_militar.obm_ids_1(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.posto_grad_id.label(class="form-control-label") }}
+                            {{ form_militar.posto_grad_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.quadro_id.label(class="form-control-label") }}
+                            {{ form_militar.quadro_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.especialidade_id.label(class="form-control-label") }}
+                            {{ form_militar.especialidade_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.localidade_id.label(class="form-control-label") }}
+                            {{ form_militar.localidade_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.situacao_id.label(class="form-control-label") }}
+                            {{ form_militar.situacao_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_militar.funcao_ids_1.label(class="form-control-label") }}
+                            {{ form_militar.funcao_ids_1(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnEnviarFiltros">Filtrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
