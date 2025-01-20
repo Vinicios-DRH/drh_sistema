@@ -1910,8 +1910,6 @@ def update_paf():
     data = request.form
     militar_id = data.get('militar_id')
 
-    print(data)
-
     # Busca ou cria um registro na tabela Paf
     paf = Paf.query.filter_by(militar_id=militar_id).first()
     if not paf:
@@ -1921,7 +1919,6 @@ def update_paf():
     mes_usufruto = data.get('mes_usufruto')
     qtd_dias_primeiro_periodo = int(data.get('qtd_dias_1') or 0)
     primeiro_periodo_inicio = parse_date(data.get('inicio_1'))
-    print("Inicio 1:", primeiro_periodo_inicio)
     primeiro_periodo_fim = parse_date(data.get('fim_1'))
 
     qtd_dias_segundo_periodo = int(data.get('qtd_dias_2') or 0)
