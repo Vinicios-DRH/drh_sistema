@@ -378,6 +378,9 @@ class Militar(database.Model):
     obm_funcoes = database.relationship('MilitarObmFuncao', back_populates='militar', lazy=True)
     posto_grad = database.relationship('PostoGrad', foreign_keys=[posto_grad_id])
     quadro = database.relationship('Quadro', foreign_keys=[quadro_id])
+    especialidade = database.relationship('Especialidade', backref='militares', foreign_keys=[especialidade_id])
+    localidade = database.relationship('Localidade', backref='militares_loc', foreign_keys=[localidade_id])
+    situacao = database.relationship('Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
 
 
 class MilitarObmFuncao(database.Model):
