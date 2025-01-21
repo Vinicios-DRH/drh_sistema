@@ -1759,6 +1759,9 @@ def exibir_ferias():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
+    if current_user.is_authenticated:
+        flash('O período para alteração de férias acabou, a próxima janela abre dia 19/02/2025!', 'alert-info')
+    
     # Lista de OBMs adicionais para obm_id_1 == 16
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 
