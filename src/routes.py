@@ -1175,93 +1175,93 @@ def militares():
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER')
 def tabela_militares():
     try:
-        militares_filtrados = []
+        page = request.args.get('page', 1, type=int)
+        search = request.args.get('search', '', type=str)
+        query = Militar.query.options(
+            joinedload(Militar.posto_grad),
+            joinedload(Militar.quadro),
+            joinedload(Militar.especialidade),
+            joinedload(Militar.localidade),
+            joinedload(Militar.situacao),
+            joinedload(Militar.obm_funcoes)
+        )
+
+        # Filtro de busca por nome
+        if search:
+            query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
         if request.method == 'POST':
-            # Recebendo dados do formulário
-            obm_id = request.form.get('obm_ids_1')  # Captura apenas um único ID de OBM
-            posto_grad_id = request.form.get('posto_grad_id')
-            quadro_id = request.form.get('quadro_id')
-            especialidade = request.form.get('especialidade_id')
-            localidade = request.form.get('localidade_id')
-            situacao_id = request.form.get('situacao_id')
-            funcao_id = request.form.get('funcao_ids_1')
+            # Captura os filtros do formulário
+            filters = {
+                'obm_id': request.form.get('obm_ids_1'),
+                'funcao_id': request.form.get('funcao_ids_1'),
+                'posto_grad_id': request.form.get('posto_grad_id'),
+                'quadro_id': request.form.get('quadro_id'),
+                'especialidade': request.form.get('especialidade_id'),
+                'localidade': request.form.get('localidade_id'),
+                'situacao_id': request.form.get('situacao_id'),
+            }
 
-            # Aliases para MilitarObmFuncao
-            militar_obm_funcao_obm = aliased(MilitarObmFuncao)
-            militar_obm_funcao_funcao = aliased(MilitarObmFuncao)
-
-            # Iniciar a query base
-            query = Militar.query
-
-            # Filtrar por OBM
-            if obm_id:
-                query = query.join(militar_obm_funcao_obm).filter(
-                    militar_obm_funcao_obm.obm_id == obm_id,
-                    militar_obm_funcao_obm.data_fim == None  # Filtra OBMs ativas
+            # Aplicar filtros
+            if filters['obm_id']:
+                query = query.join(MilitarObmFuncao).filter(
+                    MilitarObmFuncao.obm_id == filters['obm_id'],
+                    MilitarObmFuncao.data_fim.is_(None)
                 )
-
-            # Filtrar por função
-            if funcao_id:
-                query = query.join(militar_obm_funcao_funcao).filter(
-                    militar_obm_funcao_funcao.funcao_id == funcao_id,
-                    militar_obm_funcao_funcao.data_fim == None
+            if filters['funcao_id']:
+                query = query.join(MilitarObmFuncao).filter(
+                    MilitarObmFuncao.funcao_id == filters['funcao_id'],
+                    MilitarObmFuncao.data_fim.is_(None)
                 )
+            for field, value in filters.items():
+                if value and field not in ['obm_id', 'funcao_id']:
+                    query = query.filter(getattr(Militar, field) == value)
 
-            # Filtrar por outras condições
-            if posto_grad_id:
-                query = query.filter(Militar.posto_grad_id == posto_grad_id)
-            if quadro_id:
-                query = query.filter(Militar.quadro_id == quadro_id)
-            if especialidade:
-                query = query.filter(Militar.especialidade_id == especialidade)
-            if localidade:
-                query = query.filter(Militar.localidade_id == localidade)
-            if situacao_id:
-                query = query.filter(Militar.situacao_id == situacao_id)
+        query = query.order_by(Militar.nome_completo.asc())
 
-            query = query.distinct()  # Evitar duplicações
-            militares_filtrados_query = query.all()
+        # Paginação
+        militares_paginados = query.paginate(page=page, per_page=100, error_out=False)
 
-            # Preparar os dados para o template
-            for militar in militares_filtrados_query:
-                # Buscar relações OBM + Função ativas
-                obm_funcoes_ativas = MilitarObmFuncao.query.filter_by(militar_id=militar.id).filter(
-                    MilitarObmFuncao.data_fim == None
-                ).all()
+        # Preparar dados para o template
+        militares_filtrados = []
+        for militar in militares_paginados.items:
+            obm_funcoes_ativas = [
+                {
+                    'obm': of.obm.sigla if of.obm else 'OBM não encontrada',
+                    'funcao': of.funcao.ocupacao if of.funcao else 'Função não encontrada'
+                }
+                for of in militar.obm_funcoes if of.data_fim is None
+            ]
 
-                obms_ativas = [
-                    Obm.query.get(of.obm_id).sigla if Obm.query.get(of.obm_id) else 'OBM não encontrada'
-                    for of in obm_funcoes_ativas
-                ]
-                funcoes_ativas = [
-                    Funcao.query.get(of.funcao_id).ocupacao if Funcao.query.get(
-                        of.funcao_id) else 'Função não encontrada'
-                    for of in obm_funcoes_ativas
-                ]
+            militares_filtrados.append({
+                'id': militar.id,
+                'nome_completo': militar.nome_completo,
+                'nome_guerra': militar.nome_guerra,
+                'cpf': militar.cpf,
+                'rg': militar.rg,
+                'matricula': militar.matricula,
+                'posto_grad': militar.posto_grad.sigla if militar.posto_grad else 'N/A',
+                'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
+                'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
+                'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
+                'situacao': militar.situacao.condicao if militar.situacao else 'N/A',
+                'obms': [item['obm'] for item in obm_funcoes_ativas],
+                'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
+            })
 
-                militares_filtrados.append({
-                    'id': militar.id,
-                    'nome_completo': militar.nome_completo,
-                    'nome_guerra': militar.nome_guerra,
-                    'cpf': militar.cpf,
-                    'rg': militar.rg,
-                    'matricula': militar.matricula,
-                    'posto_grad': PostoGrad.query.get(militar.posto_grad_id).sigla if militar.posto_grad_id else 'N/A',
-                    'quadro': Quadro.query.get(militar.quadro_id).quadro if militar.quadro_id else 'N/A',
-                    'especialidade': Especialidade.query.get(
-                        militar.especialidade_id).ocupacao if militar.especialidade_id else 'N/A',
-                    'localidade': Localidade.query.get(militar.localidade_id).sigla if militar.localidade_id else 'N/A',
-                    'situacao': Situacao.query.get(militar.situacao_id).condicao if militar.situacao_id else 'N/A',
-                    'obms': obms_ativas,
-                    'funcoes': funcoes_ativas,
-                })
-
-        return render_template('relacao_militares.html', militares=militares_filtrados)
+        return render_template(
+            'relacao_militares.html',
+            militares=militares_filtrados,
+            page=page,
+            has_next=militares_paginados.has_next,
+            has_prev=militares_paginados.has_prev,
+            next_page=militares_paginados.next_num if militares_paginados.has_next else None,
+            prev_page=militares_paginados.prev_num if militares_paginados.has_prev else None
+        )
 
     except Exception as e:
-        print(f"Erro ao processar a requisição: {e}")
-        return jsonify({'error': 'Ocorreu um erro ao processar a requisição.'}), 500
+        app.logger.error(f"Erro ao processar a requisição: {str(e)}")
+        return jsonify({'error': 'Ocorreu um erro ao processar a requisição.', 'details': str(e)}), 500
 
 
 @app.route("/export-excel", methods=["GET"])
