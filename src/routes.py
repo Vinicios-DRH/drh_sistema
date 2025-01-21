@@ -1186,6 +1186,8 @@ def tabela_militares():
             joinedload(Militar.obm_funcoes)
         )
 
+        total_militares = query.count()
+
         # Filtro de busca por nome
         if search:
             query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
@@ -1216,6 +1218,8 @@ def tabela_militares():
             for field, value in filters.items():
                 if value and field not in ['obm_id', 'funcao_id']:
                     query = query.filter(getattr(Militar, field) == value)
+
+        militares_filtrados_count = query.count()
 
         query = query.order_by(Militar.nome_completo.asc())
 
@@ -1256,7 +1260,9 @@ def tabela_militares():
             has_next=militares_paginados.has_next,
             has_prev=militares_paginados.has_prev,
             next_page=militares_paginados.next_num if militares_paginados.has_next else None,
-            prev_page=militares_paginados.prev_num if militares_paginados.has_prev else None
+            prev_page=militares_paginados.prev_num if militares_paginados.has_prev else None,
+            total_militares=total_militares,
+            militares_filtrados_count=militares_filtrados_count
         )
 
     except Exception as e:
