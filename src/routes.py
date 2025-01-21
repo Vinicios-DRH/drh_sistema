@@ -1223,12 +1223,12 @@ def tabela_militares():
 
         query = query.order_by(Militar.nome_completo.asc())
 
-        # Paginação
-        militares_paginados = query.paginate(page=page, per_page=100, error_out=False)
+        # Retorna todos os resultados
+        militares_filtrados = query.all()
 
         # Preparar dados para o template
-        militares_filtrados = []
-        for militar in militares_paginados.items:
+        militares_filtrados_data = []
+        for militar in militares_filtrados:
             obm_funcoes_ativas = [
                 {
                     'obm': of.obm.sigla if of.obm else 'OBM não encontrada',
@@ -1237,7 +1237,7 @@ def tabela_militares():
                 for of in militar.obm_funcoes if of.data_fim is None
             ]
 
-            militares_filtrados.append({
+            militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
                 'nome_guerra': militar.nome_guerra,
@@ -1255,14 +1255,9 @@ def tabela_militares():
 
         return render_template(
             'relacao_militares.html',
-            militares=militares_filtrados,
-            page=page,
-            has_next=militares_paginados.has_next,
-            has_prev=militares_paginados.has_prev,
-            next_page=militares_paginados.next_num if militares_paginados.has_next else None,
-            prev_page=militares_paginados.prev_num if militares_paginados.has_prev else None,
+            militares=militares_filtrados_data,
             total_militares=total_militares,
-            militares_filtrados_count=militares_filtrados_count
+            militares_filtrados_count=len(militares_filtrados_data)
         )
 
     except Exception as e:
