@@ -3,6 +3,16 @@
 {% block head %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+
+<script>
+    $(document).ready(function () {
+        $('#example').DataTable({
+            paging: true,  // Desativa a paginação no DataTables
+            searching: false,  // Desativa a busca no DataTables
+            info: true,  // Desativa as informações de paginação
+        });
+    });
+</script>
 {% endblock %}
 
 {% block body %}
@@ -66,41 +76,7 @@
                 </tbody>
             </table>
         </div>
-        <!-- Paginação -->
-        {% if pagination and pagination.pages > 1 %}
-        <nav aria-label="Navegação de página">
-            <ul class="pagination justify-content-center">
-                {% if pagination.has_prev %}
-                <li class="page-item">
-                    <a class="page-link"
-                       href="{{ url_for(request.endpoint, page=pagination.prev_num, **request.args) }}"
-                       aria-label="Anterior">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% endif %}
-                {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
-                {% if page_num %}
-                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for(request.endpoint, page=page_num, **request.args) }}">{{
-                        page_num }}</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
-                {% endif %}
-                {% endfor %}
-                {% if pagination.has_next %}
-                <li class="page-item">
-                    <a class="page-link"
-                       href="{{ url_for(request.endpoint, page=pagination.next_num, **request.args) }}"
-                       aria-label="Próximo">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+
     </div>
 </section>
 {% endblock %}
