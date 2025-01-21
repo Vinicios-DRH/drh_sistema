@@ -11,6 +11,10 @@
         <div class="table-responsive">
             <h2>Relação de Militares</h2>
             <a class="btn btn-primary mb-3" href="{{ url_for('export_excel') }}">Baixar Excel</a>
+            <div>
+                <p><strong>{{ militares_filtrados_count }}</strong> militares de <strong>{{ total_militares }}</strong>
+                </p>
+            </div>
             <table id="example" class="table table-bordered table-striped" style="width:100%">
                 <thead>
                 <tr>
