@@ -19,7 +19,7 @@ def obter_estatisticas_militares():
     ).count()
 
     pracas = Militar.query.filter(
-        Militar.posto_grad_id.in_([6, 5, 4, 3, 2, 1])
+        Militar.posto_grad_id.in_([16, 7, 6, 5, 4, 3, 2, 1])
     ).count()
 
     a_disposicao = MilitaresADisposicao.query.count()
