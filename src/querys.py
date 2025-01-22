@@ -103,13 +103,13 @@ def obter_estatisticas_militares():
     )).count()
 
     qcobm_al_01 = Militar.query.filter(and_(
-        Militar.posto_grad_id == 7,
+        Militar.posto_grad_id == 8,
         Militar.quadro_id == 5
     )).count()
 
     qobm_al_01 = Militar.query.filter(and_(
         Militar.posto_grad_id == 7,
-        Militar.quadro_id == 2,
+        Militar.quadro_id == 7,
         Militar.especialidade_id == 3
     )).count()
 
