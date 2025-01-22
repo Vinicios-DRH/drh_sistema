@@ -1216,8 +1216,13 @@ def tabela_militares():
                     MilitarObmFuncao.data_fim.is_(None)
                 )
             for field, value in filters.items():
-                if value and field not in ['obm_id', 'funcao_id']:
-                    query = query.filter(getattr(Militar, field) == value)
+                if value:
+                    if field == 'localidade':
+                        query = query.filter(Militar.localidade.has(id=value))
+                    elif field == 'especialidade':
+                        query = query.filter(Militar.especialidade.has(id=value))
+                    elif field not in ['obm_id', 'funcao_id']:
+                        query = query.filter(getattr(Militar, field) == value)
 
         militares_filtrados_count = query.count()
 
