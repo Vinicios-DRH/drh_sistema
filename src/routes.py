@@ -111,7 +111,7 @@ def login():
 
             return redirect(url_for('home'))
         else:
-            flash('Falha no Login, e-mail ou senha incorretos.', 'alert-danger')
+            flash('Falha no Login, CPF ou senha incorretos.', 'alert-danger')
 
     return render_template('login.html', form_login=form_login)
 
