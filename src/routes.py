@@ -1172,7 +1172,7 @@ def militares():
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH')
 def tabela_militares():
     try:
         page = request.args.get('page', 1, type=int)
