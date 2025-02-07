@@ -1769,87 +1769,102 @@ def exibir_ferias():
 def exibir_ferias_chefe():
     if current_user.is_authenticated:
         flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
-    
-    # Lista de OBMs adicionais para obm_id_1 == 16
+
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 
     if current_user.funcao_user_id in [1, 6]:
-        # Exibe todos os militares
-        militares_obm_1 = (
+        militares_por_obm = {}
+
+        # Obtém militares da OBM principal do usuário
+        obm1 = Obm.query.get(current_user.obm_id_1)
+        militares_por_obm[obm1] = (
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
             .filter(
-                ((MilitarObmFuncao.obm_id == current_user.obm_id_1) |
-                 (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)) &
-                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
+                MilitarObmFuncao.obm_id == current_user.obm_id_1,
+                MilitarObmFuncao.data_fim.is_(None)
             )
             .all()
         )
-        militares_obm_2 = (
-            database.session.query(Militar, Paf)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(
-                (MilitarObmFuncao.obm_id == current_user.obm_id_2) &
-                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
+
+        # Obtém militares da segunda OBM do usuário
+        if current_user.obm_id_2:
+            obm2 = Obm.query.get(current_user.obm_id_2)
+            militares_por_obm[obm2] = (
+                database.session.query(Militar, Paf)
+                .outerjoin(Paf, Paf.militar_id == Militar.id)
+                .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+                .filter(
+                    MilitarObmFuncao.obm_id == current_user.obm_id_2,
+                    MilitarObmFuncao.data_fim.is_(None)
+                )
+                .all()
             )
-            .all()
-        )
+
+        # Se a OBM principal do usuário for 16, busca militares das OBMs adicionais
+        if current_user.obm_id_1 == 16:
+            for obm_id in obms_adicionais:
+                obm = Obm.query.get(obm_id)
+                militares_por_obm[obm] = (
+                    database.session.query(Militar, Paf)
+                    .outerjoin(Paf, Paf.militar_id == Militar.id)
+                    .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+                    .filter(
+                        MilitarObmFuncao.obm_id == obm_id,
+                        MilitarObmFuncao.data_fim.is_(None)
+                    )
+                    .all()
+                )
+
     else:
-        # Filtra militares específicos para as OBMs do current_user
-        militares_obm_1 = (
+        militares_por_obm = {}
+
+        # Mesma lógica para usuários que não são diretores ou super users
+        obm1 = Obm.query.get(current_user.obm_id_1)
+        militares_por_obm[obm1] = (
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
             .filter(
-                ((MilitarObmFuncao.obm_id == current_user.obm_id_1) |
-                 (MilitarObmFuncao.obm_id.in_(obms_adicionais) if current_user.obm_id_1 == 16 else False)) &
-                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
-            )
-            .all()
-        )
-        militares_obm_2 = (
-            database.session.query(Militar, Paf)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(
-                (MilitarObmFuncao.obm_id == current_user.obm_id_2) &
-                (MilitarObmFuncao.data_fim.is_(None))  # Verifica se data_fim é None
+                MilitarObmFuncao.obm_id == current_user.obm_id_1,
+                MilitarObmFuncao.data_fim.is_(None)
             )
             .all()
         )
 
-    # Função para validar períodos de férias
-    def validar_militares(militares):
-        validos = []
-        for militar, paf in militares:
-            try:
-                if paf:
-                    # Validar cada período de férias (primeiro, segundo e terceiro)
-                    for inicio, fim, qtd_dias in [
-                        (paf.primeiro_periodo_ferias, paf.fim_primeiro_periodo, paf.qtd_dias_primeiro_periodo),
-                        (paf.segundo_periodo_ferias, paf.fim_segundo_periodo, paf.qtd_dias_segundo_periodo),
-                        (paf.terceiro_periodo_ferias, paf.fim_terceiro_periodo, paf.qtd_dias_terceiro_periodo),
-                    ]:
-                        if inicio and qtd_dias:
-                            validate_vacation_period(inicio, qtd_dias)
-                validos.append((militar, paf))
-            except ValueError as e:
-                print(f"Período inválido para o militar {militar.nome_completo}: {e}")
-        return validos
+        if current_user.obm_id_2:
+            obm2 = Obm.query.get(current_user.obm_id_2)
+            militares_por_obm[obm2] = (
+                database.session.query(Militar, Paf)
+                .outerjoin(Paf, Paf.militar_id == Militar.id)
+                .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+                .filter(
+                    MilitarObmFuncao.obm_id == current_user.obm_id_2,
+                    MilitarObmFuncao.data_fim.is_(None)
+                )
+                .all()
+            )
 
-    # Aplica validação nos militares de OBM 1 e OBM 2
-    militares_obm_1 = validar_militares(militares_obm_1)
-    militares_obm_2 = validar_militares(militares_obm_2)
+        if current_user.obm_id_1 == 16:
+            for obm_id in obms_adicionais:
+                obm = Obm.query.get(obm_id)
+                militares_por_obm[obm] = (
+                    database.session.query(Militar, Paf)
+                    .outerjoin(Paf, Paf.militar_id == Militar.id)
+                    .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+                    .filter(
+                        MilitarObmFuncao.obm_id == obm_id,
+                        MilitarObmFuncao.data_fim.is_(None)
+                    )
+                    .all()
+                )
 
-    # Carrega lista de meses para exibição
     meses = Meses.query.all()
 
     return render_template(
         'ferias_chefe2.html',
-        militares_obm_1=militares_obm_1,
-        militares_obm_2=militares_obm_2,
+        militares_por_obm=militares_por_obm,
         meses=meses
     )
 
