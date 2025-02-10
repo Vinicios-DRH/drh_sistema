@@ -167,7 +167,9 @@
                             {% if paf %}disabled{% endif %}>
                         <option value="">Selecione...</option>
                         {% for dias in [10] %}
-                        <option value="{{ dias }}">{{ dias }}</option>
+                        <option value="{{ dias }}" {% if paf and paf.qtd_dias_terceiro_periodo== dias %}selected{% endif
+                                %}>{{ dias }}
+                        </option>
                         {% endfor %}
                     </select>
                 </td>
