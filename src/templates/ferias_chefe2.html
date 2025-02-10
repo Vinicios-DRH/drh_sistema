@@ -114,7 +114,8 @@
                         'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
                         <option value="{{ mes }}"
                                 {% if paf and paf.mes_usufruto== mes %}selected{% endif %}
-                                {% if mes in ['Janeiro', 'Fevereiro'] %}disabled{% endif %}>
+                                {% if mes in [
+                        'Janeiro', 'Fevereiro'] %}disabled{% endif %}>
                         {{ mes }}
                         </option>
                         {% endfor %}
@@ -140,50 +141,61 @@
                 </td>
                 <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
                            value="{{ paf.fim_primeiro_periodo if paf }}"></td>
+
                 <td>
                     <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
                             data-militar-id="{{ militar.id }}"
-                            {% if paf %}disabled{% endif %} >
+                            {% if paf and paf.segundo_periodo_ferias %}disabled{% endif %}>
+                        <!-- Verifica se o 2º período existe -->
                         <option value="">Selecione...</option>
                         {% for dias in [10, 15, 20] %}
-                        <option value="{{ dias }}" {% if paf and paf.qtd_dias_segundo_periodo== dias %}selected{% endif
-                                %}>{{ dias }}
+                        <option value="{{ dias }}"
+                                {% if paf and paf.qtd_dias_segundo_periodo== dias %}selected{% endif %}>{{ dias }}
                         </option>
                         {% endfor %}
                     </select>
                 </td>
+
                 <td>
                     <input type="date" name="inicio_2_{{ militar.id }}" class="form-control"
-                           value="{{ paf.segundo_periodo_ferias if paf }}" min="2025-03-01" max="2025-12-31"
-                           {% if paf %}disabled{% endif %}>
+                           value="{{ paf.segundo_periodo_ferias if paf }}"
+                           min="2025-03-01" max="2025-12-31"
+                           {% if paf and paf.segundo_periodo_ferias %}disabled{% endif %}>
+                    <!-- Verifica se o 2º período existe -->
                 </td>
                 <td>
                     <input type="date" name="fim_2_{{ militar.id }}" class="form-control"
                            value="{{ paf.fim_segundo_periodo if paf }}">
                 </td>
+                <!-- 3º Período -->
                 <td>
                     <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
                             data-militar-id="{{ militar.id }}"
-                            {% if paf %}disabled{% endif %}>
+                            {% if paf and paf.terceiro_periodo_ferias %}disabled{% endif %}>
+                        <!-- Verifica se o 3º período existe -->
                         <option value="">Selecione...</option>
                         {% for dias in [10] %}
-                        <option value="{{ dias }}" {% if paf and paf.qtd_dias_terceiro_periodo== dias %}selected{% endif
-                                %}>{{ dias }}
+                        <option value="{{ dias }}"
+                                {% if paf and paf.qtd_dias_terceiro_periodo== dias %}selected{% endif %}>{{ dias }}
                         </option>
                         {% endfor %}
                     </select>
                 </td>
                 <td>
                     <input type="date" name="inicio_3_{{ militar.id }}" class="form-control"
-                           value="{{ paf.terceiro_periodo_ferias if paf }}" min="2025-03-01" max="2025-12-31"
-                           {% if paf %}disabled{% endif %} >
+                           value="{{ paf.terceiro_periodo_ferias if paf }}"
+                           min="2025-03-01" max="2025-12-31"
+                           {% if paf and paf.terceiro_periodo_ferias %}disabled{% endif %}>
+                    <!-- Verifica se o 3º período existe -->
                 </td>
                 <td>
                     <input type="date" name="fim_3_{{ militar.id }}" class="form-control"
                            value="{{ paf.fim_terceiro_periodo if paf }}">
                 </td>
+
+                <!-- Botão Salvar -->
                 <td>
-                    <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif %}>
+                    <button class="botao-salvar" data-militar-id="{{ militar.id }}">
                         Salvar
                     </button>
                 </td>
@@ -299,9 +311,19 @@
         function atualizarCampos(militarId) {
             const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`)?.value || 0, 10);
             const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`)?.value || 0, 10);
-
-            const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
             const dias3Select = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
+            const dias3 = dias3Select ? parseInt(dias3Select.value || 0, 10) : 0;
+
+            const total = dias1 + dias2 + dias3;
+            const saveButton = document.querySelector(`.botao-salvar[data-militar-id="${militarId}"]`);
+
+            // Atualiza estado do botão "Salvar"
+            if (saveButton) {
+                saveButton.disabled = total === 30; // Bloqueia se total for 30
+            }
+
+            // Lógica existente para controle dos períodos
+            const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
             const inicio2 = document.querySelector(`[name="inicio_2_${militarId}"]`);
             const fim2 = document.querySelector(`[name="fim_2_${militarId}"]`);
             const inicio3 = document.querySelector(`[name="inicio_3_${militarId}"]`);
@@ -313,11 +335,11 @@
             desbloquearOpcoes(dias3Select, [10]);
 
             if (dias1 === 15) {
-                bloquearOpcoes(dias2Select, [10, 20]);
+                bloquearOpcoes(dias2Select, [10, 20], dias3Select, inicio3, fim3);
             } else if (dias1 === 10) {
                 bloquearOpcoes(dias2Select, [15]);
             } else if (dias1 === 20) {
-                bloquearOpcoes(dias2Select, [15, 20]);
+                bloquearOpcoes(dias2Select, [15, 20], dias3Select, inicio3, fim3);
             } else if (dias1 === 30) {
                 bloquearTudo(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
             }
@@ -466,6 +488,10 @@
         anexarListeners();
     })();
 
+    document.querySelectorAll('.botao-salvar').forEach(button => {
+        const militarId = button.dataset.militarId;
+        inicializarValores(militarId); // Garante o estado correto ao carregar
+    });
 
 </script>
 {% endblock %}
