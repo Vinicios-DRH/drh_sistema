@@ -108,13 +108,12 @@
                 <td>{{ militar.quadro.quadro }}</td>
                 <td>
                     <select name="mes_usufruto_{{ militar.id }}" class="form-select"
-                            {% if paf.mes_usufruto in ['Janeiro', 'Fevereiro'] %}disabled{% endif %}>
+                            {% if paf.mes_usufruto and paf.mes_usufruto in meses and meses[paf.mes_usufruto] <= current_month %}disabled{% endif %}>
                         <option value="">Selecione...</option>
-                        {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
-                        'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                        {% for mes in meses.keys() %}
                         <option value="{{ mes }}"
                                 {% if paf and paf.mes_usufruto== mes %}selected{% endif %}
-                                {% if mes in ['Janeiro', 'Fevereiro'] %}disabled{% endif %}>
+                                {% if meses[mes] <= current_month%}disabled{% endif %}>
                         {{ mes }}
                         </option>
                         {% endfor %}
@@ -123,7 +122,7 @@
                 <td>
                     <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
                             data-militar-id="{{ militar.id }}"
-                            {% if paf.mes_usufruto in ['Janeiro', 'Fevereiro']%}disabled{% endif %}>
+                            {% if paf.mes_usufruto and paf.mes_usufruto in meses and meses[paf.mes_usufruto] <= current_month %}disabled{% endif %}>
                     <option value="">Selecione...</option>
                     {% for dias in [10, 15, 20, 30] %}
                     <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo== dias %}selected{% endif
@@ -136,8 +135,7 @@
                 <td>
                     <input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-03-01" max="2025-12-31"
-                           {% if paf and paf.primeiro_periodo_ferias and paf.primeiro_periodo_ferias < current_date
-                    %}disabled{% endif %}>
+                           {% if paf and paf.primeiro_periodo_ferias and paf.primeiro_periodo_ferias <= current_date %}disabled{% endif %}>
                 </td>
                 <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
                            value="{{ paf.fim_primeiro_periodo if paf }}"></td>
@@ -145,7 +143,7 @@
                 <td>
                     <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
                             data-militar-id="{{ militar.id }}"
-                            {% if paf and paf.segundo_periodo_ferias and paf.segundo_periodo_ferias < current_date %}disabled{% endif %}>
+                            {% if paf and paf.segundo_periodo_ferias and paf.segundo_periodo_ferias <= current_date %}disabled{% endif %}>
                         <!-- Verifica se o 2º período existe -->
                         <option value="">Selecione...</option>
                         {% for dias in [10, 15, 20] %}
