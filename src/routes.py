@@ -1866,8 +1866,6 @@ def exibir_ferias_chefe():
                     .all()
                 )
 
-    meses = Meses.query.all()
-
     return render_template(
         'ferias_chefe2.html',
         militares_por_obm=militares_por_obm,
