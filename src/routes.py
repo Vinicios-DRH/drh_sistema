@@ -1770,6 +1770,10 @@ def exibir_ferias_chefe():
     if current_user.is_authenticated:
         flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
 
+    meses = {
+        "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
+        "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+    }
     current_month = datetime.now().month
     current_date = datetime.now().date()
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
