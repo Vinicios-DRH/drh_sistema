@@ -331,10 +331,10 @@
             const saveButton = document.querySelector(`.botao-salvar[data-militar-id="${militarId}"]`);
 
             // Atualiza estado do botão "Salvar"
-            if (saveButton) {
-                // Bloqueia o botão apenas se a soma for 30 E todos os períodos estiverem preenchidos
-                saveButton.disabled = total === 30 && todosPeriodosPreenchidos(militarId);
-            }
+<!--            if (saveButton) {-->
+<!--                // Bloqueia o botão apenas se a soma for 30 E todos os períodos estiverem preenchidos-->
+<!--                saveButton.disabled = total === 30 && todosPeriodosPreenchidos(militarId);-->
+<!--            }-->
 
             // Lógica existente para controle dos períodos
             const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
@@ -350,8 +350,10 @@
 
             if (dias1 === 15) {
                 bloquearOpcoes(dias2Select, [10, 20]);
+                desbloquearTudo(inicio2);
             } else if (dias1 === 10) {
                 bloquearOpcoes(dias2Select, [15]);
+                desbloquearTudo(inicio2, inicio3);
             } else if (dias1 === 20) {
                 bloquearOpcoes(dias2Select, [15, 20]);
             } else if (dias1 === 30) {
@@ -361,6 +363,14 @@
             if (dias1 + dias2 >= MAX_DIAS) {
                 bloquearTudo(dias3Select, inicio3, fim3);
             }
+        }
+
+        function desbloquearTudo(...elementos) {
+            elementos.forEach(el => {
+                if (el) {
+                    el.disabled = false; // Habilita os campos
+                }
+            });
         }
 
         function bloquearTudo(...elementos) {
