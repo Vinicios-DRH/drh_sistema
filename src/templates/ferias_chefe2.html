@@ -138,7 +138,7 @@
                            {% if paf and paf.primeiro_periodo_ferias and paf.primeiro_periodo_ferias <= current_date %}disabled{% endif %}>
                 </td>
                 <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
-                           value="{{ paf.fim_primeiro_periodo if paf }}"></td>
+                           value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
 
                 <td>
                     <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
@@ -163,7 +163,7 @@
                 </td>
                 <td>
                     <input type="date" name="fim_2_{{ militar.id }}" class="form-control"
-                           value="{{ paf.fim_segundo_periodo if paf }}">
+                           value="{{ paf.fim_segundo_periodo if paf }}" readonly>
                 </td>
                 <!-- 3º Período -->
                 <td>
