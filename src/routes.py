@@ -1796,8 +1796,8 @@ def grafico_todos_militares():
 @login_required
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def exibir_ferias():
-    if current_user.is_authenticated:
-        flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
+    # if current_user.is_authenticated:
+    #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
     # Verifica a função do usuário atual
     if current_user.funcao_user_id in [1, 6]:
         # Exibe todos os militares
