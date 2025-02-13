@@ -122,7 +122,8 @@ def login():
 def criar_conta():
     form_criar_usuario = FormCriarUsuario()
 
-    choices = [(funcao_user.id, funcao_user.ocupacao) for funcao_user in FuncaoUser.query.all()]
+    choices = [(funcao_user.id, funcao_user.ocupacao)
+               for funcao_user in FuncaoUser.query.all()]
     choices.insert(0, ('', '-- Selecione uma opção --'))
     form_criar_usuario.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
                                                                                  Obm.query.all()]
@@ -130,14 +131,15 @@ def criar_conta():
                                                                                  Obm.query.all()]
 
     form_criar_usuario.localidade_id.choices = [
-                                                   ('', '-- Selecione uma opção --')
-                                               ] + [(localidade.id, localidade.sigla) for localidade in
-                                                    Localidade.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(localidade.id, localidade.sigla) for localidade in
+         Localidade.query.all()]
 
     form_criar_usuario.funcao_user_id.choices = choices
 
     if form_criar_usuario.validate_on_submit():
-        senha_cript = bcrypt.generate_password_hash(form_criar_usuario.senha.data).decode('utf-8')
+        senha_cript = bcrypt.generate_password_hash(
+            form_criar_usuario.senha.data).decode('utf-8')
         usuarios = User(nome=form_criar_usuario.nome.data,
                         email=form_criar_usuario.email.data,
                         funcao_user_id=form_criar_usuario.funcao_user_id.data,
@@ -160,75 +162,79 @@ def adicionar_militar():
     form_militar = FormMilitar()
 
     form_militar.funcao_gratificada_id.choices = [
-                                                     ('', '-- Selecione uma opção --')
-                                                 ] + [(funcao_gratificada.id, funcao_gratificada.gratificacao) for
-                                                      funcao_gratificada in FuncaoGratificada.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(funcao_gratificada.id, funcao_gratificada.gratificacao) for
+         funcao_gratificada in FuncaoGratificada.query.all()]
 
     form_militar.posto_grad_id.choices = [
-                                             ('', '-- Selecione uma opção --')
-                                         ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
 
     form_militar.quadro_id.choices = [
-                                         ('', '-- Selecione uma opção --')
-                                     ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
 
     form_militar.localidade_id.choices = [
-                                             ('', '-- Selecione uma opção --')
-                                         ] + [(localidade.id, localidade.sigla) for localidade in
-                                              Localidade.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(localidade.id, localidade.sigla) for localidade in
+         Localidade.query.all()]
 
     form_militar.obm_ids_1.choices = [
-                                         ('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                               Obm.query.all()]
+        ('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
+                                              Obm.query.all()]
 
     form_militar.funcao_ids_1.choices = [
-                                            ('', '-- Selecione uma opção --')] + [(funcao.id, funcao.ocupacao) for
-                                                                                  funcao in Funcao.query.all()]
+        ('', '-- Selecione uma opção --')] + [(funcao.id, funcao.ocupacao) for
+                                              funcao in Funcao.query.all()]
 
     form_militar.obm_ids_2.choices = [
-                                         ('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                               Obm.query.all()]
+        ('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
+                                              Obm.query.all()]
 
     form_militar.funcao_ids_2.choices = [
-                                            ('', '-- Selecione uma opção --')] + [(funcao.id, funcao.ocupacao) for
-                                                                                  funcao in Funcao.query.all()]
+        ('', '-- Selecione uma opção --')] + [(funcao.id, funcao.ocupacao) for
+                                              funcao in Funcao.query.all()]
 
     form_militar.situacao_id.choices = [
-                                           ('', '-- Selecione uma opção --')
-                                       ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
 
     form_militar.estado_civil.choices = [
-                                            ('', '-- Selecione uma opção --')
-                                        ] + [(estado.id, estado.estado) for estado in EstadoCivil.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(estado.id, estado.estado) for estado in EstadoCivil.query.all()]
 
     form_militar.especialidade_id.choices = [
-                                                ('', '-- Selecione uma opção --')
-                                            ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
-                                                 Especialidade.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
+         Especialidade.query.all()]
 
     form_militar.destino_id.choices = [
-                                          ('', '-- Selecione uma opção --')
-                                      ] + [(destino.id, destino.local) for destino in Destino.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(destino.id, destino.local) for destino in Destino.query.all()]
 
     form_militar.agregacoes_id.choices = [
-                                             ('', '-- Selecione uma opção --')
-                                         ] + [(agregacoes.id, agregacoes.tipo) for agregacoes in Agregacoes.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(agregacoes.id, agregacoes.tipo) for agregacoes in Agregacoes.query.all()]
 
     form_militar.punicao_id.choices = [
-                                          ('', '-- Selecione uma opção --')
-                                      ] + [(punicao.id, punicao.sancao) for punicao in Punicao.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(punicao.id, punicao.sancao) for punicao in Punicao.query.all()]
 
     form_militar.comportamento_id.choices = [
-                                                ('', '-- Selecione uma opção --')
-                                            ] + [(comportamento.id, comportamento.conduta) for comportamento in
-                                                 Comportamento.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(comportamento.id, comportamento.conduta) for comportamento in
+         Comportamento.query.all()]
 
     if form_militar.validate_on_submit():
 
-        completa_25_inclusao = datetime.strptime(form_militar.completa_25_inclusao.data, '%d/%m/%Y').date()
-        completa_30_inclusao = datetime.strptime(form_militar.completa_30_inclusao.data, '%d/%m/%Y').date()
-        completa_25_anos_sv = datetime.strptime(form_militar.completa_25_anos_sv.data, '%d/%m/%Y').date()
-        completa_30_anos_sv = datetime.strptime(form_militar.completa_30_anos_sv.data, '%d/%m/%Y').date()
+        completa_25_inclusao = datetime.strptime(
+            form_militar.completa_25_inclusao.data, '%d/%m/%Y').date()
+        completa_30_inclusao = datetime.strptime(
+            form_militar.completa_30_inclusao.data, '%d/%m/%Y').date()
+        completa_25_anos_sv = datetime.strptime(
+            form_militar.completa_25_anos_sv.data, '%d/%m/%Y').date()
+        completa_30_anos_sv = datetime.strptime(
+            form_militar.completa_30_anos_sv.data, '%d/%m/%Y').date()
 
         militar = Militar(
             nome_completo=form_militar.nome_completo.data,
@@ -262,7 +268,7 @@ def adicionar_militar():
             meses=form_militar.meses.data,
             dias=form_militar.dias.data,
             total_dias=form_militar.total_dias.data or None,
-            idade_reserva_grad= 0,
+            idade_reserva_grad=0,
             estado_civil=form_militar.estado_civil.data,
             especialidade_id=form_militar.especialidade_id.data,
             pronto=form_militar.pronto.data,
@@ -342,7 +348,8 @@ def adicionar_militar():
         database.session.commit()
 
         # Adicionando as OBMs e Funções
-        obm_funcao_pairs = zip(request.form.getlist('obm_ids_1'), request.form.getlist('funcao_ids_1'))
+        obm_funcao_pairs = zip(request.form.getlist(
+            'obm_ids_1'), request.form.getlist('funcao_ids_1'))
 
         # Itera sobre as combinações selecionadas de OBMs e funções
         for obm_id, funcao_id in obm_funcao_pairs:
@@ -350,22 +357,27 @@ def adicionar_militar():
             if obm_id and funcao_id:
                 militar_obm_funcao = MilitarObmFuncao(
                     militar_id=militar.id,
-                    obm_id=int(obm_id),  # Certifique-se de que o ID é um número inteiro
+                    # Certifique-se de que o ID é um número inteiro
+                    obm_id=int(obm_id),
                     tipo=1,
-                    funcao_id=int(funcao_id)  # Certifique-se de que o ID é um número inteiro
+                    # Certifique-se de que o ID é um número inteiro
+                    funcao_id=int(funcao_id)
                 )
                 database.session.add(militar_obm_funcao)
 
         # Repetindo o processo para o segundo conjunto de OBMs e funções (caso exista)
-        obm_funcao_pairs_2 = zip(request.form.getlist('obm_ids_2'), request.form.getlist('funcao_ids_2'))
+        obm_funcao_pairs_2 = zip(request.form.getlist(
+            'obm_ids_2'), request.form.getlist('funcao_ids_2'))
 
         for obm_id_2, funcao_id_2 in obm_funcao_pairs_2:
             if obm_id_2 and funcao_id_2:
                 militar_obm_funcao = MilitarObmFuncao(
                     militar_id=militar.id,
-                    obm_id=int(obm_id_2),  # Certifique-se de que o ID é um número inteiro
+                    # Certifique-se de que o ID é um número inteiro
+                    obm_id=int(obm_id_2),
                     tipo=2,
-                    funcao_id=int(funcao_id_2)  # Certifique-se de que o ID é um número inteiro
+                    # Certifique-se de que o ID é um número inteiro
+                    funcao_id=int(funcao_id_2)
                 )
                 database.session.add(militar_obm_funcao)
 
@@ -392,7 +404,8 @@ def adicionar_militar():
                 database.session.add(publicacao_bg)
 
         # Verifica se a situação selecionada é "AGREGADO"
-        situacao_selecionada = Situacao.query.get(form_militar.situacao_id.data)
+        situacao_selecionada = Situacao.query.get(
+            form_militar.situacao_id.data)
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
 
             # Verifica se há uma publicação BG associada ao militar e à situação
@@ -447,7 +460,8 @@ def adicionar_militar():
                 database.session.add(militar_a_disposicao)
                 database.session.commit()
             else:
-                flash('Publicação BG não encontrada para o militar à disposição.', 'alert-danger')
+                flash(
+                    'Publicação BG não encontrada para o militar à disposição.', 'alert-danger')
 
         if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
             publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
@@ -469,7 +483,8 @@ def adicionar_militar():
                 database.session.add(militar_le)
                 database.session.commit()
             else:
-                flash('Publicação BG não encontrada para a Licença Especial.', 'alert-danger')
+                flash(
+                    'Publicação BG não encontrada para a Licença Especial.', 'alert-danger')
 
         if situacao_selecionada and situacao_selecionada.condicao == 'LTS':
             publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
@@ -508,7 +523,8 @@ def verificar_arquivos():
     filenames = data.get('filenames', [])
 
     existing_files = []
-    upload_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), app.config["UPLOAD_FOLDER"])
+    upload_folder = os.path.join(os.path.abspath(
+        os.path.dirname(__file__)), app.config["UPLOAD_FOLDER"])
 
     for filename in filenames:
         file_path = os.path.join(upload_folder, secure_filename(filename))
@@ -533,13 +549,17 @@ def exibir_militar(militar_id):
     form_militar = FormMilitar(obj=militar)
 
     if militar.completa_25_inclusao:
-        form_militar.completa_25_inclusao.data = militar.completa_25_inclusao.strftime('%d/%m/%Y')
+        form_militar.completa_25_inclusao.data = militar.completa_25_inclusao.strftime(
+            '%d/%m/%Y')
     if militar.completa_30_inclusao:
-        form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime('%d/%m/%Y')
+        form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime(
+            '%d/%m/%Y')
     if militar.completa_25_anos_sv:
-        form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime('%d/%m/%Y')
+        form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime(
+            '%d/%m/%Y')
     if militar.completa_30_anos_sv:
-        form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime('%d/%m/%Y')
+        form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime(
+            '%d/%m/%Y')
 
     form_militar.funcao_gratificada_id.choices = [
         (funcao_gratificada.id, funcao_gratificada.gratificacao) for funcao_gratificada in FuncaoGratificada.query.all()
@@ -603,7 +623,7 @@ def exibir_militar(militar_id):
     # Calculando a idade do militar
     hoje = datetime.today().date()
     idade = hoje.year - militar.data_nascimento.year - (
-            (hoje.month, hoje.day) < (militar.data_nascimento.month, militar.data_nascimento.day))
+        (hoje.month, hoje.day) < (militar.data_nascimento.month, militar.data_nascimento.day))
     form_militar.idade_atual.data = idade
 
     campos_bg = [
@@ -796,7 +816,8 @@ def exibir_militar(militar_id):
             if hasattr(form_militar, campo_bg):
                 boletim_geral_data = getattr(form_militar, campo_bg).data
                 if boletim_geral_data:
-                    publicacao_existente = PublicacaoBg.query.filter_by(militar_id=militar.id, tipo_bg=campo_bg).first()
+                    publicacao_existente = PublicacaoBg.query.filter_by(
+                        militar_id=militar.id, tipo_bg=campo_bg).first()
                     if publicacao_existente:
                         if publicacao_existente.boletim_geral != boletim_geral_data:
                             nova_publicacao = PublicacaoBg(
@@ -814,7 +835,8 @@ def exibir_militar(militar_id):
                         database.session.add(nova_publicacao)
 
         # Verifica se a situação selecionada é "AGREGADO"
-        situacao_selecionada = Situacao.query.get(form_militar.situacao_id.data)
+        situacao_selecionada = Situacao.query.get(
+            form_militar.situacao_id.data)
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
 
             # Verifica se há uma publicação BG associada ao militar e à situação
@@ -825,7 +847,8 @@ def exibir_militar(militar_id):
 
             if publicacao_situacao_bg:
                 # Verifica se o militar já está na tabela 'militares_agregados'
-                militar_agregado = MilitaresAgregados.query.filter_by(militar_id=militar.id).first()
+                militar_agregado = MilitaresAgregados.query.filter_by(
+                    militar_id=militar.id).first()
 
                 if militar_agregado:
                     # Atualiza o registro existente
@@ -855,7 +878,8 @@ def exibir_militar(militar_id):
                 database.session.commit()
             else:
                 print("Publicação BG não encontrada para o militar agregado.")
-                flash("Publicação BG não encontrada para o militar agregado.", "alert-danger")
+                flash(
+                    "Publicação BG não encontrada para o militar agregado.", "alert-danger")
 
         # Verifica se a situação selecionada é "À DISPOSIÇÃO"
         if situacao_selecionada and situacao_selecionada.condicao == 'À DISPOSIÇÃO':
@@ -868,7 +892,8 @@ def exibir_militar(militar_id):
 
             if publicacao_situacao_bg:
                 # Verifica se o militar já está na tabela 'militares_a_disposicao'
-                militar_a_disposicao = MilitaresADisposicao.query.filter_by(militar_id=militar.id).first()
+                militar_a_disposicao = MilitaresADisposicao.query.filter_by(
+                    militar_id=militar.id).first()
 
                 if militar_a_disposicao:
                     # Atualiza o registro existente
@@ -897,14 +922,16 @@ def exibir_militar(militar_id):
                 militar_a_disposicao.atualizar_status()
                 database.session.commit()
             else:
-                flash("Publicação BG não encontrada para o militar à disposição.", "alert-danger")
+                flash(
+                    "Publicação BG não encontrada para o militar à disposição.", "alert-danger")
 
         if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
             publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
                                                                   tipo_bg='situacao_militar').first()
 
             if publicacao_situacao_bg:
-                militar_le = LicencaEspecial.query.filter_by(militar_id=militar.id).first()
+                militar_le = LicencaEspecial.query.filter_by(
+                    militar_id=militar.id).first()
 
                 if militar_le:
                     militar_le.posto_grad_id = form_militar.posto_grad_id.data
@@ -931,14 +958,16 @@ def exibir_militar(militar_id):
                 militar_le.atualizar_status()
                 database.session.commit()
             else:
-                flash("Publicação BG não encontrada para a Licença Especial.", "alert-danger")
+                flash(
+                    "Publicação BG não encontrada para a Licença Especial.", "alert-danger")
 
         if situacao_selecionada and situacao_selecionada.condicao == 'LTS':
             publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
                                                                   tipo_bg='situacao_militar').first()
 
             if publicacao_situacao_bg:
-                militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(militar_id=militar.id).first()
+                militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(
+                    militar_id=militar.id).first()
 
                 if militar_lts:
                     militar_lts.posto_grad_id = form_militar.posto_grad_id.data
@@ -973,7 +1002,8 @@ def exibir_militar(militar_id):
             return redirect(url_for('militares', militar_id=militar_id))
         except Exception as e:
             database.session.rollback()
-            flash(f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
+            flash(
+                f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
 
     return render_template('exibir_militar.html', form_militar=form_militar,
                            militar=militar)
@@ -1078,46 +1108,48 @@ def militares():
     form_militar = FormMilitar()
 
     form_militar.obm_ids_1.choices = [
-                                         ('', '-- Selecione OBM --')
-                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+        ('', '-- Selecione OBM --')
+    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
     form_militar.obm_ids_2.choices = [
-                                         ('', '-- Selecione OBM --')
-                                     ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+        ('', '-- Selecione OBM --')
+    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
     form_militar.posto_grad_id.choices = [
-                                             ('', '-- Selecione Posto/Grad --')
-                                         ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+        ('', '-- Selecione Posto/Grad --')
+    ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
     form_militar.quadro_id.choices = [
-                                         ('', '-- Selecione Quadro --')
-                                     ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
+        ('', '-- Selecione Quadro --')
+    ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
     form_militar.especialidade_id.choices = [
-                                                ('', '-- Selecione Especialidade --')
-                                            ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
-                                                 Especialidade.query.all()]
+        ('', '-- Selecione Especialidade --')
+    ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
+         Especialidade.query.all()]
     form_militar.localidade_id.choices = [
-                                             ('', '-- Selecione Localidade --')
-                                         ] + [(localidade.id, localidade.sigla) for localidade in
-                                              Localidade.query.all()]
+        ('', '-- Selecione Localidade --')
+    ] + [(localidade.id, localidade.sigla) for localidade in
+         Localidade.query.all()]
     form_militar.situacao_id.choices = [
-                                           ('', '-- Selecione Situação --')
-                                       ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
+        ('', '-- Selecione Situação --')
+    ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
     form_militar.funcao_ids_1.choices = [
-                                            ('', '-- Selecione Função --')] + [(funcao.id, funcao.ocupacao) for
-                                                                               funcao in Funcao.query.all()]
-    
+        ('', '-- Selecione Função --')] + [(funcao.id, funcao.ocupacao) for
+                                           funcao in Funcao.query.all()]
+
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
 
     # Consulta paginada com pré-carregamento de relações
     query = Militar.query.options(
         selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
-        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao),
+        selectinload(Militar.obm_funcoes).selectinload(
+            MilitarObmFuncao.funcao),
         selectinload(Militar.posto_grad),  # Pré-carrega a relação posto_grad
         selectinload(Militar.quadro)
     )
     if search:
         query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
-    militares_paginados = query.paginate(page=page, per_page=100)  # Reduzir per_page melhora desempenho
+    # Reduzir per_page melhora desempenho
+    militares_paginados = query.paginate(page=page, per_page=100)
 
     # Preparar dados para renderização
     militares = []
@@ -1167,7 +1199,6 @@ def militares():
         next_page=militares_paginados.next_num,
         prev_page=militares_paginados.prev_num
     )
-
 
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])
@@ -1220,7 +1251,8 @@ def tabela_militares():
                     if field == 'localidade':
                         query = query.filter(Militar.localidade.has(id=value))
                     elif field == 'especialidade':
-                        query = query.filter(Militar.especialidade.has(id=value))
+                        query = query.filter(
+                            Militar.especialidade.has(id=value))
                     elif field not in ['obm_id', 'funcao_id']:
                         query = query.filter(getattr(Militar, field) == value)
 
@@ -1439,7 +1471,8 @@ def exportar_excel(tabela):
             'A contar de': item.inicio_periodo.strftime('%d/%m/%Y') if item.inicio_periodo else 'N/A',
             'Término': (
                 item.fim_periodo_agregacao.strftime('%d/%m/%Y') if tabela == 'militares_agregados' else
-                item.fim_periodo_disposicao.strftime('%d/%m/%Y') if item.fim_periodo_disposicao else 'N/A'
+                item.fim_periodo_disposicao.strftime(
+                    '%d/%m/%Y') if item.fim_periodo_disposicao else 'N/A'
             ),
             'Status': item.status,
             'Documento Autorizador': getattr(item.publicacao_bg, 'boletim_geral', 'N/A')
@@ -1465,8 +1498,10 @@ def exportar_excel(tabela):
             'valign': 'vcenter'
         })
 
-        cell_centered_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-        cell_left_format = workbook.add_format({'align': 'left', 'valign': 'vcenter'})
+        cell_centered_format = workbook.add_format(
+            {'align': 'center', 'valign': 'vcenter'})
+        cell_left_format = workbook.add_format(
+            {'align': 'left', 'valign': 'vcenter'})
 
         # Ajustar largura das colunas
         column_widths = {
@@ -1493,7 +1528,8 @@ def exportar_excel(tabela):
             if column_title in ['Nome Completo', 'Documento Autorizador']:
                 worksheet.set_column(col_num, col_num, width, cell_left_format)
             else:
-                worksheet.set_column(col_num, col_num, width, cell_centered_format)
+                worksheet.set_column(
+                    col_num, col_num, width, cell_centered_format)
 
     output.seek(0)
 
@@ -1533,15 +1569,16 @@ def exibir_usuario(id_usuario):
 
     form = FormCriarUsuario(obj=usuario)
     form.current_user_id = id_usuario
-    form.funcao_user_id.choices = [(funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
+    form.funcao_user_id.choices = [
+        (funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
     form.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
                                                                    Obm.query.all()]
     form.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
                                                                    Obm.query.all()]
     form.localidade_id.choices = [
-                                     ('', '-- Selecione uma opção --')
-                                 ] + [(localidade.id, localidade.sigla) for localidade in
-                                      Localidade.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(localidade.id, localidade.sigla) for localidade in
+         Localidade.query.all()]
 
     if form.validate_on_submit():
         usuario.nome = form.nome.data
@@ -1553,7 +1590,8 @@ def exibir_usuario(id_usuario):
         usuario.localidade_id = form.localidade_id.data
 
         if form.senha.data:
-            usuario.senha = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+            usuario.senha = bcrypt.generate_password_hash(
+                form.senha.data).decode('utf-8')
 
         try:
             database.session.commit()
@@ -1561,7 +1599,8 @@ def exibir_usuario(id_usuario):
             return redirect(url_for('usuarios', id_usuario=id_usuario))
         except Exception as e:
             database.session.rollback()
-            flash(f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
+            flash(
+                f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
 
     return render_template('usuario_detalhes.html', usuario=usuario_info, form=form)
 
@@ -1573,7 +1612,7 @@ def perfil(id_usuario):
     if current_user.id != id_usuario:
         flash('Você não tem permissão para acessar este perfil.', 'alert-danger')
         return redirect(url_for('home'))
-    
+
     usuario = User.query.get_or_404(id_usuario)
 
     usuario_info = User.query \
@@ -1585,15 +1624,16 @@ def perfil(id_usuario):
 
     form = FormCriarUsuario(obj=usuario)
     form.current_user_id = id_usuario
-    form.funcao_user_id.choices = [(funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
+    form.funcao_user_id.choices = [
+        (funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
     form.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
                                                                    Obm.query.all()]
     form.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
                                                                    Obm.query.all()]
     form.localidade_id.choices = [
-                                     ('', '-- Selecione uma opção --')
-                                 ] + [(localidade.id, localidade.sigla) for localidade in
-                                      Localidade.query.all()]
+        ('', '-- Selecione uma opção --')
+    ] + [(localidade.id, localidade.sigla) for localidade in
+         Localidade.query.all()]
 
     if form.validate_on_submit():
         usuario.nome = form.nome.data
@@ -1605,7 +1645,8 @@ def perfil(id_usuario):
         usuario.localidade_id = form.localidade_id.data
 
         if form.senha.data:
-            usuario.senha = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+            usuario.senha = bcrypt.generate_password_hash(
+                form.senha.data).decode('utf-8')
 
         try:
             database.session.commit()
@@ -1613,10 +1654,11 @@ def perfil(id_usuario):
             return redirect(url_for('home', id_usuario=id_usuario))
         except Exception as e:
             database.session.rollback()
-            flash(f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
+            flash(
+                f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
 
     return render_template('perfil.html', usuario=usuario_info, form=form)
-    
+
 
 @app.route("/exportar-pafs/<string:tabela>")
 @login_required
@@ -1662,14 +1704,20 @@ def exportar_pafs(tabela):
             militar.quadro.quadro if militar.quadro else "",
             paf.mes_usufruto if paf else "",
             paf.qtd_dias_primeiro_periodo if paf else "",
-            paf.primeiro_periodo_ferias.strftime("%d/%m/%Y") if paf and paf.primeiro_periodo_ferias else "",
-            paf.fim_primeiro_periodo.strftime("%d/%m/%Y") if paf and paf.fim_primeiro_periodo else "",
+            paf.primeiro_periodo_ferias.strftime(
+                "%d/%m/%Y") if paf and paf.primeiro_periodo_ferias else "",
+            paf.fim_primeiro_periodo.strftime(
+                "%d/%m/%Y") if paf and paf.fim_primeiro_periodo else "",
             paf.qtd_dias_segundo_periodo if paf else "",
-            paf.segundo_periodo_ferias.strftime("%d/%m/%Y") if paf and paf.segundo_periodo_ferias else "",
-            paf.fim_segundo_periodo.strftime("%d/%m/%Y") if paf and paf.fim_segundo_periodo else "",
+            paf.segundo_periodo_ferias.strftime(
+                "%d/%m/%Y") if paf and paf.segundo_periodo_ferias else "",
+            paf.fim_segundo_periodo.strftime(
+                "%d/%m/%Y") if paf and paf.fim_segundo_periodo else "",
             paf.qtd_dias_terceiro_periodo if paf else "",
-            paf.terceiro_periodo_ferias.strftime("%d/%m/%Y") if paf and paf.terceiro_periodo_ferias else "",
-            paf.fim_terceiro_periodo.strftime("%d/%m/%Y") if paf and paf.fim_terceiro_periodo else "",
+            paf.terceiro_periodo_ferias.strftime(
+                "%d/%m/%Y") if paf and paf.terceiro_periodo_ferias else "",
+            paf.fim_terceiro_periodo.strftime(
+                "%d/%m/%Y") if paf and paf.fim_terceiro_periodo else "",
         ])
 
     # Ajusta largura das colunas
@@ -1761,6 +1809,53 @@ def exibir_ferias():
     meses = Meses.query.all()
 
     return render_template('ferias.html', militares=militares, meses=meses)
+
+
+@app.route('/api-sesuite', methods=['GET'])
+def api_sesuite():
+    # Realiza a consulta no banco de dados
+    militares = (
+        database.session.query(Militar, Paf)
+        .outerjoin(Paf, Paf.militar_id == Militar.id)
+        .all()
+    )
+
+    # Lista para armazenar os dados que serão retornados no JSON
+    resultado = []
+
+    # Itera sobre os resultados da consulta
+    for militar, paf in militares:
+        # Cria um dicionário com os dados do militar e do Paf
+        militar_data = {
+            'posto_grad': militar.posto_grad.sigla if militar.posto_grad else None,
+            'nome_completo': militar.nome_completo,
+            'matricula': militar.matricula,
+            'quadro': militar.quadro.quadro if militar.quadro else None,
+            'obm': militar.obm_funcoes[0].obm.sigla if militar.obm_funcoes else None,
+            'paf': {
+                'mes_usufruto': paf.mes_usufruto if paf else None,
+                'qtd_dias_primeiro_periodo': paf.qtd_dias_primeiro_periodo if paf else None,
+                'primeiro_periodo_ferias': paf.primeiro_periodo_ferias.strftime(
+                    '%Y-%m-%d') if paf and paf.primeiro_periodo_ferias else None,
+                'fim_primeiro_periodo': paf.fim_primeiro_periodo.strftime(
+                    '%Y-%m-%d') if paf and paf.fim_primeiro_periodo else None,
+                'qtd_dias_segundo_periodo': paf.qtd_dias_segundo_periodo if paf else None,
+                'segundo_periodo_ferias': paf.segundo_periodo_ferias.strftime(
+                    '%Y-%m-%d') if paf and paf.segundo_periodo_ferias else None,
+                'fim_segundo_periodo': paf.fim_segundo_periodo.strftime(
+                    '%Y-%m-%d') if paf and paf.fim_segundo_periodo else None,
+                'qtd_dias_terceiro_periodo': paf.qtd_dias_terceiro_periodo if paf else None,
+                'terceiro_periodo_ferias': paf.terceiro_periodo_ferias.strftime(
+                    '%Y-%m-%d') if paf and paf.terceiro_periodo_ferias else None,
+                'fim_terceiro_periodo': paf.fim_terceiro_periodo.strftime(
+                    '%Y-%m-%d') if paf and paf.fim_terceiro_periodo else None
+            }
+        }
+        # Adiciona o dicionário à lista de resultados
+        resultado.append(militar_data)
+
+    # Retorna a lista de resultados como JSON
+    return jsonify(resultado)
 
 
 @app.route('/ferias-chefe', methods=['GET'])
@@ -1964,11 +2059,14 @@ def update_paf():
     # Valida os períodos de férias
     try:
         if primeiro_periodo_inicio:
-            validate_vacation_period(primeiro_periodo_inicio, qtd_dias_primeiro_periodo)
+            validate_vacation_period(
+                primeiro_periodo_inicio, qtd_dias_primeiro_periodo)
         if segundo_periodo_inicio:
-            validate_vacation_period(segundo_periodo_inicio, qtd_dias_segundo_periodo)
+            validate_vacation_period(
+                segundo_periodo_inicio, qtd_dias_segundo_periodo)
         if terceiro_periodo_inicio:
-            validate_vacation_period(terceiro_periodo_inicio, qtd_dias_terceiro_periodo)
+            validate_vacation_period(
+                terceiro_periodo_inicio, qtd_dias_terceiro_periodo)
     except ValueError as e:
         print("Erro na validação:", e)
         return jsonify({"error": str(e)}), 400
