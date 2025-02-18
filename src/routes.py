@@ -1798,14 +1798,26 @@ def grafico_todos_militares():
 def exibir_ferias():
     # if current_user.is_authenticated:
     #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
-    # Verifica a função do usuário atual
     if current_user.funcao_user_id in [1, 6]:
         # Exibe todos os militares
+        militares_sem_ferias = (
+            database.session.query(Militar)
+            .outerjoin(Paf, Paf.militar_id == Militar.id)
+            .filter(Paf.id.is_(None))
+            .count()
+        )
+
+        # Exibe a quantidade de militares sem registro de férias
+        flash(
+            f'Quantidade de militares sem registro de férias: {militares_sem_ferias}', 'alert-info')
+
+        # Recupera todos os militares e seus registros de férias (se existirem)
         militares = (
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
             .all()
         )
+
     meses = Meses.query.all()
 
     return render_template('ferias.html', militares=militares, meses=meses)
