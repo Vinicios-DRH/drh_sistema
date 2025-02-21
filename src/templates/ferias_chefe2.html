@@ -138,7 +138,7 @@
                     </td>
                     <td>
                         <input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
-                               value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-03-01" max="2025-12-31"
+                               value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-04-01" max="2025-12-31"
                                {% if paf and paf.primeiro_periodo_ferias and paf.primeiro_periodo_ferias <= current_date
                         %}disabled{% endif %}>
                     </td>
@@ -163,7 +163,7 @@
                     <td>
                         <input type="date" name="inicio_2_{{ militar.id }}" class="form-control"
                                value="{{ paf.segundo_periodo_ferias if paf }}"
-                               min="2025-03-01" max="2025-12-31"
+                               min="2025-04-01" max="2025-12-31"
                                {% if paf and paf.segundo_periodo_ferias and paf.segundo_periodo_ferias < current_date
                         %}disabled{% endif %}>
                         <!-- Verifica se o 2º período existe -->
@@ -189,7 +189,7 @@
                     <td>
                         <input type="date" name="inicio_3_{{ militar.id }}" class="form-control"
                                value="{{ paf.terceiro_periodo_ferias if paf }}"
-                               min="2025-03-01" max="2025-12-31"
+                               min="2025-04-01" max="2025-12-31"
                                {% if paf and paf.terceiro_periodo_ferias %}disabled{% endif %}>
                         <!-- Verifica se o 3º período existe -->
                     </td>
@@ -555,21 +555,43 @@
             inicializarValores(militarId); // Garante o estado correto ao carregar
         });
 
+        function verificarDataEHabilitarElementos() {
+            const dataAtual = new Date(); // Obtém a data atual
+            const diaAtual = dataAtual.getDate(); // Obtém o dia do mês (1-31)
+
+            // Verifica se é dia 21 ou posterior
+            if (diaAtual >= 21) {
+                // Desabilita todos os inputs, selects e botões de salvar
+                document.querySelectorAll('input').forEach(input => {
+                    input.disabled = true;
+                });
+                document.querySelectorAll('select').forEach(select => {
+                    select.disabled = true;
+                });
+                document.querySelectorAll('.botao-salvar').forEach(button => {
+                    button.disabled = true;
+                });
+            }
+            // Verifica se é dia 10 ou anterior
+            else if (diaAtual <= 10) {
+                // Habilita todos os inputs, selects e botões de salvar
+                document.querySelectorAll('input').forEach(input => {
+                    input.disabled = false;
+                });
+                document.querySelectorAll('select').forEach(select => {
+                    select.disabled = false;
+                });
+                document.querySelectorAll('.botao-salvar').forEach(button => {
+                    button.disabled = false;
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Desabilitar todos os inputs
-            document.querySelectorAll('input').forEach(input => {
-                input.disabled = true;
-            });
+            verificarDataEHabilitarElementos(); // Executa a função ao carregar a página
 
-            // Desabilitar todos os selects
-            document.querySelectorAll('select').forEach(select => {
-                select.disabled = true;
-            });
-
-            // Desabilitar todos os botões de salvar
-            document.querySelectorAll('.botao-salvar').forEach(button => {
-                button.disabled = true;
-            });
+            // Atualiza o estado a cada hora (3600000 milissegundos)
+            setInterval(verificarDataEHabilitarElementos, 3600000);
         });
 
     })();
