@@ -1843,7 +1843,6 @@ def api_sesuite():
             'nome_completo': militar.nome_completo,
             'matricula': militar.matricula,
             'quadro': militar.quadro.quadro if militar.quadro else None,
-            'obm': militar.obm_funcoes[0].obm.sigla if militar.obm_funcoes else None,
             'paf': {
                 'mes_usufruto': paf.mes_usufruto if paf else None,
                 'qtd_dias_primeiro_periodo': paf.qtd_dias_primeiro_periodo if paf else None,
