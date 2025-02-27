@@ -691,11 +691,11 @@ def exibir_militar(militar_id):
         ).date() if form_militar.completa_30_anos_sv.data else None
 
         militar.inicio_periodo = datetime.strptime(
-            str(form_militar.inicio_periodo.data), '%d/%m/%Y'
+            str(form_militar.inicio_periodo.data), '%Y-%m-%d'
         ).date() if form_militar.inicio_periodo.data else None
 
         militar.fim_periodo = datetime.strptime(
-            str(form_militar.fim_periodo.data), '%d/%m/%Y'
+            str(form_militar.fim_periodo.data), '%Y-%m-%d'
         ).date() if form_militar.fim_periodo.data else None
 
         militar.punicao_id = form_militar.punicao_id.data
