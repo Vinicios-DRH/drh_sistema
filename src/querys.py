@@ -6,6 +6,11 @@ def obter_estatisticas_militares():
     """Executa as consultas necessárias e retorna os resultados em um dicionário."""
     efetivo_total = Militar.query.count()
 
+    # Excluindo os civis (posto_grad_id != 15)
+    efetivo_total_sem_civis = Militar.query.filter(Militar.posto_grad_id != 15).count()
+
+    efetivo_civis = Militar.query.filter(Militar.posto_grad_id == 15).count()
+
     oficiais_superiores = Militar.query.filter(
         Militar.posto_grad_id.in_([14, 13, 12])
     ).count()
@@ -65,7 +70,6 @@ def obter_estatisticas_militares():
         Militar.quadro_id == 2,
         Militar.especialidade_id == 3
     )).count()
-
 
     qoabm = Militar.query.filter(and_(
         Militar.posto_grad_id.in_([9, 10, 11, 12, 13, 14]),
@@ -139,6 +143,8 @@ def obter_estatisticas_militares():
 
     return {
         'efetivo_total': efetivo_total,
+        'efetivo_total_sem_civis': efetivo_total_sem_civis,
+        'efetivo_civis': efetivo_civis,
         'oficiais_superiores': oficiais_superiores,
         'oficiais_intermediarios': oficiais_intermediarios,
         'oficiais_subalternos': oficiais_subalternos,
