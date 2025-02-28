@@ -29,6 +29,13 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
 
+@app.route('/api/estatisticas', methods=['GET'])
+def estatisticas():
+    """Retorna as estatísticas dos militares em formato JSON."""
+    estatisticas = obter_estatisticas_militares()
+    return jsonify(estatisticas)
+
+
 @app.route("/")
 @login_required
 def home():
