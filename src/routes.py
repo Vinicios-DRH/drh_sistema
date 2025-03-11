@@ -1880,8 +1880,8 @@ def api_sesuite():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
-    if current_user.is_authenticated:
-        flash('O período para alteração de férias acabou, a próxima janela abre dia 10/03/2025!', 'alert-info')
+    # if current_user.is_authenticated:
+    #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/03/2025!', 'alert-info')
 
     meses = {
         "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
