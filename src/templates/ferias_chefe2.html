@@ -110,7 +110,7 @@
                     <td>
                         <select name="mes_usufruto_{{ militar.id }}" class="form-select"
                                 {% if paf.mes_usufruto and paf.mes_usufruto in meses and meses[paf.mes_usufruto] <=
-                        current_month %}disabled{% endif %}>
+                        current_month %}disabled data-keep-disabled{% endif %}>
                         <option value="">Selecione...</option>
                         {% for mes in meses.keys() %}
                         <option value="{{ mes }}"
@@ -126,7 +126,7 @@
                         <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
                                 data-militar-id="{{ militar.id }}"
                                 {% if paf.mes_usufruto and paf.mes_usufruto in meses and meses[paf.mes_usufruto] <=
-                        current_month %}disabled{% endif %}>
+                            current_month %}disabled data-keep-disabled{% endif %}>
                         <option value="">Selecione...</option>
                         {% for dias in [10, 15, 20, 30] %}
                         <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo== dias %}selected{% endif
@@ -140,7 +140,7 @@
                         <input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-04-01" max="2025-12-31"
                                {% if paf and paf.primeiro_periodo_ferias and paf.primeiro_periodo_ferias <= current_date
-                        %}disabled{% endif %}>
+                        %}disabled data-keep-disabled{% endif %}>
                     </td>
                     <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
                                value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
@@ -149,7 +149,7 @@
                         <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
                                 data-militar-id="{{ militar.id }}"
                                 {% if paf and paf.segundo_periodo_ferias and paf.segundo_periodo_ferias <= current_date
-                        %}disabled{% endif %}>
+                        %}disabled data-keep-disabled{% endif %}>
                         <!-- Verifica se o 2º período existe -->
                         <option value="">Selecione...</option>
                         {% for dias in [10, 15, 20] %}
@@ -165,7 +165,7 @@
                                value="{{ paf.segundo_periodo_ferias if paf }}"
                                min="2025-04-01" max="2025-12-31"
                                {% if paf and paf.segundo_periodo_ferias and paf.segundo_periodo_ferias < current_date
-                        %}disabled{% endif %}>
+                        %}disabled data-keep-disabled{% endif %}>
                         <!-- Verifica se o 2º período existe -->
                     </td>
                     <td>
@@ -176,7 +176,7 @@
                     <td>
                         <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
                                 data-militar-id="{{ militar.id }}"
-                                {% if paf and paf.terceiro_periodo_ferias %}disabled{% endif %}>
+                                {% if paf and paf.terceiro_periodo_ferias %}disabled data-keep-disabled{% endif %}>
                             <!-- Verifica se o 3º período existe -->
                             <option value="">Selecione...</option>
                             {% for dias in [10] %}
@@ -559,30 +559,40 @@
             const dataAtual = new Date(); // Obtém a data atual
             const diaAtual = dataAtual.getDate(); // Obtém o dia do mês (1-31)
 
-            // Verifica se é dia 21 ou posterior
-            if (diaAtual >= 21) {
-                // Desabilita todos os inputs, selects e botões de salvar
+            // Verifica se o dia está entre 10 e 20 (inclusive)
+            if (diaAtual >= 10 && diaAtual <= 20) {
+                // Habilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
                 document.querySelectorAll('input').forEach(input => {
-                    input.disabled = true;
+                    if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        input.disabled = false;
+                    }
                 });
                 document.querySelectorAll('select').forEach(select => {
-                    select.disabled = true;
+                    if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        select.disabled = false;
+                    }
                 });
                 document.querySelectorAll('.botao-salvar').forEach(button => {
-                    button.disabled = true;
+                    if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
+                        button.disabled = false;
+                    }
                 });
-            }
-            // Verifica se é dia 10 ou anterior
-            else if (diaAtual <= 10) {
-                // Habilita todos os inputs, selects e botões de salvar
+            } else {
+                // Desabilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
                 document.querySelectorAll('input').forEach(input => {
-                    input.disabled = false;
+                    if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        input.disabled = true;
+                    }
                 });
                 document.querySelectorAll('select').forEach(select => {
-                    select.disabled = false;
+                    if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        select.disabled = true;
+                    }
                 });
                 document.querySelectorAll('.botao-salvar').forEach(button => {
-                    button.disabled = false;
+                    if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
+                        button.disabled = true;
+                    }
                 });
             }
         }
