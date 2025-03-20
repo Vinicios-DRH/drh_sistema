@@ -2,13 +2,12 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('home') }}">
             <img class="img-responsive" style="width:30px; max-width:100% !important;"
-                 src="{{ url_for('static', filename='img/logobm.png') }}" alt="">
+                src="{{ url_for('static', filename='img/logobm.png') }}" alt="">
         </a>
         <button id="buttonNav" class="navbar-toggler" type="button" data-bs-toggle="offcanvas"
-                data-bs-target="#offcanvasNavbar"
-                aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
+            data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
             <img class="img-responsive" style="width:40px; max-width:100% !important;"
-                 src="{{ url_for('static', filename='img/menu.png') }}" alt="">
+                src="{{ url_for('static', filename='img/menu.png') }}" alt="">
         </button>
         <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
             <div class="offcanvas-header">
@@ -16,7 +15,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
-                <a href="{{ url_for('perfil', id_usuario=current_user.id) }}"><strong class="offcanvas-title">{{ current_user.nome }}</strong></a> <br>
+                <a href="{{ url_for('perfil', id_usuario=current_user.id) }}"><strong class="offcanvas-title">{{
+                        current_user.nome }}</strong></a> <br>
                 <strong class="offcanvas-title" style="color: rgba(0, 191, 255, 1)">
                     {% if current_user.is_authenticated %}
                     {{ current_user.obm1.sigla }}
@@ -40,7 +40,7 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                           aria-expanded="false">
+                            aria-expanded="false">
                             Militares Ativos
                         </a>
                         <ul class="dropdown-menu">
@@ -72,7 +72,18 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                           aria-expanded="false">
+                            aria-expanded="false">
+                            Motoristas
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('adicionar_motorista') }}">Adicionar
+                                    Motorista</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
+                        </ul>
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
                             Utilidades
                         </a>
                         <ul class="dropdown-menu">
@@ -96,7 +107,7 @@
                     {% if current_user.funcao_user_id == 5 %}
                     <li class="nav-item">
                         <a class="btn btn-primary" aria-current="page"
-                           href="{{ url_for('exportar_pafs', tabela='pafs') }}">Baixar PAF</a>
+                            href="{{ url_for('exportar_pafs', tabela='pafs') }}">Baixar PAF</a>
                     </li>
                     {% endif %}
                     {% if current_user.is_authenticated %}
