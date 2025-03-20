@@ -18,16 +18,16 @@
                             {{ form_motorista.csrf_token }}
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    {{ form_motorista.nome_completo.label(class="form-control-label") }}
+                                    {{ form_motorista.nome_completo.label(class="form-control-label", disabled=True) }}
                                     {% if form_motorista.nome_completo.errors %}
-                                    {{ form_motorista.nome_completo(class="form-control is-invalid") }}
+                                    {{ form_motorista.nome_completo(class="form-control is-invalid", disabled=True) }}
                                     <div class="invalid-feedback">
                                         {% for erro in form_motorista.nome_completo.errors %}
                                         {{ erro }}
                                         {% endfor %}
                                     </div>
                                     {% else %}
-                                    {{ form_motorista.nome_completo(class="form-control") }}
+                                    {{ form_motorista.nome_completo(class="form-control", disabled=True) }}
                                     {% endif %}
                                 </div>
                             </div>
