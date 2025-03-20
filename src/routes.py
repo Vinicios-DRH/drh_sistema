@@ -2153,10 +2153,7 @@ def adicionar_motorista():
         .all()
     )
 
-    # Criar a lista de opções para o campo de seleção
-    form_motorista.nome_completo.choices = [
-        ('', '-- Selecione um militar --')
-    ] + [(militar.id, militar.nome_completo) for militar in militares_query]
+    form_motorista.nome_completo.choices = [(militar.id, militar.nome_completo) for militar in militares_query if militar.id is not None]
 
     # Criar dicionário com os militares e suas informações
     militares = {
