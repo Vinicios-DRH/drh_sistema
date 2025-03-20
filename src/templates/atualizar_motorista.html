@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<section class="bg-light py-3 py-md-5 mt-2">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="card border border-light-subtle rounded-3 shadow-sm">
+                    <div class="card-body p-3 p-md-4 p-xl-5">
+                        <div class="text-center mb-3">
+                            <a href="#">
+                                <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="BootstrapBrain Logo"
+                                    width="100" height="100">
+                            </a>
+                        </div>
+                        <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Adicionar Motorista</h2>
+                        <form method="POST" class="row g-3" enctype="multipart/form-data">
+                            {{ form_motorista.csrf_token }}
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form_motorista.nome_completo.label(class="form-control-label") }}
+                                    {% if form_motorista.nome_completo.errors %}
+                                    {{ form_motorista.nome_completo(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.nome_completo.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.nome_completo(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form_motorista.matricula.label(class="form-control-label") }}
+                                    {% if form_motorista.matricula.errors %}
+                                    {{ form_motorista.matricula(class="form-control is-invalid", readonly=true) }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.matricula.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.matricula(class="form-control", readonly=true) }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    {{ form_motorista.posto_grad_id.label(class="form-control-label") }}
+                                    {% if form_motorista.posto_grad_id.errors %}
+                                    {{ form_motorista.posto_grad_id(class="form-control is-invalid", readonly=true) }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.posto_grad_id.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.posto_grad_id(class="form-control", readonly=true,
+                                    id="posto_grad_id") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form_motorista.categoria_id.label(class="form-control-label") }}
+                                    {% if form_motorista.categoria_id.errors %}
+                                    {{ form_motorista.categoria_id(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.categoria_id.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.categoria_id(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    {{ form_motorista.obm_id_1.label(class="form-control-label") }}
+                                    {% if form_motorista.obm_id_1.errors %}
+                                    {{ form_motorista.obm_id_1(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form.obm_id_1.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.obm_id_1(class="form-control", readonly = true) }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form_motorista.boletim_geral.label(class="form-control-label") }}
+                                    {% if form_motorista.boletim_geral.errors %}
+                                    {{ form_motorista.boletim_geral(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.boletim_geral.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.boletim_geral(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form_motorista.siged.label(class="form-control-label") }}
+                                    {% if form_motorista.siged.errors %}
+                                    {{ form_motorista.siged(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.siged.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.siged(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="d-grid my-3">
+                                    {{ form_motorista.botao_salvar_motorista(class="btn btn-outline-primary
+                                    mt-2") }}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
