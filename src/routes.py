@@ -2107,56 +2107,92 @@ def update_paf():
     return jsonify({"message": "Dados salvos com sucesso!"})
 
 
+
+
+
+# @app.route('/get-militar/<int:militar_id>')
+# @login_required
+# def get_militar(militar_id):
+#     militar = (
+#         database.session.query(
+#             Militar.matricula,
+#             PostoGrad.sigla.label("posto_grad_sigla"),
+#             Obm.sigla.label("obm_sigla")
+#         )
+#         .outerjoin(PostoGrad, Militar.posto_grad_id == PostoGrad.id)
+#         .outerjoin(MilitarObmFuncao, (MilitarObmFuncao.militar_id == Militar.id) & (MilitarObmFuncao.data_fim == None))
+#         .outerjoin(Obm, MilitarObmFuncao.obm_id == Obm.id)
+#         .filter(Militar.id == militar_id)
+#         .first()
+#     )
+
+#     if militar:
+#         return jsonify({
+#             "matricula": militar.matricula,
+#             "obm_id_1": militar.obm_sigla,
+#             "posto_grad_id": militar.posto_grad_sigla
+#         })
+#     else:
+#         return jsonify({"error": "Militar não encontrado"}), 404
+
+
 @app.route('/adicionar-motorista', methods=['GET', 'POST'])
 @login_required
 def adicionar_motorista():
     form_motorista = FormMotoristas()
+
+    # Carregar todos os militares de uma vez com os dados necessários
+    militares_query = (
+        database.session.query(
+            Militar.id,
+            Militar.nome_completo,
+            Militar.matricula,
+            PostoGrad.sigla.label("posto_grad_sigla"),
+            Obm.sigla.label("obm_sigla")
+        )
+        .outerjoin(PostoGrad, Militar.posto_grad_id == PostoGrad.id)
+        .outerjoin(MilitarObmFuncao, (MilitarObmFuncao.militar_id == Militar.id) & (MilitarObmFuncao.data_fim == None))
+        .outerjoin(Obm, MilitarObmFuncao.obm_id == Obm.id)
+        .all()
+    )
+
+    # Criar a lista de opções para o campo de seleção
     form_motorista.nome_completo.choices = [
         ('', '-- Selecione um militar --')
-    ] + [(militar.id, militar.nome_completo) for militar in Militar.query.all()]
+    ] + [(militar.id, militar.nome_completo) for militar in militares_query]
 
-    # Definir as opções para os campos categoria e classificar
+    # Criar dicionário com os militares e suas informações
+    militares = {
+        militar.id: {
+            'matricula': militar.matricula,
+            'obm_id_1': militar.obm_sigla,  # OBM ativa ou None
+            'posto_grad_id': militar.posto_grad_sigla  # Posto/Graduação ou None
+        }
+        for militar in militares_query
+    }
+
+    # Definir as opções para os campos categoria
     form_motorista.categoria_id.choices = [
         ('', '-- Selecione uma categoria --')
     ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
-    # Enviar todos os militares como um dicionário para o JavaScript
-    militares = {}
-    for militar in Militar.query.all():
-        obm_funcao = MilitarObmFuncao.query.filter_by(
-            militar_id=militar.id, data_fim=None).first()
-
-        # Preencher os dados do militar, mesmo que não tenha OBM ativa
-        militares[militar.id] = {
-            'matricula': militar.matricula,
-            'obm_id_1': obm_funcao.obm.sigla if obm_funcao else None,  # OBM ativa ou None
-            # Posto/Graduação ou None
-            'posto_grad_id': militar.posto_grad.sigla if militar.posto_grad else None
-        }
-
     if form_motorista.validate_on_submit():
         try:
-            # Criar uma nova instância de Motoristas
             novo_motorista = Motoristas(
-                militar_id=form_motorista.nome_completo.data,  # ID do militar selecionado
+                militar_id=form_motorista.nome_completo.data,
                 categoria_id=form_motorista.categoria_id.data,
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
-                usuario_id=current_user.id,  # ID do usuário logado
-                created=datetime.utcnow()  # Preencher a data de criação
+                usuario_id=current_user.id,
+                created=datetime.utcnow()
             )
 
-            # Salvar no banco de dados
             database.session.add(novo_motorista)
             database.session.commit()
-
-            # Mensagem de sucesso
             flash('Motorista cadastrado com sucesso!', 'success')
-            # Redirecionar para a mesma página
             return redirect(url_for('adicionar_motorista'))
 
         except Exception as e:
-            # Em caso de erro, desfazer a transação e exibir mensagem de erro
             database.session.rollback()
             flash(f'Erro ao cadastrar motorista: {str(e)}', 'danger')
 
