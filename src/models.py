@@ -429,6 +429,13 @@ class Paf(database.Model):
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
 
+class Categoria(database.Model):
+    __tablename__ = 'categoria'
+
+    id = database.Column(database.Integer, primary_key=True)
+    sigla = database.Column(database.String(50))
+
+
 class Motoristas(database.Model):
     __tablename__ = 'motoristas'
 
