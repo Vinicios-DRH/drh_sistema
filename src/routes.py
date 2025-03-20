@@ -2150,6 +2150,7 @@ def adicionar_motorista():
         .outerjoin(PostoGrad, Militar.posto_grad_id == PostoGrad.id)
         .outerjoin(MilitarObmFuncao, (MilitarObmFuncao.militar_id == Militar.id) & (MilitarObmFuncao.data_fim == None))
         .outerjoin(Obm, MilitarObmFuncao.obm_id == Obm.id)
+        .order_by(Militar.nome_completo)
         .all()
     )
 
