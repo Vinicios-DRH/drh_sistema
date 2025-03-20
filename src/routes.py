@@ -2203,7 +2203,7 @@ def motoristas():
     per_page = 10
     search = request.args.get('search', '', type=str)
 
-    query = Motoristas.query.filter(Motoristas.modified.is_(None))
+    query = Motoristas.query.order_by(Motoristas.modified.desc())
 
     if search:
         query = query.join(Militar).filter(
@@ -2226,17 +2226,17 @@ def atualizar_motorista(motorista_id):
 
     form_motorista = FormMotoristas(obj=motorista)
 
+     # Definir a opção do militar atual como única opção
+    militar_atual = (motorista.militar.id, motorista.militar.nome_completo)
+    form_motorista.nome_completo.choices = [militar_atual]  # Garante que sempre há uma opção válida
+    form_motorista.nome_completo.data = motorista.militar.id  # Garante que o valor correto seja setado
+
     # Definir as opções de categoria antes de preencher os dados
     form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for
                                                                                      categoria in
                                                                                      Categoria.query.all()]
 
-    form_motorista.nome_completo.choices = [
-        (motorista.militar.id, motorista.militar.nome_completo)
-    ]
-
     # Preencher os campos relacionados ao militar
-    form_motorista.nome_completo.data = motorista.militar.id
     form_motorista.matricula.data = motorista.militar.matricula
     form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
     form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
@@ -2268,7 +2268,6 @@ def atualizar_motorista(motorista_id):
         form_motorista=form_motorista,
         motorista=motorista
     )
-
 
 @app.route('/usuario/<usuario_id>/excluir', methods=['GET', 'POST'])
 @login_required
