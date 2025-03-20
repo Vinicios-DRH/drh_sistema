@@ -71,7 +71,7 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        {% if current_user.funcao_user_id == 5 %}
+                        <!-- {% if current_user.funcao_user_id == 5 %}
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
                             Motoristas
@@ -83,7 +83,7 @@
                             </li>
                             <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
                         </ul>
-                        {% endif %}
+                        {% endif %} -->
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
                             Utilidades
@@ -99,6 +99,22 @@
                     </li>
                     <li class="nav-item">
                         <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if current_user.funcao_user_id == 5 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            Motoristas
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="nav-item">
+                                <a class="dropdown-item" href="{{ url_for('adicionar_motorista') }}">Adicionar
+                                    Motorista</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                     {% if current_user.funcao_user_id != 6 %}
