@@ -2107,9 +2107,6 @@ def update_paf():
     return jsonify({"message": "Dados salvos com sucesso!"})
 
 
-
-
-
 # @app.route('/get-militar/<int:militar_id>')
 # @login_required
 # def get_militar(militar_id):
