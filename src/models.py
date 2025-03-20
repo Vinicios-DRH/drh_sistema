@@ -429,6 +429,26 @@ class Paf(database.Model):
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
 
+class Motoristas(database.Model):
+    __tablename__ = 'motoristas'
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
+                                 nullable=False)
+    categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'),
+                                 nullable=False)
+    siged = database.Column(database.String(200))
+    boletim_geral = database.Column(database.String(200))
+    created = database.Column(database.DateTime, default=datetime.utcnow)
+    modified = database.Column(database.DateTime, nullable=True)
+    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+
+    # Relacionamentos
+    militar = database.relationship('Militar', backref='motoristas', lazy=True)
+    categoria = database.relationship('Categoria', backref='motorista_categoria', lazy=True)
+    usuario = database.relationship('User', foreign_keys=[usuario_id])
+
+
 @listens_for(MilitaresADisposicao, 'before_insert')
 def receive_before_insert(mapper, connection, target):
     target.atualizar_status()
