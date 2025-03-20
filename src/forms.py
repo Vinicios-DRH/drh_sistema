@@ -179,7 +179,7 @@ class FormMilitarFerias(FlaskForm):
 
 class FormMotoristas(FlaskForm):
     posto_grad_id = StringField('Posto/Graduação')
-    nome_completo = SelectField('Nome do Militar', choices=[])
+    nome_completo = SelectField('Nome do Militar', choices=[], coerce=int)
     matricula = StringField('Matricula')
     categoria_id = SelectField('Categoria', choices=[])
     obm_id_1 = StringField('OBM 1')
