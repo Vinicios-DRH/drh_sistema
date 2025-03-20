@@ -8,7 +8,7 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import FormLogin, FormMilitar, FormCriarUsuario, FormMilitarFerias
+from src.forms import FormLogin, FormMilitar, FormCriarUsuario, FormMilitarFerias, FormMotoristas
 from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
@@ -2112,24 +2112,26 @@ def update_paf():
 def adicionar_motorista():
     form_motorista = FormMotoristas()
     form_motorista.nome_completo.choices = [
-                                               ('', '-- Selecione um militar --')
-                                           ] + [(militar.id, militar.nome_completo) for militar in Militar.query.all()]
+        ('', '-- Selecione um militar --')
+    ] + [(militar.id, militar.nome_completo) for militar in Militar.query.all()]
 
     # Definir as opções para os campos categoria e classificar
     form_motorista.categoria_id.choices = [
-                                              ('', '-- Selecione uma categoria --')
-                                          ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+        ('', '-- Selecione uma categoria --')
+    ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
     # Enviar todos os militares como um dicionário para o JavaScript
     militares = {}
     for militar in Militar.query.all():
-        obm_funcao = MilitarObmFuncao.query.filter_by(militar_id=militar.id, data_fim=None).first()
+        obm_funcao = MilitarObmFuncao.query.filter_by(
+            militar_id=militar.id, data_fim=None).first()
 
         # Preencher os dados do militar, mesmo que não tenha OBM ativa
         militares[militar.id] = {
             'matricula': militar.matricula,
             'obm_id_1': obm_funcao.obm.sigla if obm_funcao else None,  # OBM ativa ou None
-            'posto_grad_id': militar.posto_grad.sigla if militar.posto_grad else None  # Posto/Graduação ou None
+            # Posto/Graduação ou None
+            'posto_grad_id': militar.posto_grad.sigla if militar.posto_grad else None
         }
 
     if form_motorista.validate_on_submit():
@@ -2150,7 +2152,8 @@ def adicionar_motorista():
 
             # Mensagem de sucesso
             flash('Motorista cadastrado com sucesso!', 'success')
-            return redirect(url_for('adicionar_motorista'))  # Redirecionar para a mesma página
+            # Redirecionar para a mesma página
+            return redirect(url_for('adicionar_motorista'))
 
         except Exception as e:
             # Em caso de erro, desfazer a transação e exibir mensagem de erro
@@ -2170,7 +2173,8 @@ def motoristas():
     query = Motoristas.query.filter(Motoristas.modified.is_(None))
 
     if search:
-        query = query.join(Militar).filter(Militar.nome_completo.ilike(f'%{search}%'))
+        query = query.join(Militar).filter(
+            Militar.nome_completo.ilike(f'%{search}%'))
 
     motoristas_paginados = query.paginate(page=page, per_page=per_page)
 
@@ -2184,7 +2188,8 @@ def motoristas():
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
 def atualizar_motorista(motorista_id):
-    motorista = Motoristas.query.get_or_404(motorista_id)  # Busca o motorista pelo ID
+    motorista = Motoristas.query.get_or_404(
+        motorista_id)  # Busca o motorista pelo ID
 
     form_motorista = FormMotoristas(obj=motorista)
 
@@ -2201,7 +2206,8 @@ def atualizar_motorista(motorista_id):
     form_motorista.nome_completo.data = motorista.militar.id
     form_motorista.matricula.data = motorista.militar.matricula
     form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
-    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[0].obm.sigla if motorista.militar.obm_funcoes else None
+    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
+        0].obm.sigla if motorista.militar.obm_funcoes else None
 
     if form_motorista.validate_on_submit():
         try:
@@ -2216,7 +2222,8 @@ def atualizar_motorista(motorista_id):
 
             # Mensagem de sucesso
             flash('Motorista atualizado com sucesso!', 'success')
-            return redirect(url_for('motoristas'))  # Redireciona para a lista de motoristas
+            # Redireciona para a lista de motoristas
+            return redirect(url_for('motoristas'))
 
         except Exception as e:
             # Em caso de erro, desfaz a transação e exibe mensagem de erro

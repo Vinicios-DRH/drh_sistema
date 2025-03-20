@@ -175,3 +175,14 @@ class FormMilitarFerias(FlaskForm):
     terceiro_periodo_ferias = DateField("3º Período de férias", format='%Y-%m-%d', validators=[Optional()])
     fim_terceiro_periodo = DateField("Fim do 3º Período de Férias", format='%Y-%m-%d', validators=[Optional()])
     troca_mes_ferias = SelectField("Alteração de mês de usufruto das Férias", choices=[])
+
+
+class FormMotoristas(FlaskForm):
+    posto_grad_id = StringField('Posto/Graduação')
+    nome_completo = SelectField('Nome do Militar', choices=[])
+    matricula = StringField('Matricula')
+    categoria_id = SelectField('Categoria', choices=[])
+    obm_id_1 = StringField('OBM 1')
+    siged = StringField('SIGED')
+    boletim_geral = StringField('Boletim Geral')
+    botao_salvar_motorista = SubmitField('Salvar')
