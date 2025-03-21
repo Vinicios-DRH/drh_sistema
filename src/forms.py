@@ -186,3 +186,9 @@ class FormMotoristas(FlaskForm):
     siged = StringField('SIGED')
     boletim_geral = StringField('Boletim Geral')
     botao_salvar_motorista = SubmitField('Salvar')
+
+
+class FormFiltroMotorista(FlaskForm):
+    obm_id = SelectField('OBM', choices=[])
+    categoria_id = SelectField('Categoria', choices=[])
+    posto_grad_id = SelectField('Posto/Grad', choices=[])
