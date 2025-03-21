@@ -2197,24 +2197,60 @@ def adicionar_motorista():
 @app.route('/motoristas', methods=['GET', 'POST'])
 @login_required
 def motoristas():
+    form_filtro = FormFiltroMotorista()
+
+    form_filtro.obm_id.choices = [
+        ('', '-- Selecione OBM --')
+    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [
+        ('', '-- Selecione Posto/Grad --')
+    ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [
+        ('', '-- Selecione uma categoria --')
+    ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+
     page = request.args.get('page', 1, type=int)
     per_page = 10
     search = request.args.get('search', '', type=str)
+    obm_id = request.args.get('obm_id', '', type=str)
+    posto_grad_id = request.args.get('posto_grad_id', '', type=str)
+    categoria_id = request.args.get('categoria_id', '', type=str)
 
-    query = Motoristas.query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc())
+    # Capturar os parâmetros recebidos na requisição
+    print(f"Parâmetros recebidos: obm_id={obm_id}, posto_grad_id={posto_grad_id}, categoria_id={categoria_id}, search={search}")
 
+    # Query base
+    query = Motoristas.query.join(Militar)
+
+    print(str(query.statement.compile(compile_kwargs={"literal_binds": True})))
+
+    # Filtro por OBM
+    if obm_id:
+        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        query = query.filter(Motoristas.militar_id.in_(subquery))
+
+    # Filtro por Posto/Graduação
+    if posto_grad_id:
+        query = query.filter(Militar.posto_grad_id == posto_grad_id)
+
+    # Filtro por Categoria
+    if categoria_id:
+        query = query.filter(Motoristas.categoria_id == categoria_id)
+
+    # Filtro por Nome
     if search:
-        query = query.join(Militar).filter(
-            Militar.nome_completo.ilike(f'%{search}%'))
+        query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
-    motoristas_paginados = query.paginate(page=page, per_page=per_page)
+    # Paginação
+    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc()).paginate(page=page, per_page=per_page)
 
     return render_template(
         'motoristas.html',
         motoristas=motoristas_paginados,
-        search=search
+        search=search,
+        form_filtro=form_filtro
     )
-
+    
 
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
