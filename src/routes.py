@@ -8,7 +8,7 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import FormLogin, FormMilitar, FormCriarUsuario, FormMilitarFerias, FormMotoristas
+from src.forms import FormLogin, FormMilitar, FormCriarUsuario, FormMilitarFerias, FormMotoristas, FormFiltroMotorista
 from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
