@@ -2201,7 +2201,7 @@ def motoristas():
     per_page = 10
     search = request.args.get('search', '', type=str)
 
-    query = Motoristas.query.order_by(Motoristas.modified.desc())
+    query = Motoristas.query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc())
 
     if search:
         query = query.join(Militar).filter(
@@ -2219,20 +2219,19 @@ def motoristas():
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
 def atualizar_motorista(motorista_id):
-    motorista = Motoristas.query.get_or_404(
-        motorista_id)  # Busca o motorista pelo ID
+    motorista = Motoristas.query.get_or_404(motorista_id)  # Busca o motorista pelo ID
 
     form_motorista = FormMotoristas(obj=motorista)
 
-     # Definir a opção do militar atual como única opção
+    # Definir a opção do militar atual como única opção
     militar_atual = (motorista.militar.id, motorista.militar.nome_completo)
     form_motorista.nome_completo.choices = [militar_atual]  # Garante que sempre há uma opção válida
     form_motorista.nome_completo.data = motorista.militar.id  # Garante que o valor correto seja setado
 
     # Definir as opções de categoria antes de preencher os dados
-    form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for
-                                                                                     categoria in
-                                                                                     Categoria.query.all()]
+    form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [
+        (categoria.id, categoria.sigla) for categoria in Categoria.query.all()
+    ]
 
     # Preencher os campos relacionados ao militar
     form_motorista.matricula.data = motorista.militar.matricula
@@ -2242,22 +2241,27 @@ def atualizar_motorista(motorista_id):
 
     if form_motorista.validate_on_submit():
         try:
-            # Atualiza os campos do motorista
-            motorista.categoria_id = form_motorista.categoria_id.data
-            motorista.boletim_geral = form_motorista.boletim_geral.data
-            motorista.siged = form_motorista.siged.data
-            motorista.modified = datetime.utcnow()  # Atualiza a data de modificação
+            # Define a data de modificação no registro antigo
+            motorista.modified = datetime.utcnow()
+            database.session.commit()  # Confirma antes de criar o novo registro
 
-            # Salva no banco de dados
-            database.session.commit()
+            # Criar um novo registro com os dados alterados
+            novo_motorista = Motoristas(
+                militar_id=motorista.militar_id,  # Mantém o mesmo militar
+                categoria_id=form_motorista.categoria_id.data,
+                boletim_geral=form_motorista.boletim_geral.data,
+                siged=form_motorista.siged.data,
+                usuario_id=current_user.id,
+                created=datetime.utcnow()  # Nova data de criação
+            )
 
-            # Mensagem de sucesso
+            database.session.add(novo_motorista)
+            database.session.commit()  # Salva no banco de dados
+
             flash('Motorista atualizado com sucesso!', 'success')
-            # Redireciona para a lista de motoristas
             return redirect(url_for('motoristas'))
 
         except Exception as e:
-            # Em caso de erro, desfaz a transação e exibe mensagem de erro
             database.session.rollback()
             flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
 
