@@ -5,10 +5,12 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12">
+                <button style="text-decoration: none" href="#" class="btn btn-primary" id="btn-filtro"
+                    data-bs-toggle="modal" data-bs-target="#filtrarMilitar">Filtros avançados
+                </button>
                 <div class="card border border-light-subtle rounded-3 shadow-sm">
                     <div class="card-body p-3 p-md-4 p-xl-5">
                         <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Motoristas</h2>
-
                         <!-- Formulário de busca -->
                         <form method="GET" action="{{ url_for('motoristas') }}" class="mb-4">
                             <div class="input-group">
@@ -107,4 +109,41 @@
         </div>
     </div>
 </section>
+
+<div class="modal fade " id="filtrarMilitar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Filtros Avançados</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4 p-xl-5">
+                <form class="row g-3" id="formFiltros" method="" action="">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_filtro.obm_id.label(class="form-control-label") }}
+                            {{ form_filtro.obm_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_filtro.posto_grad_id.label(class="form-control-label") }}
+                            {{ form_filtro.posto_grad_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {{ form_filtro.categoria_id.label(class="form-control-label") }}
+                            {{ form_filtro.categoria_id(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnEnviarFiltros">Filtrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
