@@ -71,7 +71,6 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <!-- {% if current_user.funcao_user_id == 5 %}
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
                             Motoristas
@@ -83,7 +82,6 @@
                             </li>
                             <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
                         </ul>
-                        {% endif %} -->
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
                             Utilidades
@@ -101,7 +99,7 @@
                         <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
                     </li>
                     {% endif %}
-                    
+
                     {% if current_user.funcao_user_id == 5 %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
