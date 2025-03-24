@@ -2179,6 +2179,7 @@ def adicionar_motorista():
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
                 usuario_id=current_user.id,
+                desclassificar="NÃO",
                 created=datetime.utcnow()
             )
 
