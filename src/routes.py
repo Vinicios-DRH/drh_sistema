@@ -23,10 +23,11 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, aliased
-
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
+import plotly.graph_objs as go
+import plotly.io as pio
 
 
 @app.route('/api/estatisticas', methods=['GET'])
