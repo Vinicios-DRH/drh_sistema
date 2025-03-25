@@ -54,6 +54,54 @@
                             </table>
                         </div>
 
+                        <!-- Paginação -->
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center">
+                                {% if motoristas.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('motoristas', page=motoristas.prev_num, search=search) }}"
+                                       aria-label="Anterior">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;</span>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in motoristas.iter_pages(left_edge=1, right_edge=1, left_current=2,
+                                right_current=3) %}
+                                {% if page_num %}
+                                <li class="page-item {% if page_num == motoristas.page %}active{% endif %}">
+                                    <a class="page-link"
+                                       href="{{ url_for('motoristas', page=page_num, search=search) }}">{{ page_num
+                                        }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if motoristas.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       href="{{ url_for('motoristas', page=motoristas.next_num, search=search) }}"
+                                       aria-label="Próximo">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+
                         <!-- Gráficos -->
                         <div class="row mt-5">
                             <div class="col-md-6">
