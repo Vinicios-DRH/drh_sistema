@@ -2200,15 +2200,11 @@ def adicionar_motorista():
 def motoristas():
     form_filtro = FormFiltroMotorista()
 
-    form_filtro.obm_id.choices = [
-        ('', '-- Selecione OBM --')
-    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_filtro.posto_grad_id.choices = [
-        ('', '-- Selecione Posto/Grad --')
-    ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_filtro.categoria_id.choices = [
-        ('', '-- Selecione uma categoria --')
-    ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in
+                                                                                PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for
+                                                                                  categoria in Categoria.query.all()]
 
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -2217,13 +2213,8 @@ def motoristas():
     posto_grad_id = request.args.get('posto_grad_id', '', type=str)
     categoria_id = request.args.get('categoria_id', '', type=str)
 
-    # Capturar os parâmetros recebidos na requisição
-    print(f"Parâmetros recebidos: obm_id={obm_id}, posto_grad_id={posto_grad_id}, categoria_id={categoria_id}, search={search}")
-
     # Query base
     query = Motoristas.query.join(Militar)
-
-    print(str(query.statement.compile(compile_kwargs={"literal_binds": True})))
 
     # Filtro por OBM
     if obm_id:
@@ -2243,13 +2234,44 @@ def motoristas():
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
     # Paginação
-    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc()).paginate(page=page, per_page=per_page)
+    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc()).paginate(
+        page=page, per_page=per_page)
+
+    # Contagem de motoristas
+    total_militares = Militar.query.count()
+    total_motoristas = Motoristas.query.count()
+
+    # Gráfico: Percentual de militares que são motoristas
+    labels_motoristas = ['Motoristas', 'Não são motoristas']
+    values_motoristas = [total_motoristas, total_militares - total_motoristas]
+    fig_motoristas = go.Figure(data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
+    grafico_motoristas = pio.to_json(fig_motoristas)
+
+    # Gráfico: Motoristas por categoria
+    categorias = database.session.query(Categoria.sigla, database.func.count(Motoristas.id)).join(Motoristas).group_by(
+        Categoria.sigla).all()
+    labels_categorias = [c[0] for c in categorias]
+    values_categorias = [c[1] for c in categorias]
+    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    grafico_categorias = pio.to_json(fig_categorias)
+
+    # Gráfico: Motoristas por OBM
+    obms = database.session.query(Obm.sigla, database.func.count(Motoristas.id)).join(MilitarObmFuncao,
+                                                                                      Obm.id == MilitarObmFuncao.obm_id).join(
+        Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id).group_by(Obm.sigla).all()
+    labels_obms = [obm[0] for obm in obms]
+    values_obms = [obm[1] for obm in obms]
+    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    grafico_obms = pio.to_json(fig_obms)
 
     return render_template(
         'motoristas.html',
         motoristas=motoristas_paginados,
         search=search,
-        form_filtro=form_filtro
+        form_filtro=form_filtro,
+        grafico_motoristas=grafico_motoristas,
+        grafico_categorias=grafico_categorias,
+        grafico_obms=grafico_obms
     )
     
 
