@@ -2239,7 +2239,7 @@ def motoristas():
 
     # Contagem de motoristas
     total_militares = Militar.query.count()
-    total_motoristas = Motoristas.query.count()
+    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(None)).count()
 
     # Gráfico: Percentual de militares que são motoristas
     labels_motoristas = ['Motoristas', 'Não são motoristas']
