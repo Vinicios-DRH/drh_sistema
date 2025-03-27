@@ -6,8 +6,8 @@ def enviar_email(destinatario, assunto, mensagem):
         # Configuração do servidor SMTP
         smtp_server = 'smtp.office365.com'
         port = 587
-        login = 'bm6@cbm.am.gov.br'
-        password = 'Ticbmam193#'
+        login = 'drh@cbm.am.gov.br'
+        password = 'Cbmam2023#'
 
         # Criação da mensagem
         msg = MIMEText(mensagem)
