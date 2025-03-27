@@ -4,12 +4,12 @@ from email.mime.text import MIMEText
 # Configuração do servidor SMTP
 smtp_server = 'smtp.office365.com'
 port = 587
-login = 'bm6@cbm.am.gov.br'
-password = 'Ticbmam193#'
+login = 'drh@cbm.am.gov.br'
+password = 'Cbmam2023#'
 
 # Criação da mensagem
-msg = MIMEText('Em 15 dias termina a Vigência de DISPOSIÇÃO do militar X')
-msg['Subject'] = 'Vigência A DISPOSIÇÃO'
+msg = MIMEText('Teste de email')
+msg['Subject'] = 'Teste'
 msg['From'] = login
 msg['To'] = '7519957@gmail.com'
 
