@@ -2155,7 +2155,8 @@ def adicionar_motorista():
         .all()
     )
 
-    form_motorista.nome_completo.choices = [(militar.id, militar.nome_completo) for militar in militares_query if militar.id is not None]
+    form_motorista.nome_completo.choices = [
+        (militar.id, militar.nome_completo) for militar in militares_query if militar.id is not None]
 
     # Criar dicionário com os militares e suas informações
     militares = {
@@ -2201,7 +2202,8 @@ def adicionar_motorista():
 def motoristas():
     form_filtro = FormFiltroMotorista()
 
-    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.obm_id.choices = [
+        ('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
     form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in
                                                                                 PostoGrad.query.all()]
     form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for
@@ -2219,7 +2221,8 @@ def motoristas():
 
     # Filtro por OBM
     if obm_id:
-        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        subquery = MilitarObmFuncao.query.filter_by(
+            obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
         query = query.filter(Motoristas.militar_id.in_(subquery))
 
     # Filtro por Posto/Graduação
@@ -2240,12 +2243,14 @@ def motoristas():
 
     # Contagem de motoristas
     total_militares = Militar.query.count()
-    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(None)).count()
+    total_motoristas = Motoristas.query.filter(
+        Motoristas.modified.is_(None)).count()
 
     # Gráfico: Percentual de militares que são motoristas
     labels_motoristas = ['Motoristas', 'Não são motoristas']
     values_motoristas = [total_motoristas, total_militares - total_motoristas]
-    fig_motoristas = go.Figure(data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
+    fig_motoristas = go.Figure(
+        data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
     grafico_motoristas = pio.to_json(fig_motoristas)
 
     # Gráfico: Motoristas por categoria
@@ -2253,7 +2258,8 @@ def motoristas():
         Categoria.sigla).all()
     labels_categorias = [c[0] for c in categorias]
     values_categorias = [c[1] for c in categorias]
-    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    fig_categorias = go.Figure(
+        data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
     grafico_categorias = pio.to_json(fig_categorias)
 
     # Gráfico: Motoristas por OBM
@@ -2262,7 +2268,8 @@ def motoristas():
         Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id).group_by(Obm.sigla).all()
     labels_obms = [obm[0] for obm in obms]
     values_obms = [obm[1] for obm in obms]
-    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    fig_obms = go.Figure(
+        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
     grafico_obms = pio.to_json(fig_obms)
 
     return render_template(
@@ -2274,19 +2281,22 @@ def motoristas():
         grafico_categorias=grafico_categorias,
         grafico_obms=grafico_obms
     )
-    
+
 
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
 def atualizar_motorista(motorista_id):
-    motorista = Motoristas.query.get_or_404(motorista_id)  # Busca o motorista pelo ID
+    motorista = Motoristas.query.get_or_404(
+        motorista_id)  # Busca o motorista pelo ID
 
     form_motorista = FormMotoristas(obj=motorista)
 
     # Definir a opção do militar atual como única opção
     militar_atual = (motorista.militar.id, motorista.militar.nome_completo)
-    form_motorista.nome_completo.choices = [militar_atual]  # Garante que sempre há uma opção válida
-    form_motorista.nome_completo.data = motorista.militar.id  # Garante que o valor correto seja setado
+    # Garante que sempre há uma opção válida
+    form_motorista.nome_completo.choices = [militar_atual]
+    # Garante que o valor correto seja setado
+    form_motorista.nome_completo.data = motorista.militar.id
 
     # Definir as opções de categoria antes de preencher os dados
     form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [
@@ -2313,14 +2323,16 @@ def atualizar_motorista(motorista_id):
                 siged=form_motorista.siged.data,
                 usuario_id=current_user.id,
                 vencimento_cnh=form_motorista.vencimento_cnh.data,
-                created=datetime.utcnow()  # Nova data de criação
+                created=datetime.utcnow()
             )
 
             # Salvar a imagem da CNH se for enviada
             if form_motorista.cnh_imagem.data:
                 file = form_motorista.cnh_imagem.data
-                filename = secure_filename(f"{motorista.militar.nome_completo}_cnh.{file.filename.split('.')[-1]}")
-                filepath = os.path.join(current_app.root_path, 'static/uploads/cnh', filename)
+                filename = secure_filename(
+                    f"{motorista.militar.nome_completo}_cnh.{file.filename.split('.')[-1]}")
+                filepath = os.path.join(
+                    current_app.root_path, 'static/uploads/cnh', filename)
                 file.save(filepath)
                 novo_motorista.cnh_imagem = filename
 
@@ -2339,6 +2351,7 @@ def atualizar_motorista(motorista_id):
         form_motorista=form_motorista,
         motorista=motorista
     )
+
 
 @app.route('/usuario/<usuario_id>/excluir', methods=['GET', 'POST'])
 @login_required
