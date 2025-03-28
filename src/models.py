@@ -450,7 +450,7 @@ class Motoristas(database.Model):
     modified = database.Column(database.DateTime, nullable=True)
     usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
-    cnh_imagem = database.Column(database.String(50))
+    cnh_imagem = database.Column(database.String(255))
     desclassificar = database.Column(database.String(30))
 
     # Relacionamentos
