@@ -2235,7 +2235,7 @@ def motoristas():
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
     # Paginação
-    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Motoristas.created.desc()).paginate(
+    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Militar.nome_completo.asc()).paginate(
         page=page, per_page=per_page)
 
     # Contagem de motoristas
