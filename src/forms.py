@@ -185,6 +185,7 @@ class FormMotoristas(FlaskForm):
     obm_id_1 = StringField('OBM 1')
     siged = StringField('SIGED')
     boletim_geral = StringField('Boletim Geral')
+    vencimento_cnh = DateField('Vencimento da CNH')
     botao_salvar_motorista = SubmitField('Salvar')
 
 
