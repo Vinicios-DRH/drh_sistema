@@ -1,7 +1,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField)
+                     MultipleFileField, FileField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional
 from src.models import Militar, User
 
@@ -187,6 +187,7 @@ class FormMotoristas(FlaskForm):
     boletim_geral = StringField('Boletim Geral')
     vencimento_cnh = DateField('Vencimento da CNH')
     botao_salvar_motorista = SubmitField('Salvar')
+    cnh_imagem = FileField('CNH (Imagem)')  # Campo para upload de arquivo
 
 
 class FormFiltroMotorista(FlaskForm):
