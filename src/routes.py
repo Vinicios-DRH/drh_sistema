@@ -2326,15 +2326,16 @@ def atualizar_motorista(motorista_id):
                 created=datetime.utcnow()
             )
 
-            # Salvar a imagem da CNH se for enviada
             if form_motorista.cnh_imagem.data:
                 file = form_motorista.cnh_imagem.data
-                filename = secure_filename(
-                    f"{motorista.militar.nome_completo}_cnh.{file.filename.split('.')[-1]}")
-                filepath = os.path.join(
-                    current_app.root_path, 'static/uploads/cnh', filename)
+                ext = file.filename.split('.')[-1]  # Obtém a extensão do arquivo
+                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  # Timestamp único
+                unique_filename = secure_filename(f"{motorista.militar.nome_completo}_cnh_{timestamp}.{ext}")
+                
+                filepath = os.path.join(current_app.root_path, 'static/uploads/cnh', unique_filename)
                 file.save(filepath)
-                novo_motorista.cnh_imagem = filename
+                
+                novo_motorista.cnh_imagem = unique_filename
 
             database.session.add(novo_motorista)
             database.session.commit()  # Salva no banco de dados
