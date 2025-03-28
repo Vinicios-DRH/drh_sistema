@@ -138,6 +138,17 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form_motorista.cnh_imagem.label(class="form-control-label") }}
+                                    <input type="file" id="cnhInput" name="cnh_imagem" class="form-control">
+                                    <br>
+                                    <img id="cnhPreview"
+                                        src="{{ url_for('static', filename='uploads/cnh/' + motorista.cnh_imagem) if motorista.cnh_imagem else '' }}"
+                                        alt="Prévia da CNH" class="img-thumbnail mt-2"
+                                        style="max-width: 500px; display: {{ 'block' if motorista.cnh_imagem else 'none' }};">
+                                </div>
+                            </div>
                             <div class="col-4">
                                 <div class="d-grid my-3">
                                     {{ form_motorista.botao_salvar_motorista(class="btn btn-outline-primary
@@ -151,5 +162,17 @@
         </div>
     </div>
 </section>
+
+<script>
+    document.getElementById("cnhInput").addEventListener("change", function (event) {
+        var reader = new FileReader();
+        reader.onload = function () {
+            var preview = document.getElementById("cnhPreview");
+            preview.src = reader.result;
+            preview.style.display = "block";
+        }
+        reader.readAsDataURL(event.target.files[0]);
+    });
+</script>
 
 {% endblock %}
