@@ -63,7 +63,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     {{ form_motorista.categoria_id.label(class="form-control-label") }}
                                     {% if form_motorista.categoria_id.errors %}
@@ -78,7 +78,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     {{ form_motorista.obm_id_1.label(class="form-control-label") }}
                                     {% if form_motorista.obm_id_1.errors %}
@@ -120,6 +120,21 @@
                                     </div>
                                     {% else %}
                                     {{ form_motorista.siged(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form_motorista.vencimento_cnh.label(class="form-control-label") }}
+                                    {% if form_motorista.vencimento_cnh.errors %}
+                                    {{ form_motorista.vencimento_cnh(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for erro in form_motorista.vencimento_cnh.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    {{ form_motorista.vencimento_cnh(class="form-control") }}
                                     {% endif %}
                                 </div>
                             </div>
