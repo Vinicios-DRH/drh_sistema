@@ -4,7 +4,7 @@ import pandas as pd
 import base64
 import matplotlib.pyplot as plt
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
-    Response
+    Response, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
@@ -2312,8 +2312,17 @@ def atualizar_motorista(motorista_id):
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
                 usuario_id=current_user.id,
+                vencimento_cnh=form_motorista.vencimento_cnh.data,
                 created=datetime.utcnow()  # Nova data de criação
             )
+
+            # Salvar a imagem da CNH se for enviada
+            if form_motorista.cnh_imagem.data:
+                file = form_motorista.cnh_imagem.data
+                filename = secure_filename(f"{motorista.militar.nome_completo}_cnh.{file.filename.split('.')[-1]}")
+                filepath = os.path.join(current_app.root_path, 'static/uploads/cnh', filename)
+                file.save(filepath)
+                novo_motorista.cnh_imagem = filename
 
             database.session.add(novo_motorista)
             database.session.commit()  # Salva no banco de dados
