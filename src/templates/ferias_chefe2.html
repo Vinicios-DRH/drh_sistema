@@ -560,7 +560,7 @@
             const diaAtual = dataAtual.getDate(); // Obtém o dia do mês (1-31)
 
             // Verifica se o dia está entre 10 e 20 (inclusive)
-            if (diaAtual >= 10 && diaAtual <= 20) {
+            if (diaAtual >= 1 && diaAtual <= 20) {
                 // Habilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
                 document.querySelectorAll('input').forEach(input => {
                     if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
