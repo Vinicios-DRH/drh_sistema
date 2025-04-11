@@ -2300,24 +2300,21 @@ def motoristas():
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
 @login_required
 def atualizar_motorista(motorista_id):
-    motorista = Motoristas.query.get_or_404(
-        motorista_id)  # Busca o motorista pelo ID
+    motorista = Motoristas.query.get_or_404(motorista_id)
 
     form_motorista = FormMotoristas(obj=motorista)
 
-    # Definir a opção do militar atual como única opção
+    # Define a opção única para o militar atual
     militar_atual = (motorista.militar.id, motorista.militar.nome_completo)
-    # Garante que sempre há uma opção válida
     form_motorista.nome_completo.choices = [militar_atual]
-    # Garante que o valor correto seja setado
     form_motorista.nome_completo.data = motorista.militar.id
 
-    # Definir as opções de categoria antes de preencher os dados
+    # Carrega opções de categoria
     form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [
         (categoria.id, categoria.sigla) for categoria in Categoria.query.all()
     ]
 
-    # Preencher os campos relacionados ao militar
+    # Preenche dados exibidos
     form_motorista.matricula.data = motorista.militar.matricula
     form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
     form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
@@ -2325,13 +2322,13 @@ def atualizar_motorista(motorista_id):
 
     if form_motorista.validate_on_submit():
         try:
-            # Define a data de modificação no registro antigo
+            # Marca o antigo como modificado (histórico)
             motorista.modified = datetime.utcnow()
-            database.session.commit()  # Confirma antes de criar o novo registro
+            database.session.commit()
 
-            # Criar um novo registro com os dados alterados
+            # Novo registro com os dados atualizados
             novo_motorista = Motoristas(
-                militar_id=motorista.militar_id,  # Mantém o mesmo militar
+                militar_id=motorista.militar_id,
                 categoria_id=form_motorista.categoria_id.data,
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
@@ -2340,22 +2337,33 @@ def atualizar_motorista(motorista_id):
                 created=datetime.utcnow()
             )
 
-            if form_motorista.cnh_imagem.data:
+            # ⏬ SALVAR IMAGEM SE EXISTIR
+            if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                 file = form_motorista.cnh_imagem.data
-                # Obtém a extensão do arquivo
+
+                # Cria a pasta se não existir
+                pasta_upload = os.path.join(
+                    current_app.root_path, 'static/uploads/cnh')
+                os.makedirs(pasta_upload, exist_ok=True)
+
                 ext = file.filename.split('.')[-1]
-                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  # Timestamp único
-                unique_filename = secure_filename(
-                    f"{motorista.militar.nome_completo}_cnh_{timestamp}.{ext}")
+                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                nome_formatado = motorista.militar.nome_completo.replace(
+                    " ", "_")
+                nome_arquivo = secure_filename(
+                    f"{nome_formatado}_cnh_{timestamp}.{ext}")
 
-                filepath = os.path.join(
-                    current_app.root_path, 'static/uploads/cnh', unique_filename)
-                file.save(filepath)
+                caminho_arquivo = os.path.join(pasta_upload, nome_arquivo)
+                # Debug log
+                print(f"[LOG] Salvando imagem CNH em: {caminho_arquivo}")
 
-                novo_motorista.cnh_imagem = unique_filename
+                file.save(caminho_arquivo)
 
+                novo_motorista.cnh_imagem = nome_arquivo
+
+            # Salva novo motorista com imagem, se houver
             database.session.add(novo_motorista)
-            database.session.commit()  # Salva no banco de dados
+            database.session.commit()
 
             flash('Motorista atualizado com sucesso!', 'success')
             return redirect(url_for('motoristas'))
