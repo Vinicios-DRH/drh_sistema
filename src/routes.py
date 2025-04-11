@@ -2156,19 +2156,18 @@ def adicionar_motorista():
     )
 
     form_motorista.nome_completo.choices = [
-        (militar.id, militar.nome_completo) for militar in militares_query if militar.id is not None]
+        (militar.id, militar.nome_completo) for militar in militares_query if militar.id is not None
+    ]
 
-    # Criar dicionário com os militares e suas informações
     militares = {
         militar.id: {
             'matricula': militar.matricula,
-            'obm_id_1': militar.obm_sigla,  # OBM ativa ou None
-            'posto_grad_id': militar.posto_grad_sigla  # Posto/Graduação ou None
+            'obm_id_1': militar.obm_sigla,
+            'posto_grad_id': militar.posto_grad_sigla
         }
         for militar in militares_query
     }
 
-    # Definir as opções para os campos categoria
     form_motorista.categoria_id.choices = [
         ('', '-- Selecione uma categoria --')
     ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
@@ -2185,19 +2184,31 @@ def adicionar_motorista():
                 created=datetime.utcnow()
             )
 
-            # 🟡 Verifica e salva a imagem da CNH, se for enviada
-            if form_motorista.cnh_imagem.data:
+            # Upload da imagem da CNH para Supabase
+            if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                 file = form_motorista.cnh_imagem.data
                 ext = file.filename.split('.')[-1]
                 timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                nome_militar = next((m.nome_completo for m in militares_query if m.id ==
-                                    form_motorista.nome_completo.data), 'motorista')
-                unique_filename = secure_filename(
+
+                nome_militar = next(
+                    (m.nome_completo for m in militares_query if m.id ==
+                     form_motorista.nome_completo.data),
+                    'motorista'
+                ).replace(" ", "_")
+
+                nome_arquivo = secure_filename(
                     f"{nome_militar}_cnh_{timestamp}.{ext}")
-                filepath = os.path.join(
-                    current_app.root_path, 'static/uploads/cnh', unique_filename)
-                file.save(filepath)
-                novo_motorista.cnh_imagem = unique_filename
+                file_bytes = file.read()
+
+                # Upload para Supabase Storage
+                app.supabase.storage.from_('motoristas').upload(
+                    path=f"motoristas/{nome_arquivo}",
+                    file=file_bytes,
+                    file_options={"content-type": file.mimetype}
+                )
+
+                # Guarda o caminho (ou apenas nome, como preferir)
+                novo_motorista.cnh_imagem = f"motoristas/{nome_arquivo}"
 
             database.session.add(novo_motorista)
             database.session.commit()
@@ -2337,15 +2348,8 @@ def atualizar_motorista(motorista_id):
                 created=datetime.utcnow()
             )
 
-            # ⏬ SALVAR IMAGEM SE EXISTIR
             if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                 file = form_motorista.cnh_imagem.data
-
-                # Cria a pasta se não existir
-                pasta_upload = os.path.join(
-                    current_app.root_path, 'static/uploads/cnh')
-                os.makedirs(pasta_upload, exist_ok=True)
-
                 ext = file.filename.split('.')[-1]
                 timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
                 nome_formatado = motorista.militar.nome_completo.replace(
@@ -2353,13 +2357,17 @@ def atualizar_motorista(motorista_id):
                 nome_arquivo = secure_filename(
                     f"{nome_formatado}_cnh_{timestamp}.{ext}")
 
-                caminho_arquivo = os.path.join(pasta_upload, nome_arquivo)
-                # Debug log
-                print(f"[LOG] Salvando imagem CNH em: {caminho_arquivo}")
+                file_bytes = file.read()
 
-                file.save(caminho_arquivo)
+                # Upload no Supabase Storage
+                app.supabase.storage.from_('motoristas').upload(
+                    path=f'motoristas/{nome_arquivo}',
+                    file=file_bytes,
+                    file_options={"content-type": file.mimetype}
+                )
 
-                novo_motorista.cnh_imagem = nome_arquivo
+                # Guarda o caminho (ou URL, se quiser direto)
+                novo_motorista.cnh_imagem = f'motoristas/{nome_arquivo}'
 
             # Salva novo motorista com imagem, se houver
             database.session.add(novo_motorista)
@@ -2371,6 +2379,7 @@ def atualizar_motorista(motorista_id):
         except Exception as e:
             database.session.rollback()
             flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
+            print(e)
 
     return render_template(
         'atualizar_motorista.html',
@@ -2412,6 +2421,11 @@ def sair():
 @app.route('/listar-cnhs')
 @login_required
 def listar_cnhs():
-    cnh_folder = os.path.join(current_app.root_path, 'static/uploads/cnh')
-    arquivos = os.listdir(cnh_folder)
-    return render_template('listar_cnhs.html', arquivos=arquivos)
+    # Usa o client Supabase que você criou no __init__.py
+    arquivos = app.supabase.storage.from_('cnh').list('cnhs')
+
+    # Extrai apenas os nomes dos arquivos
+    nomes_arquivos = [item['name']
+                      for item in arquivos if not item['name'].endswith('/')]
+
+    return render_template('listar_cnhs.html', arquivos=nomes_arquivos)

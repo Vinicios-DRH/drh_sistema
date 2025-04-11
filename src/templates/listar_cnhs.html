@@ -8,11 +8,12 @@
         {% for arquivo in arquivos %}
         <div class="col">
             <div class="card shadow-sm h-100">
-                <img src="{{ url_for('static', filename='uploads/cnh/' + arquivo) }}" class="card-img-top" alt="CNH"
-                    style="height: 250px; object-fit: cover;">
+                <img src="https://cselsnczhbsinizmwtcv.supabase.co/storage/v1/object/public/cnh/{{ arquivo }}"
+                    class="card-img-top" alt="CNH" style="height: 250px; object-fit: cover;">
+
                 <div class="card-body">
                     <h6 class="card-title text-truncate" title="{{ arquivo }}">{{ arquivo }}</h6>
-                    <a href="{{ url_for('static', filename='uploads/cnh/' + arquivo) }}"
+                    <a href="https://cselsnczhbsinizmwtcv.supabase.co/storage/v1/object/public/cnh/{{ arquivo }}"
                         class="btn btn-outline-primary btn-sm w-100 mt-2" target="_blank">
                         Ver Imagem
                     </a>
