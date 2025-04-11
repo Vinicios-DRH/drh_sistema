@@ -2185,6 +2185,20 @@ def adicionar_motorista():
                 created=datetime.utcnow()
             )
 
+            # 🟡 Verifica e salva a imagem da CNH, se for enviada
+            if form_motorista.cnh_imagem.data:
+                file = form_motorista.cnh_imagem.data
+                ext = file.filename.split('.')[-1]
+                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                nome_militar = next((m.nome_completo for m in militares_query if m.id ==
+                                    form_motorista.nome_completo.data), 'motorista')
+                unique_filename = secure_filename(
+                    f"{nome_militar}_cnh_{timestamp}.{ext}")
+                filepath = os.path.join(
+                    current_app.root_path, 'static/uploads/cnh', unique_filename)
+                file.save(filepath)
+                novo_motorista.cnh_imagem = unique_filename
+
             database.session.add(novo_motorista)
             database.session.commit()
             flash('Motorista cadastrado com sucesso!', 'success')
@@ -2195,7 +2209,6 @@ def adicionar_motorista():
             flash(f'Erro ao cadastrar motorista: {str(e)}', 'danger')
 
     return render_template('adicionar_motorista.html', form_motorista=form_motorista, militares=militares)
-
 
 @app.route('/motoristas', methods=['GET', 'POST'])
 @login_required
