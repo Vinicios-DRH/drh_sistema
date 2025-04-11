@@ -2185,6 +2185,20 @@ def adicionar_motorista():
                 created=datetime.utcnow()
             )
 
+            # 🟡 Verifica e salva a imagem da CNH, se for enviada
+            if form_motorista.cnh_imagem.data:
+                file = form_motorista.cnh_imagem.data
+                ext = file.filename.split('.')[-1]
+                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                nome_militar = next((m.nome_completo for m in militares_query if m.id ==
+                                    form_motorista.nome_completo.data), 'motorista')
+                unique_filename = secure_filename(
+                    f"{nome_militar}_cnh_{timestamp}.{ext}")
+                filepath = os.path.join(
+                    current_app.root_path, 'static/uploads/cnh', unique_filename)
+                file.save(filepath)
+                novo_motorista.cnh_imagem = unique_filename
+
             database.session.add(novo_motorista)
             database.session.commit()
             flash('Motorista cadastrado com sucesso!', 'success')
@@ -2328,13 +2342,16 @@ def atualizar_motorista(motorista_id):
 
             if form_motorista.cnh_imagem.data:
                 file = form_motorista.cnh_imagem.data
-                ext = file.filename.split('.')[-1]  # Obtém a extensão do arquivo
+                # Obtém a extensão do arquivo
+                ext = file.filename.split('.')[-1]
                 timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  # Timestamp único
-                unique_filename = secure_filename(f"{motorista.militar.nome_completo}_cnh_{timestamp}.{ext}")
-                
-                filepath = os.path.join(current_app.root_path, 'static/uploads/cnh', unique_filename)
+                unique_filename = secure_filename(
+                    f"{motorista.militar.nome_completo}_cnh_{timestamp}.{ext}")
+
+                filepath = os.path.join(
+                    current_app.root_path, 'static/uploads/cnh', unique_filename)
                 file.save(filepath)
-                
+
                 novo_motorista.cnh_imagem = unique_filename
 
             database.session.add(novo_motorista)
