@@ -81,6 +81,7 @@
                                     Motorista</a>
                             </li>
                             <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_cnhs') }}">Listar CNHs</a></li>
                         </ul>
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
@@ -112,6 +113,8 @@
                                     Motorista</a>
                             </li>
                             <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">Mapa Motoristas</a></li>
+
+                            <li><a class="dropdown-item" href="{{ url_for('listar_cnhs') }}">Mapa Motoristas</a></li>
                         </ul>
                     </li>
                     {% endif %}
