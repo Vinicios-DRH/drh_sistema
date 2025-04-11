@@ -2210,6 +2210,7 @@ def adicionar_motorista():
 
     return render_template('adicionar_motorista.html', form_motorista=form_motorista, militares=militares)
 
+
 @app.route('/motoristas', methods=['GET', 'POST'])
 @login_required
 def motoristas():
@@ -2398,3 +2399,11 @@ def sair():
     logout_user()
     flash('Faça o Login para continuar', 'alert-success')
     return redirect(url_for('login'))
+
+
+@app.route('/listar-cnhs')
+@login_required
+def listar_cnhs():
+    cnh_folder = os.path.join(current_app.root_path, 'static/uploads/cnh')
+    arquivos = os.listdir(cnh_folder)
+    return render_template('listar_cnhs.html', arquivos=arquivos)

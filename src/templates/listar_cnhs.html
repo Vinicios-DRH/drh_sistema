@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-4">
+    <h3>CNHs Salvas</h3>
+    <ul>
+        {% for arquivo in arquivos %}
+        <li>
+            <a href="{{ url_for('static', filename='uploads/cnh/' + arquivo) }}" target="_blank">{{ arquivo }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
