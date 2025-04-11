@@ -2210,7 +2210,6 @@ def adicionar_motorista():
 
     return render_template('adicionar_motorista.html', form_motorista=form_motorista, militares=militares)
 
-
 @app.route('/motoristas', methods=['GET', 'POST'])
 @login_required
 def motoristas():
