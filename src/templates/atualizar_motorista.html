@@ -139,22 +139,27 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
+                                <div class="form-group text-center">
                                     {{ form_motorista.cnh_imagem.label(class="form-control-label") }}
-                                    <input type="file" id="cnhInput" name="cnh_imagem" class="form-control">
-                                    <br>
+                                    <input type="file" id="cnhInput" name="cnh_imagem" class="form-control mb-3">
+
                                     {% if motorista.cnh_imagem %}
                                     <img id="cnhPreview"
-                                        ssrc="https://cselsnczhbsinizmwtcv.supabase.co/storage/v1/object/public/motoristas/{{ motorista.cnh_imagem | replace('motoristas/', '') }}"
-                                        alt="Prévia da CNH" class="img-thumbnail mt-2"
-                                        style="max-width: 500px; display: block;">
+                                        src="https://cselsnczhbsinizmwtcv.supabase.co/storage/v1/object/public/motoristas/{{ motorista.cnh_imagem }}"
+                                        alt="Prévia da CNH" class="img-thumbnail mb-2"
+                                        style="max-width: 100%; height: auto;">
+
+                                    <a href="https://cselsnczhbsinizmwtcv.supabase.co/storage/v1/object/public/motoristas/{{ motorista.cnh_imagem }}"
+                                        class="btn btn-outline-primary btn-sm mt-2" target="_blank">
+                                        🔍 Visualizar em nova guia
+                                    </a>
                                     {% else %}
                                     <img id="cnhPreview" src="#" alt="Prévia da CNH" class="img-thumbnail mt-2"
-                                        style="max-width: 500px; display: none;">
+                                        style="max-width: 100%; display: none;">
                                     {% endif %}
-
                                 </div>
                             </div>
+
                             <div class="col-4">
                                 <div class="d-grid my-3">
                                     {{ form_motorista.botao_salvar_motorista(class="btn btn-outline-primary

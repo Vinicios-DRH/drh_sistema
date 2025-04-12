@@ -2184,7 +2184,6 @@ def adicionar_motorista():
                 created=datetime.utcnow()
             )
 
-            # Upload da imagem da CNH para Supabase
             if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                 file = form_motorista.cnh_imagem.data
                 ext = file.filename.split('.')[-1]
@@ -2200,15 +2199,15 @@ def adicionar_motorista():
                     f"{nome_militar}_cnh_{timestamp}.{ext}")
                 file_bytes = file.read()
 
-                # Upload para Supabase Storage
+                # Upload para o root do bucket (sem subpasta)
                 app.supabase.storage.from_('motoristas').upload(
-                    path=f"motoristas/{nome_arquivo}",
+                    path=nome_arquivo,
                     file=file_bytes,
                     file_options={"content-type": file.mimetype}
                 )
 
-                # Guarda o caminho (ou apenas nome, como preferir)
-                novo_motorista.cnh_imagem = f"motoristas/{nome_arquivo}"
+                # Salva apenas o nome do arquivo no banco
+                novo_motorista.cnh_imagem = nome_arquivo
 
             database.session.add(novo_motorista)
             database.session.commit()
@@ -2348,6 +2347,7 @@ def atualizar_motorista(motorista_id):
                 created=datetime.utcnow()
             )
 
+            # Verifica se imagem foi enviada
             if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                 file = form_motorista.cnh_imagem.data
                 ext = file.filename.split('.')[-1]
@@ -2356,20 +2356,19 @@ def atualizar_motorista(motorista_id):
                     " ", "_")
                 nome_arquivo = secure_filename(
                     f"{nome_formatado}_cnh_{timestamp}.{ext}")
-
                 file_bytes = file.read()
 
-                # Upload no Supabase Storage
+                # Upload para o root do bucket
                 app.supabase.storage.from_('motoristas').upload(
-                    path=f'motoristas/{nome_arquivo}',
+                    path=nome_arquivo,  # apenas o nome do arquivo
                     file=file_bytes,
                     file_options={"content-type": file.mimetype}
                 )
 
-                # Guarda o caminho (ou URL, se quiser direto)
-                novo_motorista.cnh_imagem = f'motoristas/{nome_arquivo}'
+                # Salva apenas o nome no banco
+                novo_motorista.cnh_imagem = nome_arquivo
 
-            # Salva novo motorista com imagem, se houver
+            # Salva novo registro no banco
             database.session.add(novo_motorista)
             database.session.commit()
 
@@ -2379,7 +2378,7 @@ def atualizar_motorista(motorista_id):
         except Exception as e:
             database.session.rollback()
             flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
-            print(e)
+            print("Erro ao atualizar motorista:", e)
 
     return render_template(
         'atualizar_motorista.html',
@@ -2421,11 +2420,18 @@ def sair():
 @app.route('/listar-cnhs')
 @login_required
 def listar_cnhs():
-    # Usa o client Supabase que você criou no __init__.py
-    arquivos = app.supabase.storage.from_('cnh').list('cnhs')
+    # Lista do root do bucket motoristas (com path vazio!)
+    arquivos = app.supabase.storage.from_('motoristas').list('')
 
-    # Extrai apenas os nomes dos arquivos
+    print("🟡 Arquivos retornados do Supabase:")
+    if arquivos:
+        for item in arquivos:
+            print(" -", item['name'])
+    else:
+        print("⚠️ Nenhum arquivo retornado!")
+
+    # Garante que estamos pegando só os arquivos (não pastas)
     nomes_arquivos = [item['name']
-                      for item in arquivos if not item['name'].endswith('/')]
+                      for item in arquivos if item['name'] and not item['name'].endswith('/')]
 
     return render_template('listar_cnhs.html', arquivos=nomes_arquivos)
