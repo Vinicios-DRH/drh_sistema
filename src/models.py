@@ -2,23 +2,8 @@ from sqlalchemy.orm import backref, foreign
 
 from src import database, login_manager
 from flask_login import UserMixin
-from sqlalchemy import Enum
 from datetime import datetime
 from sqlalchemy.event import listens_for
-import enum
-
-
-# class SexoEnum(enum.Enum):
-#     Masculino = "Masculino"
-#     Feminino = "Feminino"
-#
-#
-# class RacaEnum(enum.Enum):
-#     Branca = "Branca"
-#     Negra = "Negra"
-#     Parda = "Parda"
-#     Amarela = "Amarela"
-#     Nao_informado = "Não Informado"
 
 
 class PostoGrad(database.Model):
@@ -42,85 +27,105 @@ class Obm(database.Model):
     __tablename__ = "obm"
     id = database.Column(database.Integer, primary_key=True)
     sigla = database.Column(database.String(50))
-    militares_obms = database.relationship('MilitarObmFuncao', back_populates='obm', lazy=True)
+    militares_obms = database.relationship(
+        'MilitarObmFuncao', back_populates='obm', lazy=True)
 
 
 class Funcao(database.Model):
     __tablename__ = "funcao"
     id = database.Column(database.Integer, primary_key=True)
     ocupacao = database.Column(database.String(80))
-    militares_funcoes = database.relationship('MilitarObmFuncao', back_populates='funcao', lazy=True)
+    militares_funcoes = database.relationship(
+        'MilitarObmFuncao', back_populates='funcao', lazy=True)
 
 
 class Localidade(database.Model):
     __tablename__ = "localidade"
     id = database.Column(database.Integer, primary_key=True)
     sigla = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='localidade_militares', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='localidade_militares', lazy=True)
 
 
 class EstadoCivil(database.Model):
     __tablename__ = "estado_civil"
     id = database.Column(database.Integer, primary_key=True)
     estado = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='estado_civil_militares', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='estado_civil_militares', lazy=True)
 
 
 class Especialidade(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     ocupacao = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='especialidade_militar', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='especialidade_militar', lazy=True)
 
 
 class Destino(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     local = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='destino_militar', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='destino_militar', lazy=True)
 
 
 class Situacao(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     condicao = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='situacao_militar', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='situacao_militar', lazy=True)
 
 
 class Agregacoes(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     tipo = database.Column(database.String(50))
-    militar = database.relationship('Militar', backref='agregacoes_militar', lazy=True)
+    militar = database.relationship(
+        'Militar', backref='agregacoes_militar', lazy=True)
 
 
 class PublicacaoBg(database.Model):
     __tablename__ = "publicacaobg"
     id = database.Column(database.Integer, primary_key=True)
     boletim_geral = database.Column(database.String(100))
-    tipo_bg = database.Column(database.String(50))  # Tipo de BG, como transferência, promoção, etc.
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
-    militar = database.relationship('Militar', backref='bg_publicacao', overlaps="militar_publicacoes_bg")
+    # Tipo de BG, como transferência, promoção, etc.
+    tipo_bg = database.Column(database.String(50))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    militar = database.relationship(
+        'Militar', backref='bg_publicacao', overlaps="militar_publicacoes_bg")
 
 
 class MilitaresADisposicao(database.Model):
     __tablename__ = "militares_a_disposicao"
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
-    posto_grad_id = database.Column(database.Integer, database.ForeignKey('posto_grad.id'))
-    quadro_id = database.Column(database.Integer, database.ForeignKey('quadro.id'))
-    destino_id = database.Column(database.Integer, database.ForeignKey('destino.id'))
-    situacao_id = database.Column(database.Integer, database.ForeignKey('situacao.id'))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    destino_id = database.Column(
+        database.Integer, database.ForeignKey('destino.id'))
+    situacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
     inicio_periodo = database.Column(database.Date)
     fim_periodo_disposicao = database.Column(database.Date)
     status = database.Column(database.String(50))
-    publicacao_bg_id = database.Column(database.Integer, database.ForeignKey('publicacaobg.id'))
+    publicacao_bg_id = database.Column(
+        database.Integer, database.ForeignKey('publicacaobg.id'))
 
-    email_30_dias_enviado_disposicao = database.Column(database.Boolean, default=False)
-    email_15_dias_enviado_disposicao = database.Column(database.Boolean, default=False)
+    email_30_dias_enviado_disposicao = database.Column(
+        database.Boolean, default=False)
+    email_15_dias_enviado_disposicao = database.Column(
+        database.Boolean, default=False)
 
     militar = database.relationship('Militar', backref='militar_disposicao')
     posto_grad = database.relationship('PostoGrad')
     quadro = database.relationship('Quadro')
     destino = database.relationship('Destino')
     situacao = database.relationship('Situacao')
-    publicacao_bg = database.relationship('PublicacaoBg', overlaps="militar,bg_publicacao")
+    publicacao_bg = database.relationship(
+        'PublicacaoBg', overlaps="militar,bg_publicacao")
 
     def atualizar_status(self):
         today = datetime.today().date()
@@ -134,15 +139,21 @@ class MilitaresADisposicao(database.Model):
 class MilitaresAgregados(database.Model):
     __tablename__ = "militares_agregados"
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
-    posto_grad_id = database.Column(database.Integer, database.ForeignKey('posto_grad.id'))
-    quadro_id = database.Column(database.Integer, database.ForeignKey('quadro.id'))
-    destino_id = database.Column(database.Integer, database.ForeignKey('destino.id'))
-    situacao_id = database.Column(database.Integer, database.ForeignKey('situacao.id'))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    destino_id = database.Column(
+        database.Integer, database.ForeignKey('destino.id'))
+    situacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
     inicio_periodo = database.Column(database.Date)
     fim_periodo_agregacao = database.Column(database.Date)
     status = database.Column(database.String(50))
-    publicacao_bg_id = database.Column(database.Integer, database.ForeignKey('publicacaobg.id'))
+    publicacao_bg_id = database.Column(
+        database.Integer, database.ForeignKey('publicacaobg.id'))
 
     email_30_dias_enviado = database.Column(database.Boolean, default=False)
     email_15_dias_enviado = database.Column(database.Boolean, default=False)
@@ -166,15 +177,21 @@ class MilitaresAgregados(database.Model):
 class LicencaEspecial(database.Model):
     __tablename__ = "licenca_especial"
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
-    posto_grad_id = database.Column(database.Integer, database.ForeignKey('posto_grad.id'))
-    quadro_id = database.Column(database.Integer, database.ForeignKey('quadro.id'))
-    destino_id = database.Column(database.Integer, database.ForeignKey('destino.id'))
-    situacao_id = database.Column(database.Integer, database.ForeignKey('situacao.id'))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    destino_id = database.Column(
+        database.Integer, database.ForeignKey('destino.id'))
+    situacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
     inicio_periodo_le = database.Column(database.Date)
     fim_periodo_le = database.Column(database.Date)
     status = database.Column(database.String(50))
-    publicacao_bg_id = database.Column(database.Integer, database.ForeignKey('publicacaobg.id'))
+    publicacao_bg_id = database.Column(
+        database.Integer, database.ForeignKey('publicacaobg.id'))
 
     email_30_dias_enviado_le = database.Column(database.Boolean, default=False)
     email_15_dias_enviado_le = database.Column(database.Boolean, default=False)
@@ -198,18 +215,26 @@ class LicencaEspecial(database.Model):
 class LicencaParaTratamentoDeSaude(database.Model):
     __tablename__ = "licenca_para_tratamento_de_saude"
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
-    posto_grad_id = database.Column(database.Integer, database.ForeignKey('posto_grad.id'))
-    quadro_id = database.Column(database.Integer, database.ForeignKey('quadro.id'))
-    destino_id = database.Column(database.Integer, database.ForeignKey('destino.id'))
-    situacao_id = database.Column(database.Integer, database.ForeignKey('situacao.id'))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    destino_id = database.Column(
+        database.Integer, database.ForeignKey('destino.id'))
+    situacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
     inicio_periodo_lts = database.Column(database.Date)
     fim_periodo_lts = database.Column(database.Date)
     status = database.Column(database.String(50))
-    publicacao_bg_id = database.Column(database.Integer, database.ForeignKey('publicacaobg.id'))
+    publicacao_bg_id = database.Column(
+        database.Integer, database.ForeignKey('publicacaobg.id'))
 
-    email_30_dias_enviado_lts = database.Column(database.Boolean, default=False)
-    email_15_dias_enviado_lts = database.Column(database.Boolean, default=False)
+    email_30_dias_enviado_lts = database.Column(
+        database.Boolean, default=False)
+    email_15_dias_enviado_lts = database.Column(
+        database.Boolean, default=False)
 
     militar = database.relationship('Militar', backref='militar_lts')
     posto_grad = database.relationship('PostoGrad')
@@ -246,20 +271,27 @@ class User(database.Model, UserMixin):
     email = database.Column(database.String(50))
     cpf = database.Column(database.String(50), unique=True)
     senha = database.Column(database.String(500))
-    funcao_user_id = database.Column(database.Integer, database.ForeignKey('funcao_user.id'))
+    funcao_user_id = database.Column(
+        database.Integer, database.ForeignKey('funcao_user.id'))
     obm_id_1 = database.Column(database.Integer, database.ForeignKey('obm.id'))
     obm_id_2 = database.Column(database.Integer, database.ForeignKey('obm.id'))
-    localidade_id = database.Column(database.Integer, database.ForeignKey('localidade.id'))
+    localidade_id = database.Column(
+        database.Integer, database.ForeignKey('localidade.id'))
 
     ip_address = database.Column(database.String(45))
-    data_criacao = database.Column(database.DateTime, default=datetime.utcnow())
-    data_ultimo_acesso = database.Column(database.DateTime, default=datetime.utcnow())
+    data_criacao = database.Column(
+        database.DateTime, default=datetime.utcnow())
+    data_ultimo_acesso = database.Column(
+        database.DateTime, default=datetime.utcnow())
     endereco_acesso = database.Column(database.String(100))
 
     obm1 = database.relationship('Obm', foreign_keys=[obm_id_1])
     obm2 = database.relationship('Obm', foreign_keys=[obm_id_2])
-    funcao_user = database.relationship('FuncaoUser', foreign_keys=[funcao_user_id])
-    localidade = database.relationship('Localidade', foreign_keys=[localidade_id])
+    funcao_user = database.relationship(
+        'FuncaoUser', foreign_keys=[funcao_user_id])
+    localidade = database.relationship(
+        'Localidade', foreign_keys=[localidade_id])
+
 
 class Comportamento(database.Model):
     __tablename__ = "comportamento"
@@ -282,6 +314,15 @@ class FuncaoGratificada(database.Model):
     militar = database.relationship('Militar', backref='gratificacao_militar')
 
 
+class GC(database.Model):
+    __tablename__ = "gc"
+    id = database.Column(database.Integer, primary_key=True)
+    # Ex: "ESPEC.", "MESTRE", "DOUT."
+    descricao = database.Column(database.String(20), nullable=False)
+
+    militares = database.relationship("Militar", back_populates="gc")
+
+
 class Militar(database.Model):
     __tablename__ = "militar"
     id = database.Column(database.Integer, primary_key=True)
@@ -297,9 +338,12 @@ class Militar(database.Model):
     digito_titulo_eleitor = database.Column(database.String(2))
     zona = database.Column(database.String(5))
     secao = database.Column(database.String(5))
-    posto_grad_id = database.Column(database.Integer, database.ForeignKey('posto_grad.id'))
-    quadro_id = database.Column(database.Integer, database.ForeignKey('quadro.id'))
-    localidade_id = database.Column(database.Integer, database.ForeignKey('localidade.id'))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    localidade_id = database.Column(
+        database.Integer, database.ForeignKey('localidade.id'))
     antiguidade = database.Column(database.String(50))
     sexo = database.Column(database.String(40))
     raca = database.Column(database.String(40))
@@ -307,8 +351,10 @@ class Militar(database.Model):
     inclusao = database.Column(database.Date)
     completa_25_inclusao = database.Column(database.Date)
     completa_30_inclusao = database.Column(database.Date)
-    punicao_id = database.Column(database.Integer, database.ForeignKey('punicao.id'))
-    comportamento_id = database.Column(database.Integer, database.ForeignKey('comportamento.id'))
+    punicao_id = database.Column(
+        database.Integer, database.ForeignKey('punicao.id'))
+    comportamento_id = database.Column(
+        database.Integer, database.ForeignKey('comportamento.id'))
     efetivo_servico = database.Column(database.Date)
     completa_25_anos_sv = database.Column(database.Date)
     completa_30_anos_sv = database.Column(database.Date)
@@ -317,12 +363,17 @@ class Militar(database.Model):
     dias = database.Column(database.Integer)
     total_dias = database.Column(database.Integer)
     idade_reserva_grad = database.Column(database.Integer)
-    estado_civil = database.Column(database.Integer, database.ForeignKey('estado_civil.id'))
-    especialidade_id = database.Column(database.Integer, database.ForeignKey('especialidade.id'))
+    estado_civil = database.Column(
+        database.Integer, database.ForeignKey('estado_civil.id'))
+    especialidade_id = database.Column(
+        database.Integer, database.ForeignKey('especialidade.id'))
     pronto = database.Column(database.String(5))
-    situacao_id = database.Column(database.Integer, database.ForeignKey('situacao.id'))
-    agregacoes_id = database.Column(database.Integer, database.ForeignKey('agregacoes.id'))
-    destino_id = database.Column(database.Integer, database.ForeignKey('destino.id'))
+    situacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
+    agregacoes_id = database.Column(
+        database.Integer, database.ForeignKey('agregacoes.id'))
+    destino_id = database.Column(
+        database.Integer, database.ForeignKey('destino.id'))
     inicio_periodo = database.Column(database.Date)
     fim_periodo = database.Column(database.Date)
     ltip_afastamento_cargo_eletivo = database.Column(database.String(5))
@@ -369,34 +420,48 @@ class Militar(database.Model):
     tc = database.Column(database.String(50))
     cel = database.Column(database.String(50))
     alteracao_nome_guerra = database.Column(database.String(50))
+    gc_id = database.Column(database.Integer, database.ForeignKey("gc.id"))
 
-    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
     ip_address = database.Column(database.String(45))
-    funcao_gratificada_id = database.Column(database.Integer, database.ForeignKey('funcao_gratificada.id'))
-    publicacoes_bg = database.relationship('PublicacaoBg', backref='militar_pub', lazy=True)
-    obm_funcoes = database.relationship('MilitarObmFuncao', back_populates='militar', lazy=True)
-    posto_grad = database.relationship('PostoGrad', foreign_keys=[posto_grad_id])
+    funcao_gratificada_id = database.Column(
+        database.Integer, database.ForeignKey('funcao_gratificada.id'))
+    publicacoes_bg = database.relationship(
+        'PublicacaoBg', backref='militar_pub', lazy=True)
+    obm_funcoes = database.relationship(
+        'MilitarObmFuncao', back_populates='militar', lazy=True)
+    posto_grad = database.relationship(
+        'PostoGrad', foreign_keys=[posto_grad_id])
+    gc = database.relationship("GC", back_populates="militares")
+
     quadro = database.relationship('Quadro', foreign_keys=[quadro_id])
-    especialidade = database.relationship('Especialidade', backref='militares', foreign_keys=[especialidade_id])
-    localidade = database.relationship('Localidade', backref='militares_loc', foreign_keys=[localidade_id])
-    situacao = database.relationship('Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
+    especialidade = database.relationship(
+        'Especialidade', backref='militares', foreign_keys=[especialidade_id])
+    localidade = database.relationship(
+        'Localidade', backref='militares_loc', foreign_keys=[localidade_id])
+    situacao = database.relationship(
+        'Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
 
 
 class MilitarObmFuncao(database.Model):
     __tablename__ = 'militar_obm_funcao'
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'))
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
     obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'))
-    funcao_id = database.Column(database.Integer, database.ForeignKey('funcao.id'))
+    funcao_id = database.Column(
+        database.Integer, database.ForeignKey('funcao.id'))
     tipo = database.Column(database.Integer)
     data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
     data_fim = database.Column(database.DateTime, nullable=True)
 
     militar = database.relationship('Militar', back_populates='obm_funcoes')
     obm = database.relationship('Obm', back_populates='militares_obms')
-    funcao = database.relationship('Funcao', back_populates='militares_funcoes')
+    funcao = database.relationship(
+        'Funcao', back_populates='militares_funcoes')
 
 
 class Meses(database.Model):
@@ -422,7 +487,8 @@ class Paf(database.Model):
     qtd_dias_terceiro_periodo = database.Column(database.Integer)
     terceiro_periodo_ferias = database.Column(database.Date)
     fim_terceiro_periodo = database.Column(database.Date)
-    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
 
     # Relacionamentos
     militar = database.relationship('Militar', backref='ferias', lazy=True)
@@ -443,20 +509,92 @@ class Motoristas(database.Model):
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
                                  nullable=False)
     categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'),
-                                 nullable=False)
+                                   nullable=False)
     siged = database.Column(database.String(200))
     boletim_geral = database.Column(database.String(200))
     created = database.Column(database.DateTime, default=datetime.utcnow)
     modified = database.Column(database.DateTime, nullable=True)
-    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
     cnh_imagem = database.Column(database.String(255))
     desclassificar = database.Column(database.String(30))
 
     # Relacionamentos
     militar = database.relationship('Militar', backref='motoristas', lazy=True)
-    categoria = database.relationship('Categoria', backref='motorista_categoria', lazy=True)
+    categoria = database.relationship(
+        'Categoria', backref='motorista_categoria', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
+
+
+class TabelaVencimento(database.Model):
+    __tablename__ = "tabela_vencimento"
+
+    id = database.Column(database.Integer, primary_key=True)
+    nome = database.Column(database.String(100))
+    lei = database.Column(database.String(100))
+    data_inicio = database.Column(database.Date, nullable=False)
+    data_fim = database.Column(database.Date, nullable=False)
+
+    valores = database.relationship(
+        'ValorDetalhadoPostoGrad', back_populates='tabela', lazy=True)
+
+
+class ValorDetalhadoPostoGrad(database.Model):
+    __tablename__ = "valor_detalhado_posto_grad"
+
+    id = database.Column(database.Integer, primary_key=True)
+    tabela_id = database.Column(database.Integer, database.ForeignKey(
+        'tabela_vencimento.id'), nullable=False)
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'), nullable=False)
+
+    # VENCIMENTOS
+    soldo = database.Column(database.Numeric(10, 2))
+    grat_tropa = database.Column(database.Numeric(10, 2))
+    gams = database.Column(database.Numeric(10, 2))
+    valor_bruto = database.Column(database.Numeric(10, 2))
+
+    # CURSO
+    curso_25 = database.Column(database.Numeric(10, 2))
+    curso_30 = database.Column(database.Numeric(10, 2))
+    curso_35 = database.Column(database.Numeric(10, 2))
+
+    # VALOR BRUTO + CURSO
+    bruto_esp = database.Column(database.Numeric(10, 2))
+    bruto_mestre = database.Column(database.Numeric(10, 2))
+    bruto_dout = database.Column(database.Numeric(10, 2))
+
+    # FG
+    fg_1 = database.Column(database.Numeric(10, 2))
+    fg_2 = database.Column(database.Numeric(10, 2))
+    fg_3 = database.Column(database.Numeric(10, 2))
+    fg_4 = database.Column(database.Numeric(10, 2))
+
+    aux_moradia = database.Column(database.Numeric(10, 2))
+    etapas_capital = database.Column(database.String(20))
+    etapas_interior = database.Column(database.String(20))
+    seg_hora = database.Column(database.Numeric(10, 2))
+
+    # GRATS TÉCNICAS
+    motorista_a = database.Column(database.Numeric(10, 2))
+    motorista_b = database.Column(database.Numeric(10, 2))
+    motorista_ab = database.Column(database.Numeric(10, 2))
+    motorista_cde = database.Column(database.Numeric(10, 2))
+    tecnico_raiox = database.Column(database.Numeric(10, 2))
+    tecnico_lab = database.Column(database.Numeric(10, 2))
+    mecanico = database.Column(database.Numeric(10, 2))
+    fluvial = database.Column(database.Numeric(10, 2))
+    explosivista = database.Column(database.Numeric(10, 2))
+    coe = database.Column(database.Numeric(10, 2))
+    tripulante = database.Column(database.Numeric(10, 2))
+    piloto = database.Column(database.Numeric(10, 2))
+    aviacao = database.Column(database.Numeric(10, 2))
+    mergulhador = database.Column(database.Numeric(10, 2))
+
+    tabela = database.relationship(
+        "TabelaVencimento", back_populates="valores")
+    posto_grad = database.relationship("PostoGrad")
 
 
 @listens_for(MilitaresADisposicao, 'before_insert')

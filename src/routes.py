@@ -8,7 +8,7 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import FormLogin, FormMilitar, FormCriarUsuario, FormMilitarFerias, FormMotoristas, FormFiltroMotorista
+from src.forms import FormImpactoPromocaoRetroativo, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista
 from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
@@ -2435,3 +2435,10 @@ def listar_cnhs():
                       for item in arquivos if item['name'] and not item['name'].endswith('/')]
 
     return render_template('listar_cnhs.html', arquivos=nomes_arquivos)
+
+
+@app.route('/impacto-retroativo', methods=['GET', 'POST'])
+@login_required
+@checar_ocupacao('DIRETOR', 'SUPER USER', 'DRH')
+def impacto_retroativo():
+    pass
