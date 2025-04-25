@@ -14,150 +14,121 @@
         <div class="table-responsive mt-4">
             <table id="militaresTableObm1" class="table table-striped">
                 <thead>
-                <tr style="background-color: {{ militar_color }}">
-                    <th>Posto/Grad</th>
-                    <th>Nome</th>
-                    <th>Matrícula</th>
-                    <th>Quadro</th>
-                    <th>Mês Usufruto</th>
-                    <th>Qtd. Dias 1º Período</th>
-                    <th>1º Período de Férias</th>
-                    <th>Fim 1º Período</th>
-                    <th>Qtd. Dias 2º Período</th>
-                    <th>2º Período de Férias</th>
-                    <th>Fim 2º Período</th>
-                    <th>Qtd. Dias 3º Período</th>
-                    <th>3º Período de Férias</th>
-                    <th>Fim 3º Período</th>
-                    <th>Ações</th>
-                </tr>
+                    <tr style="background-color: {{ militar_color }}">
+                        <th>Posto/Grad</th>
+                        <th>Nome</th>
+                        <th>Matrícula</th>
+                        <th>Quadro</th>
+                        <th>Mês Usufruto</th>
+                        <th>Qtd. Dias 1º Período</th>
+                        <th>1º Período de Férias</th>
+                        <th>Fim 1º Período</th>
+                        <th>Qtd. Dias 2º Período</th>
+                        <th>2º Período de Férias</th>
+                        <th>Fim 2º Período</th>
+                        <th>Qtd. Dias 3º Período</th>
+                        <th>3º Período de Férias</th>
+                        <th>Fim 3º Período</th>
+                        <th>Ações</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {% for militar, paf in militares_obm_1 %}
-                <tr>
-                    <td>{{ militar.posto_grad.sigla }}</td>
-                    <td>{{ militar.nome_completo }}</td>
-                    <td>{{ militar.matricula }}</td>
-                    <td>{{ militar.quadro.quadro }}</td>
-                    <td>
-                        <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if current_user.obm_id_1
+                    {% for militar, paf in militares_obm_1 %}
+                    <tr>
+                        <td>{{ militar.posto_grad.sigla }}</td>
+                        <td>{{ militar.nome_completo }}</td>
+                        <td>{{ militar.matricula }}</td>
+                        <td>{{ militar.quadro.quadro }}</td>
+                        <td>
+                            <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if current_user.obm_id_1
                                 !=16 and paf %}disabled{% endif %}>
-                            <option value="">Selecione...</option>
-                            {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
-                            'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
-                            <option value="{{ mes }}">{{ mes
-                                }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
+                                <option value="">Selecione...</option>
+                                {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho',
+                                'Agosto',
+                                'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                                <option value="{{ mes }}">{{ mes
+                                    }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
                                 data-militar-id="{{ militar.id }}" {% if current_user.obm_id_1 !=16 and paf %}disabled{%
                                 endif %}>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10, 15, 20, 30] %}
-                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo== dias %}selected{%
-                                    endif %}>{{ dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="date"
-                               name="inicio_1_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="1"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.primeiro_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31"
-                               {% if paf %}disabled{% endif %}>
-                    </td>
-                    <td><input type="date"
-                               name="fim_1_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="1"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.primeiro_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31"
-                               {% if current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
-                    </td>
+                                <option value="">Selecione...</option>
+                                {% for dias in [10, 15, 20, 30] %}
+                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias
+                                    %}selected{% endif %}>{{ dias }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="1" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                paf %}disabled{% endif %}>
+                        </td>
+                        <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="1" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
+                        </td>
 
-                    <td>
-                        <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
-                                data-militar-id="{{ militar.id }}" {% if paf %}disabled{%
-                                endif %}>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10, 15, 20] %}
-                            <option value="{{ dias }}" {% if paf %}disabled{% endif %}>{{
-                                dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="date"
-                               name="inicio_2_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="2"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.segundo_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31"
-                               {% if current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
-                    </td>
-                    <td><input type="date"
-                               name="fim_2_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="2"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.segundo_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31"
-                               {% if current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
-                    </td>
+                        <td>
+                            <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
+                                data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif %}>
+                                <option value="">Selecione...</option>
+                                {% for dias in [10, 15, 20] %}
+                                <option value="{{ dias }}" {% if paf %}disabled{% endif %}>{{
+                                    dias }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="date" name="inicio_2_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="2" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.segundo_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
+                        </td>
+                        <td><input type="date" name="fim_2_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="2" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.segundo_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
+                        </td>
 
-                    <td>
-                        <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
+                        <td>
+                            <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
                                 data-militar-id="{{ militar.id }}" disabled>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10] %} <!-- 3º período pode ser apenas 10 dias -->
-                            <option value="{{ dias }}">
-                                {{ dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <input type="date"
-                               name="inicio_3_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="3"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.terceiro_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31" {% if current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
-                    </td>
-                    <td>
-                        <input type="date"
-                               name="fim_3_{{ militar.id }}"
-                               class="form-control inicio-periodo"
-                               data-period="3"
-                               data-militar-id="{{ militar.id }}"
-                               value="{{ paf.terceiro_periodo_ferias if paf }}"
-                               min="2025-01-01"
-                               max="2025-12-31"
-                               {% if current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
-                    </td>
-                    </td>
-                    <td>
-                        <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if current_user.obm_id_1 !=16
-                                and paf %}disabled{% endif %}>
-                            Salvar
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
+                                <option value="">Selecione...</option>
+                                {% for dias in [10] %} <!-- 3º período pode ser apenas 10 dias -->
+                                <option value="{{ dias }}">
+                                    {{ dias }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <input type="date" name="inicio_3_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="3" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.terceiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
+                        </td>
+                        <td>
+                            <input type="date" name="fim_3_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="3" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.terceiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31" {% if
+                                current_user.obm_id_1 !=16 and paf %}disabled{% endif %}>
+                        </td>
+                        </td>
+                        <td>
+                            <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if current_user.obm_id_1
+                                !=16 and paf %}disabled{% endif %}>
+                                Salvar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -166,116 +137,113 @@
         <div class="table-responsive mt-4">
             <table id="militaresTableObm2" class="table table-striped">
                 <thead>
-                <tr>
-                    <th>Posto/Grad</th>
-                    <th>Nome</th>
-                    <th>Matrícula</th>
-                    <th>Quadro</th>
-                    <th>Mês Usufruto</th>
-                    <th>Qtd. Dias 1º Período</th>
-                    <th>1º Período de Férias</th>
-                    <th>Fim 1º Período</th>
-                    <th>Qtd. Dias 2º Período</th>
-                    <th>2º Período de Férias</th>
-                    <th>Fim 2º Período</th>
-                    <th>Qtd. Dias 3º Período</th>
-                    <th>3º Período de Férias</th>
-                    <th>Fim 3º Período</th>
-                    <th>Ações</th>
-                </tr>
+                    <tr>
+                        <th>Posto/Grad</th>
+                        <th>Nome</th>
+                        <th>Matrícula</th>
+                        <th>Quadro</th>
+                        <th>Mês Usufruto</th>
+                        <th>Qtd. Dias 1º Período</th>
+                        <th>1º Período de Férias</th>
+                        <th>Fim 1º Período</th>
+                        <th>Qtd. Dias 2º Período</th>
+                        <th>2º Período de Férias</th>
+                        <th>Fim 2º Período</th>
+                        <th>Qtd. Dias 3º Período</th>
+                        <th>3º Período de Férias</th>
+                        <th>Fim 3º Período</th>
+                        <th>Ações</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {% for militar, paf in militares_obm_2 %}
-                <tr>
-                    <td>{{ militar.posto_grad.sigla }}</td>
-                    <td>{{ militar.nome_completo }}</td>
-                    <td>{{ militar.matricula }}</td>
-                    <td>{{ militar.quadro.quadro }}</td>
-                    <td>
-                        <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if paf %}disabled{% endif
-                                %}>
-                            <option value="">Selecione...</option>
-                            {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
-                            'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
-                            <option value="{{ mes }}" {% if paf and paf.mes_usufruto== mes %}selected{% endif %}>{{ mes
-                                }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
+                    {% for militar, paf in militares_obm_2 %}
+                    <tr>
+                        <td>{{ militar.posto_grad.sigla }}</td>
+                        <td>{{ militar.nome_completo }}</td>
+                        <td>{{ militar.matricula }}</td>
+                        <td>{{ militar.quadro.quadro }}</td>
+                        <td>
+                            <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if paf %}disabled{%
+                                endif %}>
+                                <option value="">Selecione...</option>
+                                {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho',
+                                'Agosto',
+                                'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
+                                <option value="{{ mes }}" {% if paf and paf.mes_usufruto==mes %}selected{% endif %}>{{
+                                    mes
+                                    }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
                                 data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif %}>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10, 15, 20, 30] %}
-                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo== dias %}selected{%
-                                    endif %}>{{ dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control inicio-periodo"
-                               data-period="1" data-militar-id="{{ militar.id }}"
-                               value="{{ paf.primeiro_periodo_ferias if paf }}"
-                               {% if paf %}disabled{% endif %}>
-                    </td>
-                    <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control fim-periodo"
-                               data-period="1" data-militar-id="{{ militar.id }}" readonly
-                               value="{{ paf.fim_primeiro_periodo if paf }}"
-                               {% if paf %}disabled{% endif %}>
-                    </td>
+                                <option value="">Selecione...</option>
+                                {% for dias in [10, 15, 20, 30] %}
+                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias
+                                    %}selected{% endif %}>{{ dias }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="1" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.primeiro_periodo_ferias if paf }}" {% if paf %}disabled{% endif %}>
+                        </td>
+                        <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control fim-periodo"
+                                data-period="1" data-militar-id="{{ militar.id }}" readonly
+                                value="{{ paf.fim_primeiro_periodo if paf }}" {% if paf %}disabled{% endif %}>
+                        </td>
 
-                    <td>
-                        <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
+                        <td>
+                            <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
                                 data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif %}>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10, 15, 20] %}
-                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_segundo_periodo== dias %}selected{%
+                                <option value="">Selecione...</option>
+                                {% for dias in [10, 15, 20] %}
+                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_segundo_periodo==dias %}selected{%
                                     endif %}>{{ dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="date" name="inicio_2_{{ militar.id }}" class="form-control inicio-periodo"
-                               data-period="2" data-militar-id="{{ militar.id }}"
-                               value="{{ paf.segundo_periodo_ferias if paf }}"
-                               {% if paf %}disabled{% endif %}>
-                    </td>
-                    <td><input type="date" name="fim_2_{{ militar.id }}" class="form-control fim-periodo"
-                               data-period="2" data-militar-id="{{ militar.id }}" readonly
-                               value="{{ paf.fim_segundo_periodo if paf }}"
-                               {% if paf %}disabled{% endif %}>
-                    </td>
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="date" name="inicio_2_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="2" data-militar-id="{{ militar.id }}"
+                                value="{{ paf.segundo_periodo_ferias if paf }}" {% if paf %}disabled{% endif %}>
+                        </td>
+                        <td><input type="date" name="fim_2_{{ militar.id }}" class="form-control fim-periodo"
+                                data-period="2" data-militar-id="{{ militar.id }}" readonly
+                                value="{{ paf.fim_segundo_periodo if paf }}" {% if paf %}disabled{% endif %}>
+                        </td>
 
-                    <td>
-                        <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
+                        <td>
+                            <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
                                 data-militar-id="{{ militar.id }}" disabled {% if paf %}disabled{% endif %}>
-                            <option value="">Selecione...</option>
-                            {% for dias in [10] %} <!-- 3º período pode ser apenas 10 dias -->
-                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_terceiro_periodo== dias %}selected{%
-                                    endif %}>
-                                {{ dias }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <input type="date" name="inicio_3_{{ militar.id }}" class="form-control inicio-periodo"
-                               data-period="3"
-                               data-militar-id="{{ militar.id }}" readonly>
-                    </td>
-                    <td>
-                        <input type="date" name="fim_3_{{ militar.id }}" class="form-control fim-periodo"
-                               data-period="3"
-                               data-militar-id="{{ militar.id }}" readonly>
-                    </td>
-                    <td>
-                        <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif %}>
-                            Salvar
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
+                                <option value="">Selecione...</option>
+                                {% for dias in [10] %} <!-- 3º período pode ser apenas 10 dias -->
+                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_terceiro_periodo==dias
+                                    %}selected{% endif %}>
+                                    {{ dias }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <input type="date" name="inicio_3_{{ militar.id }}" class="form-control inicio-periodo"
+                                data-period="3" data-militar-id="{{ militar.id }}" readonly>
+                        </td>
+                        <td>
+                            <input type="date" name="fim_3_{{ militar.id }}" class="form-control fim-periodo"
+                                data-period="3" data-militar-id="{{ militar.id }}" readonly>
+                        </td>
+                        <td>
+                            <button class="botao-salvar" data-militar-id="{{ militar.id }}" {% if paf %}disabled{% endif
+                                %}>
+                                Salvar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -296,17 +264,14 @@
                     const period = event.target.dataset.period;
                     const militarId = event.target.dataset.militarId;
 
-                    // Pegando os campos de início dos períodos
                     const start1 = document.querySelector(`input[name="inicio_1_${militarId}"]`);
                     const start2 = document.querySelector(`input[name="inicio_2_${militarId}"]`);
                     const start3 = document.querySelector(`input[name="inicio_3_${militarId}"]`);
 
-                    // Convertendo para datas
                     const date1 = start1 && start1.value ? new Date(start1.value) : null;
                     const date2 = start2 && start2.value ? new Date(start2.value) : null;
                     const date3 = start3 && start3.value ? new Date(start3.value) : null;
 
-                    // Validação
                     let errorMessage = '';
                     if (date1 && date2 && date2 < date1) {
                         errorMessage = 'O 2º período não pode ser antes do 1º período.';
@@ -316,19 +281,18 @@
                         errorMessage = 'O 3º período não pode ser antes do 1º período.';
                     }
 
-                    // Exibindo erro
                     if (errorMessage) {
                         alert(errorMessage);
-                        event.target.value = ''; // Limpa o campo inválido
+                        event.target.value = '';
                     }
                 }
             });
         });
+
         document.querySelectorAll('.inicio-periodo[data-period="1"]').forEach((input) => {
             input.addEventListener('change', function () {
                 const militarId = this.dataset.militarId;
 
-                // Seleciona os campos dos períodos 2 e 3
                 const start2 = document.querySelector(`[name="inicio_2_${militarId}"]`);
                 const end2 = document.querySelector(`[name="fim_2_${militarId}"]`);
                 const days2 = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
@@ -336,7 +300,6 @@
                 const end3 = document.querySelector(`[name="fim_3_${militarId}"]`);
                 const days3 = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
 
-                // Reseta os valores dos períodos 2 e 3
                 if (start2) start2.value = '';
                 if (end2) end2.value = '';
                 if (days2) days2.value = '';
@@ -345,13 +308,10 @@
                 if (days3) days3.value = '';
             });
         });
-    });
 
-    document.addEventListener("DOMContentLoaded", () => {
         const nextYear = new Date().getFullYear() + 1;
         const maxDate = new Date(`${new Date().getFullYear()}-12-31`);
 
-        // Função para validar o intervalo de datas
         function validateDateRange(startDateInput, daysInput) {
             const startDate = new Date(startDateInput.value);
             const days = parseInt(daysInput.value, 10);
@@ -360,21 +320,18 @@
             const endDate = new Date(startDate);
             endDate.setDate(endDate.getDate() + days - 1);
 
-            if (endDate > maxDate) { // Comparação com maxDate
+            if (endDate > maxDate) {
                 alert("As férias não podem ultrapassar o dia 31 de dezembro.");
-                daysInput.value = ""; // Reseta o valor dos dias
-                startDateInput.value = ""; // Reseta a data inicial
+                daysInput.value = "";
+                startDateInput.value = "";
             }
         }
-
 
         document.querySelectorAll(".inicio-periodo").forEach((input) => {
             input.addEventListener("change", (e) => {
                 const period = e.target.dataset.period;
                 const militarId = e.target.dataset.militarId;
-                const daysInput = document.querySelector(
-                    `select[name="qtd_dias_${period}_${militarId}"]`
-                );
+                const daysInput = document.querySelector(`select[name="qtd_dias_${period}_${militarId}"]`);
                 validateDateRange(e.target, daysInput);
             });
         });
@@ -383,44 +340,76 @@
             input.addEventListener("change", (e) => {
                 const period = e.target.dataset.period;
                 const militarId = e.target.dataset.militarId;
-                const startDateInput = document.querySelector(
-                    `input[name="inicio_${period}_${militarId}"]`
-                );
+                const startDateInput = document.querySelector(`input[name="inicio_${period}_${militarId}"]`);
                 validateDateRange(startDateInput, e.target);
+
+                // ⚠️ Força a atualização geral ao mudar qualquer período
+                atualizarCampos(militarId);
             });
         });
-    });
 
-    document.addEventListener('DOMContentLoaded', function () {
+
         const MAX_DIAS = 30;
 
         function atualizarCampos(militarId) {
-            const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value) || 0;
-            const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`).value) || 0;
-
-            // Elementos dos períodos 2 e 3
+            const dias1Select = document.querySelector(`[name="qtd_dias_1_${militarId}"]`);
             const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
             const dias3Select = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
-            const inicio2 = document.
+            const inicio2 = document.querySelector(`[name="inicio_2_${militarId}"]`);
+            const fim2 = document.querySelector(`[name="fim_2_${militarId}"]`);
             const inicio3 = document.querySelector(`[name="inicio_3_${militarId}"]`);
             const fim3 = document.querySelector(`[name="fim_3_${militarId}"]`);
 
-            // Gerenciar opções do 2º período
+            const dias1 = parseInt(dias1Select?.value) || 0;
+            const dias2 = parseInt(dias2Select?.value) || 0;
+
+            if (dias1 === 30) {
+                bloquearTudo(dias2Select, dias3Select, inicio2, fim2, inicio3, fim3);
+                limparCampos(dias2Select, dias3Select, inicio2, fim2, inicio3, fim3);
+                return;
+            }
+
+            if (dias1 + dias2 === MAX_DIAS) {
+                bloquearTudo(dias3Select, inicio3, fim3);
+                limparCampos(dias3Select, inicio3, fim3);
+            } else if (dias1 + dias2 < MAX_DIAS) {
+                desbloquearOpcoes(dias3Select, [10]);
+            }
+
             if (dias1 === 15) {
                 bloquearOpcoes(dias2Select, [10]);
             } else if (dias1 === 10) {
                 desbloquearOpcoes(dias2Select, [10, 20]);
-            } else if (dias1 === 30) {
-                bloquearTudo(dias2Select, dias3Select, inicio3, fim3);
             }
 
-            // Gerenciar opções do 3º período
-            if (dias1 + dias2 === MAX_DIAS) {
-                bloquearTudo(dias3Select, inicio3, fim3);
-            } else if (dias1 + dias2 < MAX_DIAS) {
-                desbloquearOpcoes(dias3Select, [10]);
+            // ⚠️ Se dias1 + dias2 for menor que 30 mas o 3º já estava preenchido indevidamente, limpa também
+            if (dias1 + dias2 < MAX_DIAS && dias3Select?.value && !dias3Select.disabled) {
+                limparCampos(dias3Select, inicio3, fim3);
             }
+
         }
+
+        function limparCampos(...elementos) {
+            elementos.forEach((el) => {
+                if (!el) return;
+
+                const wasReadonly = el.hasAttribute("readonly");
+                const wasDisabled = el.disabled;
+
+                if (wasReadonly) el.removeAttribute("readonly");
+                if (wasDisabled) el.disabled = false;
+
+                if (el.tagName === "SELECT" || el.type === "select-one") {
+                    el.value = "";
+                } else if (el.type === "date" || el.type === "text") {
+                    el.value = "";
+                }
+
+                if (wasReadonly) el.setAttribute("readonly", true);
+                if (wasDisabled) el.disabled = true;
+            });
+        }
+
 
         function bloquearTudo(...elementos) {
             elementos.forEach((el) => {
@@ -429,13 +418,17 @@
         }
 
         function desbloquearOpcoes(select, valores) {
+            if (!select) return;
             Array.from(select.options).forEach((option) => {
-                option.disabled = !valores.includes(parseInt(option.value));
+                if (option.value) {
+                    option.disabled = !valores.includes(parseInt(option.value));
+                }
             });
             select.disabled = false;
         }
 
         function bloquearOpcoes(select, valores) {
+            if (!select) return;
             Array.from(select.options).forEach((option) => {
                 if (valores.includes(parseInt(option.value))) {
                     option.disabled = true;
@@ -443,23 +436,27 @@
             });
         }
 
-        // Eventos
-        document.querySelectorAll('.qtd-dias').forEach((select) => {
-            select.addEventListener('change', (event) => {
-                const militarId = event.target.dataset.militarId;
-                atualizarCampos(militarId);
-            });
-        });
-
-        // Evento para enviar os dados ao backend
+        // Evento para salvar com validação extra
         document.querySelectorAll('.botao-salvar').forEach(button => {
             button.addEventListener('click', function () {
                 const militarId = this.dataset.militarId;
+                const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`)?.value) || 0;
+                const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`)?.value) || 0;
+                const dias3 = parseInt(document.querySelector(`[name="qtd_dias_3_${militarId}"]`)?.value) || 0;
+
+                const totalDias = dias1 + dias2 + dias3;
+
+                if (totalDias !== 30) {
+                    alert(`Atenção! A soma dos dias de férias (${totalDias}) não está batendo 30 dias.`);
+                    return; // Não envia se não for 30 dias
+                }
+
+                // Aqui seria chamada a função de envio
                 enviarDados(militarId);
             });
         });
-    });
 
+    });
 </script>
 
 {% endblock %}

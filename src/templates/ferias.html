@@ -194,18 +194,31 @@
         const MAX_DIAS = 30;
         const maxDate = new Date('2025-12-31');
 
+        function limparCampos(...elementos) {
+            elementos.forEach((el) => {
+                if (!el) return;
+
+                const wasReadonly = el.hasAttribute("readonly");
+                const wasDisabled = el.disabled;
+
+                if (wasReadonly) el.removeAttribute("readonly");
+                if (wasDisabled) el.disabled = false;
+
+                if (el.tagName === "SELECT" || el.type === "select-one") {
+                    el.value = "";
+                } else if (el.type === "date" || el.type === "text") {
+                    el.value = "";
+                }
+
+                if (wasReadonly) el.setAttribute("readonly", true);
+                if (wasDisabled) el.disabled = true;
+            });
+        }
+
         function calculateEndDate(startDateInput, daysInput, endDateInput) {
             const startDate = new Date(startDateInput.value);
             const days = parseInt(daysInput.value, 10);
-            console.log(`Calculando data final: Início = ${startDateInput.value}, Dias = ${days}`);
-
             if (isNaN(startDate.getTime()) || isNaN(days)) {
-                console.warn('Data de início inválida ou quantidade de dias inválida');
-                endDateInput.value = '';
-                return;
-            }
-
-            if (!startDate || isNaN(days)) {
                 endDateInput.value = '';
                 return;
             }
@@ -221,8 +234,6 @@
             } else {
                 endDateInput.value = endDate.toISOString().split('T')[0];
             }
-
-            console.log(`Data final calculada: ${endDateInput.value}`);
         }
 
         function validatePeriods(militarId) {
@@ -271,10 +282,12 @@
                 bloquearOpcoes(dias2Select, [15, 20]);
             } else if (dias1 === 30) {
                 bloquearTudo(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
+                limparCampos(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
             }
 
             if (dias1 + dias2 >= MAX_DIAS) {
                 bloquearTudo(dias3Select, inicio3, fim3);
+                limparCampos(dias3Select, inicio3, fim3);
             }
         }
 
@@ -282,9 +295,6 @@
             elementos.forEach(el => {
                 if (el) {
                     el.disabled = true;
-                    if (el.tagName === 'SELECT') {
-                        el.value = '';
-                    }
                 }
             });
         }
@@ -304,11 +314,6 @@
             });
         }
 
-        function inicializarValores(militarId) {
-            atualizarCampos(militarId);
-        }
-
-        // Função que armazena temporariamente os valores e calcula a data final assim que ambos estiverem preenchidos
         function anexarListeners() {
             document.querySelectorAll('.qtd-dias, .inicio-periodo').forEach(element => {
                 const militarId = element.dataset.militarId;
@@ -319,32 +324,21 @@
                     const daysInput = document.querySelector(`[name="qtd_dias_${period}_${militarId}"]`);
                     const endDateInput = document.querySelector(`[name="fim_${period}_${militarId}"]`);
 
-                    let startDateValue = '';  // Armazena temporariamente a data de início
-                    let daysValue = '';       // Armazena temporariamente a quantidade de dias
-
                     const atualizarTudo = () => {
-                        console.log(`Atualizando período ${period} do militar ${militarId}`);
-                        console.log(`Data de início: ${startDateInput.value}, Dias: ${daysInput.value}`);
-
-                        startDateValue = startDateInput.value;
-                        daysValue = daysInput.value;
-
-                        if (startDateValue && daysValue) {
-                            calculateEndDate(startDateInput, daysInput, endDateInput);
+                        if (startDateInput && daysInput && endDateInput) {
+                            if (startDateInput.value && daysInput.value) {
+                                calculateEndDate(startDateInput, daysInput, endDateInput);
+                            }
                         }
-
                         atualizarCampos(militarId);
                         validatePeriods(militarId);
                     };
 
-                    // Adiciona os listeners separados
-                    startDateInput.addEventListener('change', atualizarTudo);
-                    daysInput.addEventListener('change', atualizarTudo);
+                    if (startDateInput) startDateInput.addEventListener('change', atualizarTudo);
+                    if (daysInput) daysInput.addEventListener('change', atualizarTudo);
                 }
             });
         }
-
-
 
         function enviarDados(militarId) {
             const dados = {
@@ -369,14 +363,10 @@
                 body: new URLSearchParams(dados),
             })
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Erro ao salvar os dados');
-                    }
+                    if (!response.ok) throw new Error('Erro ao salvar os dados');
                     return response.json();
                 })
-                .then(result => {
-                    alert(result.message);
-                })
+                .then(result => alert(result.message))
                 .catch(error => {
                     console.error('Erro ao salvar os dados:', error);
                     alert('Erro ao salvar os dados. Tente novamente.');
@@ -416,8 +406,6 @@
 
         anexarListeners();
     })();
-
-
 </script>
 
 {% endblock %}
