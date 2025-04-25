@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<section class="py-3 py-md-4 p-xl-5" style="background-image: url('{{ url_for('static', filename='img/bombeiros.png') }}');
+           background-size: cover;
+           background-position: center;
+           background-repeat: no-repeat;
+           min-height: 100vh;">
+    <div class="container py-3 py-md-4 p-xl-5 mt-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-11 col-lg-10 col-xl-9">
+                <div class="card border border-light-subtle rounded-3 transparent-card">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="Logo BM" width="100"
+                                height="100">
+                            <h2 class="fs-4 fw-bold mt-3">Nova Tabela de Vencimentos</h2>
+                        </div>
+
+                        <form method="POST" id="formTabelaVencimento">
+                            {{ form.hidden_tag() }}
+
+                            <div id="step1" class="wizard-step">
+                                <h5 class="mb-3">Informações da Tabela</h5>
+                                <div class="mb-3">
+                                    {{ form.nome.label(class="form-label") }}
+                                    {{ form.nome(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.lei.label(class="form-label") }}
+                                    {{ form.lei(class="form-control") }}
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.data_inicio.label(class="form-label") }}
+                                        {{ form.data_inicio(class="form-control") }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.data_fim.label(class="form-label") }}
+                                        {{ form.data_fim(class="form-control") }}
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(1)">Próximo</button>
+                                </div>
+                            </div>
+
+                            <div id="step2" class="wizard-step d-none">
+                                <h5 class="mb-3">Valores para o Posto/Graduação</h5>
+                                <div class="mb-3">
+                                    {{ form.posto_grad.label(class="form-label") }}
+                                    {{ form.posto_grad(class="form-select") }}
+                                </div>
+
+                                <div class="row">
+                                    {% for field in form %}
+                                    {% if field.name not in ['csrf_token', 'nome', 'lei', 'data_inicio', 'data_fim',
+                                    'posto_grad', 'submit'] %}
+                                    <div class="col-md-4 mb-3">
+                                        {{ field.label(class="form-label") }}
+                                        {{ field(class="form-control") }}
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="previousStep(2)">Voltar</button>
+                                    <button type="submit" class="btn btn-success">Salvar e Adicionar Outro</button>
+                                    <button type="submit" name="finalizar" value="true" class="btn btn-danger">Finalizar
+                                        Tabela</button>
+
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    function nextStep(step) {
+        document.getElementById('step' + step).classList.add('d-none');
+        document.getElementById('step' + (step + 1)).classList.remove('d-none');
+    }
+    function previousStep(step) {
+        document.getElementById('step' + step).classList.add('d-none');
+        document.getElementById('step' + (step - 1)).classList.remove('d-none');
+    }
+
+    // Passo vindo do servidor
+    document.addEventListener('DOMContentLoaded', function () {
+        const step = "{{ step or '' }}";
+        if (step === '2') {
+            document.getElementById('step1').classList.add('d-none');
+            document.getElementById('step2').classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %}

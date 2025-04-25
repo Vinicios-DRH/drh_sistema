@@ -8,12 +8,12 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import FormImpactoPromocaoRetroativo, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista
+from src.forms import ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
 from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad)
 from src.querys import obter_estatisticas_militares
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderServiceError
@@ -23,9 +23,13 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, aliased
+from sqlalchemy import and_
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
+from decimal import Decimal, ROUND_HALF_UP, getcontext
+from urllib.parse import urlencode
+from fpdf import FPDF
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -2437,8 +2441,281 @@ def listar_cnhs():
     return render_template('listar_cnhs.html', arquivos=nomes_arquivos)
 
 
-@app.route('/impacto-retroativo', methods=['GET', 'POST'])
+@app.route('/vencimentos/novo', methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'SUPER USER', 'DRH')
-def impacto_retroativo():
-    pass
+def novo_vencimento():
+    form = TabelaVencimentoForm()
+
+    if 'tabela_id' in session:
+        form.nome.validators = []
+        form.lei.validators = []
+        form.data_inicio.validators = []
+        form.data_fim.validators = []
+
+    postos = PostoGrad.query.all()
+    form.posto_grad.choices = [(p.id, p.sigla) for p in postos]
+
+    if request.method == 'POST' and form.validate_on_submit():
+        # Finalizar a tabela e ir para o cálculo
+        if 'finalizar' in request.form:
+            session.pop('tabela_id', None)
+            flash("Tabela finalizada com sucesso!", "success")
+            # Altere para seu endpoint real
+            return redirect(url_for('home'))
+
+        # Criar nova tabela se ainda não houver na sessão
+        if 'tabela_id' not in session:
+            tabela = TabelaVencimento(
+                nome=form.nome.data,
+                lei=form.lei.data,
+                data_inicio=form.data_inicio.data,
+                data_fim=form.data_fim.data
+            )
+            database.session.add(tabela)
+            database.session.flush()
+            session['tabela_id'] = tabela.id
+        else:
+            tabela = TabelaVencimento.query.get(session['tabela_id'])
+            if tabela is None:
+                session.pop('tabela_id', None)
+                flash(
+                    "A tabela anterior foi removida ou expirou. Por favor, inicie novamente.", "warning")
+                return redirect(url_for('novo_vencimento'))
+
+        valor = ValorDetalhadoPostoGrad(
+            tabela_id=tabela.id,
+            posto_grad_id=form.posto_grad.data,
+            soldo=form.soldo.data,
+            grat_tropa=form.grat_tropa.data,
+            gams=form.gams.data,
+            valor_bruto=form.valor_bruto.data,
+            curso_25=form.curso_25.data,
+            curso_30=form.curso_30.data,
+            curso_35=form.curso_35.data,
+            bruto_esp=form.bruto_esp.data,
+            bruto_mestre=form.bruto_mestre.data,
+            bruto_dout=form.bruto_dout.data,
+            fg_1=form.fg_1.data,
+            fg_2=form.fg_2.data,
+            fg_3=form.fg_3.data,
+            fg_4=form.fg_4.data,
+            aux_moradia=form.aux_moradia.data,
+            etapas_capital=form.etapas_capital.data,
+            etapas_interior=form.etapas_interior.data,
+            seg_hora=form.seg_hora.data,
+            motorista_a=form.motorista_a.data,
+            motorista_b=form.motorista_b.data,
+            motorista_ab=form.motorista_ab.data,
+            motorista_cde=form.motorista_cde.data,
+            tecnico_raiox=form.tecnico_raiox.data,
+            tecnico_lab=form.tecnico_lab.data,
+            mecanico=form.mecanico.data,
+            fluvial=form.fluvial.data,
+            explosivista=form.explosivista.data,
+            coe=form.coe.data,
+            tripulante=form.tripulante.data,
+            piloto=form.piloto.data,
+            aviacao=form.aviacao.data,
+            mergulhador=form.mergulhador.data
+        )
+
+        database.session.add(valor)
+        database.session.commit()
+
+        flash("Posto adicionado à tabela com sucesso!", "success")
+        return redirect(url_for('novo_vencimento', step=2))
+
+    return render_template("form_tabela_vencimento.html", form=form, step=request.args.get('step'))
+
+
+getcontext().prec = 10
+
+
+def arred(valor):
+    return Decimal(valor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+@app.route('/impacto/calcular', methods=['GET', 'POST'])
+@login_required
+def calcular_impacto():
+    form = ImpactoForm()
+
+    # Carrega os postos no select
+    postos = PostoGrad.query.order_by(PostoGrad.id).all()
+    form.posto_origem.choices = [(p.id, p.sigla) for p in postos]
+    form.posto_destino.choices = [(p.id, p.sigla) for p in postos]
+
+    # Recupera resultados da session, se existirem
+    resultado = None
+    tabela_usada = None
+
+    # Verifica se deve exibir o modal (GET com ?show_modal=1)
+    if request.method == 'GET' and request.args.get('show_modal') == '1':
+        if "resultado" in session and "tabela_usada_id" in session:
+            resultado = {k: Decimal(v)
+                         for k, v in session["resultado"].items()}
+            tabela_usada = TabelaVencimento.query.get(
+                session["tabela_usada_id"])
+            # opcional: limpar depois que usar
+            # session.pop("resultado", None)
+            # session.pop("tabela_usada_id", None)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        data_inicio = form.data_inicio.data
+        data_fim = form.data_fim.data
+        efetivo = form.efetivo.data
+        posto_origem_id = form.posto_origem.data
+        posto_destino_id = form.posto_destino.data
+
+        # Busca a tabela correspondente
+        tabela = TabelaVencimento.query.filter(
+            and_(
+                TabelaVencimento.data_inicio <= data_inicio,
+                TabelaVencimento.data_fim >= data_inicio
+            )
+        ).first()
+
+        if not tabela:
+            flash("Nenhuma tabela de vencimento encontrada para essa data.", "danger")
+            return render_template("impacto_calculo.html", form=form)
+
+        tabela_usada = tabela
+
+        valor_origem = ValorDetalhadoPostoGrad.query.filter_by(
+            tabela_id=tabela.id,
+            posto_grad_id=posto_origem_id
+        ).first()
+
+        valor_destino = ValorDetalhadoPostoGrad.query.filter_by(
+            tabela_id=tabela.id,
+            posto_grad_id=posto_destino_id
+        ).first()
+
+        if not valor_origem or not valor_destino:
+            flash("Valores de postos não encontrados na tabela de vencimentos.", "danger")
+            return render_template("impacto_calculo.html", form=form)
+
+        # Cálculos principais
+        diferenca = Decimal(valor_destino.valor_bruto) - \
+            Decimal(valor_origem.valor_bruto)
+        impacto_mensal = arred(diferenca * efetivo)
+        base_ferias = impacto_mensal / Decimal('3')
+
+        dias_restantes_mes = Decimal(30 - data_inicio.day + 1)
+        dias_total = Decimal((data_fim - data_inicio).days + 1)
+        dias_apos_primeiro_mes = dias_total - dias_restantes_mes
+        meses_restantes = dias_apos_primeiro_mes / Decimal('30')
+
+        impacto_dias = arred(
+            (impacto_mensal / Decimal('30')) * dias_restantes_mes)
+        impacto_meses = arred(impacto_mensal * meses_restantes)
+        ferias_dias = arred((base_ferias / Decimal('12') /
+                            Decimal('30')) * dias_restantes_mes)
+        decimo_dias = arred(
+            (impacto_mensal / Decimal('12') / Decimal('30')) * dias_restantes_mes)
+        ferias_meses = arred((base_ferias / Decimal('12')) * meses_restantes)
+        decimo_meses = arred(
+            (impacto_mensal / Decimal('12')) * meses_restantes)
+
+        total = arred(impacto_dias + impacto_meses + ferias_dias +
+                      ferias_meses + decimo_dias + decimo_meses)
+
+        # Salva tudo na session
+        session["resultado"] = {
+            "valor_origem": str(valor_origem.valor_bruto),
+            "valor_destino": str(valor_destino.valor_bruto),
+            "diferenca": str(diferenca),
+            "impacto_mensal": str(impacto_mensal),
+            "impacto_dias": str(impacto_dias),
+            "impacto_meses": str(impacto_meses),
+            "ferias_dias": str(ferias_dias),
+            "ferias_meses": str(ferias_meses),
+            "decimo_dias": str(decimo_dias),
+            "decimo_meses": str(decimo_meses),
+            "total": str(total)
+        }
+        session["tabela_usada_id"] = tabela.id
+
+        # Redireciona com GET e exibe modal
+        params = urlencode({"show_modal": "1"})
+        return redirect(f"{url_for('calcular_impacto')}?{params}")
+
+    return render_template("impacto_calculo.html", form=form, resultado=resultado, tabela_usada=tabela_usada)
+
+
+@app.route('/impacto/baixar_pdf')
+@login_required
+def baixar_pdf():
+    dados_raw = session.get("resultado")
+    tabela_id = session.get("tabela_usada_id")
+    if not dados_raw or not tabela_id:
+        flash("Não há resultado disponível para gerar PDF.", "warning")
+        return redirect(url_for('calcular_impacto'))
+
+    # Converte tudo de volta para Decimal
+    resultado = {k: Decimal(v) for k, v in dados_raw.items()}
+    tabela = TabelaVencimento.query.get(tabela_id)
+
+    # Função auxiliar de formatação BR
+    def fmt(v: Decimal) -> str:
+        s = f"{v:,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
+        return f"R$ {s}"
+
+    # Gera PDF
+    pdf = FPDF()
+    pdf.add_page()
+
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "CÁLCULO DE IMPACTO - PROMOÇÃO E RETROATIVO",
+             ln=True, align="C")
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 12)
+    periodo = f"{tabela.data_inicio.strftime('%d/%m/%Y')} a {tabela.data_fim.strftime('%d/%m/%Y')}"
+    pdf.cell(0, 8, f"Tabela: {tabela.nome} ({periodo})", ln=True)
+    pdf.ln(4)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(
+        0, 6, f"Diferença por militar: {fmt(resultado['diferenca'])}", ln=True)
+    pdf.cell(
+        0, 6, f"Impacto Bruto Mensal: {fmt(resultado['impacto_mensal'])}", ln=True)
+    pdf.ln(6)
+
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 6, "Impacto nos Dias Restantes:", ln=True)
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(
+        0, 6, f"- Impacto dos dias: {fmt(resultado['impacto_dias'])}", ln=True)
+    pdf.cell(
+        0, 6, f"- 1/3 Férias (dias): {fmt(resultado['ferias_dias'])}", ln=True)
+    pdf.cell(
+        0, 6, f"- 13º proporcional (dias): {fmt(resultado['decimo_dias'])}", ln=True)
+    pdf.ln(6)
+
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 6, "Impacto nos Meses Restantes:", ln=True)
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(
+        0, 6, f"- Impacto dos meses: {fmt(resultado['impacto_meses'])}", ln=True)
+    pdf.cell(
+        0, 6, f"- 1/3 Férias (meses): {fmt(resultado['ferias_meses'])}", ln=True)
+    pdf.cell(
+        0, 6, f"- 13º proporcional (meses): {fmt(resultado['decimo_meses'])}", ln=True)
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 8, f"Total Geral: {fmt(resultado['total'])}", ln=True)
+
+    # Gera PDF em memória
+    pdf_str = pdf.output(dest='S').encode('latin1')
+    mem = BytesIO(pdf_str)
+    mem.seek(0)
+
+    filename = f"impacto_{tabela.nome.replace(' ', '_')}.pdf"
+    return send_file(
+        mem,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )

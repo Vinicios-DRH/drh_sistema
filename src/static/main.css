@@ -63,26 +63,26 @@ label {
 }
 
 .botao-arquivo {
-  padding: 5px 10px;
-  border-radius: 15px;
-  border: 0;
-  background-color: #333;
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 15px;
+    border: 0;
+    background-color: #333;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
 }
 
 .bloco-arquivo {
-  background-color: #eee;
-  padding: 10px 20px;
-  border-radius: 55px;
-  display: flex;
-  align-items: center;
-  column-gap: 10px;
+    background-color: #eee;
+    padding: 10px 20px;
+    border-radius: 55px;
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
 }
 
 .input-arquivo {
-  display: none;
+    display: none;
 }
 
 .botaoExcluir {
@@ -95,71 +95,100 @@ label {
     font-family: 'Montserrat', sans-serif;
     font-size: 15px;
 }
+
 .botaoExcluir.negative {
-     border: 1px solid #FFFFFF;
-     color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
 }
 
-.botaoExcluir.negative:hover{
+.botaoExcluir.negative:hover {
     color: rgb(244, 33, 46);
     background: #FFFFFF;
 }
 
-.botaoExcluir:hover{
+.botaoExcluir:hover {
     background: rgb(244, 33, 46);
     color: #FFFFFF;
 }
 
 .alert {
-    position: fixed; /* ou absolute, dependendo do seu layout */
-    top: 10px; /* ajuste conforme necessário */
-    width: 80vw; /* largura total da tela */
-    z-index: 1000; /* valor alto para garantir que fique sobre outros elementos */
-    text-align: center; /* opcional: centraliza o texto dentro da div */
-    transition: opacity 0.5s ease-out; /* transição para o efeito de fade-out */
+    position: fixed;
+    /* ou absolute, dependendo do seu layout */
+    top: 10px;
+    /* ajuste conforme necessário */
+    width: 80vw;
+    /* largura total da tela */
+    z-index: 1000;
+    /* valor alto para garantir que fique sobre outros elementos */
+    text-align: center;
+    /* opcional: centraliza o texto dentro da div */
+    transition: opacity 0.5s ease-out;
+    /* transição para o efeito de fade-out */
 }
 
 .fade-out {
-    opacity: 0; /* define a opacidade para 0 para o efeito de fade-out */
+    opacity: 0;
+    /* define a opacidade para 0 para o efeito de fade-out */
 }
 
 #bg-arquivo {
-  display: none;
+    display: none;
 }
 
 #bg-arquivo.visivel {
-  display: inline-block;
+    display: inline-block;
 }
 
 .table-responsive {
-    max-height: 500px;  /* Define a altura máxima da tabela */
-    overflow-y: auto;   /* Ativa o scroll vertical quando necessário */
+    max-height: 500px;
+    /* Define a altura máxima da tabela */
+    overflow-y: auto;
+    /* Ativa o scroll vertical quando necessário */
 }
+
 table {
-    width: 100%;  /* Ocupa 100% da largura disponível */
+    width: 100%;
+    /* Ocupa 100% da largura disponível */
 }
-table th, table td {
-    white-space: nowrap;  /* Evita quebra de linha automática nas células */
-    padding: 10px;        /* Adiciona um padding para melhor espaçamento */
+
+table th,
+table td {
+    white-space: nowrap;
+    /* Evita quebra de linha automática nas células */
+    padding: 10px;
+    /* Adiciona um padding para melhor espaçamento */
 }
+
 table th {
-    text-align: left;     /* Alinha os cabeçalhos à esquerda */
+    text-align: left;
+    /* Alinha os cabeçalhos à esquerda */
 }
+
 /* Definir larguras mínimas para as colunas mais longas */
 .col-nome_completo {
-    min-width: 200px;     /* Ajusta a largura mínima da coluna de Nome Completo */
+    min-width: 200px;
+    /* Ajusta a largura mínima da coluna de Nome Completo */
 }
+
 .col-cpf {
-    min-width: 120px;     /* Ajusta a largura mínima da coluna de CPF */
+    min-width: 120px;
+    /* Ajusta a largura mínima da coluna de CPF */
 }
+
 .col-rg {
-    min-width: 100px;     /* Ajusta a largura mínima da coluna de RG */
+    min-width: 100px;
+    /* Ajusta a largura mínima da coluna de RG */
 }
+
 .col-especialidade {
-    min-width: 150px;     /* Ajusta a largura mínima da coluna de Especialidade */
+    min-width: 150px;
+    /* Ajusta a largura mínima da coluna de Especialidade */
 }
-.col-obms, .col-funcoes {
-    min-width: 150px;     /* Ajusta a largura mínima das colunas de OBMs e Funções */
+
+.col-obms,
+.col-funcoes {
+    min-width: 150px;
+    /* Ajusta a largura mínima das colunas de OBMs e Funções */
 }
 
 .search-pagination-container {
@@ -172,9 +201,4 @@ table th {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #ddd;
-}
-
-.transparent-card {
-    background-color: rgba(255, 255, 255, 0.8); /* Fundo branco com 80% de opacidade */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Adiciona um leve sombreado */
 }

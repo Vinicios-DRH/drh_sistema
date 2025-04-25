@@ -25,8 +25,17 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'alert-info'
 
+
+@app.template_filter("br_currency")
+def br_currency(value):
+    try:
+        value = float(value)
+        return f"R$ {value:,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
+    except:
+        return value
+
+
 # Importa rotas depois
 from src import routes
-
 # Torna o supabase acessível de fora
 app.supabase = supabase

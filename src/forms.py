@@ -1,7 +1,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField, FileField)
+                     MultipleFileField, FileField, DecimalField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional
 from src.models import Militar, User
 
@@ -226,9 +226,67 @@ class FormFiltroMotorista(FlaskForm):
     posto_grad_id = SelectField('Posto/Grad', choices=[])
 
 
-class FormImpactoPromocaoRetroativo(FlaskForm):
-    militar_id = SelectField('Militar', choices=[], coerce=int)
-    data_inicio = DateField('Data Início', format='%Y-%m-%d')
-    data_fim = DateField('Data Fim', format='%Y-%m-%d')
-    impacto = StringField('Impacto', render_kw={
-                          "placeholder": "Valor do impacto"})
+class TabelaVencimentoForm(FlaskForm):
+    nome = StringField("Nome da Tabela", validators=[DataRequired()])
+    lei = StringField("Lei", validators=[DataRequired()])
+    data_inicio = DateField(
+        "Data de Início", format='%Y-%m-%d', validators=[DataRequired()])
+    data_fim = DateField("Data de Fim", format='%Y-%m-%d',
+                         validators=[Optional()])
+    posto_grad = SelectField("Posto/Graduação", choices=[])
+
+    # Campos genéricos para um posto, devem ser duplicados dinamicamente no template com base nos postos existentes
+    soldo = DecimalField("Soldo", validators=[Optional()])
+    grat_tropa = DecimalField("Gratificação de Tropa", validators=[Optional()])
+    gams = DecimalField("GAMS", validators=[Optional()])
+    valor_bruto = DecimalField("Valor Bruto", validators=[Optional()])
+    curso_25 = DecimalField("Espec. 25%", validators=[Optional()])
+    curso_30 = DecimalField("Mestre 30%", validators=[Optional()])
+    curso_35 = DecimalField("Dout. 35%", validators=[Optional()])
+    bruto_esp = DecimalField("Bruto + ESPEC.", validators=[Optional()])
+    bruto_mestre = DecimalField("Bruto + MESTRE", validators=[Optional()])
+    bruto_dout = DecimalField("Bruto + DOUT.", validators=[Optional()])
+    fg_1 = DecimalField("FG-1", validators=[Optional()])
+    fg_2 = DecimalField("FG-2", validators=[Optional()])
+    fg_3 = DecimalField("FG-3", validators=[Optional()])
+    fg_4 = DecimalField("FG-4", validators=[Optional()])
+    aux_moradia = DecimalField("Auxílio Moradia", validators=[Optional()])
+    etapas_capital = StringField("Etapas Capital", validators=[Optional()])
+    etapas_interior = StringField("Etapas Interior", validators=[Optional()])
+    seg_hora = DecimalField("SEG Hora", validators=[Optional()])
+
+    motorista_a = DecimalField("Motorista A", validators=[Optional()])
+    motorista_b = DecimalField("Motorista B", validators=[Optional()])
+    motorista_ab = DecimalField("Motorista AB", validators=[Optional()])
+    motorista_cde = DecimalField("Motorista CDE", validators=[Optional()])
+    tecnico_raiox = DecimalField("Técnico Raio-X", validators=[Optional()])
+    tecnico_lab = DecimalField("Técnico Lab", validators=[Optional()])
+    mecanico = DecimalField("Mecânico", validators=[Optional()])
+    fluvial = DecimalField("Fluvial", validators=[Optional()])
+    explosivista = DecimalField("Explosivista", validators=[Optional()])
+    coe = DecimalField("COE", validators=[Optional()])
+    tripulante = DecimalField("Tripulante", validators=[Optional()])
+    piloto = DecimalField("Piloto", validators=[Optional()])
+    aviacao = DecimalField("Aviação", validators=[Optional()])
+    mergulhador = DecimalField("Mergulhador", validators=[Optional()])
+
+    submit = SubmitField("Salvar Tabela")
+
+
+class ImpactoForm(FlaskForm):
+    data_inicio = DateField(
+        "Data de Início", format='%Y-%m-%d', validators=[DataRequired()])
+    data_fim = DateField("Data de Fim", format='%Y-%m-%d',
+                         validators=[DataRequired()])
+
+    posto_origem = SelectField(
+        "Posto/Graduação Atual", coerce=int, validators=[DataRequired()])
+    posto_destino = SelectField(
+        "Posto/Graduação da Promoção", coerce=int, validators=[DataRequired()])
+
+    efetivo = IntegerField("Efetivo", validators=[
+        DataRequired(), NumberRange(min=1, max=1000,
+                                    message="Insira um número entre 1 e 1000")
+    ])
+
+    submit = SubmitField("Calcular Impacto")
