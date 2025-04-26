@@ -584,51 +584,51 @@
             const diaAtual = dataAtual.getDate(); // Obtém o dia do mês (1-31)
 
             // Verifica se o dia está entre 10 e 20 (inclusive)
-            if (diaAtual >= 10 && diaAtual <= 20)
+            if (diaAtual >= 10 && diaAtual <= 20) {
                 // Habilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
                 document.querySelectorAll('input').forEach(input => {
                     if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
                         input.disabled = false;
                     }
                 });
-            document.querySelectorAll('select').forEach(select => {
-                if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
-                    select.disabled = false;
-                }
-            });
-            document.querySelectorAll('.botao-salvar').forEach(button => {
-                if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
-                    button.disabled = false;
-                }
-            });
-        } else {
-            // Desabilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
-            document.querySelectorAll('input').forEach(input => {
-                if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
-                    input.disabled = true;
-                }
-            });
-            document.querySelectorAll('select').forEach(select => {
-                if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
-                    select.disabled = true;
-                }
-            });
-            document.querySelectorAll('.botao-salvar').forEach(button => {
-                if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
-                    button.disabled = true;
-                }
-            });
+                document.querySelectorAll('select').forEach(select => {
+                    if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        select.disabled = false;
+                    }
+                });
+                document.querySelectorAll('.botao-salvar').forEach(button => {
+                    if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
+                        button.disabled = false;
+                    }
+                });
+            } else {
+                // Desabilita inputs, selects e botões de salvar que não estão desabilitados por outras regras
+                document.querySelectorAll('input').forEach(input => {
+                    if (!input.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        input.disabled = true;
+                    }
+                });
+                document.querySelectorAll('select').forEach(select => {
+                    if (!select.hasAttribute('data-keep-disabled')) { // Ignora campos que devem permanecer desabilitados
+                        select.disabled = true;
+                    }
+                });
+                document.querySelectorAll('.botao-salvar').forEach(button => {
+                    if (!button.hasAttribute('data-keep-disabled')) { // Ignora botões que devem permanecer desabilitados
+                        button.disabled = true;
+                    }
+                });
+            }
         }
-    }
 
         document.addEventListener('DOMContentLoaded', function () {
-        verificarDataEHabilitarElementos(); // Executa a função ao carregar a página
+            verificarDataEHabilitarElementos(); // Executa a função ao carregar a página
 
-        // Atualiza o estado a cada hora (3600000 milissegundos)
-        setInterval(verificarDataEHabilitarElementos, 3600000);
-    });
+            // Atualiza o estado a cada hora (3600000 milissegundos)
+            setInterval(verificarDataEHabilitarElementos, 3600000);
+        });
 
-    }) ();
+    })();
 
 </script>
 {% endblock %}
