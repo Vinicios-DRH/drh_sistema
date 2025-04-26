@@ -23,7 +23,7 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, aliased
-from sqlalchemy import and_
+from sqlalchemy import and_, case, func, or_
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -1805,6 +1805,8 @@ def grafico_todos_militares():
 
 
 @app.route('/ferias_dados', methods=['GET', 'POST'])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
 def ferias_dados():
     draw = request.form.get('draw', type=int)
     start = request.form.get('start', type=int)
@@ -1858,6 +1860,74 @@ def ferias_dados():
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def exibir_ferias():
     return render_template('ferias.html')
+
+
+@app.route('/pafs/nao_preenchidos')
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
+def pafs_nao_preenchidos():
+    subquery_pafs = database.session.query(Paf.militar_id).subquery()
+
+    prioridade_obm = case(
+        (Obm.sigla == 'GAB SUCMT-GERAL', 1),
+        else_=2
+    )
+
+    ordem_posto = case(
+        (PostoGrad.sigla == 'CEL', 1),
+        (PostoGrad.sigla == 'TC', 2),
+        (PostoGrad.sigla == 'MAJ', 3),
+        (PostoGrad.sigla == 'CAP', 4),
+        (PostoGrad.sigla == '1 TEN', 5),
+        (PostoGrad.sigla == '2 TEN', 6),
+        (PostoGrad.sigla == 'AL OF', 7),
+        (PostoGrad.sigla == 'ALUNO OFICIAL', 8),
+        (PostoGrad.sigla == 'SUBTENENTE', 9),
+        (PostoGrad.sigla == '1 SGT', 10),
+        (PostoGrad.sigla == '2 SGT', 11),
+        (PostoGrad.sigla == '3 SGT', 12),
+        (PostoGrad.sigla == 'AL SGT', 13),
+        (PostoGrad.sigla == 'CB', 14),
+        (PostoGrad.sigla == 'SD', 15),
+        (PostoGrad.sigla == 'AL SD', 16),
+        else_=99
+    )
+
+    sub_militares = (
+        database.session.query(
+            Militar.id.label("militar_id"),
+            Militar.nome_completo,
+            PostoGrad.sigla.label("posto_grad"),
+            Quadro.quadro.label("quadro"),
+            Obm.sigla.label("obm"),
+            ordem_posto.label("ordem"),
+            func.row_number().over(
+                partition_by=Militar.id,
+                order_by=[prioridade_obm.asc(), MilitarObmFuncao.id.desc()]
+            ).label("linha")
+        )
+        .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+        .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .join(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .join(Quadro, Quadro.id == Militar.quadro_id)
+        .filter(MilitarObmFuncao.data_fim.is_(None))  # OBMs ativas
+        .filter(~Militar.id.in_(subquery_pafs))  # sem PAF
+        .subquery()
+    )
+
+    militares_sem_paf = (
+        database.session.query(
+            sub_militares.c.nome_completo,
+            sub_militares.c.posto_grad,
+            sub_militares.c.quadro,
+            sub_militares.c.obm
+        )
+        .filter(sub_militares.c.linha == 1)
+        .order_by(sub_militares.c.ordem, sub_militares.c.obm)
+        .all()
+    )
+
+    return render_template("pafs_nao_preenchidos.html", militares=militares_sem_paf)
 
 
 @app.route('/api-sesuite', methods=['GET'])

@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="container mt-5">
-    <h3>Militares com Férias Incompletas</h3>
+    <h3>Militares que Ainda Não Preencheram o Plano de Férias</h3>
     <p>Total: <strong>{{ militares|length }}</strong></p>
-    <table class="table table-bordered table-striped">
+
+    <table class="table table-bordered table-hover">
         <thead>
             <tr>
                 <th>Nome</th>

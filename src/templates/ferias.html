@@ -12,6 +12,8 @@
         <h3>Pafs</h3>
         <button class="btn btn-primary" onclick="abrirGrafico()">Ver Gráfico</button>
         <a class="btn btn-primary" href="{{ url_for('exportar_pafs', tabela='pafs') }}">Baixar Excel</a>
+        <a href="{{ url_for('pafs_nao_preenchidos') }}" class="btn btn-warning">Militares Sem PAF</a>
+
 
         <div class="table-responsive mt-4">
             <table id="militaresTable" class="table table-striped" style="width:100%">
