@@ -1,19 +1,57 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-5 mt-2">
+    <div class="mt-3">
+        <h3>Pafs</h3>
+        <button class="btn btn-primary" onclick="abrirGrafico()">Ver Gráfico</button>
+        <a class="btn btn-primary" href="{{ url_for('exportar_pafs', tabela='pafs') }}">Baixar Excel</a>
+
+        <div class="table-responsive mt-4">
+            <table id="militaresTable" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Posto/Grad</th>
+                        <th>Nome</th>
+                        <th>Matrícula</th>
+                        <th>Quadro</th>
+                        <th>Mês Usufruto</th>
+                        <th>Qtd. Dias 1º</th>
+                        <th>Início 1º</th>
+                        <th>Fim 1º</th>
+                        <th>Qtd. Dias 2º</th>
+                        <th>Início 2º</th>
+                        <th>Fim 2º</th>
+                        <th>Qtd. Dias 3º</th>
+                        <th>Início 3º</th>
+                        <th>Fim 3º</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="modalGrafico" tabindex="-1" aria-labelledby="modalGraficoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalGraficoLabel">Gráfico de Férias</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">Carregando gráfico...</div>
+        </div>
+    </div>
+</div>
 
 <script>
-    $(document).ready(function () {
-        $('#militaresTable').DataTable({
-            pageLength: 25, // Define o número de registros por página
-            lengthMenu: [25, 50, 100, 200], // Opções para o usuário selecionar
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json"
-            }
-        });
-    });
     function abrirGrafico() {
         fetch("{{ url_for('grafico_todos_militares') }}")
             .then(response => response.text())
@@ -28,384 +66,189 @@
             })
             .catch(error => console.error('Erro ao carregar o gráfico:', error));
     }
-</script>
-{% endblock %}
 
-{% block body %}
-<section class="py-3 py-md-5 mt-2">
-    <div class="mt-3">
-        <h3>Pafs</h3>
-        <button class="btn btn-primary" onclick="abrirGrafico()">Ver Gráfico</button>
-        <a class="btn btn-primary" aria-current="page" href="{{ url_for('exportar_pafs', tabela='pafs') }}">Baixar
-            Excel</a>
-        <div class="table-responsive mt-4">
-            <table id="militaresTable" class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Posto/Grad</th>
-                        <th>Nome</th>
-                        <th>Matrícula</th>
-                        <th>Quadro</th>
-                        <th>Mês Usufruto</th>
-                        <th>Qtd. Dias 1º Período</th>
-                        <th>1º Período de Férias</th>
-                        <th>Fim 1º Período</th>
-                        <th>Qtd. Dias 2º Período</th>
-                        <th>2º Período de Férias</th>
-                        <th>Fim 2º Período</th>
-                        <th>Qtd. Dias 3º Período</th>
-                        <th>3º Período de Férias</th>
-                        <th>Fim 3º Período</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for militar, paf in militares %}
-                    <tr>
-                        <td>{{ militar.posto_grad.sigla }}</td>
-                        <td>{{ militar.nome_completo }}</td>
-                        <td>{{ militar.matricula }}</td>
-                        <td>{{ militar.quadro.quadro }}</td>
-                        <td>
-                            <select name="mes_usufruto_{{ militar.id }}" class="form-select">
-                                <option value="">Selecione...</option>
-                                {% for mes in ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho',
-                                'Agosto',
-                                'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %}
-                                <option value="{{ mes }}" {% if paf and paf.mes_usufruto==mes %}selected{% endif %}>
-                                    {{ mes }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1"
-                                data-militar-id="{{ militar.id }}">
-                                <option value="">Selecione...</option>
-                                {% for dias in [10, 15, 20, 30] %}
-                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias
-                                    %}selected{% endif %}>{{ dias }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control"
-                                value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-01-01" max="2025-12-31">
-                        <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
-                                value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
+    function aplicarRegrasLinha(militarId) {
+        const dias1 = parseInt($(`[name=qtd_dias_1_${militarId}]`).val() || 0);
+        const dias2Select = $(`[name=qtd_dias_2_${militarId}]`);
+        const dias3Select = $(`[name=qtd_dias_3_${militarId}]`);
+        const inicio2 = $(`[name=inicio_2_${militarId}]`);
+        const fim2 = $(`[name=fim_2_${militarId}]`);
+        const inicio3 = $(`[name=inicio_3_${militarId}]`);
+        const fim3 = $(`[name=fim_3_${militarId}]`);
 
-                        <td>
+        // Reset
+        dias2Select.find('option').prop('disabled', false);
+        dias3Select.find('option').prop('disabled', false);
+        dias2Select.prop('disabled', false);
+        dias3Select.prop('disabled', false);
+        inicio2.prop('disabled', false);
+        fim2.prop('disabled', false);
+        inicio3.prop('disabled', false);
+        fim3.prop('disabled', false);
 
-                            <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2"
-                                data-militar-id="{{ militar.id }}">
-                                <option value="">Selecione...</option>
-                                {% for dias in [10, 15, 20] %}
-                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_segundo_periodo==dias %}selected{%
-                                    endif %}>{{ dias }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </td>
+        let dias2 = parseInt(dias2Select.val() || 0);
+        let invalidarSegundo = false;
 
-                        <td>
-                            <input type="date" name="inicio_2_{{ militar.id }}" class="form-control"
-                                value="{{ paf.segundo_periodo_ferias if paf }}" min="2025-02-01" max="2025-12-31">
-                        </td>
-                        <td>
-                            <input type="date" name="fim_2_{{ militar.id }}" class="form-control"
-                                value="{{ paf.fim_segundo_periodo if paf }}" readonly>
-                        </td>
+        if (dias1 === 15) {
+            dias2Select.find('option[value="10"], option[value="20"]').prop('disabled', true);
+            if ([10, 20].includes(dias2)) invalidarSegundo = true;
+        }
+        if (dias1 === 10) {
+            dias2Select.find('option[value="15"]').prop('disabled', true);
+            if (dias2 === 15) invalidarSegundo = true;
+        }
+        if (dias1 === 20) {
+            dias2Select.find('option[value="15"], option[value="20"]').prop('disabled', true);
+            if ([15, 20].includes(dias2)) invalidarSegundo = true;
+        }
 
-                        <td>
-                            <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3"
-                                data-militar-id="{{ militar.id }}" disabled>
-                                <option value="">Selecione...</option>
-                                {% for dias in [10] %} <!-- 3º período pode ser apenas 10 dias -->
-                                <option value="{{ dias }}" {% if paf and paf.qtd_dias_terceiro_periodo==dias
-                                    %}selected{% endif %}>
-                                    {{ dias }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="date" name="inicio_3_{{ militar.id }}" class="form-control inicio-periodo"
-                                data-period="3" data-militar-id="{{ militar.id }}"
-                                value="{{ paf.terceiro_periodo_ferias if paf }}" min="2025-02-01"></td>
-                        <td><input type="date" name="fim_3_{{ militar.id }}" class="form-control inicio-periodo"
-                                data-period="3" data-militar-id="{{ militar.id }}"
-                                value="{{ paf.fim_terceiro_periodo if paf }}" min="2025-01-01"></td>
-                        <td>
-                            <button class="botao-salvar" data-militar-id="{{ militar.id }}">Salvar</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
+        if (dias1 === 30) {
+            dias2Select.val('').prop('disabled', true);
+            inicio2.val('').prop('disabled', true);
+            fim2.val('').prop('disabled', true);
+            dias3Select.val('').prop('disabled', true);
+            inicio3.val('').prop('disabled', true);
+            fim3.val('').prop('disabled', true);
+            return;
+        }
 
-<!-- Modal para o Gráfico -->
-<div class="modal fade" id="modalGrafico" tabindex="-1" aria-labelledby="modalGraficoLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalGraficoLabel">Gráfico de Férias</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                Carregando gráfico...
-            </div>
-        </div>
-    </div>
-</div>
+        if (invalidarSegundo) {
+            dias2Select.val('');
+            dias2 = 0;
+            inicio2.val('');
+            fim2.val('');
+        }
 
-<script>
-    // Script para abrir o modal e exibir o gráfico
-    (function () {
-        document.querySelectorAll('.abrir-modal').forEach(button => {
-            button.addEventListener('click', function () {
-                const obmId = this.getAttribute('data-obm-id');
-                fetch(`/grafico-ferias/${obmId}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        let graficoImg = document.getElementById('grafico-img');
-                        graficoImg.src = 'data:image/png;base64,' + data;
+        // Bloqueio 3º período com base no valor máximo possível para o 2º
+        const dias2Possiveis = [10, 15, 20].filter(val => !dias2Select.find(`option[value="${val}"]`).is(':disabled'));
+        const maior2 = dias2Possiveis.length ? Math.max(...dias2Possiveis) : 0;
+        const totalMaximo = dias1 + maior2;
 
-                        let modal = document.getElementById('graficoModal');
-                        modal.style.display = 'block';
+        if (totalMaximo >= 30) {
+            dias3Select.val('').prop('disabled', true);
+            inicio3.val('').prop('disabled', true);
+            fim3.val('').prop('disabled', true);
+        }
+    }
 
-                        let span = document.getElementsByClassName('close')[0];
-                        span.onclick = function () {
-                            modal.style.display = 'none';
-                        };
-                        window.onclick = function (event) {
-                            if (event.target == modal) {
-                                modal.style.display = 'none';
-                            }
-                        };
-                    });
-            });
-        });
-    })();
+    function calcularFimPeriodo(inicioInput, diasInput, fimInput) {
+        const inicio = new Date(inicioInput.val());
+        const dias = parseInt(diasInput.val());
+        if (!isNaN(inicio.getTime()) && !isNaN(dias)) {
+            inicio.setDate(inicio.getDate() + dias - 1);
+            fimInput.val(inicio.toISOString().split('T')[0]);
+        } else fimInput.val('');
+    }
 
-    // Script principal
-    (function () {
-        const MAX_DIAS = 30;
-        const maxDate = new Date('2025-12-31');
-
-        function limparCampos(...elementos) {
-            elementos.forEach((el) => {
-                if (!el) return;
-
-                const wasReadonly = el.hasAttribute("readonly");
-                const wasDisabled = el.disabled;
-
-                if (wasReadonly) el.removeAttribute("readonly");
-                if (wasDisabled) el.disabled = false;
-
-                if (el.tagName === "SELECT" || el.type === "select-one") {
-                    el.value = "";
-                } else if (el.type === "date" || el.type === "text") {
-                    el.value = "";
+    $(document).ready(function () {
+        const table = $('#militaresTable').DataTable({
+            serverSide: true,
+            ajax: {
+                url: "{{ url_for('ferias_dados') }}",
+                type: "POST"
+            },
+            columns: [
+                { data: 'posto_grad' },
+                { data: 'nome_completo' },
+                { data: 'matricula' },
+                { data: 'quadro' },
+                {
+                    data: 'mes_usufruto', render: (mes, t, r) => `
+                    <select class="form-select" name="mes_usufruto_${r.id}">
+                        <option value="">Selecione...</option>
+                        ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+                            .map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${m}</option>`).join('')}
+                    </select>`
+                },
+                {
+                    data: 'qtd_dias_1', render: (d, t, r) => `
+                    <select class="form-select" name="qtd_dias_1_${r.id}">
+                        <option value="">Selecione...</option>
+                        ${[10, 15, 20, 30].map(val => `<option value="${val}" ${val == d ? 'selected' : ''}>${val}</option>`).join('')}
+                    </select>`
+                },
+                {
+                    data: 'inicio_1', render: (d, t, r) => `<input type="date" name="inicio_1_${r.id}" class="form-control" value="${d || ''}">`
+                },
+                {
+                    data: 'fim_1', render: (d, t, r) => `<input type="date" name="fim_1_${r.id}" class="form-control" value="${d || ''}" readonly>`
+                },
+                {
+                    data: 'qtd_dias_2', render: (d, t, r) => `
+                    <select class="form-select" name="qtd_dias_2_${r.id}">
+                        <option value="">Selecione...</option>
+                        ${[10, 15, 20].map(val => `<option value="${val}" ${val == d ? 'selected' : ''}>${val}</option>`).join('')}
+                    </select>`
+                },
+                {
+                    data: 'inicio_2', render: (d, t, r) => `<input type="date" name="inicio_2_${r.id}" class="form-control" value="${d || ''}">`
+                },
+                {
+                    data: 'fim_2', render: (d, t, r) => `<input type="date" name="fim_2_${r.id}" class="form-control" value="${d || ''}" readonly>`
+                },
+                {
+                    data: 'qtd_dias_3', render: (d, t, r) => `
+                    <select class="form-select" name="qtd_dias_3_${r.id}">
+                        <option value="">Selecione...</option>
+                        <option value="10" ${d == 10 ? 'selected' : ''}>10</option>
+                    </select>`
+                },
+                {
+                    data: 'inicio_3', render: (d, t, r) => `<input type="date" name="inicio_3_${r.id}" class="form-control" value="${d || ''}">`
+                },
+                {
+                    data: 'fim_3', render: (d, t, r) => `<input type="date" name="fim_3_${r.id}" class="form-control" value="${d || ''}" readonly>`
+                },
+                {
+                    data: 'id', render: (d) => `<button class="btn btn-primary botao-salvar" data-militar-id="${d}">Salvar</button>`
                 }
-
-                if (wasReadonly) el.setAttribute("readonly", true);
-                if (wasDisabled) el.disabled = true;
-            });
-        }
-
-        function calculateEndDate(startDateInput, daysInput, endDateInput) {
-            const startDate = new Date(startDateInput.value);
-            const days = parseInt(daysInput.value, 10);
-            if (isNaN(startDate.getTime()) || isNaN(days)) {
-                endDateInput.value = '';
-                return;
-            }
-
-            const endDate = new Date(startDate);
-            endDate.setDate(endDate.getDate() + days - 1);
-
-            if (endDate > maxDate) {
-                alert('As férias não podem ultrapassar o dia 31 de dezembro.');
-                startDateInput.value = '';
-                daysInput.value = '';
-                endDateInput.value = '';
-            } else {
-                endDateInput.value = endDate.toISOString().split('T')[0];
-            }
-        }
-
-        function validatePeriods(militarId) {
-            const periods = ['1', '2', '3'].map((n) => ({
-                start: document.querySelector(`[name="inicio_${n}_${militarId}"]`),
-                end: document.querySelector(`[name="fim_${n}_${militarId}"]`),
-            }));
-
-            for (let i = 0; i < periods.length - 1; i++) {
-                const currentEnd = periods[i].end?.value;
-                const nextStart = periods[i + 1].start?.value;
-
-                if (currentEnd && nextStart) {
-                    const currentEndDate = new Date(currentEnd);
-                    const nextStartDate = new Date(nextStart);
-
-                    if (nextStartDate <= currentEndDate) {
-                        alert(`O período ${i + 2} deve começar após o término do período ${i + 1}.`);
-                        periods[i + 1].start.value = '';
+            ],
+            drawCallback: () => {
+                $('select, input').off('change').on('change', function () {
+                    const name = $(this).attr('name');
+                    const match = name.match(/_(\d+)$/);
+                    if (match) {
+                        const id = match[1];
+                        aplicarRegrasLinha(id);
+                        calcularFimPeriodo($(`[name=inicio_1_${id}]`), $(`[name=qtd_dias_1_${id}]`), $(`[name=fim_1_${id}]`));
+                        calcularFimPeriodo($(`[name=inicio_2_${id}]`), $(`[name=qtd_dias_2_${id}]`), $(`[name=fim_2_${id}]`));
+                        calcularFimPeriodo($(`[name=inicio_3_${id}]`), $(`[name=qtd_dias_3_${id}]`), $(`[name=fim_3_${id}]`));
                     }
-                }
+                });
+            },
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json"
             }
-        }
+        });
 
-        function atualizarCampos(militarId) {
-            const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`)?.value || 0, 10);
-            const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`)?.value || 0, 10);
-
-            const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
-            const dias3Select = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
-            const inicio2 = document.querySelector(`[name="inicio_2_${militarId}"]`);
-            const fim2 = document.querySelector(`[name="fim_2_${militarId}"]`);
-            const inicio3 = document.querySelector(`[name="inicio_3_${militarId}"]`);
-            const fim3 = document.querySelector(`[name="fim_3_${militarId}"]`);
-
-            if (!dias2Select || !dias3Select) return;
-
-            desbloquearOpcoes(dias2Select, [10, 15, 20]);
-            desbloquearOpcoes(dias3Select, [10]);
-
-            if (dias1 === 15) {
-                bloquearOpcoes(dias2Select, [10, 20]);
-            } else if (dias1 === 10) {
-                bloquearOpcoes(dias2Select, [15]);
-            } else if (dias1 === 20) {
-                bloquearOpcoes(dias2Select, [15, 20]);
-            } else if (dias1 === 30) {
-                bloquearTudo(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
-                limparCampos(dias2Select, inicio2, fim2, dias3Select, inicio3, fim3);
-            }
-
-            if (dias1 + dias2 >= MAX_DIAS) {
-                bloquearTudo(dias3Select, inicio3, fim3);
-                limparCampos(dias3Select, inicio3, fim3);
-            }
-        }
-
-        function bloquearTudo(...elementos) {
-            elementos.forEach(el => {
-                if (el) {
-                    el.disabled = true;
-                }
-            });
-        }
-
-        function desbloquearOpcoes(select, valores) {
-            Array.from(select.options).forEach(option => {
-                option.disabled = !valores.includes(parseInt(option.value, 10));
-            });
-            select.disabled = false;
-        }
-
-        function bloquearOpcoes(select, valores) {
-            Array.from(select.options).forEach(option => {
-                if (valores.includes(parseInt(option.value, 10))) {
-                    option.disabled = true;
-                }
-            });
-        }
-
-        function anexarListeners() {
-            document.querySelectorAll('.qtd-dias, .inicio-periodo').forEach(element => {
-                const militarId = element.dataset.militarId;
-                const period = element.dataset.period;
-
-                if (militarId && period) {
-                    const startDateInput = document.querySelector(`[name="inicio_${period}_${militarId}"]`);
-                    const daysInput = document.querySelector(`[name="qtd_dias_${period}_${militarId}"]`);
-                    const endDateInput = document.querySelector(`[name="fim_${period}_${militarId}"]`);
-
-                    const atualizarTudo = () => {
-                        if (startDateInput && daysInput && endDateInput) {
-                            if (startDateInput.value && daysInput.value) {
-                                calculateEndDate(startDateInput, daysInput, endDateInput);
-                            }
-                        }
-                        atualizarCampos(militarId);
-                        validatePeriods(militarId);
-                    };
-
-                    if (startDateInput) startDateInput.addEventListener('change', atualizarTudo);
-                    if (daysInput) daysInput.addEventListener('change', atualizarTudo);
-                }
-            });
-        }
-
-        function enviarDados(militarId) {
+        $(document).on('click', '.botao-salvar', function () {
+            const id = $(this).data('militar-id');
             const dados = {
-                militar_id: militarId,
-                mes_usufruto: document.querySelector(`[name="mes_usufruto_${militarId}"]`).value,
-                qtd_dias_1: document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value,
-                inicio_1: document.querySelector(`[name="inicio_1_${militarId}"]`).value,
-                fim_1: document.querySelector(`[name="fim_1_${militarId}"]`).value,
-                qtd_dias_2: document.querySelector(`[name="qtd_dias_2_${militarId}"]`).value,
-                inicio_2: document.querySelector(`[name="inicio_2_${militarId}"]`).value,
-                fim_2: document.querySelector(`[name="fim_2_${militarId}"]`).value,
-                qtd_dias_3: document.querySelector(`[name="qtd_dias_3_${militarId}"]`).value,
-                inicio_3: document.querySelector(`[name="inicio_3_${militarId}"]`).value,
-                fim_3: document.querySelector(`[name="fim_3_${militarId}"]`).value,
+                militar_id: id,
+                mes_usufruto: $(`[name=mes_usufruto_${id}]`).val(),
+                qtd_dias_1: $(`[name=qtd_dias_1_${id}]`).val(),
+                inicio_1: $(`[name=inicio_1_${id}]`).val(),
+                fim_1: $(`[name=fim_1_${id}]`).val(),
+                qtd_dias_2: $(`[name=qtd_dias_2_${id}]`).val(),
+                inicio_2: $(`[name=inicio_2_${id}]`).val(),
+                fim_2: $(`[name=fim_2_${id}]`).val(),
+                qtd_dias_3: $(`[name=qtd_dias_3_${id}]`).val(),
+                inicio_3: $(`[name=inicio_3_${id}]`).val(),
+                fim_3: $(`[name=fim_3_${id}]`).val()
             };
 
             fetch('/pafs/update', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(dados),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(dados)
             })
-                .then(response => {
-                    if (!response.ok) throw new Error('Erro ao salvar os dados');
-                    return response.json();
+                .then(res => res.json())
+                .then(r => {
+                    alert(r.message);
+                    table.ajax.reload();
                 })
-                .then(result => alert(result.message))
-                .catch(error => {
-                    console.error('Erro ao salvar os dados:', error);
-                    alert('Erro ao salvar os dados. Tente novamente.');
-                });
-        }
-
-        document.querySelectorAll('.botao-salvar').forEach(button => {
-            button.addEventListener('click', function () {
-                const militarId = this.dataset.militarId;
-                enviarDados(militarId);
-            });
+                .catch(e => alert('Erro ao salvar: ' + e));
         });
-
-        const tables = document.querySelectorAll('table[id^="militaresTable_"]');
-        tables.forEach(table => {
-            const dataTable = $(table).DataTable({
-                dom: '<"table-controls"f>t<"table-footer"ip>',
-                scrollY: "300px",
-                scrollX: true,
-                scrollCollapse: true,
-                paging: true,
-                language: {
-                    search: "Pesquisar:",
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    paginate: {
-                        previous: "Anterior",
-                        next: "Próximo"
-                    }
-                }
-            });
-
-            dataTable.on('draw', function () {
-                anexarListeners();
-            });
-        });
-
-        anexarListeners();
-    })();
+    });
 </script>
-
 {% endblock %}
