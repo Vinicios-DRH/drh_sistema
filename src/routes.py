@@ -1804,35 +1804,60 @@ def grafico_todos_militares():
     return Response(response=image_base64, status=200, mimetype='text/plain')
 
 
+@app.route('/ferias_dados', methods=['GET', 'POST'])
+def ferias_dados():
+    draw = request.form.get('draw', type=int)
+    start = request.form.get('start', type=int)
+    length = request.form.get('length', type=int)
+    search_value = request.form.get('search[value]', type=str)
+
+    query = database.session.query(Militar, Paf).join(
+        Paf, Militar.id == Paf.militar_id)
+
+    if search_value:
+        query = query.filter(
+            (Militar.nome_completo.ilike(f'%{search_value}%')) |
+            (Militar.matricula.ilike(f'%{search_value}%')) |
+            (Militar.quadro.has(quadro=search_value))
+        )
+
+    total_records = query.count()
+
+    militares_pafs = query.offset(start).limit(length).all()
+
+    data = []
+    for militar, paf in militares_pafs:
+        data.append({
+            "posto_grad": militar.posto_grad.sigla,
+            "nome_completo": militar.nome_completo,
+            "matricula": militar.matricula,
+            "quadro": militar.quadro.quadro,
+            "mes_usufruto": paf.mes_usufruto if paf else "",
+            "qtd_dias_1": paf.qtd_dias_primeiro_periodo if paf else "",
+            "inicio_1": str(paf.primeiro_periodo_ferias) if paf and paf.primeiro_periodo_ferias else "",
+            "fim_1": str(paf.fim_primeiro_periodo) if paf and paf.fim_primeiro_periodo else "",
+            "qtd_dias_2": paf.qtd_dias_segundo_periodo if paf else "",
+            "inicio_2": str(paf.segundo_periodo_ferias) if paf and paf.segundo_periodo_ferias else "",
+            "fim_2": str(paf.fim_segundo_periodo) if paf and paf.fim_segundo_periodo else "",
+            "qtd_dias_3": paf.qtd_dias_terceiro_periodo if paf else "",
+            "inicio_3": str(paf.terceiro_periodo_ferias) if paf and paf.terceiro_periodo_ferias else "",
+            "fim_3": str(paf.fim_terceiro_periodo) if paf and paf.fim_terceiro_periodo else "",
+            "id": militar.id
+        })
+
+    return jsonify({
+        "draw": draw,
+        "recordsTotal": total_records,
+        "recordsFiltered": total_records,
+        "data": data
+    })
+
+
 @app.route('/ferias', methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def exibir_ferias():
-    # if current_user.is_authenticated:
-    #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/02/2025!', 'alert-info')
-    if current_user.funcao_user_id in [1, 6]:
-        # Exibe todos os militares
-        militares_sem_ferias = (
-            database.session.query(Militar)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .filter(Paf.id.is_(None))
-            .count()
-        )
-
-        # Exibe a quantidade de militares sem registro de férias
-        flash(
-            f'Quantidade de militares sem registro de férias: {militares_sem_ferias}', 'alert-info')
-
-        # Recupera todos os militares e seus registros de férias (se existirem)
-        militares = (
-            database.session.query(Militar, Paf)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .all()
-        )
-
-    meses = Meses.query.all()
-
-    return render_template('ferias.html', militares=militares, meses=meses)
+    return render_template('ferias.html')
 
 
 @app.route('/api-sesuite', methods=['GET'])

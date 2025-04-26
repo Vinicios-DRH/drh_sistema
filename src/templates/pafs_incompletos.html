@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h3>Militares com Férias Incompletas</h3>
+    <p>Total: <strong>{{ militares|length }}</strong></p>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Posto/Grad</th>
+                <th>Quadro</th>
+                <th>OBM</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in militares %}
+            <tr>
+                <td>{{ m.nome_completo }}</td>
+                <td>{{ m.posto_grad }}</td>
+                <td>{{ m.quadro }}</td>
+                <td>{{ m.obm }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
