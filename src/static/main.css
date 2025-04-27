@@ -9,8 +9,10 @@ css {
 }
 
 a {
-    color: inherit;
     text-decoration: none;
+    /* Remove o sublinhado */
+    color: black;
+    /* Define a cor do texto como preto */
 }
 
 body {

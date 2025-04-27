@@ -1857,7 +1857,7 @@ def ferias_dados():
 
 @app.route('/ferias', methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'SUPER USER')
+@checar_ocupacao('SUPER USER')
 def exibir_ferias():
     return render_template('ferias.html')
 
@@ -1978,7 +1978,7 @@ def api_sesuite():
 
 @app.route('/ferias-chefe', methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('SUB DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
     # if current_user.is_authenticated:
     #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/03/2025!', 'alert-info')
