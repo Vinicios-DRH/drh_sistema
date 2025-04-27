@@ -1776,7 +1776,7 @@ def pafs_nao_preenchidos():
     subquery_pafs = database.session.query(Paf.militar_id).subquery()
 
     prioridade_obm = case(
-        (Obm.sigla == 'GAB SUCMT-GERAL', 1),
+        (Obm.sigla == 'GAB SUBCMT-GERAL', 1),
         else_=2
     )
 
