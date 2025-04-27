@@ -116,12 +116,11 @@ def login():
 
             database.session.commit()
 
-            # Verificação da função do usuário
-            if cpf.funcao_user_id != 6:
-                flash('Redirecionando para o painel de chefia.', 'alert-info')
+            # Agora a verificação de função refinada
+            if cpf.funcao_user_id in [1, 2]:  # Diretor ou Chefe
                 return redirect(url_for('exibir_ferias_chefe'))
-
-            return redirect(url_for('home'))
+            else:
+                return redirect(url_for('home'))
         else:
             flash('Falha no Login, CPF ou senha incorretos.', 'alert-danger')
 
@@ -169,7 +168,7 @@ def criar_conta():
 
 @app.route("/adicionar-militar", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def adicionar_militar():
     form_militar = FormMilitar()
 
@@ -548,7 +547,7 @@ def verificar_arquivos():
 
 @app.route("/exibir-militar/<int:militar_id>", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def exibir_militar(militar_id):
     militar = Militar.query.get_or_404(militar_id)
 
@@ -1023,7 +1022,7 @@ def exibir_militar(militar_id):
 
 @app.route("/militares", methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares():
     form_militar = FormMilitar()
 
@@ -1123,7 +1122,7 @@ def militares():
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'DIRETOR DRH')
 def tabela_militares():
     try:
         page = request.args.get('page', 1, type=int)
@@ -1309,7 +1308,7 @@ def export_excel():
 
 @app.route("/militares-a-disposicao")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_a_disposicao():
     militares_a_disposicao = MilitaresADisposicao.query.all()
 
@@ -1318,7 +1317,7 @@ def militares_a_disposicao():
 
 @app.route("/militares-agregados")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_agregados():
     militares_agregados = MilitaresAgregados.query.all()
 
@@ -1327,7 +1326,7 @@ def militares_agregados():
 
 @app.route("/licenca-especial")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def licenca_especial():
     militares_le = LicencaEspecial.query.all()
 
@@ -1336,7 +1335,7 @@ def licenca_especial():
 
 @app.route("/licenca-para-tratamento-de-saude")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def lts():
     militares_lts = LicencaParaTratamentoDeSaude.query.all()
 
@@ -1345,7 +1344,7 @@ def lts():
 
 @app.route("/exportar-excel/<string:tabela>")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def exportar_excel(tabela):
     # Mapeamento das tabelas para consultas
     tabela_mapping = {
@@ -1582,7 +1581,7 @@ def perfil(id_usuario):
 
 @app.route("/exportar-pafs/<string:tabela>")
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def exportar_pafs(tabela):
     if tabela != "pafs":
         return "Tabela inválida", 400
@@ -1668,7 +1667,7 @@ def validate_vacation_period(start_date, days):
 
 @app.route('/grafico-todos-militares', methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
 def grafico_todos_militares():
     # Seleciona todos os militares
     militares = (
@@ -1714,7 +1713,7 @@ def grafico_todos_militares():
 
 @app.route('/ferias_dados', methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'SUB DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
 def ferias_dados():
     draw = request.form.get('draw', type=int)
     start = request.form.get('start', type=int)
@@ -1886,7 +1885,7 @@ def api_sesuite():
 
 @app.route('/ferias-chefe', methods=['GET'])
 @login_required
-@checar_ocupacao('SUB DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
     # if current_user.is_authenticated:
     #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/03/2025!', 'alert-info')
