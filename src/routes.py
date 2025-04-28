@@ -1720,7 +1720,8 @@ def ferias_dados():
     length = request.form.get('length', type=int)
     search_value = request.form.get('search[value]', type=str)
 
-    query = database.session.query(Militar, Paf).join(
+    # ⚡ Corrigido para OUTERJOIN
+    query = database.session.query(Militar, Paf).outerjoin(
         Paf, Militar.id == Paf.militar_id)
 
     if search_value:
@@ -1737,10 +1738,10 @@ def ferias_dados():
     data = []
     for militar, paf in militares_pafs:
         data.append({
-            "posto_grad": militar.posto_grad.sigla,
+            "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "",
             "nome_completo": militar.nome_completo,
             "matricula": militar.matricula,
-            "quadro": militar.quadro.quadro,
+            "quadro": militar.quadro.quadro if militar.quadro else "",
             "mes_usufruto": paf.mes_usufruto if paf else "",
             "qtd_dias_1": paf.qtd_dias_primeiro_periodo if paf else "",
             "inicio_1": str(paf.primeiro_periodo_ferias) if paf and paf.primeiro_periodo_ferias else "",
