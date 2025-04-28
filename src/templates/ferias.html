@@ -71,6 +71,7 @@
 
     function aplicarRegrasLinha(militarId) {
         const dias1 = parseInt($(`[name=qtd_dias_1_${militarId}]`).val() || 0);
+        const dias2 = parseInt($(`[name=qtd_dias_2_${militarId}]`).val() || 0);
         const dias2Select = $(`[name=qtd_dias_2_${militarId}]`);
         const dias3Select = $(`[name=qtd_dias_3_${militarId}]`);
         const inicio2 = $(`[name=inicio_2_${militarId}]`);
@@ -88,7 +89,6 @@
         inicio3.prop('disabled', false);
         fim3.prop('disabled', false);
 
-        let dias2 = parseInt(dias2Select.val() || 0);
         let invalidarSegundo = false;
 
         if (dias1 === 15) {
@@ -116,20 +116,21 @@
 
         if (invalidarSegundo) {
             dias2Select.val('');
-            dias2 = 0;
             inicio2.val('');
             fim2.val('');
         }
 
-        // Bloqueio 3º período com base no valor máximo possível para o 2º
-        const dias2Possiveis = [10, 15, 20].filter(val => !dias2Select.find(`option[value="${val}"]`).is(':disabled'));
-        const maior2 = dias2Possiveis.length ? Math.max(...dias2Possiveis) : 0;
-        const totalMaximo = dias1 + maior2;
+        // AGORA a lógica correta:
+        const somaDias = dias1 + dias2;
 
-        if (totalMaximo >= 30) {
+        if (somaDias >= 30) {
             dias3Select.val('').prop('disabled', true);
             inicio3.val('').prop('disabled', true);
             fim3.val('').prop('disabled', true);
+        } else {
+            dias3Select.prop('disabled', false);
+            inicio3.prop('disabled', false);
+            fim3.prop('disabled', false);
         }
     }
 
