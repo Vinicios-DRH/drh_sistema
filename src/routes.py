@@ -30,6 +30,7 @@ from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from urllib.parse import urlencode
 from fpdf import FPDF
+from calendar import monthrange
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -2512,30 +2513,41 @@ def arred(valor):
     return Decimal(valor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
+# Função para cálculo de dias no padrão 30/360 Europeu
+def dias360_europeu(inicio: datetime, fim: datetime) -> int:
+    d1, m1, a1 = inicio.day, inicio.month, inicio.year
+    d2, m2, a2 = fim.day, fim.month, fim.year
+
+    if d1 == 31:
+        d1 = 30
+    if d2 == 31:
+        if d1 < 30:
+            d2 = 1
+            m2 += 1
+            if m2 > 12:
+                m2 = 1
+                a2 += 1
+        else:
+            d2 = 30
+
+    return (a2 - a1) * 360 + (m2 - m1) * 30 + (d2 - d1)
+
+
 @app.route('/impacto/calcular', methods=['GET', 'POST'])
 @login_required
 def calcular_impacto():
     form = ImpactoForm()
-
-    # Carrega os postos no select
     postos = PostoGrad.query.order_by(PostoGrad.id).all()
     form.posto_origem.choices = [(p.id, p.sigla) for p in postos]
     form.posto_destino.choices = [(p.id, p.sigla) for p in postos]
 
-    # Recupera resultados da session, se existirem
     resultado = None
-    tabela_usada = None
+    tabelas_usadas = []
 
-    # Verifica se deve exibir o modal (GET com ?show_modal=1)
     if request.method == 'GET' and request.args.get('show_modal') == '1':
-        if "resultado" in session and "tabela_usada_id" in session:
-            resultado = {k: Decimal(v)
-                         for k, v in session["resultado"].items()}
-            tabela_usada = TabelaVencimento.query.get(
-                session["tabela_usada_id"])
-            # opcional: limpar depois que usar
-            # session.pop("resultado", None)
-            # session.pop("tabela_usada_id", None)
+        if "resultado" in session and "tabelas_usadas" in session:
+            resultado = session.pop("resultado")
+            tabelas_usadas = session.pop("tabelas_usadas")
 
     if request.method == 'POST' and form.validate_on_submit():
         data_inicio = form.data_inicio.data
@@ -2544,155 +2556,176 @@ def calcular_impacto():
         posto_origem_id = form.posto_origem.data
         posto_destino_id = form.posto_destino.data
 
-        # Busca a tabela correspondente
-        tabela = TabelaVencimento.query.filter(
-            and_(
-                TabelaVencimento.data_inicio <= data_inicio,
-                TabelaVencimento.data_fim >= data_inicio
-            )
-        ).first()
+        tabelas = TabelaVencimento.query.filter(
+            TabelaVencimento.data_fim >= data_inicio,
+            TabelaVencimento.data_inicio <= data_fim
+        ).order_by(TabelaVencimento.data_inicio).all()
 
-        if not tabela:
-            flash("Nenhuma tabela de vencimento encontrada para essa data.", "danger")
+        if not tabelas:
+            flash("Nenhuma tabela de vencimento encontrada para esse período.", "danger")
             return render_template("impacto_calculo.html", form=form)
 
-        tabela_usada = tabela
-
-        valor_origem = ValorDetalhadoPostoGrad.query.filter_by(
-            tabela_id=tabela.id,
-            posto_grad_id=posto_origem_id
-        ).first()
-
-        valor_destino = ValorDetalhadoPostoGrad.query.filter_by(
-            tabela_id=tabela.id,
-            posto_grad_id=posto_destino_id
-        ).first()
-
-        if not valor_origem or not valor_destino:
-            flash("Valores de postos não encontrados na tabela de vencimentos.", "danger")
-            return render_template("impacto_calculo.html", form=form)
-
-        # Cálculos principais
-        diferenca = Decimal(valor_destino.valor_bruto) - \
-            Decimal(valor_origem.valor_bruto)
-        impacto_mensal = arred(diferenca * efetivo)
-        base_ferias = impacto_mensal / Decimal('3')
-
-        dias_restantes_mes = Decimal(30 - data_inicio.day + 1)
-        dias_total = Decimal((data_fim - data_inicio).days + 1)
-        dias_apos_primeiro_mes = dias_total - dias_restantes_mes
-        meses_restantes = dias_apos_primeiro_mes / Decimal('30')
-
-        impacto_dias = arred(
-            (impacto_mensal / Decimal('30')) * dias_restantes_mes)
-        impacto_meses = arred(impacto_mensal * meses_restantes)
-        ferias_dias = arred((base_ferias / Decimal('12') /
-                            Decimal('30')) * dias_restantes_mes)
-        decimo_dias = arred(
-            (impacto_mensal / Decimal('12') / Decimal('30')) * dias_restantes_mes)
-        ferias_meses = arred((base_ferias / Decimal('12')) * meses_restantes)
-        decimo_meses = arred(
-            (impacto_mensal / Decimal('12')) * meses_restantes)
-
-        total = arred(impacto_dias + impacto_meses + ferias_dias +
-                      ferias_meses + decimo_dias + decimo_meses)
-
-        # Salva tudo na session
-        session["resultado"] = {
-            "valor_origem": str(valor_origem.valor_bruto),
-            "valor_destino": str(valor_destino.valor_bruto),
-            "diferenca": str(diferenca),
-            "impacto_mensal": str(impacto_mensal),
-            "impacto_dias": str(impacto_dias),
-            "impacto_meses": str(impacto_meses),
-            "ferias_dias": str(ferias_dias),
-            "ferias_meses": str(ferias_meses),
-            "decimo_dias": str(decimo_dias),
-            "decimo_meses": str(decimo_meses),
-            "total": str(total)
+        resultado_final = {
+            "detalhes": [],
+            "total": Decimal('0.00')
         }
-        session["tabela_usada_id"] = tabela.id
+        tabelas_usadas = []
 
-        # Redireciona com GET e exibe modal
+        for tabela in tabelas:
+            inicio_periodo = max(data_inicio, tabela.data_inicio)
+            fim_periodo = min(data_fim, tabela.data_fim)
+
+            dias = dias360_europeu(
+                inicio_periodo, fim_periodo + timedelta(days=1))
+            meses = Decimal(dias) / Decimal(30)
+            coef = meses / Decimal(12)
+
+            valor_origem = ValorDetalhadoPostoGrad.query.filter_by(
+                tabela_id=tabela.id, posto_grad_id=posto_origem_id
+            ).first()
+            valor_destino = ValorDetalhadoPostoGrad.query.filter_by(
+                tabela_id=tabela.id, posto_grad_id=posto_destino_id
+            ).first()
+
+            if not valor_origem or not valor_destino:
+                flash(
+                    f"Valores de postos não encontrados na tabela {tabela.nome}.", "danger")
+                return render_template("impacto_calculo.html", form=form)
+
+            diferenca = Decimal(valor_destino.valor_bruto) - \
+                Decimal(valor_origem.valor_bruto)
+            impacto_mensal = arred(diferenca * efetivo)
+            retroativo = arred((impacto_mensal / Decimal(30)) * dias)
+            ferias = arred((impacto_mensal / Decimal(3)) * coef)
+            decimo = arred(impacto_mensal * coef)
+            subtotal = retroativo + ferias + decimo
+
+            resultado_final["detalhes"].append({
+                "nome": tabela.nome,
+                "inicio": tabela.data_inicio.strftime("%d/%m/%Y"),
+                "fim": tabela.data_fim.strftime("%d/%m/%Y"),
+                "dias": dias,
+                "meses": str(meses),
+                "coef": str(coef),
+                "diferenca": str(diferenca),
+                "impacto_mensal": str(impacto_mensal),
+                "retroativo": str(retroativo),
+                "ferias": str(ferias),
+                "decimo": str(decimo),
+                "total": str(subtotal)
+            })
+
+            resultado_final["total"] += subtotal
+
+            tabelas_usadas.append({
+                "nome": tabela.nome,
+                "inicio": tabela.data_inicio.strftime("%d/%m/%Y"),
+                "fim": tabela.data_fim.strftime("%d/%m/%Y")
+            })
+
+        # Cálculo do impacto atual fixo
+        data_inicio_atual = datetime(2025, 4, 21)
+        data_fim_atual = datetime(2025, 12, 30)
+        data_inicio_atual = data_inicio_atual.date()
+        data_fim_atual = data_fim_atual.date()
+        dias_atual = dias360_europeu(
+            data_inicio_atual, data_fim_atual + timedelta(days=1))
+        meses_coef = Decimal(dias_atual) / Decimal(30)
+        coef_proporcional = meses_coef / Decimal(12)
+
+        # Tabela vigente para o período atual
+        tabela_atual = next((t for t in tabelas if t.data_inicio <=
+                            data_inicio_atual and t.data_fim >= data_fim_atual), None)
+        if tabela_atual:
+            valor_origem_atual = ValorDetalhadoPostoGrad.query.filter_by(
+                tabela_id=tabela_atual.id, posto_grad_id=posto_origem_id
+            ).first()
+            valor_destino_atual = ValorDetalhadoPostoGrad.query.filter_by(
+                tabela_id=tabela_atual.id, posto_grad_id=posto_destino_id
+            ).first()
+
+            if valor_origem_atual and valor_destino_atual:
+                diferenca_atual = Decimal(
+                    valor_destino_atual.valor_bruto) - Decimal(valor_origem_atual.valor_bruto)
+                impacto_mensal_atual = arred(diferenca_atual * efetivo)
+                subtotal_atual = arred(impacto_mensal_atual * meses_coef)
+                ferias_atual = arred(
+                    (impacto_mensal_atual / Decimal(3)) * coef_proporcional)
+                decimo_atual = arred(impacto_mensal_atual * coef_proporcional)
+                total_sem_retroativo = subtotal_atual + ferias_atual + decimo_atual
+                impacto_mensal_estimado = arred(
+                    total_sem_retroativo / meses_coef)
+
+                resultado_final["atual"] = {
+                    "dias": dias_atual,
+                    "meses_coef": str(meses_coef),
+                    "coef": str(coef_proporcional),
+                    "diferenca": str(diferenca_atual),
+                    "impacto_mensal": str(impacto_mensal_atual),
+                    "subtotal": str(subtotal_atual),
+                    "ferias": str(ferias_atual),
+                    "decimo": str(decimo_atual),
+                    "total_sem_retroativo": str(total_sem_retroativo),
+                    "impacto_mensal_estimado": str(impacto_mensal_estimado)
+                }
+
+        print("\n--- IMPACTO ATUAL ---")
+        print(f"Dias: {dias_atual} | Meses Coef.: {meses_coef:.2f} | Coef. proporcional: {coef_proporcional:.4f}")
+        print(f"Diferença: R$ {diferenca_atual:.2f} | Impacto Mensal Atual: R$ {impacto_mensal_atual:.2f}")
+        print(f"Subtotal Atual: R$ {subtotal_atual:.2f}")
+        print(f"1/3 Férias Atual: R$ {ferias_atual:.2f} | 13º Salário Atual: R$ {decimo_atual:.2f}")
+        print(f"TOTAL IMPACTO SEM RETROATIVO: R$ {total_sem_retroativo:.2f}")
+        print(f"TOTAL IMPACTO MENSAL (estimado): R$ {impacto_mensal_estimado:.2f}")
+
+
+        session["resultado"] = resultado_final
+        session["tabelas_usadas"] = tabelas_usadas
+
         params = urlencode({"show_modal": "1"})
         return redirect(f"{url_for('calcular_impacto')}?{params}")
 
-    return render_template("impacto_calculo.html", form=form, resultado=resultado, tabela_usada=tabela_usada)
+    return render_template("impacto_calculo.html", form=form, resultado=resultado, tabelas_usadas=tabelas_usadas)
 
 
 @app.route('/impacto/baixar_pdf')
 @login_required
 def baixar_pdf():
-    dados_raw = session.get("resultado")
-    tabela_id = session.get("tabela_usada_id")
-    if not dados_raw or not tabela_id:
-        flash("Não há resultado disponível para gerar PDF.", "warning")
+    if "resultado" not in session or "tabelas_usadas" not in session:
+        flash("Nenhum resultado encontrado para gerar PDF.", "warning")
         return redirect(url_for('calcular_impacto'))
 
-    # Converte tudo de volta para Decimal
-    resultado = {k: Decimal(v) for k, v in dados_raw.items()}
-    tabela = TabelaVencimento.query.get(tabela_id)
+    resultado = {k: Decimal(v) for k, v in session["resultado"].items()}
+    tabelas_usadas = session["tabelas_usadas"]
 
-    # Função auxiliar de formatação BR
-    def fmt(v: Decimal) -> str:
-        s = f"{v:,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
-        return f"R$ {s}"
-
-    # Gera PDF
     pdf = FPDF()
     pdf.add_page()
-
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "CÁLCULO DE IMPACTO - PROMOÇÃO E RETROATIVO",
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Cálculo de Impacto - Promoção e Retroativo",
              ln=True, align="C")
-    pdf.ln(8)
+    pdf.ln(10)
 
     pdf.set_font("Arial", "B", 12)
-    periodo = f"{tabela.data_inicio.strftime('%d/%m/%Y')} a {tabela.data_fim.strftime('%d/%m/%Y')}"
-    pdf.cell(0, 8, f"Tabela: {tabela.nome} ({periodo})", ln=True)
-    pdf.ln(4)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(
-        0, 6, f"Diferença por militar: {fmt(resultado['diferenca'])}", ln=True)
-    pdf.cell(
-        0, 6, f"Impacto Bruto Mensal: {fmt(resultado['impacto_mensal'])}", ln=True)
-    pdf.ln(6)
+    pdf.cell(0, 10, "Tabelas Utilizadas:", ln=True)
+    pdf.set_font("Arial", "", 11)
+    for tabela in tabelas_usadas:
+        pdf.cell(
+            0, 8, f"{tabela['nome']} ({tabela['inicio']} a {tabela['fim']})", ln=True)
+    pdf.ln(5)
 
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 6, "Impacto nos Dias Restantes:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(
-        0, 6, f"- Impacto dos dias: {fmt(resultado['impacto_dias'])}", ln=True)
-    pdf.cell(
-        0, 6, f"- 1/3 Férias (dias): {fmt(resultado['ferias_dias'])}", ln=True)
-    pdf.cell(
-        0, 6, f"- 13º proporcional (dias): {fmt(resultado['decimo_dias'])}", ln=True)
-    pdf.ln(6)
+    pdf.cell(0, 10, f"Diferença Total: R$ {resultado['total']:.2f}", ln=True)
 
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 6, "Impacto nos Meses Restantes:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(
-        0, 6, f"- Impacto dos meses: {fmt(resultado['impacto_meses'])}", ln=True)
-    pdf.cell(
-        0, 6, f"- 1/3 Férias (meses): {fmt(resultado['ferias_meses'])}", ln=True)
-    pdf.cell(
-        0, 6, f"- 13º proporcional (meses): {fmt(resultado['decimo_meses'])}", ln=True)
-    pdf.ln(8)
+    pdf.ln(5)
+    pdf.set_font("Arial", "", 11)
+    pdf.multi_cell(0, 8, f"Impacto dos dias: R$ {resultado['impacto_dias']:.2f}\n"
+                   f"1/3 Férias (dias): R$ {resultado['ferias_dias']:.2f}\n"
+                   f"13º proporcional (dias): R$ {resultado['decimo_dias']:.2f}\n"
+                   f"Impacto dos meses: R$ {resultado['impacto_meses']:.2f}\n"
+                   f"1/3 Férias (meses): R$ {resultado['ferias_meses']:.2f}\n"
+                   f"13º proporcional (meses): R$ {resultado['decimo_meses']:.2f}")
 
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, f"Total Geral: {fmt(resultado['total'])}", ln=True)
+    pdf_output = BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
 
-    # Gera PDF em memória
-    pdf_str = pdf.output(dest='S').encode('latin1')
-    mem = BytesIO(pdf_str)
-    mem.seek(0)
-
-    filename = f"impacto_{tabela.nome.replace(' ', '_')}.pdf"
-    return send_file(
-        mem,
-        mimetype='application/pdf',
-        as_attachment=True,
-        download_name=filename
-    )
+    return send_file(pdf_output, as_attachment=True, download_name="impacto_promocao.pdf", mimetype="application/pdf")
