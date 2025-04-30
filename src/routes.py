@@ -4,7 +4,7 @@ import pandas as pd
 import base64
 import matplotlib.pyplot as plt
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
-    Response, current_app
+    Response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
@@ -15,22 +15,19 @@ from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Sit
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
                         Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad)
 from src.querys import obter_estatisticas_militares
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderServiceError
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta
 from io import BytesIO
-from sqlalchemy.orm import joinedload, selectinload, aliased
-from sqlalchemy import and_, case, func, or_
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import case, func
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from urllib.parse import urlencode
-from fpdf import FPDF
-from calendar import monthrange
+from jinja2 import Template
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -2624,25 +2621,20 @@ def calcular_impacto():
             })
 
         # Cálculo do impacto atual fixo
-        data_inicio_atual = datetime(2025, 4, 21)
-        data_fim_atual = datetime(2025, 12, 30)
-        data_inicio_atual = data_inicio_atual.date()
-        data_fim_atual = data_fim_atual.date()
+        data_inicio_atual = date(2025, 4, 21)
+        data_fim_atual = date(2025, 12, 30)
         dias_atual = dias360_europeu(
             data_inicio_atual, data_fim_atual + timedelta(days=1))
         meses_coef = Decimal(dias_atual) / Decimal(30)
         coef_proporcional = meses_coef / Decimal(12)
 
-        # Tabela vigente para o período atual
         tabela_atual = next((t for t in tabelas if t.data_inicio <=
                             data_inicio_atual and t.data_fim >= data_fim_atual), None)
         if tabela_atual:
             valor_origem_atual = ValorDetalhadoPostoGrad.query.filter_by(
-                tabela_id=tabela_atual.id, posto_grad_id=posto_origem_id
-            ).first()
+                tabela_id=tabela_atual.id, posto_grad_id=posto_origem_id).first()
             valor_destino_atual = ValorDetalhadoPostoGrad.query.filter_by(
-                tabela_id=tabela_atual.id, posto_grad_id=posto_destino_id
-            ).first()
+                tabela_id=tabela_atual.id, posto_grad_id=posto_destino_id).first()
 
             if valor_origem_atual and valor_destino_atual:
                 diferenca_atual = Decimal(
@@ -2669,14 +2661,23 @@ def calcular_impacto():
                     "impacto_mensal_estimado": str(impacto_mensal_estimado)
                 }
 
-        print("\n--- IMPACTO ATUAL ---")
-        print(f"Dias: {dias_atual} | Meses Coef.: {meses_coef:.2f} | Coef. proporcional: {coef_proporcional:.4f}")
-        print(f"Diferença: R$ {diferenca_atual:.2f} | Impacto Mensal Atual: R$ {impacto_mensal_atual:.2f}")
-        print(f"Subtotal Atual: R$ {subtotal_atual:.2f}")
-        print(f"1/3 Férias Atual: R$ {ferias_atual:.2f} | 13º Salário Atual: R$ {decimo_atual:.2f}")
-        print(f"TOTAL IMPACTO SEM RETROATIVO: R$ {total_sem_retroativo:.2f}")
-        print(f"TOTAL IMPACTO MENSAL (estimado): R$ {impacto_mensal_estimado:.2f}")
+                print("\n--- IMPACTO ATUAL ---")
+                print(
+                    f"Dias: {dias_atual} | Meses Coef.: {meses_coef:.2f} | Coef. proporcional: {coef_proporcional:.4f}")
+                print(
+                    f"Diferença: R$ {diferenca_atual:.2f} | Impacto Mensal Atual: R$ {impacto_mensal_atual:.2f}")
+                print(f"Subtotal Atual: R$ {subtotal_atual:.2f}")
+                print(
+                    f"1/3 Férias Atual: R$ {ferias_atual:.2f} | 13º Salário Atual: R$ {decimo_atual:.2f}")
+                print(
+                    f"TOTAL IMPACTO SEM RETROATIVO: R$ {total_sem_retroativo:.2f}")
+                print(
+                    f"TOTAL IMPACTO MENSAL (estimado): R$ {impacto_mensal_estimado:.2f}")
 
+        # REGISTRA IMPACTOS NA SESSÃO
+        impactos_registrados = session.get("impactos_registrados", [])
+        impactos_registrados.append(resultado_final)
+        session["impactos_registrados"] = impactos_registrados
 
         session["resultado"] = resultado_final
         session["tabelas_usadas"] = tabelas_usadas
@@ -2685,47 +2686,3 @@ def calcular_impacto():
         return redirect(f"{url_for('calcular_impacto')}?{params}")
 
     return render_template("impacto_calculo.html", form=form, resultado=resultado, tabelas_usadas=tabelas_usadas)
-
-
-@app.route('/impacto/baixar_pdf')
-@login_required
-def baixar_pdf():
-    if "resultado" not in session or "tabelas_usadas" not in session:
-        flash("Nenhum resultado encontrado para gerar PDF.", "warning")
-        return redirect(url_for('calcular_impacto'))
-
-    resultado = {k: Decimal(v) for k, v in session["resultado"].items()}
-    tabelas_usadas = session["tabelas_usadas"]
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Cálculo de Impacto - Promoção e Retroativo",
-             ln=True, align="C")
-    pdf.ln(10)
-
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Tabelas Utilizadas:", ln=True)
-    pdf.set_font("Arial", "", 11)
-    for tabela in tabelas_usadas:
-        pdf.cell(
-            0, 8, f"{tabela['nome']} ({tabela['inicio']} a {tabela['fim']})", ln=True)
-    pdf.ln(5)
-
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, f"Diferença Total: R$ {resultado['total']:.2f}", ln=True)
-
-    pdf.ln(5)
-    pdf.set_font("Arial", "", 11)
-    pdf.multi_cell(0, 8, f"Impacto dos dias: R$ {resultado['impacto_dias']:.2f}\n"
-                   f"1/3 Férias (dias): R$ {resultado['ferias_dias']:.2f}\n"
-                   f"13º proporcional (dias): R$ {resultado['decimo_dias']:.2f}\n"
-                   f"Impacto dos meses: R$ {resultado['impacto_meses']:.2f}\n"
-                   f"1/3 Férias (meses): R$ {resultado['ferias_meses']:.2f}\n"
-                   f"13º proporcional (meses): R$ {resultado['decimo_meses']:.2f}")
-
-    pdf_output = BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-
-    return send_file(pdf_output, as_attachment=True, download_name="impacto_promocao.pdf", mimetype="application/pdf")

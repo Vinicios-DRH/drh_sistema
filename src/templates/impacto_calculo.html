@@ -149,20 +149,22 @@
                         </li>
                         <li class="list-group-item">🎁 13º Salário Atual: {{ resultado.atual.decimo | br_currency }}
                         </li>
-                        <li class="list-group-item text-primary text-end"><strong>TOTAL IMPACTO SEM RETROATIVO:</strong>
-                            {{ resultado.atual.total_sem_retroativo | br_currency }}</li>
-                        <li class="list-group-item text-primary text-end"><strong>TOTAL IMPACTO MENSAL
-                                (estimado):</strong> {{ resultado.atual.impacto_mensal_estimado | br_currency }}</li>
                     </ul>
                 </div>
+
+                <h4 class="list-group-item text-success text-end">TOTAL IMPACTO SEM RETROATIVO:
+                    {{ resultado.atual.total_sem_retroativo | br_currency }}</h4>
+                <h4 class="list-group-item text-primary text-end">TOTAL IMPACTO MENSAL
+                    (estimado): {{ resultado.atual.impacto_mensal_estimado | br_currency }}</h4>
                 {% endif %}
 
 
             </div>
             <div class="modal-footer">
-                <a href="{{ url_for('baixar_pdf') }}" class="btn btn-outline-primary">
-                    📥 Baixar PDF
+                <a href="{{ url_for('calcular_impacto') }}" class="btn btn-outline-success">
+                    ➕ Novo Cálculo
                 </a>
+
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
