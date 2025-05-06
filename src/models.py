@@ -605,3 +605,13 @@ def receive_before_insert(mapper, connection, target):
 @listens_for(MilitaresADisposicao, 'before_update')
 def receive_before_update(mapper, connection, target):
     target.atualizar_status()
+
+
+class Convocacao(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    data = database.Column(database.Date, nullable=False)
+    convocados = database.Column(database.Integer, nullable=False)
+    faltaram = database.Column(database.Integer, nullable=False)
+    desistiram = database.Column(database.Integer, nullable=False)
+    vagas_abertas = database.Column(database.Integer, nullable=False)
+    created_at = database.Column(database.DateTime, default=datetime.utcnow)

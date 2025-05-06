@@ -82,6 +82,19 @@
                                     Impacto</a></li>
                         </ul>
                     </li>
+
+
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-id-card me-2"></i> Convocação Concurso
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('relatorio_convocacao') }}">📄 Relatório
+                                    Convocação </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">📈 Dashboard</a></li>
+                        </ul>
+                    </li>
                     {% endif %}
 
                     {% if user_funcao == 6 %}

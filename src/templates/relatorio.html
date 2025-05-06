@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Administração de Convocações</h2>
+
+    <div class="text-end mb-3">
+        <a href="/admin/exportar-excel" class="btn btn-success">Exportar Excel</a>
+    </div>
+
+    <table class="table table-bordered text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>Data</th>
+                <th>Convocados</th>
+                <th>Presentes</th>
+                <th>Faltaram</th>
+                <th>Desistiram</th>
+                <th>Vagas Abertas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in dados %}
+            <tr>
+                <td>{{ item.data }}</td>
+                <td>{{ item.convocados }}</td>
+                <td>{{ item.presentes }}</td>
+                <td>{{ item.faltaram }}</td>
+                <td>{{ item.desistiram }}</td>
+                <td>{{ item.vagas }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="table-secondary fw-bold">
+            <tr>
+                <td>Total</td>
+                <td>{{ somatorios.convocados }}</td>
+                <td>{{ somatorios.presentes }}</td>
+                <td>{{ somatorios.faltaram }}</td>
+                <td>{{ somatorios.desistiram }}</td>
+                <td>{{ somatorios.vagas }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h5 class="text-center mt-5">Gráfico de Vagas Abertas por Dia</h5>
+    <canvas id="grafico" style="max-width: 70%;"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+    const dados = {{ dados | tojson }};
+    const labels = dados.map(item => item.data);
+    const vagas = dados.map(item => item.vagas);
+
+    const ctx = document.getElementById('grafico').getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, '#42a5f5');
+    gradient.addColorStop(1, '#1e88e5');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Vagas Abertas',
+                data: vagas,
+                backgroundColor: gradient,
+                borderRadius: 8,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolução das Vagas Abertas por Dia',
+                    font: {
+                        size: 18
+                    },
+                    padding: { top: 10, bottom: 30 }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                datalabels: {
+                    color: '#000',
+                    anchor: 'end',
+                    align: 'start',
+                    font: {
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { weight: 'bold' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+</script>
+
+{% endblock %}

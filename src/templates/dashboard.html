@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5 mb-5">
+    <h2 class="text-center">Dashboard de Convocação - CBMAM</h2>
+    <form method="POST" class="row g-3 mt-4">
+        <div class="col-md-3">
+            <label>Data</label>
+            <input type="date" name="data" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label>Convocados</label>
+            <input type="number" name="convocados" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label>Faltaram</label>
+            <input type="number" name="faltaram" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label>Desistiram</label>
+            <input type="number" name="desistiram" class="form-control" required>
+        </div>
+        <div class="col-12 text-center">
+            <button type="submit" class="btn btn-primary mt-3">Gerar Dashboard</button>
+        </div>
+    </form>
+
+    {% if data %}
+    <div class="row mt-5 justify-content-center">
+        <div class="col-md-6">
+            <h5 class="text-center mt-4">Distribuição dos Convocados</h5>
+            <canvas id="chart" style="width: 100%; transition: opacity 0.4s;"></canvas>
+        </div>
+        <div class="col-12 text-center mt-3">
+            <button onclick="downloadImage()" class="btn btn-success">Baixar Imagem</button>
+            <button onclick="downloadExcel()" class="btn btn-info">Exportar Excel</button>
+            <button onclick="resetChart()" class="btn btn-warning">Restaurar Gráfico</button>
+        </div>
+    </div>
+
+    <div class="row mt-5 justify-content-center">
+        <div class="col-md-6">
+            <h5 class="text-center mt-5">Total de Vagas Abertas</h5>
+            <canvas id="vagasChart" style="width: 100%;"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const originalData = {{ data | tojson }};
+        const totalConvocados = originalData.Quantidade[0] + originalData.Quantidade[1] + originalData.Quantidade[2];
+        const vagasAbertas = originalData.Quantidade[1] + originalData.Quantidade[2];
+
+        let chartState = {
+            labels: ['Presentes', 'Faltaram', 'Desistiram'],
+            data: [
+                originalData.Quantidade[0],
+                originalData.Quantidade[1],
+                originalData.Quantidade[2]
+            ],
+            colors: ['#4CAF50', '#F44336', '#FFC107']
+        };
+
+        const ctx = document.getElementById('chart').getContext('2d');
+
+        let chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: [...chartState.labels],
+                datasets: [{
+                    data: [...chartState.data],
+                    backgroundColor: [...chartState.colors],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { animateScale: true, animateRotate: true },
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.label}: ${ctx.formattedValue}`
+                        }
+                    }
+                },
+                onClick: (e, elements) => {
+                    if (!elements.length) return;
+                    const index = elements[0].index;
+                    chartState.labels.splice(index, 1);
+                    chartState.data.splice(index, 1);
+                    chartState.colors.splice(index, 1);
+                    chart.data.labels = [...chartState.labels];
+                    chart.data.datasets[0].data = [...chartState.data];
+                    chart.data.datasets[0].backgroundColor = [...chartState.colors];
+                    chart.update();
+                }
+            }
+        });
+
+        // Gráfico de vagas abertas
+        const vagasCtx = document.getElementById('vagasChart').getContext('2d');
+        const vagasChart = new Chart(vagasCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Vagas Abertas'],
+                datasets: [{
+                    label: 'Total',
+                    data: [vagasAbertas],
+                    backgroundColor: '#2196F3'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+
+        function resetChart() {
+            chartState = {
+                labels: ['Presentes', 'Faltaram', 'Desistiram'],
+                data: [
+                    originalData.Quantidade[0],
+                    originalData.Quantidade[1],
+                    originalData.Quantidade[2]
+                ],
+                colors: ['#4CAF50', '#F44336', '#FFC107']
+            };
+            chart.data.labels = [...chartState.labels];
+            chart.data.datasets[0].data = [...chartState.data];
+            chart.data.datasets[0].backgroundColor = [...chartState.colors];
+            chart.update();
+        }
+
+        function downloadImage() {
+            const canvas = document.getElementById('chart');
+            const link = document.createElement('a');
+            link.download = 'grafico_dashboard.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        function downloadExcel() {
+            fetch('/export-dashboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    Situação: chartState.labels,
+                    Quantidade: chartState.data,
+                    VagasAbertas: vagasAbertas
+                })
+            })
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'dashboard.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                });
+        }
+    </script>
+
+    {% endif %}
+</div>
+{% endblock %}

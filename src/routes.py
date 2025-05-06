@@ -9,7 +9,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
 from src.forms import ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
-from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (Convocacao, Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -2661,19 +2661,6 @@ def calcular_impacto():
                     "impacto_mensal_estimado": str(impacto_mensal_estimado)
                 }
 
-                print("\n--- IMPACTO ATUAL ---")
-                print(
-                    f"Dias: {dias_atual} | Meses Coef.: {meses_coef:.2f} | Coef. proporcional: {coef_proporcional:.4f}")
-                print(
-                    f"Diferença: R$ {diferenca_atual:.2f} | Impacto Mensal Atual: R$ {impacto_mensal_atual:.2f}")
-                print(f"Subtotal Atual: R$ {subtotal_atual:.2f}")
-                print(
-                    f"1/3 Férias Atual: R$ {ferias_atual:.2f} | 13º Salário Atual: R$ {decimo_atual:.2f}")
-                print(
-                    f"TOTAL IMPACTO SEM RETROATIVO: R$ {total_sem_retroativo:.2f}")
-                print(
-                    f"TOTAL IMPACTO MENSAL (estimado): R$ {impacto_mensal_estimado:.2f}")
-
         # REGISTRA IMPACTOS NA SESSÃO
         impactos_registrados = session.get("impactos_registrados", [])
         impactos_registrados.append(resultado_final)
@@ -2686,3 +2673,109 @@ def calcular_impacto():
         return redirect(f"{url_for('calcular_impacto')}?{params}")
 
     return render_template("impacto_calculo.html", form=form, resultado=resultado, tabelas_usadas=tabelas_usadas)
+
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+    data = None
+    if request.method == 'POST':
+        convocados = int(request.form['convocados'])
+        faltaram = int(request.form['faltaram'])
+        desistiram = int(request.form['desistiram'])
+        data_input = request.form['data']
+
+        vagas_abertas = faltaram + desistiram
+        data_dict = {
+            'Situação': ['Presentes', 'Faltaram', 'Desistiram', 'Vagas Abertas'],
+            'Quantidade': [convocados - vagas_abertas, faltaram, desistiram, vagas_abertas]
+        }
+
+        # Salvar no banco
+        registro = Convocacao(
+            data=datetime.strptime(data_input, '%Y-%m-%d'),
+            convocados=convocados,
+            faltaram=faltaram,
+            desistiram=desistiram,
+            vagas_abertas=vagas_abertas
+        )
+        database.session.add(registro)
+        database.session.commit()
+
+        return render_template('dashboard.html', data=data_dict)
+
+    return render_template('dashboard.html', data=None)
+
+
+@app.route('/export-dashboard', methods=['POST'])
+def export_dashboard():
+    data = request.json
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Dados')
+    output.seek(0)
+    return send_file(output, download_name='dashboard.xlsx', as_attachment=True)
+
+
+@app.route('/relatorio-convocacao', methods=['GET'])
+@login_required
+def relatorio_convocacao():
+    registros = Convocacao.query.order_by(Convocacao.data).all()
+
+    dados = []
+    total_convocados = total_presentes = total_faltaram = total_desistiram = total_vagas = 0
+
+    for r in registros:
+        presentes = r.convocados - r.faltaram - r.desistiram
+        vagas = r.faltaram + r.desistiram
+        dados.append({
+            "data": r.data.strftime('%d/%m/%Y'),
+            "convocados": r.convocados,
+            "faltaram": r.faltaram,
+            "desistiram": r.desistiram,
+            "presentes": presentes,
+            "vagas": vagas
+        })
+
+        total_convocados += r.convocados
+        total_presentes += presentes
+        total_faltaram += r.faltaram
+        total_desistiram += r.desistiram
+        total_vagas += vagas
+
+    somatorios = {
+        "convocados": total_convocados,
+        "presentes": total_presentes,
+        "faltaram": total_faltaram,
+        "desistiram": total_desistiram,
+        "vagas": total_vagas
+    }
+
+    return render_template('relatorio.html', dados=dados, somatorios=somatorios)
+
+
+@app.route('/relatorio-convocacao/excel', methods=['GET'])
+def relatorio_convocacao_excel():
+    registros = Convocacao.query.order_by(Convocacao.data).all()
+    dados = []
+
+    for r in registros:
+        presentes = r.convocados - r.faltaram - r.desistiram
+        vagas = r.faltaram + r.desistiram
+        dados.append({
+            "Data": r.data.strftime('%Y-%m-%d'),
+            "Convocados": r.convocados,
+            "Faltaram": r.faltaram,
+            "Desistiram": r.desistiram,
+            "Presentes": presentes,
+            "Vagas Abertas": vagas
+        })
+
+    df = pd.DataFrame(dados)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Convocacoes')
+    output.seek(0)
+
+    return send_file(output, download_name="convocacoes_admin.xlsx", as_attachment=True)
