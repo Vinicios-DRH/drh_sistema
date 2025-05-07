@@ -7,56 +7,60 @@
         <a href="/relatorio-convocacao/excel" class="btn btn-success">Exportar Excel</a>
     </div>
 
-    <table class="table table-bordered text-center">
-        <thead class="table-dark">
-            <tr>
-                <th>Data</th>
-                <th>Convocados</th>
-                <th>Presentes</th>
-                <th>Faltaram</th>
-                <th>Desistiram</th>
-                <th>Vagas Abertas</th>
-                <th>Detalhes</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in dados %}
-            <tr>
-                <td>{{ item.data }}</td>
-                <td>{{ item.convocados }}</td>
-                <td>{{ item.presentes }}</td>
-                <td>{{ item.faltaram }}</td>
-                <td>{{ item.desistiram }}</td>
-                <td>{{ item.vagas }}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary"
-                        onclick="abrirModal('{{ item.data }}', {{ item.convocados }}, {{ item.presentes }}, {{ item.faltaram }}, {{ item.desistiram }}, {{ item.vagas }})">
-                        Ver Dashboard
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        <tfoot class="table-secondary fw-bold">
-            <tr>
-                <td>Total</td>
-                <td>{{ somatorios.convocados }}</td>
-                <td>{{ somatorios.presentes }}</td>
-                <td>{{ somatorios.faltaram }}</td>
-                <td>{{ somatorios.desistiram }}</td>
-                <td>{{ somatorios.vagas }}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary"
-                        onclick="abrirModal('{{ somatorios.data }}', {{ somatorios.convocados }}, {{ somatorios.presentes }}, {{ somatorios.faltaram }}, {{ somatorios.desistiram }}, {{ somatorios.vagas }})">
-                        Ver Dashboard
-                    </button>
-                </td>
-            </tr>
-        </tfoot>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-bordered text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Data</th>
+                    <th>Convocados</th>
+                    <th>Presentes</th>
+                    <th>Faltaram</th>
+                    <th>Desistiram</th>
+                    <th>Vagas Abertas</th>
+                    <th>Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in dados %}
+                <tr>
+                    <td>{{ item.data }}</td>
+                    <td>{{ item.convocados }}</td>
+                    <td>{{ item.presentes }}</td>
+                    <td>{{ item.faltaram }}</td>
+                    <td>{{ item.desistiram }}</td>
+                    <td>{{ item.vagas }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                            onclick="abrirModal('{{ item.data }}', {{ item.convocados }}, {{ item.presentes }}, {{ item.faltaram }}, {{ item.desistiram }}, {{ item.vagas }})">
+                            Ver Dashboard
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-secondary fw-bold">
+                <tr>
+                    <td>Total</td>
+                    <td>{{ somatorios.convocados }}</td>
+                    <td>{{ somatorios.presentes }}</td>
+                    <td>{{ somatorios.faltaram }}</td>
+                    <td>{{ somatorios.desistiram }}</td>
+                    <td>{{ somatorios.vagas }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                            onclick="abrirModal('{{ somatorios.data }}', {{ somatorios.convocados }}, {{ somatorios.presentes }}, {{ somatorios.faltaram }}, {{ somatorios.desistiram }}, {{ somatorios.vagas }})">
+                            Ver Dashboard
+                        </button>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 
     <h5 class="text-center mt-5">Gráfico de Vagas Abertas por Dia</h5>
-    <canvas id="grafico" style="max-width: 70%;"></canvas>
+    <div class="chart-container" style="position: relative; width: 100%; max-width: 600px; margin: auto;">
+        <canvas id="grafico"></canvas>
+    </div>
 </div>
 
 <!-- Modal reduzido e ágil -->
@@ -70,7 +74,9 @@
             <div class="modal-body">
                 <p><strong>Convocados:</strong> <span id="modal-convocados"></span></p>
                 <p><strong>Vagas Abertas:</strong> <span id="modal-vagas"></span></p>
-                <canvas id="modal-chart" style="max-width: 100%;"></canvas>
+                <div class="chart-container" style="position: relative; width: 100%; max-width: 600px; margin: auto;">
+                    <canvas id="modal-chart" style="max-width: 100%;"></canvas>
+                </div>
                 <div class="text-center mt-3">
                     <button class="btn btn-sm btn-warning" onclick="restaurarGraficoModal()">Restaurar Gráfico</button>
                 </div>

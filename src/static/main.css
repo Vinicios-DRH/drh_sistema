@@ -204,3 +204,10 @@ table th {
     align-items: center;
     border-bottom: 1px solid #ddd;
 }
+
+
+@media (max-width: 576px) {
+    canvas {
+        max-height: 300px !important;
+    }
+}
