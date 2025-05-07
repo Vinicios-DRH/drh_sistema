@@ -90,9 +90,22 @@
       margin-right: 8px;
       font-size: 18px;
     }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    @media (max-width: 576px) {
+      canvas {
+        max-height: 320px !important;
+      }
+    }
+
+    .chart-container {
+      padding: 1rem;
+    }
   </style>
-
-
 
   {% block head %}
   {% endblock %}
