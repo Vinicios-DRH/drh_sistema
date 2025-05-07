@@ -16,6 +16,7 @@
                 <th>Faltaram</th>
                 <th>Desistiram</th>
                 <th>Vagas Abertas</th>
+                <th>Detalhes</th>
             </tr>
         </thead>
         <tbody>
@@ -27,6 +28,12 @@
                 <td>{{ item.faltaram }}</td>
                 <td>{{ item.desistiram }}</td>
                 <td>{{ item.vagas }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                        onclick="abrirModal('{{ item.data }}', {{ item.convocados }}, {{ item.presentes }}, {{ item.faltaram }}, {{ item.desistiram }}, {{ item.vagas }})">
+                        Ver Dashboard
+                    </button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -38,6 +45,12 @@
                 <td>{{ somatorios.faltaram }}</td>
                 <td>{{ somatorios.desistiram }}</td>
                 <td>{{ somatorios.vagas }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                        onclick="abrirModal('{{ somatorios.data }}', {{ somatorios.convocados }}, {{ somatorios.presentes }}, {{ somatorios.faltaram }}, {{ somatorios.desistiram }}, {{ somatorios.vagas }})">
+                        Ver Dashboard
+                    </button>
+                </td>
             </tr>
         </tfoot>
     </table>
@@ -46,8 +59,29 @@
     <canvas id="grafico" style="max-width: 70%;"></canvas>
 </div>
 
+<!-- Modal reduzido e ágil -->
+<div class="modal fade" id="modalDashboard" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title">Dashboard do Dia <span id="modal-data"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Convocados:</strong> <span id="modal-convocados"></span></p>
+                <p><strong>Vagas Abertas:</strong> <span id="modal-vagas"></span></p>
+                <canvas id="modal-chart" style="max-width: 100%;"></canvas>
+                <div class="text-center mt-3">
+                    <button class="btn btn-sm btn-warning" onclick="restaurarGraficoModal()">Restaurar Gráfico</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 <script>
     const dados = {{ dados | tojson }};
     const labels = dados.map(item => item.data);
@@ -116,5 +150,101 @@
         plugins: [ChartDataLabels]
     });
 </script>
+
+<script>
+    let chartModalInstance = null;
+    let originalState = null;
+    let totalOriginal = 0;
+
+    function abrirModal(data, convocados, presentes, faltaram, desistiram, vagas) {
+        document.getElementById('modal-data').textContent = data;
+        document.getElementById('modal-convocados').textContent = convocados;
+        document.getElementById('modal-vagas').textContent = vagas;
+
+        const ctx = document.getElementById('modal-chart').getContext('2d');
+
+        const labels = ['Presentes', 'Faltaram', 'Desistiram'];
+        const values = [presentes, faltaram, desistiram];
+        const colors = ['#4CAF50', '#F44336', '#FFC107'];
+
+        totalOriginal = values.reduce((a, b) => a + b, 0);
+
+        originalState = {
+            labels: [...labels],
+            values: [...values],
+            colors: [...colors]
+        };
+
+        if (chartModalInstance) {
+            chartModalInstance.destroy();
+        }
+
+        chartModalInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: [...labels],
+                datasets: [{
+                    data: [...values],
+                    backgroundColor: [...colors]
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '40%',
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const valor = ctx.raw;
+                                const percentual = ((valor / totalOriginal) * 100).toFixed(1);
+                                return `${ctx.label}: ${valor} (${percentual}%)`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#000',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        },
+                        formatter: function (value, ctx) {
+                            const percentual = ((value / totalOriginal) * 100).toFixed(1);
+                            return `${percentual}%`;
+                        }
+                    }
+                },
+                onClick: (e, elements) => {
+                    if (!elements.length) return;
+                    const index = elements[0].index;
+                    chartModalInstance.data.labels.splice(index, 1);
+                    chartModalInstance.data.datasets[0].data.splice(index, 1);
+                    chartModalInstance.data.datasets[0].backgroundColor.splice(index, 1);
+                    chartModalInstance.update();
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+
+        const modal = new bootstrap.Modal(document.getElementById('modalDashboard'));
+        modal.show();
+    }
+
+    function restaurarGraficoModal() {
+        if (!chartModalInstance || !originalState) return;
+
+        chartModalInstance.data.labels = [...originalState.labels];
+        chartModalInstance.data.datasets[0].data = [...originalState.values];
+        chartModalInstance.data.datasets[0].backgroundColor = [...originalState.colors];
+        totalOriginal = originalState.values.reduce((a, b) => a + b, 0);
+        chartModalInstance.update();
+    }
+
+</script>
+
 
 {% endblock %}

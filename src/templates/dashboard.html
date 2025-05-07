@@ -45,9 +45,11 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
     <script>
         const originalData = {{ data | tojson }};
-        const totalConvocados = originalData.Quantidade[0] + originalData.Quantidade[1] + originalData.Quantidade[2];
+        const totalOriginal = originalData.Quantidade[0] + originalData.Quantidade[1] + originalData.Quantidade[2];
         const vagasAbertas = originalData.Quantidade[1] + originalData.Quantidade[2];
 
         let chartState = {
@@ -63,7 +65,7 @@
         const ctx = document.getElementById('chart').getContext('2d');
 
         let chart = new Chart(ctx, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: [...chartState.labels],
                 datasets: [{
@@ -74,12 +76,31 @@
             },
             options: {
                 responsive: true,
-                animation: { animateScale: true, animateRotate: true },
+                cutout: '40%',
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                },
                 plugins: {
                     legend: { position: 'right' },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.label}: ${ctx.formattedValue}`
+                            label: function (ctx) {
+                                const valor = ctx.raw;
+                                const percentual = ((valor / totalOriginal) * 100).toFixed(1);
+                                return `${ctx.label}: ${valor} (${percentual}%)`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#000',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        },
+                        formatter: function (value, ctx) {
+                            const percentual = ((value / totalOriginal) * 100).toFixed(1);
+                            return `${percentual}%`;
                         }
                     }
                 },
@@ -94,7 +115,8 @@
                     chart.data.datasets[0].backgroundColor = [...chartState.colors];
                     chart.update();
                 }
-            }
+            },
+            plugins: [ChartDataLabels]
         });
 
         // Gráfico de vagas abertas
@@ -127,53 +149,7 @@
                 }
             }
         });
-
-        function resetChart() {
-            chartState = {
-                labels: ['Presentes', 'Faltaram', 'Desistiram'],
-                data: [
-                    originalData.Quantidade[0],
-                    originalData.Quantidade[1],
-                    originalData.Quantidade[2]
-                ],
-                colors: ['#4CAF50', '#F44336', '#FFC107']
-            };
-            chart.data.labels = [...chartState.labels];
-            chart.data.datasets[0].data = [...chartState.data];
-            chart.data.datasets[0].backgroundColor = [...chartState.colors];
-            chart.update();
-        }
-
-        function downloadImage() {
-            const canvas = document.getElementById('chart');
-            const link = document.createElement('a');
-            link.download = 'grafico_dashboard.png';
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
-        }
-
-        function downloadExcel() {
-            fetch('/export-dashboard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    Situação: chartState.labels,
-                    Quantidade: chartState.data,
-                    VagasAbertas: vagasAbertas
-                })
-            })
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'dashboard.xlsx';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                });
-        }
     </script>
-
     {% endif %}
 </div>
 {% endblock %}
