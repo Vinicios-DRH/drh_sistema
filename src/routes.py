@@ -2677,6 +2677,7 @@ def calcular_impacto():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
+@checar_ocupacao('SUPER USER')
 def dashboard():
     data = None
     if request.method == 'POST':
