@@ -7,6 +7,10 @@
         <a href="/relatorio-convocacao/excel" class="btn btn-success">Exportar Excel</a>
     </div>
 
+    {% set namespace_charts = [] %}
+
+    {% for semana, registros in dados.items() %}
+    <h4 class="mt-5">{{ semana }}</h4>
     <div class="table-responsive">
         <table class="table table-bordered text-center">
             <thead class="table-dark">
@@ -21,7 +25,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for item in dados %}
+                {% for item in registros %}
                 <tr>
                     <td>{{ item.data }}</td>
                     <td>{{ item.convocados }}</td>
@@ -40,217 +44,174 @@
             </tbody>
             <tfoot class="table-secondary fw-bold">
                 <tr>
-                    <td>Total</td>
-                    <td>{{ somatorios.convocados }}</td>
-                    <td>{{ somatorios.presentes }}</td>
-                    <td>{{ somatorios.faltaram }}</td>
-                    <td>{{ somatorios.desistiram }}</td>
-                    <td>{{ somatorios.vagas }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary"
-                            onclick="abrirModal('{{ somatorios.data }}', {{ somatorios.convocados }}, {{ somatorios.presentes }}, {{ somatorios.faltaram }}, {{ somatorios.desistiram }}, {{ somatorios.vagas }})">
-                            Ver Dashboard
-                        </button>
-                    </td>
+                    <td>Total {{ semana }}</td>
+                    <td>{{ totais_semanais[semana].convocados }}</td>
+                    <td>{{ totais_semanais[semana].presentes }}</td>
+                    <td>{{ totais_semanais[semana].faltaram }}</td>
+                    <td>{{ totais_semanais[semana].desistiram }}</td>
+                    <td>{{ totais_semanais[semana].vagas }}</td>
+                    <td>-</td>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-    <h5 class="text-center mt-5">Gráfico de Vagas Abertas por Dia</h5>
-    <div class="chart-container w-100" style="max-width: 100%; margin: auto;">
-        <canvas id="grafico"></canvas>
+    <div class="text-end mb-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="alternarTipoGrafico('grafico_{{ loop.index }}')">
+            Trocar Tipo de Gráfico
+        </button>
     </div>
-</div>
+    <div class="chart-container w-100 mb-5" style="max-width: 100%; margin: auto;">
+        <canvas id="grafico_{{ loop.index }}"></canvas>
+    </div>
+    {% set _ = namespace_charts.append({
+        'id': 'grafico_' ~ loop.index,
+        'semana': semana,
+        'dados': [
+            totais_semanais[semana].convocados,
+            totais_semanais[semana].presentes,
+            totais_semanais[semana].faltaram,
+            totais_semanais[semana].desistiram,
+            totais_semanais[semana].vagas
+        ]
+    }) %}
+    {% endfor %}
 
-<!-- Modal reduzido e ágil -->
-<div class="modal fade" id="modalDashboard" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content shadow">
-            <div class="modal-header">
-                <h5 class="modal-title">Dashboard do Dia <span id="modal-data"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Convocados:</strong> <span id="modal-convocados"></span></p>
-                <p><strong>Vagas Abertas:</strong> <span id="modal-vagas"></span></p>
-                <div class="chart-container" style="position: relative; width: 100%; max-width: 600px; margin: auto;">
-                    <canvas id="modal-chart" style="max-width: 100%;"></canvas>
-                </div>
-                <div class="text-center mt-3">
-                    <button class="btn btn-sm btn-warning" onclick="restaurarGraficoModal()">Restaurar Gráfico</button>
-                </div>
-            </div>
-        </div>
+    <h5 class="text-center mt-5">Comparativo Entre Semanas</h5>
+    <div class="chart-container w-100 mb-5" style="max-width: 100%; margin: auto;">
+        <canvas id="graficoComparativo"></canvas>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
 <script>
-    const dados = {{ dados | tojson }};
-    const labels = dados.map(item => item.data);
-    const vagas = dados.map(item => item.vagas);
+    const chartsInfo = {{ namespace_charts | tojson }};
+    const chartInstances = {};
 
-    const ctx = document.getElementById('grafico').getContext('2d');
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, '#42a5f5');
-    gradient.addColorStop(1, '#1e88e5');
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Vagas Abertas',
-                data: vagas,
-                backgroundColor: gradient,
-                borderRadius: 8,
-                barThickness: 40
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Evolução das Vagas Abertas por Dia',
-                    font: {
-                        size: 18
+    document.addEventListener("DOMContentLoaded", function () {
+        chartsInfo.forEach(info => {
+            const ctx = document.getElementById(info.id).getContext("2d");
+            chartInstances[info.id] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Convocados', 'Presentes', 'Faltaram', 'Desistiram', 'Vagas Abertas'],
+                    datasets: [{
+                        label: info.semana,
+                        data: info.dados,
+                        backgroundColor: ['#2196F3', '#4CAF50', '#F44336', '#FFC107', '#9C27B0'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Resumo da ' + info.semana,
+                            font: { size: 16 },
+                            padding: { top: 10, bottom: 20 }
+                        }
                     },
-                    padding: { top: 10, bottom: 30 }
-                },
-                legend: {
-                    display: true,
-                    position: 'top'
-                },
-                datalabels: {
-                    color: '#000',
-                    anchor: 'end',
-                    align: 'start',
-                    font: {
-                        weight: 'bold'
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue}`
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
                     }
                 }
-            },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { weight: 'bold' } }
+            });
+        });
+
+        const comparativoCtx = document.getElementById("graficoComparativo").getContext("2d");
+        const comparativoData = {
+            labels: Object.keys({{ dados | tojson }}),
+            datasets: [
+                {
+                    label: 'Presentes',
+                    data: Object.values({{ dados | tojson }}).map(sem => sem.reduce((acc, d) => acc + d.presentes, 0)),
+                    backgroundColor: '#4CAF50'
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
+                {
+                    label: 'Faltaram',
+                    data: Object.values({{ dados | tojson }}).map(sem => sem.reduce((acc, d) => acc + d.faltaram, 0)),
+                    backgroundColor: '#F44336'
+                },
+                {
+                    label: 'Desistiram',
+                    data: Object.values({{ dados | tojson }}).map(sem => sem.reduce((acc, d) => acc + d.desistiram, 0)),
+                    backgroundColor: '#FFC107'
+                }
+            ]
+        };
+
+        new Chart(comparativoCtx, {
+            type: 'bar',
+            data: comparativoData,
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Comparativo Entre Semanas',
+                        font: { size: 18 },
+                        padding: { top: 10, bottom: 30 }
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
                     }
                 }
             }
-        },
-        plugins: [ChartDataLabels]
+        });
     });
-</script>
 
-<script>
-    let chartModalInstance = null;
-    let originalState = null;
-    let totalOriginal = 0;
+    function alternarTipoGrafico(id) {
+        const chart = chartInstances[id];
+        const tipoNovo = chart.config.type === 'bar' ? 'doughnut' : 'bar';
+        const dados = chart.data.datasets[0].data;
+        const rotulos = chart.data.labels;
+        const cor = chart.data.datasets[0].backgroundColor;
+        const label = chart.data.datasets[0].label;
 
-    function abrirModal(data, convocados, presentes, faltaram, desistiram, vagas) {
-        document.getElementById('modal-data').textContent = data;
-        document.getElementById('modal-convocados').textContent = convocados;
-        document.getElementById('modal-vagas').textContent = vagas;
-
-        const ctx = document.getElementById('modal-chart').getContext('2d');
-
-        const labels = ['Presentes', 'Faltaram', 'Desistiram'];
-        const values = [presentes, faltaram, desistiram];
-        const colors = ['#4CAF50', '#F44336', '#FFC107'];
-
-        totalOriginal = values.reduce((a, b) => a + b, 0);
-
-        originalState = {
-            labels: [...labels],
-            values: [...values],
-            colors: [...colors]
-        };
-
-        if (chartModalInstance) {
-            chartModalInstance.destroy();
-        }
-
-        chartModalInstance = new Chart(ctx, {
-            type: 'doughnut',
+        chart.destroy();
+        const ctx = document.getElementById(id).getContext("2d");
+        chartInstances[id] = new Chart(ctx, {
+            type: tipoNovo,
             data: {
-                labels: [...labels],
+                labels: rotulos,
                 datasets: [{
-                    data: [...values],
-                    backgroundColor: [...colors]
+                    label: label,
+                    data: dados,
+                    backgroundColor: cor,
+                    borderRadius: 6
                 }]
             },
             options: {
                 responsive: true,
-                cutout: '40%',
-                animation: {
-                    animateScale: true,
-                    animateRotate: true
-                },
                 plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function (ctx) {
-                                const valor = ctx.raw;
-                                const percentual = ((valor / totalOriginal) * 100).toFixed(1);
-                                return `${ctx.label}: ${valor} (${percentual}%)`;
-                            }
-                        }
-                    },
-                    datalabels: {
-                        color: '#000',
-                        font: {
-                            weight: 'bold',
-                            size: 14
-                        },
-                        formatter: function (value, ctx) {
-                            const percentual = ((value / totalOriginal) * 100).toFixed(1);
-                            return `${percentual}%`;
-                        }
+                    legend: { display: tipoNovo === 'doughnut' },
+                    title: {
+                        display: true,
+                        text: 'Resumo da ' + label,
+                        font: { size: 16 },
+                        padding: { top: 10, bottom: 20 }
                     }
                 },
-                onClick: (e, elements) => {
-                    if (!elements.length) return;
-                    const index = elements[0].index;
-                    chartModalInstance.data.labels.splice(index, 1);
-                    chartModalInstance.data.datasets[0].data.splice(index, 1);
-                    chartModalInstance.data.datasets[0].backgroundColor.splice(index, 1);
-                    chartModalInstance.update();
-                }
-            },
-            plugins: [ChartDataLabels]
+                scales: tipoNovo === 'bar' ? {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                } : {}
+            }
         });
-
-        const modal = new bootstrap.Modal(document.getElementById('modalDashboard'));
-        modal.show();
     }
-
-    function restaurarGraficoModal() {
-        if (!chartModalInstance || !originalState) return;
-
-        chartModalInstance.data.labels = [...originalState.labels];
-        chartModalInstance.data.datasets[0].data = [...originalState.values];
-        chartModalInstance.data.datasets[0].backgroundColor = [...originalState.colors];
-        totalOriginal = originalState.values.reduce((a, b) => a + b, 0);
-        chartModalInstance.update();
-    }
-
 </script>
-
-
 {% endblock %}
