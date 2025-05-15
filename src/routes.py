@@ -28,6 +28,7 @@ from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from urllib.parse import urlencode
 from jinja2 import Template
+from collections import defaultdict
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -1886,9 +1887,6 @@ def api_sesuite():
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
-    # if current_user.is_authenticated:
-    #     flash('O período para alteração de férias acabou, a próxima janela abre dia 10/03/2025!', 'alert-info')
-
     meses = {
         "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
@@ -1897,93 +1895,32 @@ def exibir_ferias_chefe():
     current_date = datetime.now().date()
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 
-    if current_user.funcao_user_id in [1, 6]:
-        militares_por_obm = {}
-
-        # Obtém militares da OBM principal do usuário
-        obm1 = Obm.query.get(current_user.obm_id_1)
-        militares_por_obm[obm1] = (
+    def obter_militares_por_obm(obm_id):
+        return (
             database.session.query(Militar, Paf)
             .outerjoin(Paf, Paf.militar_id == Militar.id)
+            .options(joinedload(Militar.obm_funcoes))
             .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
             .filter(
-                MilitarObmFuncao.obm_id == current_user.obm_id_1,
+                MilitarObmFuncao.obm_id == obm_id,
                 MilitarObmFuncao.data_fim.is_(None)
             )
             .all()
         )
 
-        # Obtém militares da segunda OBM do usuário
-        if current_user.obm_id_2:
-            obm2 = Obm.query.get(current_user.obm_id_2)
-            militares_por_obm[obm2] = (
-                database.session.query(Militar, Paf)
-                .outerjoin(Paf, Paf.militar_id == Militar.id)
-                .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                .filter(
-                    MilitarObmFuncao.obm_id == current_user.obm_id_2,
-                    MilitarObmFuncao.data_fim.is_(None)
-                )
-                .all()
-            )
+    militares_por_obm = {}
 
-        # Se a OBM principal do usuário for 16, busca militares das OBMs adicionais
-        if current_user.obm_id_1 == 16:
-            for obm_id in obms_adicionais:
-                obm = Obm.query.get(obm_id)
-                militares_por_obm[obm] = (
-                    database.session.query(Militar, Paf)
-                    .outerjoin(Paf, Paf.militar_id == Militar.id)
-                    .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                    .filter(
-                        MilitarObmFuncao.obm_id == obm_id,
-                        MilitarObmFuncao.data_fim.is_(None)
-                    )
-                    .all()
-                )
+    obm1 = Obm.query.get(current_user.obm_id_1)
+    militares_por_obm[obm1] = obter_militares_por_obm(current_user.obm_id_1)
 
-    else:
-        militares_por_obm = {}
+    if current_user.obm_id_2:
+        obm2 = Obm.query.get(current_user.obm_id_2)
+        militares_por_obm[obm2] = obter_militares_por_obm(current_user.obm_id_2)
 
-        # Mesma lógica para usuários que não são diretores ou super users
-        obm1 = Obm.query.get(current_user.obm_id_1)
-        militares_por_obm[obm1] = (
-            database.session.query(Militar, Paf)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(
-                MilitarObmFuncao.obm_id == current_user.obm_id_1,
-                MilitarObmFuncao.data_fim.is_(None)
-            )
-            .all()
-        )
-
-        if current_user.obm_id_2:
-            obm2 = Obm.query.get(current_user.obm_id_2)
-            militares_por_obm[obm2] = (
-                database.session.query(Militar, Paf)
-                .outerjoin(Paf, Paf.militar_id == Militar.id)
-                .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                .filter(
-                    MilitarObmFuncao.obm_id == current_user.obm_id_2,
-                    MilitarObmFuncao.data_fim.is_(None)
-                )
-                .all()
-            )
-
-        if current_user.obm_id_1 == 16:
-            for obm_id in obms_adicionais:
-                obm = Obm.query.get(obm_id)
-                militares_por_obm[obm] = (
-                    database.session.query(Militar, Paf)
-                    .outerjoin(Paf, Paf.militar_id == Militar.id)
-                    .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                    .filter(
-                        MilitarObmFuncao.obm_id == obm_id,
-                        MilitarObmFuncao.data_fim.is_(None)
-                    )
-                    .all()
-                )
+    if current_user.obm_id_1 == 16:
+        for obm_id in obms_adicionais:
+            obm = Obm.query.get(obm_id)
+            militares_por_obm[obm] = obter_militares_por_obm(obm_id)
 
     return render_template(
         'ferias_chefe2.html',
