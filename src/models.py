@@ -615,3 +615,4 @@ class Convocacao(database.Model):
     desistiram = database.Column(database.Integer, nullable=False)
     vagas_abertas = database.Column(database.Integer, nullable=False)
     created_at = database.Column(database.DateTime, default=datetime.utcnow)
+    semana = database.Column(database.String(50))
