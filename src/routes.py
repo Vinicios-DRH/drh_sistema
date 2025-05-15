@@ -2675,6 +2675,13 @@ def calcular_impacto():
     return render_template("impacto_calculo.html", form=form, resultado=resultado, tabelas_usadas=tabelas_usadas)
 
 
+def calcular_semana(data_convocacao, data_base=None):
+    if not data_base:
+        data_base = datetime(2025, 5, 5)  # data base inicial da primeira semana
+    dias_passados = (data_convocacao - data_base).days
+    numero_semana = dias_passados // 7 + 1
+    return f"Semana {numero_semana}"
+
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 @checar_ocupacao('SUPER USER')
@@ -2685,8 +2692,11 @@ def dashboard():
         faltaram = int(request.form['faltaram'])
         desistiram = int(request.form['desistiram'])
         data_input = request.form['data']
+        data_dt = datetime.strptime(data_input, '%Y-%m-%d')
 
         vagas_abertas = faltaram + desistiram
+        semana = calcular_semana(data_dt)
+
         data_dict = {
             'Situação': ['Presentes', 'Faltaram', 'Desistiram', 'Vagas Abertas'],
             'Quantidade': [convocados - vagas_abertas, faltaram, desistiram, vagas_abertas]
@@ -2698,7 +2708,8 @@ def dashboard():
             convocados=convocados,
             faltaram=faltaram,
             desistiram=desistiram,
-            vagas_abertas=vagas_abertas
+            vagas_abertas=vagas_abertas,
+            semana=semana
         )
         database.session.add(registro)
         database.session.commit()
@@ -2724,36 +2735,57 @@ def export_dashboard():
 def relatorio_convocacao():
     registros = Convocacao.query.order_by(Convocacao.data).all()
 
-    dados = []
-    total_convocados = total_presentes = total_faltaram = total_desistiram = total_vagas = 0
+    dados_por_semana = defaultdict(list)
+    totais_semanais = {}
+    somatorios_geral = {
+        "convocados": 0,
+        "presentes": 0,
+        "faltaram": 0,
+        "desistiram": 0,
+        "vagas": 0
+    }
 
     for r in registros:
         presentes = r.convocados - r.faltaram - r.desistiram
         vagas = r.faltaram + r.desistiram
-        dados.append({
+
+        item = {
             "data": r.data.strftime('%d/%m/%Y'),
             "convocados": r.convocados,
             "faltaram": r.faltaram,
             "desistiram": r.desistiram,
             "presentes": presentes,
             "vagas": vagas
-        })
+        }
 
-        total_convocados += r.convocados
-        total_presentes += presentes
-        total_faltaram += r.faltaram
-        total_desistiram += r.desistiram
-        total_vagas += vagas
+        semana = r.semana
+        dados_por_semana[semana].append(item)
 
-    somatorios = {
-        "convocados": total_convocados,
-        "presentes": total_presentes,
-        "faltaram": total_faltaram,
-        "desistiram": total_desistiram,
-        "vagas": total_vagas
-    }
+        somatorios_geral["convocados"] += r.convocados
+        somatorios_geral["presentes"] += presentes
+        somatorios_geral["faltaram"] += r.faltaram
+        somatorios_geral["desistiram"] += r.desistiram
+        somatorios_geral["vagas"] += vagas
 
-    return render_template('relatorio.html', dados=dados, somatorios=somatorios)
+        if semana not in totais_semanais:
+            totais_semanais[semana] = {
+                "convocados": 0,
+                "presentes": 0,
+                "faltaram": 0,
+                "desistiram": 0,
+                "vagas": 0
+            }
+
+        totais_semanais[semana]["convocados"] += r.convocados
+        totais_semanais[semana]["presentes"] += presentes
+        totais_semanais[semana]["faltaram"] += r.faltaram
+        totais_semanais[semana]["desistiram"] += r.desistiram
+        totais_semanais[semana]["vagas"] += vagas
+
+    dados_ordenados = dict(sorted(dados_por_semana.items(), key=lambda x: int(x[0].split()[-1])))
+    totais_ordenados = dict(sorted(totais_semanais.items(), key=lambda x: int(x[0].split()[-1])))
+
+    return render_template('relatorio.html', dados=dados_ordenados, totais_semanais=totais_ordenados, somatorios=somatorios_geral)
 
 
 @app.route('/relatorio-convocacao/excel', methods=['GET'])
