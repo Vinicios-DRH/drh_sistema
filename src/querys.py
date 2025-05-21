@@ -1,5 +1,9 @@
-from src.models import Militar, MilitaresAgregados, MilitaresADisposicao
+from src import bcrypt
+from src.models import Militar, MilitaresAgregados, MilitaresADisposicao, User
 from sqlalchemy import and_
+from datetime import datetime
+from flask import request
+import pytz
 
 
 def obter_estatisticas_militares():
@@ -174,3 +178,26 @@ def obter_estatisticas_militares():
         'qpebm': qpebm,
         'qcpbm': qcpbm
     }
+
+
+def get_user_ip():
+    # Verifica se o cabeçalho X-Forwarded-For está presente
+    if request.headers.get('X-Forwarded-For'):
+        # Pode conter múltiplos IPs, estou pegando o primeiro
+        ip = request.headers.getlist('X-Forwarded-For')[0]
+    else:
+        # Fallback para o IP remoto
+        ip = request.remote_addr
+    return ip
+
+
+def login_usuario(cpf, senha):
+    user = User.query.filter_by(cpf=cpf).first()
+
+    if user and bcrypt.check_password_hash(user.senha, senha):
+        fuso_horario = pytz.timezone('America/Manaus')
+        user.data_ultimo_acesso = datetime.now(fuso_horario)
+        user.ip_address = get_user_ip()
+        return user
+    
+    return None
