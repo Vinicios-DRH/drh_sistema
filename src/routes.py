@@ -14,7 +14,7 @@ from src.models import (Convocacao, Militar, PostoGrad, Quadro, Obm, Localidade,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
                         Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad)
-from src.querys import obter_estatisticas_militares
+from src.querys import obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
@@ -38,6 +38,35 @@ def estatisticas():
     """Retorna as estatísticas dos militares em formato JSON."""
     estatisticas = obter_estatisticas_militares()
     return jsonify(estatisticas)
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+
+    cpf = data.get("cpf")
+    senha = data.get("senha")
+
+    if not cpf or not senha:
+        return jsonify({"status": "erro", "mensagem": "CPF e senha são obrigatórios"}), 400
+    
+    user = login_usuario(cpf, senha)
+
+    if user:
+        return jsonify({
+            "status": "sucesso",
+            "mensagem": "Login realizado com sucesso",
+            "usuario": {
+                "id": user.id,
+                "nome": user.nome,
+                "cpf": user.cpf,
+                "email": user.email,
+                "obm1": user.obm1.sigla if user.obm1 else None,
+                "obm2": user.obm2.sigla if user.obm2 else None
+            }
+        }), 200
+    else:
+        return jsonify({"status": "erro", "mensagem": "CPF ou senha inválidos"}), 401
 
 
 @app.route("/")
