@@ -616,3 +616,44 @@ class Convocacao(database.Model):
     vagas_abertas = database.Column(database.Integer, nullable=False)
     created_at = database.Column(database.DateTime, default=datetime.utcnow)
     semana = database.Column(database.String, nullable=True)
+
+
+class NomeConvocado(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    nome = database.Column(database.String(100), nullable=False)
+    inscricao = database.Column(database.String(50), nullable=True)
+    classificacao = database.Column(database.String(50), nullable=True)
+
+
+class SituacaoConvocacao(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    situacao = database.Column(database.String(50), nullable=False)
+
+
+class ControleConvocacao(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    classificacao = database.Column(database.String(50), nullable=False)
+    inscricao = database.Column(database.String(50), nullable=False)
+    nome = database.Column(database.String(100), nullable=False)
+    nota_final = database.Column(database.String(50), nullable=False)
+    ordem_de_convocacao = database.Column(database.String(50), nullable=False)
+    apresentou = database.Column(database.Boolean, nullable=False, default=False)
+    situacao_convocacao_id = database.Column(
+        database.Integer, database.ForeignKey('situacao_convocacao.id'))
+    matricula = database.Column(database.Boolean, nullable=False, default=False)
+    numero_da_matricula_doe = database.Column(
+        database.String(50), nullable=False)
+    bg_matricula_doe = database.Column(database.String(50), nullable=False)
+    portaria_convocacao = database.Column(database.String(50), nullable=False)
+    bg_portaria_convocacao = database.Column(
+        database.String(50), nullable=False)
+    doe_portaria_convocacao = database.Column(
+        database.String(50), nullable=False)
+    notificacao_pessoal = database.Column(database.Boolean, nullable=False, default=False)
+    termo_desistencia = database.Column(database.Boolean, nullable=False, default=False)
+    siged_desistencia = database.Column(database.String(50), nullable=False)
+    data_criacao = database.Column(
+        database.DateTime, default=datetime.utcnow)
+
+    situacao = database.relationship('SituacaoConvocacao', backref='convocados')
+    

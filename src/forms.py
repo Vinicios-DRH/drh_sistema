@@ -3,7 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
                      MultipleFileField, FileField, DecimalField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional
-from src.models import Militar, User
+from src.models import Militar, User, SituacaoConvocacao
 
 
 def coerce_int_or_none(value):
@@ -290,3 +290,35 @@ class ImpactoForm(FlaskForm):
     ])
 
     submit = SubmitField("Calcular Impacto")
+
+
+class ControleConvocacaoForm(FlaskForm):
+    classificacao = StringField('Classificação', validators=[
+                                DataRequired(), Length(max=50)])
+    inscricao = StringField('Inscrição', validators=[
+                            DataRequired(), Length(max=50)])
+    nome = SelectField(
+        'Nome', choices=[], coerce=int, validators=[DataRequired()])
+    nota_final = StringField('Nota Final', validators=[
+                             DataRequired(), Length(max=50)])
+    ordem_de_convocacao = StringField('Ordem de Convocação', validators=[
+                                      DataRequired(), Length(max=50)])
+    apresentou = BooleanField('Apresentou?')
+    situacao_convocacao_id = SelectField(
+        'Situação da Convocação', coerce=int, validators=[DataRequired()])
+    matricula = BooleanField('Efetivou Matrícula?')
+    numero_da_matricula_doe = StringField('Número da Matrícula (DOE)', validators=[
+                                          DataRequired(), Length(max=50)])
+    bg_matricula_doe = StringField('BG Matrícula (DOE)', validators=[
+                                   DataRequired(), Length(max=50)])
+    portaria_convocacao = StringField('Portaria de Convocação', validators=[
+                                      DataRequired(), Length(max=50)])
+    bg_portaria_convocacao = StringField('BG Portaria de Convocação', validators=[
+                                         DataRequired(), Length(max=50)])
+    doe_portaria_convocacao = StringField('DOE Portaria de Convocação', validators=[
+                                          DataRequired(), Length(max=50)])
+    notificacao_pessoal = BooleanField('Notificação Pessoal?')
+    termo_desistencia = BooleanField('Termo de Desistência Assinado?')
+    siged_desistencia = StringField('SIGED da Desistência', validators=[
+                                    DataRequired(), Length(max=50)])
+    submit = SubmitField('Salvar')

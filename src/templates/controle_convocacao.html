@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container py-4">
+    <!-- Cabeçalho & Busca -->
+    <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <h1 class="m-0">Controle de Convocações</h1>
+        <form class="input-group w-100 w-md-auto" method="get" action="{{ url_for('controle_convocacao') }}">
+            <input type="text" class="form-control" placeholder="Buscar por nome..." name="search" value="{{ search }}">
+            <button class="btn btn-primary" type="submit">Pesquisar</button>
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-responsive shadow-sm rounded-4">
+        <table class="table table-striped mb-0 align-middle">
+            <thead class="table-light">
+                <tr class="text-nowrap">
+                    <th>ID</th>
+                    <th>Classificação</th>
+                    <th>Inscrição</th>
+                    <th>Nome</th>
+                    <th>Nota Final</th>
+                    <th>Ordem Convocação</th>
+                    <th>Apresentou</th>
+                    <th>Situação</th>
+                    <th>Matrícula</th>
+                    <th>Nº Mat. DOE</th>
+                    <th>BG Mat. DOE</th>
+                    <th>Portaria Conv.</th>
+                    <th>BG Portaria</th>
+                    <th>DOE Portaria</th>
+                    <th>Notif. Pessoal</th>
+                    <th>Termo Desist.</th>
+                    <th>SIGED Desist.</th>
+                    <th>Criado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in convocacoes.items %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td>{{ c.classificacao }}</td>
+                    <td>{{ c.inscricao }}</td>
+                    <td class="text-break" style="min-width:180px;">{{ c.nome }}</td>
+                    <td>{{ c.nota_final }}</td>
+                    <td>{{ c.ordem_de_convocacao }}</td>
+                    <td>
+                        {% if c.apresentou %}
+                        <span class="badge bg-success">Sim</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Não</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.situacao.situacao if c.situacao else '-' }}</td>
+                    <td>
+                        {% if c.matricula %}
+                        <span class="badge bg-success">Sim</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Não</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.numero_da_matricula_doe }}</td>
+                    <td>{{ c.bg_matricula_doe }}</td>
+                    <td>{{ c.portaria_convocacao }}</td>
+                    <td>{{ c.bg_portaria_convocacao }}</td>
+                    <td>{{ c.doe_portaria_convocacao }}</td>
+                    <td>
+                        {% if c.notificacao_pessoal %}
+                        <span class="badge bg-success">Sim</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Não</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.termo_desistencia %}
+                        <span class="badge bg-success">Sim</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Não</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.siged_desistencia }}</td>
+                    <td>{{ c.data_criacao.strftime('%d/%m/%Y') if c.data_criacao else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="18" class="text-center py-4">Nenhuma convocação encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if convocacoes.pages > 1 %}
+    <nav class="my-4" aria-label="Paginação">
+        <ul class="pagination justify-content-center flex-wrap gap-1">
+            <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}">
+                <a class="page-link"
+                    href="{{ url_for('controle_convocacao', page=convocacoes.prev_num, search=search) }}"
+                    aria-label="Anterior">&laquo;</a>
+            </li>
+            {% for p in range(1, convocacoes.pages + 1) %}
+            {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %} <li
+                class="page-item {% if convocacoes.page == p %}active{% endif %}"><a class="page-link"
+                    href="{{ url_for('controle_convocacao', page=p, search=search) }}">{{ p }}</a></li>
+                {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}"><a class="page-link"
+                        href="{{ url_for('controle_convocacao', page=convocacoes.next_num, search=search) }}"
+                        aria-label="Próxima">&raquo;</a></li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Gráfico -->
+    <hr class="my-5">
+    <h2 class="h4 mb-3">Convocações por Situação</h2>
+    <div class="position-relative" style="min-height:300px;">
+        <canvas id="convChart" class="w-100 h-100"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const contagem = {{ contagem_situacoes | tojson | safe
+    }};
+    const counts = {};
+    situacoes.forEach(s => counts[s] = (counts[s] || 0) + 1);
+    const ctx = document.getElementById('convChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(contagem),
+            datasets: [{
+                data: Object.values(contagem),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+        });
+</script>
+{% endblock %}

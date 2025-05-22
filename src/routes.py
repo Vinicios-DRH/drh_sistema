@@ -8,8 +8,8 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
-from src.models import (Convocacao, Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, User, FuncaoUser, PublicacaoBg,
+from src.forms import ControleConvocacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
+from src.models import (ControleConvocacao, Convocacao, Militar, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -28,7 +28,7 @@ from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from urllib.parse import urlencode
 from jinja2 import Template
-from collections import defaultdict
+from collections import defaultdict, Counter
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -49,7 +49,7 @@ def api_login():
 
     if not cpf or not senha:
         return jsonify({"status": "erro", "mensagem": "CPF e senha são obrigatórios"}), 400
-    
+
     user = login_usuario(cpf, senha)
 
     if user:
@@ -1944,7 +1944,8 @@ def exibir_ferias_chefe():
 
     if current_user.obm_id_2:
         obm2 = Obm.query.get(current_user.obm_id_2)
-        militares_por_obm[obm2] = obter_militares_por_obm(current_user.obm_id_2)
+        militares_por_obm[obm2] = obter_militares_por_obm(
+            current_user.obm_id_2)
 
     if current_user.obm_id_1 == 16:
         for obm_id in obms_adicionais:
@@ -2643,10 +2644,12 @@ def calcular_impacto():
 
 def calcular_semana(data_convocacao, data_base=None):
     if not data_base:
-        data_base = datetime(2025, 5, 5)  # data base inicial da primeira semana
+        # data base inicial da primeira semana
+        data_base = datetime(2025, 5, 5)
     dias_passados = (data_convocacao - data_base).days
     numero_semana = dias_passados // 7 + 1
     return f"Semana {numero_semana}"
+
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
@@ -2748,8 +2751,10 @@ def relatorio_convocacao():
         totais_semanais[semana]["desistiram"] += r.desistiram
         totais_semanais[semana]["vagas"] += vagas
 
-    dados_ordenados = dict(sorted(dados_por_semana.items(), key=lambda x: int(x[0].split()[-1])))
-    totais_ordenados = dict(sorted(totais_semanais.items(), key=lambda x: int(x[0].split()[-1])))
+    dados_ordenados = dict(
+        sorted(dados_por_semana.items(), key=lambda x: int(x[0].split()[-1])))
+    totais_ordenados = dict(
+        sorted(totais_semanais.items(), key=lambda x: int(x[0].split()[-1])))
 
     return render_template('relatorio.html', dados=dados_ordenados, totais_semanais=totais_ordenados, somatorios=somatorios_geral)
 
@@ -2778,3 +2783,107 @@ def relatorio_convocacao_excel():
     output.seek(0)
 
     return send_file(output, download_name="convocacoes_admin.xlsx", as_attachment=True)
+
+
+@app.route('/adicionar-convocacao', methods=['GET', 'POST'])
+@login_required
+def adicionar_convocacao():
+    form = ControleConvocacaoForm()
+
+    # Preenche as opções do SelectField com dados do banco
+    form.situacao_convocacao_id.choices = [
+        (s.id, s.situacao) for s in SituacaoConvocacao.query.all()
+    ]
+    form.nome.choices = [(n.nome, f"{n.nome} ({n.classificacao})")
+                         for n in NomeConvocado.query.all()]
+
+    if form.validate_on_submit():
+        novo = ControleConvocacao(
+            classificacao=form.classificacao.data,
+            inscricao=form.inscricao.data,
+            nome=form.nome.data,
+            nota_final=form.nota_final.data,
+            ordem_de_convocacao=form.ordem_de_convocacao.data,
+            apresentou=form.apresentou.data,
+            situacao_convocacao_id=form.situacao_convocacao_id.data,
+            matricula=form.matricula.data,
+            numero_da_matricula_doe=form.numero_da_matricula_doe.data,
+            bg_matricula_doe=form.bg_matricula_doe.data,
+            portaria_convocacao=form.portaria_convocacao.data,
+            bg_portaria_convocacao=form.bg_portaria_convocacao.data,
+            doe_portaria_convocacao=form.doe_portaria_convocacao.data,
+            notificacao_pessoal=form.notificacao_pessoal.data,
+            termo_desistencia=form.termo_desistencia.data,
+            siged_desistencia=form.siged_desistencia.data
+        )
+        database.session.add(novo)
+        database.session.commit()
+
+        convocado = NomeConvocado.query.filter_by(nome=form.nome.data).first()
+        if convocado:
+            database.session.delete(convocado)
+            database.session.commit()
+
+        flash('Registro salvo com sucesso!', 'success')
+        # ajuste a rota conforme seu sistema
+        return redirect(url_for('controle_convocacao'))
+
+    return render_template('form_convocacao.html', form=form)
+
+
+@app.route('/controle-convocacao', methods=['GET'])
+@login_required
+def controle_convocacao():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    search = request.args.get('search', '', type=str)
+
+    query = ControleConvocacao.query
+
+    if search:
+        query = query.filter(ControleConvocacao.nome.ilike(f'%{search}%'))
+
+    convocacoes_paginadas = query.order_by(ControleConvocacao.id.desc()).paginate(
+        page=page, per_page=per_page)
+
+    situacoes_list = [
+        c.situacao.situacao if c.situacao else 'Indefinido'
+        for c in convocacoes_paginadas.items
+    ]
+    contagem_situacoes = dict(Counter(situacoes_list))
+
+    return render_template(
+        'controle_convocacao.html',
+        convocacoes=convocacoes_paginadas,
+        search=search,
+        contagem_situacoes=contagem_situacoes
+    )
+
+
+@app.route('/importar-convocados', methods=['GET', 'POST'])
+@login_required
+def importar_convocados():
+    if request.method == 'POST':
+        arquivo = request.files['arquivo']
+        if arquivo.filename.endswith('.xlsx'):
+            filename = secure_filename(arquivo.filename)
+            caminho = os.path.join('uploads', filename)
+            arquivo.save(caminho)
+
+            df = pd.read_excel(caminho)
+
+            for _, row in df.iterrows():
+                nome = NomeConvocado(
+                    nome=row['nome'],
+                    inscricao=row.get('inscricao', ''),
+                    classificacao=row.get('classificacao', '')
+                )
+                database.session.add(nome)
+            database.session.commit()
+
+            flash('Nomes importados com sucesso!', 'success')
+            return redirect(url_for('controle_convocacao'))
+        else:
+            flash('Formato inválido. Envie um arquivo .xlsx', 'danger')
+
+    return render_template('importar_convocados.html')
