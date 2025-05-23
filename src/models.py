@@ -255,7 +255,7 @@ class LicencaParaTratamentoDeSaude(database.Model):
 class FuncaoUser(database.Model):
     __tablename__ = "funcao_user"
     id = database.Column(database.Integer, primary_key=True)
-    ocupacao = database.Column(database.String(50), nullable=False)
+    ocupacao = database.Column(database.String(50))
     user = database.relationship('User', backref='user_funcao')
 
 
@@ -318,7 +318,7 @@ class GC(database.Model):
     __tablename__ = "gc"
     id = database.Column(database.Integer, primary_key=True)
     # Ex: "ESPEC.", "MESTRE", "DOUT."
-    descricao = database.Column(database.String(20), nullable=False)
+    descricao = database.Column(database.String(20))
 
     militares = database.relationship("Militar", back_populates="gc")
 
@@ -456,7 +456,7 @@ class MilitarObmFuncao(database.Model):
         database.Integer, database.ForeignKey('funcao.id'))
     tipo = database.Column(database.Integer)
     data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
-    data_fim = database.Column(database.DateTime, nullable=True)
+    data_fim = database.Column(database.DateTime)
 
     militar = database.relationship('Militar', back_populates='obm_funcoes')
     obm = database.relationship('Obm', back_populates='militares_obms')
@@ -476,7 +476,7 @@ class Paf(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
-                                 nullable=False)  # Relaciona com Militar
+                                 nullable=True)  # Relaciona com Militar
     mes_usufruto = database.Column(database.String(50))
     qtd_dias_primeiro_periodo = database.Column(database.Integer)
     primeiro_periodo_ferias = database.Column(database.Date)
@@ -507,13 +507,13 @@ class Motoristas(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
-                                 nullable=False)
+                                 nullable=True)
     categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'),
-                                   nullable=False)
+                                   nullable=True)
     siged = database.Column(database.String(200))
     boletim_geral = database.Column(database.String(200))
     created = database.Column(database.DateTime, default=datetime.utcnow)
-    modified = database.Column(database.DateTime, nullable=True)
+    modified = database.Column(database.DateTime)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
@@ -533,8 +533,8 @@ class TabelaVencimento(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     nome = database.Column(database.String(100))
     lei = database.Column(database.String(100))
-    data_inicio = database.Column(database.Date, nullable=False)
-    data_fim = database.Column(database.Date, nullable=False)
+    data_inicio = database.Column(database.Date)
+    data_fim = database.Column(database.Date)
 
     valores = database.relationship(
         'ValorDetalhadoPostoGrad', back_populates='tabela', lazy=True)
@@ -545,9 +545,9 @@ class ValorDetalhadoPostoGrad(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     tabela_id = database.Column(database.Integer, database.ForeignKey(
-        'tabela_vencimento.id'), nullable=False)
+        'tabela_vencimento.id'))
     posto_grad_id = database.Column(
-        database.Integer, database.ForeignKey('posto_grad.id'), nullable=False)
+        database.Integer, database.ForeignKey('posto_grad.id'))
 
     # VENCIMENTOS
     soldo = database.Column(database.Numeric(10, 2))
@@ -609,54 +609,54 @@ def receive_before_update(mapper, connection, target):
 
 class Convocacao(database.Model):
     id = database.Column(database.Integer, primary_key=True)
-    data = database.Column(database.Date, nullable=False)
-    convocados = database.Column(database.Integer, nullable=False)
-    faltaram = database.Column(database.Integer, nullable=False)
-    desistiram = database.Column(database.Integer, nullable=False)
-    vagas_abertas = database.Column(database.Integer, nullable=False)
+    data = database.Column(database.Date)
+    convocados = database.Column(database.Integer)
+    faltaram = database.Column(database.Integer)
+    desistiram = database.Column(database.Integer)
+    vagas_abertas = database.Column(database.Integer)
     created_at = database.Column(database.DateTime, default=datetime.utcnow)
-    semana = database.Column(database.String, nullable=True)
+    semana = database.Column(database.String)
 
 
 class NomeConvocado(database.Model):
     id = database.Column(database.Integer, primary_key=True)
-    nome = database.Column(database.String(100), nullable=False)
-    inscricao = database.Column(database.String(50), nullable=True)
-    classificacao = database.Column(database.String(50), nullable=True)
-    nota_final = database.Column(database.String(50), nullable=True)
+    nome = database.Column(database.String(100))
+    inscricao = database.Column(database.String(50))
+    classificacao = database.Column(database.String(50))
+    nota_final = database.Column(database.String(50))
 
 
 class SituacaoConvocacao(database.Model):
     id = database.Column(database.Integer, primary_key=True)
-    situacao = database.Column(database.String(50), nullable=False)
+    situacao = database.Column(database.String(50))
 
 
 class ControleConvocacao(database.Model):
     id = database.Column(database.Integer, primary_key=True)
-    classificacao = database.Column(database.String(50), nullable=False)
-    inscricao = database.Column(database.String(50), nullable=False)
-    nome = database.Column(database.String(100), nullable=False)
-    nota_final = database.Column(database.String(50), nullable=False)
-    ordem_de_convocacao = database.Column(database.String(50), nullable=False)
+    classificacao = database.Column(database.String(50))
+    inscricao = database.Column(database.String(50))
+    nome = database.Column(database.String(100))
+    nota_final = database.Column(database.String(50))
+    ordem_de_convocacao = database.Column(database.String(50))
     apresentou = database.Column(
-        database.Boolean, nullable=False, default=False)
+        database.Boolean, default=False)
     situacao_convocacao_id = database.Column(
         database.Integer, database.ForeignKey('situacao_convocacao.id'))
     matricula = database.Column(
-        database.Boolean, nullable=False, default=False)
+        database.Boolean, default=False)
     numero_da_matricula_doe = database.Column(
-        database.String(50), nullable=False)
-    bg_matricula_doe = database.Column(database.String(50), nullable=False)
-    portaria_convocacao = database.Column(database.String(50), nullable=False)
+        database.String(50))
+    bg_matricula_doe = database.Column(database.String(50))
+    portaria_convocacao = database.Column(database.String(50))
     bg_portaria_convocacao = database.Column(
-        database.String(50), nullable=False)
+        database.String(50))
     doe_portaria_convocacao = database.Column(
-        database.String(50), nullable=False)
+        database.String(50))
     notificacao_pessoal = database.Column(
-        database.Boolean, nullable=False, default=False)
+        database.Boolean, default=False)
     termo_desistencia = database.Column(
-        database.Boolean, nullable=False, default=False)
-    siged_desistencia = database.Column(database.String(50), nullable=False)
+        database.Boolean, default=False)
+    siged_desistencia = database.Column(database.String(50))
     data_criacao = database.Column(
         database.DateTime, default=datetime.utcnow)
 

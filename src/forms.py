@@ -140,18 +140,18 @@ class FormMilitar(FlaskForm):
 
 
 class FormLogin(FlaskForm):
-    cpf = StringField('CPF', validators=[DataRequired()])
+    cpf = StringField('CPF', )
     senha = PasswordField('Senha', validators=[DataRequired(), Length(6, 20)])
     lembrar_dados = BooleanField('Lembre-se de mim')
     botao_submit_login = SubmitField('Entrar')
 
 
 class FormCriarUsuario(FlaskForm):
-    nome = StringField('Nome Completo', validators=[DataRequired()])
-    cpf = StringField('CPF', validators=[DataRequired()])
+    nome = StringField('Nome Completo', )
+    cpf = StringField('CPF', )
     email = StringField('E-mail', validators=[DataRequired(), Email()])
     funcao_user_id = SelectField(
-        'Função', choices=[], validators=[DataRequired()])
+        'Função', choices=[], )
     obm_id_1 = SelectField('OBM 1', choices=[], coerce=coerce_int_or_none)
     obm_id_2 = SelectField('OBM 2', choices=[], coerce=coerce_int_or_none)
     localidade_id = SelectField(
@@ -227,10 +227,10 @@ class FormFiltroMotorista(FlaskForm):
 
 
 class TabelaVencimentoForm(FlaskForm):
-    nome = StringField("Nome da Tabela", validators=[DataRequired()])
-    lei = StringField("Lei", validators=[DataRequired()])
+    nome = StringField("Nome da Tabela", )
+    lei = StringField("Lei", )
     data_inicio = DateField(
-        "Data de Início", format='%Y-%m-%d', validators=[DataRequired()])
+        "Data de Início", format='%Y-%m-%d', )
     data_fim = DateField("Data de Fim", format='%Y-%m-%d',
                          validators=[Optional()])
     posto_grad = SelectField("Posto/Graduação", choices=[])
@@ -275,14 +275,14 @@ class TabelaVencimentoForm(FlaskForm):
 
 class ImpactoForm(FlaskForm):
     data_inicio = DateField(
-        "Data de Início", format='%Y-%m-%d', validators=[DataRequired()])
+        "Data de Início", format='%Y-%m-%d', )
     data_fim = DateField("Data de Fim", format='%Y-%m-%d',
-                         validators=[DataRequired()])
+                         )
 
     posto_origem = SelectField(
-        "Posto/Graduação Atual", coerce=int, validators=[DataRequired()])
+        "Posto/Graduação Atual", coerce=int, )
     posto_destino = SelectField(
-        "Posto/Graduação da Promoção", coerce=int, validators=[DataRequired()])
+        "Posto/Graduação da Promoção", coerce=int, )
 
     efetivo = IntegerField("Efetivo", validators=[
         DataRequired(), NumberRange(min=1, max=1000,
@@ -293,32 +293,29 @@ class ImpactoForm(FlaskForm):
 
 
 class ControleConvocacaoForm(FlaskForm):
-    classificacao = StringField('Classificação', validators=[
-                                DataRequired(), Length(max=50)])
-    inscricao = StringField('Inscrição', validators=[
-                            DataRequired(), Length(max=50)])
+    classificacao = StringField('Classificação', validators=[Length(max=50)])
+    inscricao = StringField('Inscrição', validators=[Length(max=50)])
     nome = SelectField(
-        'Nome', choices=[], coerce=int, validators=[DataRequired()])
-    nota_final = StringField('Nota Final', validators=[
-                             DataRequired(), Length(max=50)])
-    ordem_de_convocacao = StringField('Ordem de Convocação', validators=[
-                                      DataRequired(), Length(max=50)])
+        'Nome', choices=[], coerce=int)
+    nota_final = StringField('Nota Final', validators=[Length(max=50)])
+    ordem_de_convocacao = StringField(
+        'Ordem de Convocação', validators=[Length(max=50)])
     apresentou = BooleanField('Apresentou?')
     situacao_convocacao_id = SelectField(
-        'Situação da Convocação', coerce=int, validators=[DataRequired()])
+        'Situação da Convocação', coerce=int, )
     matricula = BooleanField('Efetivou Matrícula?')
-    numero_da_matricula_doe = StringField('Número da Matrícula (DOE)', validators=[
-                                          DataRequired(), Length(max=50)])
-    bg_matricula_doe = StringField('BG Matrícula (DOE)', validators=[
-                                   DataRequired(), Length(max=50)])
-    portaria_convocacao = StringField('Portaria de Convocação', validators=[
-                                      DataRequired(), Length(max=50)])
-    bg_portaria_convocacao = StringField('BG Portaria de Convocação', validators=[
-                                         DataRequired(), Length(max=50)])
-    doe_portaria_convocacao = StringField('DOE Portaria de Convocação', validators=[
-                                          DataRequired(), Length(max=50)])
+    numero_da_matricula_doe = StringField(
+        'Número da Matrícula (DOE)', validators=[Length(max=50)])
+    bg_matricula_doe = StringField(
+        'BG Matrícula (DOE)', validators=[Length(max=50)])
+    portaria_convocacao = StringField(
+        'Portaria de Convocação', validators=[Length(max=50)])
+    bg_portaria_convocacao = StringField(
+        'BG Portaria de Convocação', validators=[Length(max=50)])
+    doe_portaria_convocacao = StringField(
+        'DOE Portaria de Convocação', validators=[Length(max=50)])
     notificacao_pessoal = BooleanField('Notificação Pessoal?')
     termo_desistencia = BooleanField('Termo de Desistência Assinado?')
-    siged_desistencia = StringField('SIGED da Desistência', validators=[
-                                    DataRequired(), Length(max=50)])
+    siged_desistencia = StringField(
+        'SIGED da Desistência', validators=[Length(max=50)])
     submit = SubmitField('Salvar')
