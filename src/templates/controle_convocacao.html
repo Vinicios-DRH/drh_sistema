@@ -17,24 +17,24 @@
             <table class="table table-striped mb-0 align-middle">
                 <thead class="table-light text-nowrap">
                     <tr>
-                        <th>ID</th>
+                        <th>ORD.</th>
                         <th>Classificação</th>
                         <th>Inscrição</th>
                         <th>Nome</th>
-                        <th>Nota Final</th>
-                        <th>Ordem Convocação</th>
+                        <th>Nota Final</th>
+                        <th>Ordem Convocação</th>
                         <th>Apresentou</th>
                         <th>Situação</th>
                         <th>Matrícula</th>
-                        <th>Nº Mat. DOE</th>
-                        <th>BG Mat. DOE</th>
-                        <th>Portaria Conv.</th>
-                        <th>BG Portaria</th>
-                        <th>DOE Portaria</th>
-                        <th>Notif. Pessoal</th>
-                        <th>Termo Desist.</th>
-                        <th>SIGED Desist.</th>
-                        <th>Criado em</th>
+                        <th>Nº Mat. DOE</th>
+                        <th>BG Mat. DOE</th>
+                        <th>Portaria Conv.</th>
+                        <th>BG Portaria</th>
+                        <th>DOE Portaria</th>
+                        <th>Notif. Pessoal</th>
+                        <th>Termo Desist.</th>
+                        <th>SIGED Desist.</th>
+                        <th>Criado em</th>
                     </tr>
                     <tr>
                         <th><input name="id" value="{{ request.args.get('id', '') }}"
@@ -107,9 +107,11 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% set ordem_base = (convocacoes.page - 1) * convocacoes.per_page %}
                     {% for c in convocacoes.items %}
                     <tr>
-                        <td>{{ c.id }}</td>
+                        <td>{{ ordem_base + loop.index }}º</td>
+
                         <td>{{ c.classificacao }}</td>
                         <td>{{ c.inscricao }}</td>
                         <td class="text-break" style="min-width:180px;">{{ c.nome }}</td>
@@ -148,19 +150,22 @@
         <ul class="pagination justify-content-center flex-wrap gap-1">
             {% set prev_args = args.copy() %}
             {% set prev_args = prev_args.update({'page': convocacoes.prev_num}) or args %}
-            <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}"><a class="page-link"
-                    href="{{ url_for('controle_convocacao', **prev_args) }}">&laquo;</a></li>
+            <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('controle_convocacao', **prev_args) }}">&laquo;</a>
+            </li>
             {% for p in range(1, convocacoes.pages + 1) %}
             {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %} {% set page_args=args.copy() %} {% set
                 page_args=page_args.update({'page': p}) or args %} <li
-                class="page-item {% if convocacoes.page == p %}active{% endif %}"><a class="page-link"
-                    href="{{ url_for('controle_convocacao', **page_args) }}">{{ p }}</a></li>
+                class="page-item {% if convocacoes.page == p %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('controle_convocacao', **page_args) }}">{{ p }}</a>
+                </li>
                 {% endif %}
                 {% endfor %}
                 {% set next_args = args.copy() %}
                 {% set next_args = next_args.update({'page': convocacoes.next_num}) or args %}
-                <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}"><a class="page-link"
-                        href="{{ url_for('controle_convocacao', **next_args) }}">&raquo;</a></li>
+                <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('controle_convocacao', **next_args) }}">&raquo;</a>
+                </li>
         </ul>
     </nav>
     {% endif %}
@@ -196,15 +201,24 @@
     });
     });
 </script>
-
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('filtros-form');
+        let debounceTimer;
+
+        function debounceSubmit() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                form.submit();
+            }, 500);
+        }
 
         form.querySelectorAll('input, select').forEach(element => {
-            element.addEventListener('change', () => {
-                form.submit();
-            });
+            if (element.tagName === 'INPUT') {
+                element.addEventListener('input', debounceSubmit);
+            } else {
+                element.addEventListener('change', () => form.submit());
+            }
         });
     });
 </script>
