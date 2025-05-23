@@ -1,4 +1,7 @@
 import os
+import zipfile
+import tempfile
+import qrcode
 import pytz
 import pandas as pd
 import base64
@@ -2900,3 +2903,50 @@ def importar_convocados():
             flash('Formato inválido. Envie um arquivo .xlsx', 'danger')
 
     return render_template('importar_convocados.html')
+
+
+@app.route('/gerar-qrcodes', methods=['GET', 'POST'])
+@login_required
+def gerar_qrcodes():
+    if request.method == 'POST':
+        arquivo = request.files.get('arquivo')
+        if not arquivo or not arquivo.filename.endswith('.xlsx'):
+            flash('Envie um arquivo .xlsx válido', 'danger')
+            return redirect(request.url)
+
+        # lê planilha em memória
+        df = pd.read_excel(arquivo)
+
+        if not {'nome_completo', 'qrcode_link'} <= set(df.columns.str.lower()):
+            flash('Planilha deve conter colunas nome_completo e qrcode_link', 'danger')
+            return redirect(request.url)
+
+        # cria zip em memória
+        buffer_zip = BytesIO()
+        with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for _, row in df.iterrows():
+                nome = str(row['nome_completo']).strip()
+                link = str(row['qrcode_link']).strip()
+                if not nome or not link:
+                    continue
+
+                # gera QR
+                qr_img = qrcode.make(link)
+                img_bytes = BytesIO()
+                qr_img.save(img_bytes, format='PNG')
+                img_bytes.seek(0)
+
+                # filename seguro (sem espaços / acentos)
+                fname = secure_filename(f'{nome}.png')
+                zf.writestr(fname, img_bytes.read())
+
+        buffer_zip.seek(0)
+        return send_file(
+            buffer_zip,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='qrcodes.zip'
+        )
+
+    # GET → mostra formulário
+    return render_template('gerar_qrcodes.html')

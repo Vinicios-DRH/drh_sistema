@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow-lg rounded-4">
+        <div class="card-header bg-primary text-white text-center rounded-top-4">
+            <h3><i class="bi bi-file-earmark-arrow-up-fill"></i> Gerar QR Codes</h3>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="arquivo" class="form-label">Selecione um arquivo Excel (.xlsx) com as colunas
+                        <strong>nome_completo</strong> e <strong>qrcode_link</strong>:</label>
+                    <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".xlsx" required>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-download"></i> Gerar e Baixar ZIP
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
