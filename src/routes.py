@@ -2846,7 +2846,7 @@ def adicionar_convocacao():
 @login_required
 def controle_convocacao():
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 100
     search = request.args.get('search', '').strip()
 
     # coleta todos os filtros
