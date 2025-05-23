@@ -24,7 +24,7 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func, and_
+from sqlalchemy import case, func, and_, cast, Integer
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -2907,7 +2907,7 @@ def controle_convocacao():
             query = query.filter(coluna.is_(filtros[campo] == 'sim'))
 
     convocacoes_paginadas = query.order_by(
-        ControleConvocacao.id.desc()).paginate(page=page, per_page=per_page)
+        ControleConvocacao.id.asc()).paginate(page=page, per_page=per_page)
 
     # dados para o gráfico
     situacoes_list = [
