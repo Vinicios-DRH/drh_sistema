@@ -2837,7 +2837,7 @@ def adicionar_convocacao():
 
         flash('Registro salvo com sucesso!', 'success')
         # ajuste a rota conforme seu sistema
-        return redirect(url_for('controle_convocacao'))
+        return redirect(url_for('adicionar_convocacao'))
 
     return render_template('form_convocacao.html', form=form, nomes_data=nomes_data)
 
