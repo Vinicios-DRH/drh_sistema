@@ -205,23 +205,27 @@
     <nav class="my-4" aria-label="Paginação">
         <ul class="pagination justify-content-center flex-wrap gap-1">
             {% set prev_args = args.copy() %}
-            {% set prev_args = prev_args.update({'page': convocacoes.prev_num}) or args %}
+            {% set _ = prev_args.update({'page': convocacoes.prev_num}) %}
             <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}">
                 <a class="page-link" href="{{ url_for('controle_convocacao', **prev_args) }}">&laquo;</a>
             </li>
+
             {% for p in range(1, convocacoes.pages + 1) %}
-            {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %} {% set page_args=args.copy() %} {% set
-                page_args=page_args.update({'page': p}) or args %} <li
-                class="page-item {% if convocacoes.page == p %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('controle_convocacao', **page_args) }}">{{ p }}</a>
-                </li>
+                {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %}
+                    {% set page_args = args.copy() %}
+                    {% set _ = page_args.update({'page': p}) %}
+                    <li class="page-item {% if convocacoes.page == p %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('controle_convocacao', **page_args) }}">{{ p }}</a>
+                    </li>
                 {% endif %}
-                {% endfor %}
-                {% set next_args = args.copy() %}
-                {% set next_args = next_args.update({'page': convocacoes.next_num}) or args %}
-                <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('controle_convocacao', **next_args) }}">&raquo;</a>
-                </li>
+            {% endfor %}
+
+            {% set next_args = args.copy() %}
+            {% set _ = next_args.update({'page': convocacoes.next_num}) %}
+            <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('controle_convocacao', **next_args) }}">&raquo;</a>
+            </li>
+
         </ul>
     </nav>
     {% endif %}
