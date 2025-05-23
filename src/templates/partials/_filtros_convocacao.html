@@ -1,0 +1,123 @@
+<form method="get" action="{{ url_for('controle_convocacao') }}">
+    <!-- Classificação -->
+    <div class="mb-3">
+        <label for="classificacao" class="form-label">Classificação</label>
+        <input type="text" class="form-control" id="classificacao" name="classificacao"
+            value="{{ request.args.get('classificacao', '') }}">
+    </div>
+
+    <!-- Inscrição -->
+    <div class="mb-3">
+        <label for="inscricao" class="form-label">Inscrição</label>
+        <input type="text" class="form-control" id="inscricao" name="inscricao"
+            value="{{ request.args.get('inscricao', '') }}">
+    </div>
+
+    <!-- Nota Final -->
+    <div class="mb-3">
+        <label for="nota_final" class="form-label">Nota Final</label>
+        <input type="text" class="form-control" id="nota_final" name="nota_final"
+            value="{{ request.args.get('nota_final', '') }}">
+    </div>
+
+    <!-- Ordem de Convocação -->
+    <div class="mb-3">
+        <label for="ordem_de_convocacao" class="form-label">Ordem de Convocação</label>
+        <input type="text" class="form-control" id="ordem_de_convocacao" name="ordem_de_convocacao"
+            value="{{ request.args.get('ordem_de_convocacao', '') }}">
+    </div>
+
+    <!-- Apresentou -->
+    <div class="mb-3">
+        <label for="apresentou" class="form-label">Apresentou</label>
+        <select class="form-select" id="apresentou" name="apresentou">
+            <option value="">Todos</option>
+            <option value="sim" {% if request.args.get('apresentou')=='sim' %}selected{% endif %}>Sim</option>
+            <option value="nao" {% if request.args.get('apresentou')=='nao' %}selected{% endif %}>Não</option>
+        </select>
+    </div>
+
+    <!-- Situação da Convocação -->
+    <div class="mb-3">
+        <label for="situacao_convocacao_id" class="form-label">Situação</label>
+        <input type="number" class="form-control" id="situacao_convocacao_id" name="situacao_convocacao_id"
+            value="{{ request.args.get('situacao_convocacao_id', '') }}">
+    </div>
+
+    <!-- Matrícula -->
+    <div class="mb-3">
+        <label for="matricula" class="form-label">Matrícula</label>
+        <select class="form-select" id="matricula" name="matricula">
+            <option value="">Todos</option>
+            <option value="sim" {% if request.args.get('matricula')=='sim' %}selected{% endif %}>Sim</option>
+            <option value="nao" {% if request.args.get('matricula')=='nao' %}selected{% endif %}>Não</option>
+        </select>
+    </div>
+
+    <!-- Nº Mat. DOE -->
+    <div class="mb-3">
+        <label for="numero_da_matricula_doe" class="form-label">Nº Mat. DOE</label>
+        <input type="text" class="form-control" id="numero_da_matricula_doe" name="numero_da_matricula_doe"
+            value="{{ request.args.get('numero_da_matricula_doe', '') }}">
+    </div>
+
+    <!-- BG Mat. DOE -->
+    <div class="mb-3">
+        <label for="bg_matricula_doe" class="form-label">BG Mat. DOE</label>
+        <input type="text" class="form-control" id="bg_matricula_doe" name="bg_matricula_doe"
+            value="{{ request.args.get('bg_matricula_doe', '') }}">
+    </div>
+
+    <!-- Portaria Convocação -->
+    <div class="mb-3">
+        <label for="portaria_convocacao" class="form-label">Portaria Convocação</label>
+        <input type="text" class="form-control" id="portaria_convocacao" name="portaria_convocacao"
+            value="{{ request.args.get('portaria_convocacao', '') }}">
+    </div>
+
+    <!-- BG Portaria -->
+    <div class="mb-3">
+        <label for="bg_portaria_convocacao" class="form-label">BG Portaria</label>
+        <input type="text" class="form-control" id="bg_portaria_convocacao" name="bg_portaria_convocacao"
+            value="{{ request.args.get('bg_portaria_convocacao', '') }}">
+    </div>
+
+    <!-- DOE Portaria -->
+    <div class="mb-3">
+        <label for="doe_portaria_convocacao" class="form-label">DOE Portaria</label>
+        <input type="text" class="form-control" id="doe_portaria_convocacao" name="doe_portaria_convocacao"
+            value="{{ request.args.get('doe_portaria_convocacao', '') }}">
+    </div>
+
+    <!-- Notificação Pessoal -->
+    <div class="mb-3">
+        <label for="notificacao_pessoal" class="form-label">Notificação Pessoal</label>
+        <select class="form-select" id="notificacao_pessoal" name="notificacao_pessoal">
+            <option value="">Todos</option>
+            <option value="sim" {% if request.args.get('notificacao_pessoal')=='sim' %}selected{% endif %}>Sim</option>
+            <option value="nao" {% if request.args.get('notificacao_pessoal')=='nao' %}selected{% endif %}>Não</option>
+        </select>
+    </div>
+
+    <!-- Termo Desistência -->
+    <div class="mb-3">
+        <label for="termo_desistencia" class="form-label">Termo de Desistência</label>
+        <select class="form-select" id="termo_desistencia" name="termo_desistencia">
+            <option value="">Todos</option>
+            <option value="sim" {% if request.args.get('termo_desistencia')=='sim' %}selected{% endif %}>Sim</option>
+            <option value="nao" {% if request.args.get('termo_desistencia')=='nao' %}selected{% endif %}>Não</option>
+        </select>
+    </div>
+
+    <!-- SIGED Desistência -->
+    <div class="mb-3">
+        <label for="siged_desistencia" class="form-label">SIGED Desistência</label>
+        <input type="text" class="form-control" id="siged_desistencia" name="siged_desistencia"
+            value="{{ request.args.get('siged_desistencia', '') }}">
+    </div>
+
+    <!-- Botão -->
+    <div class="d-grid">
+        <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+    </div>
+</form>

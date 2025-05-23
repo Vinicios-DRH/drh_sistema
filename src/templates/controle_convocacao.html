@@ -2,119 +2,169 @@
 
 {% block body %}
 <div class="container py-4">
-    <!-- Cabeçalho & Busca -->
     <div
         class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <h1 class="m-0">Controle de Convocações</h1>
         <form class="input-group w-100 w-md-auto" method="get" action="{{ url_for('controle_convocacao') }}">
-            <input type="text" class="form-control" placeholder="Buscar por nome..." name="search" value="{{ search }}">
+            <input type="text" class="form-control" placeholder="Buscar por nome..." name="search"
+                value="{{ request.args.get('search', '') }}">
             <button class="btn btn-primary" type="submit">Pesquisar</button>
         </form>
     </div>
 
-    <!-- Tabela -->
     <div class="table-responsive shadow-sm rounded-4">
-        <table class="table table-striped mb-0 align-middle">
-            <thead class="table-light">
-                <tr class="text-nowrap">
-                    <th>ID</th>
-                    <th>Classificação</th>
-                    <th>Inscrição</th>
-                    <th>Nome</th>
-                    <th>Nota Final</th>
-                    <th>Ordem Convocação</th>
-                    <th>Apresentou</th>
-                    <th>Situação</th>
-                    <th>Matrícula</th>
-                    <th>Nº Mat. DOE</th>
-                    <th>BG Mat. DOE</th>
-                    <th>Portaria Conv.</th>
-                    <th>BG Portaria</th>
-                    <th>DOE Portaria</th>
-                    <th>Notif. Pessoal</th>
-                    <th>Termo Desist.</th>
-                    <th>SIGED Desist.</th>
-                    <th>Criado em</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in convocacoes.items %}
-                <tr>
-                    <td>{{ c.id }}</td>
-                    <td>{{ c.classificacao }}</td>
-                    <td>{{ c.inscricao }}</td>
-                    <td class="text-break" style="min-width:180px;">{{ c.nome }}</td>
-                    <td>{{ c.nota_final }}</td>
-                    <td>{{ c.ordem_de_convocacao }}</td>
-                    <td>
-                        {% if c.apresentou %}
-                        <span class="badge bg-success">Sim</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Não</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ c.situacao.situacao if c.situacao else '-' }}</td>
-                    <td>
-                        {% if c.matricula %}
-                        <span class="badge bg-success">Sim</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Não</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ c.numero_da_matricula_doe }}</td>
-                    <td>{{ c.bg_matricula_doe }}</td>
-                    <td>{{ c.portaria_convocacao }}</td>
-                    <td>{{ c.bg_portaria_convocacao }}</td>
-                    <td>{{ c.doe_portaria_convocacao }}</td>
-                    <td>
-                        {% if c.notificacao_pessoal %}
-                        <span class="badge bg-success">Sim</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Não</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if c.termo_desistencia %}
-                        <span class="badge bg-success">Sim</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Não</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ c.siged_desistencia }}</td>
-                    <td>{{ c.data_criacao.strftime('%d/%m/%Y') if c.data_criacao else '-' }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="18" class="text-center py-4">Nenhuma convocação encontrada.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <form method="get" action="{{ url_for('controle_convocacao') }}" id="filtros-form">
+            <table class="table table-striped mb-0 align-middle">
+                <thead class="table-light text-nowrap">
+                    <tr>
+                        <th>ID</th>
+                        <th>Classificação</th>
+                        <th>Inscrição</th>
+                        <th>Nome</th>
+                        <th>Nota Final</th>
+                        <th>Ordem Convocação</th>
+                        <th>Apresentou</th>
+                        <th>Situação</th>
+                        <th>Matrícula</th>
+                        <th>Nº Mat. DOE</th>
+                        <th>BG Mat. DOE</th>
+                        <th>Portaria Conv.</th>
+                        <th>BG Portaria</th>
+                        <th>DOE Portaria</th>
+                        <th>Notif. Pessoal</th>
+                        <th>Termo Desist.</th>
+                        <th>SIGED Desist.</th>
+                        <th>Criado em</th>
+                    </tr>
+                    <tr>
+                        <th><input name="id" value="{{ request.args.get('id', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="classificacao" value="{{ request.args.get('classificacao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="inscricao" value="{{ request.args.get('inscricao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="nome" value="{{ request.args.get('nome', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="nota_final" value="{{ request.args.get('nota_final', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="ordem_de_convocacao" value="{{ request.args.get('ordem_de_convocacao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th>
+                            <select name="apresentou" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="sim" {% if request.args.get('apresentou')=='sim' %}selected{% endif %}>
+                                    Sim</option>
+                                <option value="nao" {% if request.args.get('apresentou')=='nao' %}selected{% endif %}>
+                                    Não</option>
+                            </select>
+                        </th>
+                        <th><input name="situacao_convocacao_id"
+                                value="{{ request.args.get('situacao_convocacao_id', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th>
+                            <select name="matricula" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="sim" {% if request.args.get('matricula')=='sim' %}selected{% endif %}>Sim
+                                </option>
+                                <option value="nao" {% if request.args.get('matricula')=='nao' %}selected{% endif %}>Não
+                                </option>
+                            </select>
+                        </th>
+                        <th><input name="numero_da_matricula_doe"
+                                value="{{ request.args.get('numero_da_matricula_doe', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="bg_matricula_doe" value="{{ request.args.get('bg_matricula_doe', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="portaria_convocacao" value="{{ request.args.get('portaria_convocacao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="bg_portaria_convocacao"
+                                value="{{ request.args.get('bg_portaria_convocacao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th><input name="doe_portaria_convocacao"
+                                value="{{ request.args.get('doe_portaria_convocacao', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th>
+                            <select name="notificacao_pessoal" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="sim" {% if request.args.get('notificacao_pessoal')=='sim' %}selected{%
+                                    endif %}>Sim</option>
+                                <option value="nao" {% if request.args.get('notificacao_pessoal')=='nao' %}selected{%
+                                    endif %}>Não</option>
+                            </select>
+                        </th>
+                        <th>
+                            <select name="termo_desistencia" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="sim" {% if request.args.get('termo_desistencia')=='sim' %}selected{%
+                                    endif %}>Sim</option>
+                                <option value="nao" {% if request.args.get('termo_desistencia')=='nao' %}selected{%
+                                    endif %}>Não</option>
+                            </select>
+                        </th>
+                        <th><input name="siged_desistencia" value="{{ request.args.get('siged_desistencia', '') }}"
+                                class="form-control form-control-sm" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in convocacoes.items %}
+                    <tr>
+                        <td>{{ c.id }}</td>
+                        <td>{{ c.classificacao }}</td>
+                        <td>{{ c.inscricao }}</td>
+                        <td class="text-break" style="min-width:180px;">{{ c.nome }}</td>
+                        <td>{{ c.nota_final }}</td>
+                        <td>{{ c.ordem_de_convocacao }}</td>
+                        <td><span class="badge {{ 'bg-success' if c.apresentou else 'bg-secondary' }}">{{ 'Sim' if
+                                c.apresentou else 'Não' }}</span></td>
+                        <td>{{ c.situacao.situacao if c.situacao else '-' }}</td>
+                        <td><span class="badge {{ 'bg-success' if c.matricula else 'bg-secondary' }}">{{ 'Sim' if
+                                c.matricula else 'Não' }}</span></td>
+                        <td>{{ c.numero_da_matricula_doe }}</td>
+                        <td>{{ c.bg_matricula_doe }}</td>
+                        <td>{{ c.portaria_convocacao }}</td>
+                        <td>{{ c.bg_portaria_convocacao }}</td>
+                        <td>{{ c.doe_portaria_convocacao }}</td>
+                        <td><span class="badge {{ 'bg-success' if c.notificacao_pessoal else 'bg-secondary' }}">{{ 'Sim'
+                                if c.notificacao_pessoal else 'Não' }}</span></td>
+                        <td><span class="badge {{ 'bg-success' if c.termo_desistencia else 'bg-secondary' }}">{{ 'Sim'
+                                if c.termo_desistencia else 'Não' }}</span></td>
+                        <td>{{ c.siged_desistencia }}</td>
+                        <td>{{ c.data_criacao.strftime('%d/%m/%Y') if c.data_criacao else '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="18" class="text-center py-4">Nenhuma convocação encontrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
     </div>
 
-    <!-- Paginação -->
     {% if convocacoes.pages > 1 %}
+    {% set args = request.args.to_dict() %}
     <nav class="my-4" aria-label="Paginação">
         <ul class="pagination justify-content-center flex-wrap gap-1">
-            <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}">
-                <a class="page-link"
-                    href="{{ url_for('controle_convocacao', page=convocacoes.prev_num, search=search) }}"
-                    aria-label="Anterior">&laquo;</a>
-            </li>
+            {% set prev_args = args.copy() %}
+            {% set prev_args = prev_args.update({'page': convocacoes.prev_num}) or args %}
+            <li class="page-item {% if not convocacoes.has_prev %}disabled{% endif %}"><a class="page-link"
+                    href="{{ url_for('controle_convocacao', **prev_args) }}">&laquo;</a></li>
             {% for p in range(1, convocacoes.pages + 1) %}
-            {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %} <li
+            {% if p >= convocacoes.page - 2 and p <= convocacoes.page + 2 %} {% set page_args=args.copy() %} {% set
+                page_args=page_args.update({'page': p}) or args %} <li
                 class="page-item {% if convocacoes.page == p %}active{% endif %}"><a class="page-link"
-                    href="{{ url_for('controle_convocacao', page=p, search=search) }}">{{ p }}</a></li>
+                    href="{{ url_for('controle_convocacao', **page_args) }}">{{ p }}</a></li>
                 {% endif %}
                 {% endfor %}
+                {% set next_args = args.copy() %}
+                {% set next_args = next_args.update({'page': convocacoes.next_num}) or args %}
                 <li class="page-item {% if not convocacoes.has_next %}disabled{% endif %}"><a class="page-link"
-                        href="{{ url_for('controle_convocacao', page=convocacoes.next_num, search=search) }}"
-                        aria-label="Próxima">&raquo;</a></li>
+                        href="{{ url_for('controle_convocacao', **next_args) }}">&raquo;</a></li>
         </ul>
     </nav>
     {% endif %}
 
-    <!-- Gráfico -->
     <hr class="my-5">
     <h2 class="h4 mb-3">Convocações por Situação</h2>
     <div class="position-relative" style="min-height:300px;">
@@ -130,17 +180,12 @@
     document.addEventListener('DOMContentLoaded', () => {
         const contagem = {{ contagem_situacoes | tojson | safe
     }};
-    const counts = {};
-    situacoes.forEach(s => counts[s] = (counts[s] || 0) + 1);
     const ctx = document.getElementById('convChart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: Object.keys(contagem),
-            datasets: [{
-                data: Object.values(contagem),
-                borderWidth: 1
-            }]
+            datasets: [{ data: Object.values(contagem), borderWidth: 1 }]
         },
         options: {
             responsive: true,
@@ -149,7 +194,19 @@
             }
         }
     });
-
-        });
+    });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('filtros-form');
+
+        form.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('change', () => {
+                form.submit();
+            });
+        });
+    });
+</script>
+
 {% endblock %}
