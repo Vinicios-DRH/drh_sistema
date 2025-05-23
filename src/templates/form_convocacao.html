@@ -89,4 +89,40 @@
         </div>
     </div>
 </div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // ➌ ——— dados vindos do Flask
+        const nomesData = {{ nomes_data | tojson | safe
+    }};
+
+    const nomeSelect = document.getElementById('nome');
+    const inscricaoInput = document.getElementById('inscricao');
+    const classificInput = document.getElementById('classificacao');
+    const nota_finalInput = document.getElementById('nota_final');
+
+    function preencherCampos(id) {
+        const info = nomesData[id];
+        if (info) {
+            inscricaoInput.value = info.inscricao;
+            classificInput.value = info.classificacao;
+            nota_finalInput.value = info.nota_final;
+        } else {
+            inscricaoInput.value = '';
+            classificInput.value = '';
+            nota_finalInput.value = '';
+        }
+    }
+
+    // primeira carga (caso volte em “editar”)
+    preencherCampos(nomeSelect.value);
+
+    // sempre que o usuário trocar de nome
+    nomeSelect.addEventListener('change', e => preencherCampos(e.target.value));
+    });
+</script>
+{% endblock %}
+
 {% endblock %}

@@ -2790,18 +2790,30 @@ def relatorio_convocacao_excel():
 def adicionar_convocacao():
     form = ControleConvocacaoForm()
 
-    # Preenche as opções do SelectField com dados do banco
+    # Situações
     form.situacao_convocacao_id.choices = [
         (s.id, s.situacao) for s in SituacaoConvocacao.query.all()
     ]
-    form.nome.choices = [(n.nome, f"{n.nome} ({n.classificacao})")
-                         for n in NomeConvocado.query.all()]
+
+    # Nomes (apenas o texto do nome na label)
+    nomes = NomeConvocado.query.all()
+    form.nome.choices = [(n.id, n.nome) for n in nomes]
+
+    # ➊  ———  dicionário p/ preencher via JS
+    nomes_data = {
+        n.id: {
+            "inscricao": n.inscricao or "",
+            "classificacao": n.classificacao or "",
+            "nota_final": n.nota_final or "",
+        } for n in nomes
+    }
 
     if form.validate_on_submit():
+        selected_nome = NomeConvocado.query.get(form.nome.data)
         novo = ControleConvocacao(
             classificacao=form.classificacao.data,
             inscricao=form.inscricao.data,
-            nome=form.nome.data,
+            nome=selected_nome.nome,
             nota_final=form.nota_final.data,
             ordem_de_convocacao=form.ordem_de_convocacao.data,
             apresentou=form.apresentou.data,
@@ -2817,18 +2829,14 @@ def adicionar_convocacao():
             siged_desistencia=form.siged_desistencia.data
         )
         database.session.add(novo)
+        database.session.delete(selected_nome)  # remove da fila
         database.session.commit()
-
-        convocado = NomeConvocado.query.filter_by(nome=form.nome.data).first()
-        if convocado:
-            database.session.delete(convocado)
-            database.session.commit()
 
         flash('Registro salvo com sucesso!', 'success')
         # ajuste a rota conforme seu sistema
         return redirect(url_for('controle_convocacao'))
 
-    return render_template('form_convocacao.html', form=form)
+    return render_template('form_convocacao.html', form=form, nomes_data=nomes_data)
 
 
 @app.route('/controle-convocacao', methods=['GET'])
@@ -2867,6 +2875,10 @@ def importar_convocados():
         arquivo = request.files['arquivo']
         if arquivo.filename.endswith('.xlsx'):
             filename = secure_filename(arquivo.filename)
+
+            # Garante que a pasta 'uploads' existe
+            os.makedirs('uploads', exist_ok=True)
+
             caminho = os.path.join('uploads', filename)
             arquivo.save(caminho)
 
@@ -2876,7 +2888,8 @@ def importar_convocados():
                 nome = NomeConvocado(
                     nome=row['nome'],
                     inscricao=row.get('inscricao', ''),
-                    classificacao=row.get('classificacao', '')
+                    classificacao=row.get('classificacao', ''),
+                    nota_final=row.get('nota_final', '')
                 )
                 database.session.add(nome)
             database.session.commit()
