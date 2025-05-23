@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
     Response
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
 from src.forms import ControleConvocacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
@@ -25,7 +26,7 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func, and_, cast, Integer
+from sqlalchemy import case, func, and_, cast, Integer, Boolean
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -2917,10 +2918,12 @@ def controle_convocacao():
     ]
     contagem_situacoes = dict(Counter(situacoes_list))
 
+    csrf_token = generate_csrf()
     return render_template(
         'controle_convocacao.html',
         convocacoes=convocacoes_paginadas,
-        contagem_situacoes=contagem_situacoes
+        contagem_situacoes=contagem_situacoes,
+        csrf_token=csrf_token          # <- aqui
     )
 
 
@@ -3095,3 +3098,55 @@ def exportar_convocacoes():
     response.headers["Content-Disposition"] = "attachment; filename=convocacoes_filtradas.xlsx"
     response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return response
+
+
+@app.route('/atualizar-campo-convocacao', methods=['POST'])
+@login_required
+def atualizar_campo_convocacao():
+    dados = request.get_json()
+
+    token = request.headers.get("X-CSRFToken", "")
+    try:
+        validate_csrf(token)
+    except Exception:
+        return jsonify({'sucesso': False, 'erro': 'CSRF inválido'}), 400
+
+    convoc_id = dados.get('id')
+    campo = dados.get('campo')
+    valor = dados.get('valor', '').strip()
+
+    # campos que podem ser editados inline
+    campos_permitidos = {
+        'ordem_de_convocacao': str,
+        'apresentou': bool,
+        'situacao_convocacao_id': int,
+        'matricula': bool,
+        'numero_da_matricula_doe': str,
+        'bg_matricula_doe': str,
+        'portaria_convocacao': str,
+        'bg_portaria_convocacao': str,
+        'doe_portaria_convocacao': str,
+        'notificacao_pessoal': bool,
+        'termo_desistencia': bool,
+        'siged_desistencia': str
+    }
+
+    if campo not in campos_permitidos:
+        return jsonify({'sucesso': False, 'erro': 'Campo não permitido'}), 400
+
+    conv = ControleConvocacao.query.get_or_404(convoc_id)
+
+    # converte o valor para o tipo correto
+    tipo = campos_permitidos[campo]
+    if tipo is bool:
+        valor = valor.lower() in ('1', 'true', 'sim')
+    elif tipo is int:
+        try:
+            valor = int(valor or 0)
+        except ValueError:
+            return jsonify({'sucesso': False, 'erro': 'Valor inválido'}), 400
+
+    setattr(conv, campo, valor)
+    database.session.commit()
+
+    return jsonify({'sucesso': True})

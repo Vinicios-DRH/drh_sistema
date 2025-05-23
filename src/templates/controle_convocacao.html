@@ -118,27 +118,76 @@
                     {% for c in convocacoes.items %}
                     <tr>
                         <td>{{ ordem_base + loop.index }}º</td>
-
+                        <!-- campos não-editáveis -->
                         <td>{{ c.classificacao }}</td>
                         <td>{{ c.inscricao }}</td>
                         <td class="text-break" style="min-width:180px;">{{ c.nome }}</td>
                         <td>{{ c.nota_final }}</td>
-                        <td>{{ c.ordem_de_convocacao }}</td>
-                        <td><span class="badge {{ 'bg-success' if c.apresentou else 'bg-secondary' }}">{{ 'Sim' if
-                                c.apresentou else 'Não' }}</span></td>
-                        <td>{{ c.situacao.situacao if c.situacao else '-' }}</td>
-                        <td><span class="badge {{ 'bg-success' if c.matricula else 'bg-secondary' }}">{{ 'Sim' if
-                                c.matricula else 'Não' }}</span></td>
-                        <td>{{ c.numero_da_matricula_doe }}</td>
-                        <td>{{ c.bg_matricula_doe }}</td>
-                        <td>{{ c.portaria_convocacao }}</td>
-                        <td>{{ c.bg_portaria_convocacao }}</td>
-                        <td>{{ c.doe_portaria_convocacao }}</td>
-                        <td><span class="badge {{ 'bg-success' if c.notificacao_pessoal else 'bg-secondary' }}">{{ 'Sim'
-                                if c.notificacao_pessoal else 'Não' }}</span></td>
-                        <td><span class="badge {{ 'bg-success' if c.termo_desistencia else 'bg-secondary' }}">{{ 'Sim'
-                                if c.termo_desistencia else 'Não' }}</span></td>
-                        <td>{{ c.siged_desistencia }}</td>
+
+                        <!-- a partir daqui, editáveis -->
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="ordem_de_convocacao">
+                            {{ c.ordem_de_convocacao }}
+                        </td>
+
+                        <td>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input boolean-toggle" type="checkbox" role="switch"
+                                    data-id="{{ c.id }}" data-campo="apresentou" {% if c.apresentou %}checked{% endif
+                                    %}>
+                            </div>
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="situacao_convocacao_id">
+                            {{ c.situacao.situacao if c.situacao else '-' }}
+                        </td>
+
+                        <td>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input boolean-toggle" type="checkbox" role="switch"
+                                    data-id="{{ c.id }}" data-campo="matricula" {% if c.matricula %}checked{% endif %}>
+                            </div>
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="numero_da_matricula_doe">
+                            {{ c.numero_da_matricula_doe }}
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="bg_matricula_doe">
+                            {{ c.bg_matricula_doe }}
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="portaria_convocacao">
+                            {{ c.portaria_convocacao }}
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="bg_portaria_convocacao">
+                            {{ c.bg_portaria_convocacao }}
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="doe_portaria_convocacao">
+                            {{ c.doe_portaria_convocacao }}
+                        </td>
+
+                        <td>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input boolean-toggle" type="checkbox" role="switch"
+                                    data-id="{{ c.id }}" data-campo="notificacao_pessoal" {% if c.notificacao_pessoal
+                                    %}checked{% endif %}>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input boolean-toggle" type="checkbox" role="switch"
+                                    data-id="{{ c.id }}" data-campo="termo_desistencia" {% if c.termo_desistencia
+                                    %}checked{% endif %}>
+                            </div>
+                        </td>
+
+                        <td contenteditable="true" data-id="{{ c.id }}" data-campo="siged_desistencia">
+                            {{ c.siged_desistencia }}
+                        </td>
+
                         <td>{{ c.data_criacao.strftime('%d/%m/%Y') if c.data_criacao else '-' }}</td>
                     </tr>
                     {% else %}
@@ -186,6 +235,9 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+    const CSRF_TOKEN = "{{ csrf_token }}";
+</script>
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -226,6 +278,47 @@
             } else {
                 element.addEventListener('change', () => form.submit());
             }
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // debounce para filtros já está configurado...
+
+        document.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
+            let original = cell.innerText.trim();
+
+            cell.addEventListener('focus', () => { original = cell.innerText.trim(); });
+
+            cell.addEventListener('blur', () => {
+                const novo = cell.innerText.trim();
+                if (novo === original) return;   // nada mudou
+
+                fetch('{{ url_for("atualizar_campo_convocacao") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        id: cell.dataset.id,
+                        campo: cell.dataset.campo,
+                        valor: novo
+                    })
+                })
+                    .then(r => r.json())
+                    .then(resp => {
+                        if (!resp.sucesso) {
+                            alert(resp.erro || 'Erro ao salvar');
+                            cell.innerText = original; // volta ao valor antigo
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro de rede');
+                        cell.innerText = original;
+                    });
+            });
         });
     });
 </script>
