@@ -1,3 +1,6 @@
+from flask_wtf.csrf import validate_csrf
+from flask_login import login_required
+from flask import request, jsonify
 from flask import make_response
 import os
 import zipfile
@@ -3113,7 +3116,7 @@ def atualizar_campo_convocacao():
 
     convoc_id = dados.get('id')
     campo = dados.get('campo')
-    valor = dados.get('valor', '').strip()
+    valor = dados.get('valor', '')
 
     # campos que podem ser editados inline
     campos_permitidos = {
@@ -3136,15 +3139,17 @@ def atualizar_campo_convocacao():
 
     conv = ControleConvocacao.query.get_or_404(convoc_id)
 
-    # converte o valor para o tipo correto
     tipo = campos_permitidos[campo]
-    if tipo is bool:
-        valor = valor.lower() in ('1', 'true', 'sim')
-    elif tipo is int:
-        try:
-            valor = int(valor or 0)
-        except ValueError:
-            return jsonify({'sucesso': False, 'erro': 'Valor inválido'}), 400
+
+    try:
+        if tipo is bool:
+            valor = str(valor).strip().lower() in ('1', 'true', 'sim', 'on')
+        elif tipo is int:
+            valor = int(valor)
+        else:
+            valor = valor.strip()
+    except Exception:
+        return jsonify({'sucesso': False, 'erro': 'Erro ao converter valor'}), 400
 
     setattr(conv, campo, valor)
     database.session.commit()

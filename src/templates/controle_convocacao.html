@@ -320,6 +320,35 @@
                     });
             });
         });
+
+        document.querySelectorAll('.boolean-toggle').forEach(toggle => {
+            toggle.addEventListener('change', () => {
+                fetch('{{ url_for("atualizar_campo_convocacao") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        id: toggle.dataset.id,
+                        campo: toggle.dataset.campo,
+                        valor: toggle.checked
+                    })
+                })
+                    .then(r => r.json())
+                    .then(resp => {
+                        if (!resp.sucesso) {
+                            alert(resp.erro || 'Erro ao salvar');
+                            toggle.checked = !toggle.checked;
+                        }
+                    })
+                    .catch(() => {
+                        alert('Erro de rede');
+                        toggle.checked = !toggle.checked;
+                    });
+            });
+        });
+
     });
 </script>
 
