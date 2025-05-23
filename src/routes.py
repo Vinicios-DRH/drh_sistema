@@ -1,3 +1,4 @@
+from flask import make_response
 import os
 import zipfile
 import tempfile
@@ -3002,3 +3003,95 @@ def gerar_qrcodes():
 
     # GET → mostra formulário
     return render_template('gerar_qrcodes.html')
+
+
+@app.route('/controle-convocacao/exportar', methods=['GET'])
+@login_required
+def exportar_convocacoes():
+    filtros = {
+        'classificacao': request.args.get('classificacao', '').strip(),
+        'inscricao': request.args.get('inscricao', '').strip(),
+        'nota_final': request.args.get('nota_final', '').strip(),
+        'ordem_de_convocacao': request.args.get('ordem_de_convocacao', '').strip(),
+        'apresentou': request.args.get('apresentou'),
+        'situacao_convocacao_id': request.args.get('situacao_convocacao_id', type=int),
+        'matricula': request.args.get('matricula'),
+        'numero_da_matricula_doe': request.args.get('numero_da_matricula_doe', '').strip(),
+        'bg_matricula_doe': request.args.get('bg_matricula_doe', '').strip(),
+        'portaria_convocacao': request.args.get('portaria_convocacao', '').strip(),
+        'bg_portaria_convocacao': request.args.get('bg_portaria_convocacao', '').strip(),
+        'doe_portaria_convocacao': request.args.get('doe_portaria_convocacao', '').strip(),
+        'notificacao_pessoal': request.args.get('notificacao_pessoal'),
+        'termo_desistencia': request.args.get('termo_desistencia'),
+        'siged_desistencia': request.args.get('siged_desistencia', '').strip(),
+    }
+
+    query = ControleConvocacao.query
+
+    # filtros LIKE
+    like_map = {
+        'classificacao': ControleConvocacao.classificacao,
+        'inscricao': ControleConvocacao.inscricao,
+        'nota_final': ControleConvocacao.nota_final,
+        'ordem_de_convocacao': ControleConvocacao.ordem_de_convocacao,
+        'numero_da_matricula_doe': ControleConvocacao.numero_da_matricula_doe,
+        'bg_matricula_doe': ControleConvocacao.bg_matricula_doe,
+        'portaria_convocacao': ControleConvocacao.portaria_convocacao,
+        'bg_portaria_convocacao': ControleConvocacao.bg_portaria_convocacao,
+        'doe_portaria_convocacao': ControleConvocacao.doe_portaria_convocacao,
+        'siged_desistencia': ControleConvocacao.siged_desistencia,
+    }
+    for campo, coluna in like_map.items():
+        if filtros[campo]:
+            query = query.filter(coluna.ilike(f"%{filtros[campo]}%"))
+
+    if filtros['situacao_convocacao_id']:
+        query = query.filter(
+            ControleConvocacao.situacao_convocacao_id == filtros['situacao_convocacao_id'])
+
+    bool_map = {
+        'apresentou': ControleConvocacao.apresentou,
+        'matricula': ControleConvocacao.matricula,
+        'notificacao_pessoal': ControleConvocacao.notificacao_pessoal,
+        'termo_desistencia': ControleConvocacao.termo_desistencia,
+    }
+    for campo, coluna in bool_map.items():
+        if filtros[campo] in ('sim', 'nao'):
+            query = query.filter(coluna.is_(filtros[campo] == 'sim'))
+
+    registros = query.order_by(ControleConvocacao.id.asc()).all()
+
+    data = []
+    for c in registros:
+        data.append({
+            'Classificação': c.classificacao,
+            'Inscrição': c.inscricao,
+            'Nome': c.nome,
+            'Nota Final': c.nota_final,
+            'Ordem Convocação': c.ordem_de_convocacao,
+            'Apresentou': 'Sim' if c.apresentou else 'Não',
+            'Situação': c.situacao.situacao if c.situacao else '-',
+            'Matrícula': 'Sim' if c.matricula else 'Não',
+            'Nº Mat. DOE': c.numero_da_matricula_doe,
+            'BG Mat. DOE': c.bg_matricula_doe,
+            'Portaria Conv.': c.portaria_convocacao,
+            'BG Portaria': c.bg_portaria_convocacao,
+            'DOE Portaria': c.doe_portaria_convocacao,
+            'Notif. Pessoal': 'Sim' if c.notificacao_pessoal else 'Não',
+            'Termo Desist.': 'Sim' if c.termo_desistencia else 'Não',
+            'SIGED Desist.': c.siged_desistencia,
+            'Criado em': c.data_criacao.strftime('%d/%m/%Y') if c.data_criacao else '-'
+        })
+
+    df = pd.DataFrame(data)
+
+    # Criar buffer na memória para o arquivo Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
+
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = "attachment; filename=convocacoes_filtradas.xlsx"
+    response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return response
