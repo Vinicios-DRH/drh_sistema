@@ -2895,7 +2895,7 @@ def importar_convocados():
             database.session.commit()
 
             flash('Nomes importados com sucesso!', 'success')
-            return redirect(url_for('controle_convocacao'))
+            return redirect(url_for('adicionar_convocacao'))
         else:
             flash('Formato inválido. Envie um arquivo .xlsx', 'danger')
 
