@@ -3233,13 +3233,23 @@ def ficha_aluno():
 def listar_fichas():
     alunos = FichaAluno.query.all()
 
+    # Ordena pela classificação convertida para int se possível
+    def extrair_classificacao(aluno):
+        try:
+            return int(''.join(filter(str.isdigit, aluno.classificacao_final_concurso)))
+        except:
+            return float('inf')  # coloca no final se não for numérico
+
+    alunos_ordenados = sorted(alunos, key=extrair_classificacao)
+
     idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
     cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
     estado_civil_raw = [a.estado_civil.strip().lower().capitalize()
                         for a in alunos if a.estado_civil]
     estado_civil_chart = Counter(estado_civil_raw)
 
-    return render_template('fichas.html', alunos=alunos,
+    return render_template('fichas.html',
+                           alunos=alunos_ordenados,
                            idade_chart=idade_chart,
                            cnh_chart=cnh_chart,
                            estado_civil_chart=estado_civil_chart)
