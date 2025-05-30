@@ -1,33 +1,30 @@
-import psycopg2
+import os
+import unicodedata
+from src import database, app  # certifique-se de importar o `app` do seu projeto
+from src.models import FichaAluno
 
-# Função para ler o conteúdo do arquivo SQL
-def ler_arquivo_sql(nome_arquivo):
-    with open(nome_arquivo, 'r') as file:
-        sql_script = file.read()
-    return sql_script
+# Caminho das fotos
+pasta_fotos = 'src/static/uploads/fotos'
 
-# Conectar ao banco de dados Supabase (PostgreSQL)
-pg_conn = psycopg2.connect(
-    host="db.cselsnczhbsinizmwtcv.supabase.co",
-    port="5432",
-    database="postgres",
-    user="postgres",
-    password="drhsistema2025"
-)
-pg_cursor = pg_conn.cursor()
 
-# Ler o arquivo SQL
-sql_script = ler_arquivo_sql('C:\Flask\DRH-SISTEMA\DRH2.sql')
+def formatar_nome(nome):
+    nome = unicodedata.normalize('NFKD', nome).encode(
+        'ASCII', 'ignore').decode('utf-8')
+    return nome.strip().lower().replace(' ', '_')
 
-try:
-    # Executar o script SQL
-    pg_cursor.execute(sql_script)
-    pg_conn.commit()
-    print("Todos os dados foram inseridos com sucesso!")
-except Exception as e:
-    print(f"Erro ao executar o script SQL: {e}")
-    pg_conn.rollback()
-finally:
-    # Fechar as conexões
-    pg_cursor.close()
-    pg_conn.close()
+
+with app.app_context():
+    fotos_disponiveis = os.listdir(pasta_fotos)
+    atualizados = 0
+
+    for aluno in FichaAluno.query.all():
+        nome_formatado = formatar_nome(aluno.nome_completo)
+        foto_match = next(
+            (f for f in fotos_disponiveis if f.startswith(nome_formatado)), None)
+
+        if foto_match:
+            aluno.foto = f'uploads/fotos/{foto_match}'
+            atualizados += 1
+
+    database.session.commit()
+    print(f'{atualizados} registros atualizados com sucesso.')

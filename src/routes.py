@@ -3269,8 +3269,8 @@ def editar_ficha(aluno_id):
     form.comportamento.choices = [
         ('Ótimo', 'Ótimo'), ('Bom', 'Bom'), ('Regular', 'Regular'), ('Insuficiente', 'Insuficiente')]
 
-    foto_url = aluno.foto if aluno.foto else url_for(
-        'static', filename='images/default-avatar.png')
+    foto_url = url_for('static', filename=aluno.foto) if aluno.foto else url_for(
+        'static', filename='img/avatar-default.png')
 
     if form.validate_on_submit():
         # Evita erro com FileStorage
