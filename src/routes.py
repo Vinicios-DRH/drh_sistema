@@ -16,12 +16,12 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
+from src.forms import ControleConvocacaoForm, FichaAlunosForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
 from src.models import (ControleConvocacao, Convocacao, Militar, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAluno)
 from src.querys import obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -3155,3 +3155,146 @@ def atualizar_campo_convocacao():
     database.session.commit()
 
     return jsonify({'sucesso': True})
+
+
+@app.route('/ficha-alunos-soldados', methods=['GET', 'POST'])
+@login_required
+def ficha_aluno():
+    form = FichaAlunosForm()
+    ''''
+    Pelotões:
+        1° Pelotão: Rio Javari
+        2° Pelotão: Rio Juruá
+        3° Pelotão: Rio Japurá 
+        4° Pelotão: Rio Purus
+    '''
+    # Preenchendo choices se necessário
+    form.pelotao.choices = [('Rio Javari', 'Rio Javari'), ('Rio Juruá', 'Rio Juruá'),
+                            ('Rio Japurá', 'Rio Japurá'), ('Rio Purus', 'Rio Purus')]
+    form.estado_civil.choices = [('Solteiro', 'Solteiro'), (
+        'Casado', 'Casado'), ('Divorciado', 'Divorciado'), ('Viúvo', 'Viúvo')]
+    form.estado.choices = [('AM', 'Amazonas'), ('AC', 'Acre')]
+    form.categoria_cnh.choices = [
+        ('A', 'A'),
+        ('B', 'B'),
+        ('AB', 'AB'),
+        ('C', 'C'),
+        ('D', 'D'),
+        ('E', 'E'),
+        ('AC', 'AC'),
+        ('AD', 'AD'),
+        ('AE', 'AE'),
+    ]
+
+    foto_url = None
+
+    if form.validate_on_submit():
+        foto_filename = None
+        if form.foto.data:
+            filename = secure_filename(form.foto.data.filename)
+            foto_path = os.path.join('static/uploads/fotos', filename)
+            form.foto.data.save(foto_path)
+            foto_filename = foto_path
+
+        novo_aluno = FichaAluno(
+            nome_completo=form.nome_completo.data,
+            nome_guerra=form.nome_guerra.data,
+            idade_atual=form.idade_atual.data,
+            cpf=form.cpf.data,
+            rg=form.rg.data,
+            estado_civil=form.estado_civil.data,
+            nome_pai=form.nome_pai.data,
+            nome_mae=form.nome_mae.data,
+            pelotao=form.pelotao.data,
+            email=form.email.data,
+            telefone=form.telefone.data,
+            telefone_emergencia=form.telefone_emergencia.data,
+            rua=form.rua.data,
+            bairro=form.bairro.data,
+            complemento=form.complemento.data,
+            estado=form.estado.data,
+            formacao_academica=form.formacao_academica.data,
+            tipo_sanguineo=form.tipo_sanguineo.data,
+            categoria_cnh=form.categoria_cnh.data,
+            classificacao_final_concurso=form.classificacao_final_concurso.data,
+            comportamento=form.comportamento.data,
+            foto=foto_filename
+        )
+        database.session.add(novo_aluno)
+        database.session.commit()
+        flash('Ficha do aluno salva com sucesso!', 'success')
+        return redirect(url_for('ficha_aluno'))
+
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url)
+
+
+@app.route('/fichas')
+@login_required
+def listar_fichas():
+    alunos = FichaAluno.query.all()
+
+    idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
+    cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
+    estado_civil_raw = [a.estado_civil.strip().lower().capitalize()
+                        for a in alunos if a.estado_civil]
+    estado_civil_chart = Counter(estado_civil_raw)
+
+    return render_template('fichas.html', alunos=alunos,
+                           idade_chart=idade_chart,
+                           cnh_chart=cnh_chart,
+                           estado_civil_chart=estado_civil_chart)
+
+
+@app.route('/fichas/<int:aluno_id>')
+def ficha_detalhada(aluno_id):
+    aluno = FichaAluno.query.get_or_404(aluno_id)
+    return render_template('ficha_detalhada.html', aluno=aluno)
+
+
+@app.route('/fichas/<int:aluno_id>/editar', methods=['GET', 'POST'])
+def editar_ficha(aluno_id):
+    aluno = FichaAluno.query.get_or_404(aluno_id)
+    form = FichaAlunosForm(obj=aluno)
+
+    form.pelotao.choices = [('Rio Javari', 'Rio Javari'), ('Rio Juruá', 'Rio Juruá'),
+                            ('Rio Japurá', 'Rio Japurá'), ('Rio Purus', 'Rio Purus')]
+    form.estado_civil.choices = [('Solteiro', 'Solteiro'), ('Casado', 'Casado'),
+                                 ('Divorciado', 'Divorciado'), ('Viúvo', 'Viúvo')]
+    form.estado.choices = [('AM', 'Amazonas'), ('AC', 'Acre')]
+    form.categoria_cnh.choices = [
+        ('A', 'A (Moto)'), ('B', 'B (Carro)'), ('AB', 'AB (Moto + Carro)'),
+        ('C', 'C (Caminhão)'), ('D', 'D (Ônibus)'), ('E', 'E (Carreta)'),
+        ('AC', 'AC (Moto + Caminhão)'), ('AD', 'AD (Moto + Ônibus)'), ('AE', 'AE (Moto + Carreta)')]
+    form.comportamento.choices = [
+        ('Ótimo', 'Ótimo'), ('Bom', 'Bom'), ('Regular', 'Regular'), ('Insuficiente', 'Insuficiente')]
+
+    foto_url = aluno.foto if aluno.foto else url_for(
+        'static', filename='images/default-avatar.png')
+
+    if form.validate_on_submit():
+        # Evita erro com FileStorage
+        foto_antiga = aluno.foto  # salva foto atual
+        form_data = {k: v for k, v in form.data.items() if k != 'foto'}
+        for key, value in form_data.items():
+            setattr(aluno, key, value)
+
+        # Processa nova imagem se foi enviada
+        if form.foto.data and form.foto.data.filename:
+            from werkzeug.utils import secure_filename
+            import os
+
+            upload_folder = os.path.join('static', 'uploads', 'fotos')
+            os.makedirs(upload_folder, exist_ok=True)
+
+            filename = secure_filename(form.foto.data.filename)
+            foto_path = os.path.join(upload_folder, filename)
+            form.foto.data.save(foto_path)
+            aluno.foto = foto_path
+        else:
+            aluno.foto = foto_antiga  # mantém a antiga se nenhuma nova enviada
+
+        database.session.commit()
+        flash("Ficha atualizada com sucesso!", "success")
+        return redirect(url_for('ficha_detalhada', aluno_id=aluno.id))
+
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url)

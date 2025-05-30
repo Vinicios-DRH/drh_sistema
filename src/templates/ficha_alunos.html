@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Ficha do Aluno Soldado</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-3 text-center">
+                        <img id="previewImage"
+                            src="{{ foto_url or url_for('static', filename='img/avatar-default.png') }}"
+                            class="img-thumbnail" style="max-height: 150px; max-width: 150px; object-fit: cover;">
+                        <div class="mt-2">
+                            <label for="fotoInput" class="btn btn-outline-primary">
+                                <i class="bi bi-upload"></i> Selecionar Foto
+                            </label>
+                            {{ form.foto(class="d-none", id="fotoInput", onchange="previewFoto(event)") }}
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-12">
+                                {{ form.nome_completo.label(class="form-label") }}
+                                {{ form.nome_completo(class="form-control") }}
+                            </div>
+                            <div class="col-md-12 mt-2">
+                                {{ form.nome_guerra.label(class="form-label") }}
+                                {{ form.nome_guerra(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3">{{ form.idade_atual.label(class="form-label") }}{{
+                        form.idade_atual(class="form-control") }}</div>
+                    <div class="col-md-3">{{ form.cpf.label(class="form-label") }}{{ form.cpf(class="form-control") }}
+                    </div>
+                    <div class="col-md-3">{{ form.rg.label(class="form-label") }}{{ form.rg(class="form-control") }}
+                    </div>
+                    <div class="col-md-3">{{ form.estado_civil.label(class="form-label") }}{{
+                        form.estado_civil(class="form-control") }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">{{ form.nome_pai.label(class="form-label") }}{{
+                        form.nome_pai(class="form-control") }}</div>
+                    <div class="col-md-6">{{ form.nome_mae.label(class="form-label") }}{{
+                        form.nome_mae(class="form-control") }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">{{ form.pelotao.label(class="form-label") }}{{
+                        form.pelotao(class="form-select") }}</div>
+                    <div class="col-md-4">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control")
+                        }}</div>
+                    <div class="col-md-4">{{ form.telefone.label(class="form-label") }}{{
+                        form.telefone(class="form-control") }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">{{ form.telefone_emergencia.label(class="form-label") }}{{
+                        form.telefone_emergencia(class="form-control") }}</div>
+                    <div class="col-md-6">{{ form.estado.label(class="form-label") }}{{ form.estado(class="form-select")
+                        }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">{{ form.rua.label(class="form-label") }}{{ form.rua(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">{{ form.bairro.label(class="form-label") }}{{
+                        form.bairro(class="form-control") }}</div>
+                    <div class="col-md-4">{{ form.complemento.label(class="form-label") }}{{
+                        form.complemento(class="form-control") }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">{{ form.formacao_academica.label(class="form-label") }}{{
+                        form.formacao_academica(class="form-control") }}</div>
+                    <div class="col-md-4">{{ form.tipo_sanguineo.label(class="form-label") }}{{
+                        form.tipo_sanguineo(class="form-control") }}</div>
+                    <div class="col-md-4">{{ form.categoria_cnh.label(class="form-label") }}{{
+                        form.categoria_cnh(class="form-select") }}</div>
+                </div>
+
+                <div class="mb-3">
+                    {{ form.classificacao_final_concurso.label(class="form-label") }}
+                    {{ form.classificacao_final_concurso(class="form-control") }}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        {{ form.comportamento.label(class="form-label") }}
+                        {{ form.comportamento(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    {{ form.botao_submit(class="btn btn-success", value='Atualizar' if request.path.endswith('editar')
+                    else 'Salvar') }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewFoto(event) {
+        const input = event.target;
+        const reader = new FileReader();
+        reader.onload = function () {
+            const img = document.querySelector("#previewImage");
+            img.src = reader.result;
+        }
+        if (input.files && input.files[0]) {
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

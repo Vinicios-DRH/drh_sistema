@@ -1,5 +1,6 @@
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed
 from wtforms import (StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
                      MultipleFileField, FileField, DecimalField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional
@@ -319,3 +320,50 @@ class ControleConvocacaoForm(FlaskForm):
     siged_desistencia = StringField(
         'SIGED da Desistência', validators=[Length(max=50)])
     submit = SubmitField('Salvar')
+
+
+class FichaAlunosForm(FlaskForm):
+    foto = FileField('Foto do Aluno', validators=[
+        FileAllowed(['jpg', 'jpeg', 'png'],
+                    'Apenas imagens (.jpg, .jpeg, .png) são permitidas')
+    ])
+    nome_completo = StringField('Nome Completo', validators=[
+                                DataRequired(), Length(max=100)])
+    nome_guerra = StringField('Nome de Guerra', validators=[
+                              DataRequired(), Length(max=100)])
+    idade_atual = IntegerField("Idade Atual", validators=[NumberRange(0, 120)])
+    cpf = StringField('CPF', validators=[DataRequired(), Length(max=14)])
+    rg = StringField('RG', validators=[DataRequired(), Length(max=14)])
+    estado_civil = SelectField('Estado civil', choices=[])
+    nome_pai = StringField('Nome do pai', validators=[
+        DataRequired(), Length(max=100)])
+    nome_mae = StringField('Nome da mãe', validators=[
+        DataRequired(), Length(max=100)])
+    pelotao = SelectField('Pelotão', choices=[])
+    email = StringField('E-mail', validators=[DataRequired(), Email()])
+    telefone = StringField('Telefone para contato', validators=[
+                           Optional(), Length(max=15)])
+    telefone_emergencia = StringField('Telefone de emergência', validators=[
+                                      Optional(), Length(max=15)])
+    rua = StringField('Rua', validators=[
+        Optional(), Length(max=200)])
+    bairro = StringField('Bairro', validators=[
+        Optional(), Length(max=200)])
+    complemento = StringField('Complemento', validators=[
+        Optional(), Length(max=200)])
+    estado = SelectField('Estado', choices=[])
+    formacao_academica = StringField('Formação Acadêmica', validators=[
+        Optional(), Length(max=200)])
+    tipo_sanguineo = StringField('Tipo Sanguíneo e Fator', validators=[
+        Optional(), Length(max=10)])
+    categoria_cnh = SelectField('Categoria CNH', choices=[])
+    classificacao_final_concurso = StringField(
+        'Classificação Final do Concurso', validators=[Optional(), Length(max=50)])
+    comportamento = SelectField('Comportamento', choices=[
+        ('Ótimo', 'Ótimo'),
+        ('Bom', 'Bom'),
+        ('Regular', 'Regular'),
+        ('Insuficiente', 'Insuficiente'),
+        ('Mau', 'Mau')
+    ])
+    botao_submit = SubmitField('Salvar')

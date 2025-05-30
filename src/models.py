@@ -662,3 +662,37 @@ class ControleConvocacao(database.Model):
 
     situacao = database.relationship(
         'SituacaoConvocacao', backref='convocados')
+
+
+class FichaAluno(database.Model):
+    __tablename__ = 'ficha_alunos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    nome_completo = database.Column(database.String(100), nullable=False)
+    nome_guerra = database.Column(database.String(100), nullable=False)
+    idade_atual = database.Column(database.Integer)
+    cpf = database.Column(database.String(14), nullable=False)
+    rg = database.Column(database.String(14), nullable=False)
+    estado_civil = database.Column(database.String(20), nullable=False)
+    nome_pai = database.Column(database.String(100), nullable=False)
+    nome_mae = database.Column(database.String(100), nullable=False)
+    # assumindo que o valor de SelectField é string
+    pelotao = database.Column(database.String(100))
+    email = database.Column(database.String(100), nullable=False)
+    telefone = database.Column(database.String(15))
+    telefone_emergencia = database.Column(database.String(15))
+    rua = database.Column(database.String(200))
+    bairro = database.Column(database.String(200))
+    complemento = database.Column(database.String(200))
+    caso_aluno_nao_resida_em_manaus = database.Column(database.String(200))
+    # ou siga os valores do SelectField
+    estado = database.Column(database.String(100))
+    formacao_academica = database.Column(database.String(200))
+    tipo_sanguineo = database.Column(database.String(10))
+    categoria_cnh = database.Column(database.String(20))
+    classificacao_final_concurso = database.Column(database.String(50))
+    comportamento = database.Column(database.String(50))
+    foto = database.Column(database.String(200))
+
+    def __repr__(self):
+        return f'<FichaAluno {self.nome_completo}>'

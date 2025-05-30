@@ -125,6 +125,7 @@ urllib3==2.2.2
 vine==5.1.0
 waitress==3.0.1
 wcwidth==0.2.13
+weasyprint==65.1
 webencodings==0.5.1
 websockets==14.2
 Werkzeug==3.0.3
