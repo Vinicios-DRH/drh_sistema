@@ -1,6 +1,6 @@
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
-from flask import request, jsonify
+from flask import abort, request, jsonify
 from flask import make_response
 import os
 import zipfile
@@ -3308,3 +3308,41 @@ def editar_ficha(aluno_id):
         return redirect(url_for('ficha_detalhada', aluno_id=aluno.id))
 
     return render_template('ficha_alunos.html', form=form, foto_url=foto_url)
+
+
+@app.route('/pelotao/<slug>', methods=['GET'])
+@login_required
+def listar_por_pelotao(slug):
+    mapa_pelotoes = {
+        'rio-javari': 'Rio Javari',
+        'rio-jurua': 'Rio Juruá',
+        'rio-japura': 'Rio Japurá',
+        'rio-purus': 'Rio Purus'
+    }
+
+    nome_pelotao = mapa_pelotoes.get(slug)
+    if not nome_pelotao:
+        abort(404)
+
+    termo = request.args.get('termo', '').strip()
+    query = FichaAluno.query.filter(FichaAluno.pelotao == nome_pelotao)
+
+    if termo:
+        query = query.filter(FichaAluno.nome_completo.ilike(f'%{termo}%'))
+
+    alunos = query.order_by(FichaAluno.nome_completo.asc()).all()
+
+    # GERAÇÃO DOS DADOS PARA OS GRÁFICOS
+    idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
+    cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
+    estado_civil_raw = [a.estado_civil.strip().lower().capitalize()
+                        for a in alunos if a.estado_civil]
+    estado_civil_chart = Counter(estado_civil_raw)
+
+    return render_template('fichas.html',
+                           alunos=alunos,
+                           termo_busca=termo,
+                           titulo=f'Alunos do {nome_pelotao}',
+                           idade_chart=idade_chart,
+                           cnh_chart=cnh_chart,
+                           estado_civil_chart=estado_civil_chart)

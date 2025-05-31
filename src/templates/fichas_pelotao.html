@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Alunos do Pelotão {{ pelotao }}</h5>
+            <form method="get" class="d-flex" role="search">
+                <input type="text" name="busca" value="{{ termo_busca }}" class="form-control me-2"
+                    placeholder="Buscar por nome...">
+                <button type="submit" class="btn btn-light">Buscar</button>
+            </form>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Foto</th>
+                        <th>Nome Completo</th>
+                        <th>Idade</th>
+                        <th>Classificação</th>
+                        <th>Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aluno in alunos %}
+                    <tr>
+                        <td>
+                            <img src="{{ url_for('static', filename=aluno.foto) if aluno.foto else url_for('static', filename='img/avatar-default.png') }}"
+                                class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                        </td>
+                        <td>{{ aluno.nome_completo }}</td>
+                        <td>{{ aluno.idade_atual or '-' }}</td>
+                        <td>{{ aluno.classificacao_final_concurso or '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('ficha_detalhada', aluno_id=aluno.id) }}"
+                                class="btn btn-sm btn-outline-primary">
+                                Ver Ficha
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Nenhum aluno encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
