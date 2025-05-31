@@ -142,7 +142,7 @@ class FormMilitar(FlaskForm):
 
 class FormLogin(FlaskForm):
     cpf = StringField('CPF', )
-    senha = PasswordField('Senha', validators=[DataRequired(), Length(6, 20)])
+    senha = PasswordField('Senha', validators=[Length(6, 20)])
     lembrar_dados = BooleanField('Lembre-se de mim')
     botao_submit_login = SubmitField('Entrar')
 
@@ -150,7 +150,7 @@ class FormLogin(FlaskForm):
 class FormCriarUsuario(FlaskForm):
     nome = StringField('Nome Completo', )
     cpf = StringField('CPF', )
-    email = StringField('E-mail', validators=[DataRequired(), Email()])
+    email = StringField('E-mail', validators=[Email()])
     funcao_user_id = SelectField(
         'Função', choices=[], )
     obm_id_1 = SelectField('OBM 1', choices=[], coerce=coerce_int_or_none)
@@ -286,8 +286,8 @@ class ImpactoForm(FlaskForm):
         "Posto/Graduação da Promoção", coerce=int, )
 
     efetivo = IntegerField("Efetivo", validators=[
-        DataRequired(), NumberRange(min=1, max=1000,
-                                    message="Insira um número entre 1 e 1000")
+        NumberRange(min=1, max=1000,
+                    message="Insira um número entre 1 e 1000")
     ])
 
     submit = SubmitField("Calcular Impacto")
@@ -328,19 +328,19 @@ class FichaAlunosForm(FlaskForm):
                     'Apenas imagens (.jpg, .jpeg, .png) são permitidas')
     ])
     nome_completo = StringField('Nome Completo', validators=[
-                                DataRequired(), Length(max=100)])
-    nome_guerra = StringField('Nome de Guerra', validators=[
-                              DataRequired(), Length(max=100)])
-    idade_atual = IntegerField("Idade Atual", validators=[NumberRange(0, 120)])
-    cpf = StringField('CPF', validators=[DataRequired(), Length(max=14)])
-    rg = StringField('RG', validators=[DataRequired(), Length(max=14)])
+                                Length(max=100)])
+    nome_guerra = StringField('Nome de Guerra', validators=[Length(max=50)])
+    idade_atual = IntegerField("Idade Atual", validators=[
+                               Optional(), NumberRange(0, 120)])
+    cpf = StringField('CPF', validators=[Length(max=14)])
+    rg = StringField('RG', validators=[Length(max=14)])
     estado_civil = SelectField('Estado civil', choices=[])
     nome_pai = StringField('Nome do pai', validators=[
-        DataRequired(), Length(max=100)])
+        Length(max=100)])
     nome_mae = StringField('Nome da mãe', validators=[
-        DataRequired(), Length(max=100)])
+        Length(max=100)])
     pelotao = SelectField('Pelotão', choices=[])
-    email = StringField('E-mail', validators=[DataRequired(), Email()])
+    email = StringField('E-mail', validators=[Optional(), Email()])
     telefone = StringField('Telefone para contato', validators=[
                            Optional(), Length(max=15)])
     telefone_emergencia = StringField('Telefone de emergência', validators=[

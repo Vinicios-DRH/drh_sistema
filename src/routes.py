@@ -3192,7 +3192,7 @@ def ficha_aluno():
         foto_filename = None
         if form.foto.data:
             filename = secure_filename(form.foto.data.filename)
-            foto_path = os.path.join('static/uploads/fotos', filename)
+            foto_path = os.path.join('uploads/fotos', filename)
             form.foto.data.save(foto_path)
             foto_filename = foto_path
 
@@ -3231,7 +3231,15 @@ def ficha_aluno():
 @app.route('/fichas')
 @login_required
 def listar_fichas():
-    alunos = FichaAluno.query.order_by(FichaAluno.nome_completo.asc()).all()
+    search = request.args.get('search', '').strip()
+
+    if search:
+        alunos = FichaAluno.query.filter(
+            FichaAluno.nome_completo.ilike(f"%{search}%")
+        ).order_by(FichaAluno.nome_completo.asc()).all()
+    else:
+        alunos = FichaAluno.query.order_by(
+            FichaAluno.nome_completo.asc()).all()
 
     idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
     cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
@@ -3243,7 +3251,8 @@ def listar_fichas():
                            alunos=alunos,
                            idade_chart=idade_chart,
                            cnh_chart=cnh_chart,
-                           estado_civil_chart=estado_civil_chart)
+                           estado_civil_chart=estado_civil_chart,
+                           search=search)
 
 
 @app.route('/fichas/<int:aluno_id>')

@@ -12,6 +12,16 @@
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">Alunos Cadastrados</h4>
         </div>
+        <form method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Buscar por nome"
+                    value="{{ search }}">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+
         <div class="card-body table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">

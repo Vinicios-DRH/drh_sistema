@@ -7,6 +7,18 @@
 {% block body %}
 <div class="container mt-5">
     <div class="card shadow-lg">
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in form.errors.items() %}
+                {% for error in errors %}
+                <li>{{ form[field].label.text }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">Ficha do Aluno Soldado</h4>
         </div>
