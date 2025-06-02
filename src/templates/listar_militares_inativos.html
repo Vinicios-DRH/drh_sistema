@@ -49,6 +49,12 @@
     .table-responsive {
         overflow-x: auto;
     }
+
+    @media (max-width: 768px) {
+        .filtro-container label {
+            font-size: 0.875rem;
+        }
+    }
 </style>
 <script>
     $(document).ready(function () {
@@ -58,16 +64,33 @@
             buttons: [
                 {
                     extend: 'excelHtml5',
-                    text: 'Exportar Excel',
-                    className: 'btn btn-success mb-3',
+                    text: 'Exportar Excel Completo',
+                    className: 'btn btn-success mb-3 me-2',
                     exportOptions: {
                         columns: ':visible:not(:last-child)'
                     }
+                },
+                {
+                    extend: 'excelHtml5',
+                    text: 'Exportar Nome + CPF',
+                    className: 'btn btn-outline-secondary mb-3',
+                    exportOptions: {
+                        columns: [0, 8] // Nome e CPF
+                    }
                 }
+            ],
+            columnDefs: [
+                { targets: 8, visible: false },
             ],
             language: {
                 url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json"
             }
+        });
+
+        $('#toggleCpf').on('click', function () {
+            const column = table.column(8);
+            column.visible(!column.visible());
+            $(this).text(column.visible() ? 'Ocultar CPF' : 'Mostrar CPF');
         });
 
         function popularFiltro(colIndex, seletor) {
@@ -119,6 +142,9 @@
                     <label for="filtroModalidade">Modalidade</label>
                     <select id="filtroModalidade" class="form-select form-select-sm"></select>
                 </div>
+                <div class="d-flex align-items-end">
+                    <button id="toggleCpf" class="btn btn-outline-dark btn-sm">Mostrar CPF</button>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -133,6 +159,7 @@
                             <th>Modalidade</th>
                             <th>D.O.E</th>
                             <th>Ações</th>
+                            <th>CPF</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -150,6 +177,7 @@
                                 <a href="{{ url_for('editar_militar_inativo', id=militar.id) }}"
                                     class="btn btn-sm btn-outline-primary">Editar</a>
                             </td>
+                            <td class="text-center">{{ militar.cpf or '' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
