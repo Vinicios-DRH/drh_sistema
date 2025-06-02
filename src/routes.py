@@ -15,9 +15,11 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
+from wtforms import SelectField, StringField
+from wtforms.widgets import TextInput
 from src import app, database, bcrypt
 from src.forms import ControleConvocacaoForm, FichaAlunosForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
-from src.models import (ControleConvocacao, Convocacao, Militar, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -369,6 +371,7 @@ def adicionar_militar():
             cel=form_militar.cel.data,
             funcao_gratificada_id=form_militar.funcao_gratificada_id.data,
             alteracao_nome_guerra=form_militar.alteracao_nome_guerra.data,
+            inativo=form_militar.inativo.data,
             ip_address=get_user_ip(),
             usuario_id=current_user.id
         )
@@ -561,6 +564,118 @@ def adicionar_militar():
         return redirect(url_for('home'))
 
     return render_template('adicionar_militar.html', form_militar=form_militar)
+
+
+@app.route("/adicionar-militar-inativo", methods=["GET", "POST"])
+@login_required
+def adicionar_militar_inativo():
+    """Rota para adicionar um militar inativo."""
+    form_militar = FormMilitar()
+
+    form_militar.posto_grad_id.choices = [('', '-- Selecione uma opção --')] + [
+        (posto.id, posto.sigla) for posto in PostoGrad.query.all()
+    ]
+    form_militar.quadro_id.choices = [('', '-- Selecione uma opção --')] + [
+        (quadro.id, quadro.quadro) for quadro in Quadro.query.all()
+    ]
+    form_militar.estado_civil.choices = [('', '-- Selecione uma opção --')] + [
+        (estado.id, estado.estado) for estado in EstadoCivil.query.all()
+    ]
+    form_militar.inativo.data = True
+
+    if form_militar.validate_on_submit():
+        novo = MilitaresInativos(
+            nome_completo=form_militar.nome_completo.data,
+            nome_guerra=form_militar.nome_guerra.data,
+            estado_civil_id=form_militar.estado_civil.data,
+            nome_pai=form_militar.nome_pai.data,
+            nome_mae=form_militar.nome_mae.data,
+            matricula=form_militar.matricula.data,
+            rg=form_militar.rg.data,
+            cpf=form_militar.cpf.data,
+            pis_pasep=form_militar.pis_pasep.data,
+            posto_grad_id=form_militar.posto_grad_id.data,
+            quadro_id=form_militar.quadro_id.data,
+            sexo=form_militar.sexo.data,
+            data_nascimento=form_militar.data_nascimento.data,
+            idade_atual=form_militar.idade_atual.data,
+            endereco=form_militar.endereco.data,
+            complemento=form_militar.complemento.data,
+            cidade=form_militar.cidade.data,
+            estado=form_militar.estado.data,
+            cep=form_militar.cep.data,
+            celular=form_militar.celular.data,
+            email=form_militar.email.data,
+            modalidade=form_militar.modalidade.data,
+            doe=form_militar.doe.data,
+            usuario_id=current_user.id,
+            ip_address=request.remote_addr,
+        )
+
+        database.session.add(novo)
+        database.session.commit()
+        flash("Militar inativo adicionado com sucesso!", "success")
+        return redirect(url_for("listar_militares_inativos"))
+
+    return render_template("adicionar_militar_inativo.html", form_militar=form_militar)
+
+
+@app.route("/militares-inativos")
+@login_required
+def listar_militares_inativos():
+    hierarquia = {
+        "CEL": 1,
+        "TC": 2,
+        "MAJ": 3,
+        "CAP": 4,
+        "1 TEN": 5,
+        "2 TEN": 6,
+        "ASP": 7,
+        "SUBTENENTE": 8,
+        "1 SGT": 9,
+        "2 SGT": 10,
+        "3 SGT": 11,
+        "CB": 12,
+        "SD": 13,
+    }
+
+    militares = MilitaresInativos.query.join(
+        MilitaresInativos.posto_grad).all()
+
+    # Ordenar pela hierarquia definida acima
+    militares.sort(key=lambda m: hierarquia.get(
+        m.posto_grad.sigla.strip(), 99))
+
+    return render_template("listar_militares_inativos.html", militares=militares)
+
+
+@app.route("/editar-militar-inativo/<int:id>", methods=["GET", "POST"])
+@login_required
+def editar_militar_inativo(id):
+    militar = MilitaresInativos.query.get_or_404(id)
+    form_militar = FormMilitar(obj=militar)
+
+    # Preenche os choices dos selects
+    form_militar.posto_grad_id.choices = [
+        (p.id, p.sigla) for p in PostoGrad.query.all()]
+    form_militar.quadro_id.choices = [
+        (q.id, q.quadro) for q in Quadro.query.all()]
+    form_militar.estado_civil.choices = [
+        (e.id, e.estado) for e in EstadoCivil.query.all()]
+
+    form_militar.inativo.data = True
+
+    # Campos extras (se ainda não estiverem no FormMilitar)
+    form_militar.modalidade.data = militar.modalidade
+    form_militar.doe.data = militar.doe
+
+    if form_militar.validate_on_submit():
+        form_militar.populate_obj(militar)
+        database.session.commit()
+        flash("Militar atualizado com sucesso!", "success")
+        return redirect(url_for("listar_militares_inativos"))
+
+    return render_template("adicionar_militar_inativo.html", form_militar=form_militar)
 
 
 @app.route('/verificar-arquivos', methods=['POST'])
@@ -1154,6 +1269,43 @@ def militares():
         next_page=militares_paginados.next_num,
         prev_page=militares_paginados.prev_num
     )
+
+
+@app.route("/militares-inativos", methods=['GET'])
+@login_required
+def militares_inativos():
+    try:
+        page = request.args.get('page', 1, type=int)
+        search = request.args.get('search', '', type=str)
+
+        query = Militar.query.options(
+            joinedload(Militar.posto_grad),
+            joinedload(Militar.quadro),
+            joinedload(Militar.especialidade),
+            joinedload(Militar.localidade),
+            joinedload(Militar.situacao),
+            joinedload(Militar.obm_funcoes)
+        ).filter(Militar.situacao.has(Situacao.condicao.in_(['RESERVA', 'INATIVO'])))
+
+        if search:
+            query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
+
+        militares_inativos = query.order_by(
+            Militar.nome_completo.asc()).paginate(page=page, per_page=100)
+
+        return render_template(
+            'militares_inativos.html',
+            militares=militares_inativos.items,
+            page=page,
+            has_next=militares_inativos.has_next,
+            has_prev=militares_inativos.has_prev,
+            next_page=militares_inativos.next_num,
+            prev_page=militares_inativos.prev_num
+        )
+
+    except Exception as e:
+        app.logger.error(f"Erro ao processar a requisição: {str(e)}")
+        return jsonify({'error': 'Ocorreu um erro ao processar a requisição.', 'details': str(e)}), 500
 
 
 @app.route('/tabela-militares', methods=['GET', 'POST'])

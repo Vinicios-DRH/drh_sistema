@@ -1,0 +1,15 @@
+{% macro render_field(field, label_text='', readonly=False, extra_attrs='') %}
+<div class="form-group">
+    <label class="form-label">{{ label_text }}</label>
+    {% if field.errors %}
+    {{ field(class="form-control is-invalid", readonly=readonly, **kwargs)|safe }}
+    <div class="invalid-feedback">
+        {% for error in field.errors %}
+        {{ error }}
+        {% endfor %}
+    </div>
+    {% else %}
+    {{ field(class="form-control", readonly=readonly, **kwargs)|safe }}
+    {% endif %}
+</div>
+{% endmacro %}

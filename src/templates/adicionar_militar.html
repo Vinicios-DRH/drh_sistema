@@ -14,12 +14,19 @@
                         <div class="text-center mb-3">
                             <a href="#">
                                 <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="BootstrapBrain Logo"
-                                     width="100" height="100">
+                                    width="100" height="100">
                             </a>
                         </div>
                         <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Adicionar Militar</h2>
                         <form method="POST" class="row g-3" enctype="multipart/form-data">
                             {{ form_militar.csrf_token }}
+                            <div class="col-md-4 form-check form-switch">
+                                <div class="form-group">
+                                    {{ form_militar.inativo(class="form-check-input", id="inativo") }}
+                                    <label class="form-check-label" for="inativo">Inativo?</label>
+                                </div>
+                            </div>
+                            <hr>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     {{ form_militar.nome_completo.label(class="form-control-label") }}
@@ -216,7 +223,7 @@
                                 </div>
                             </div>
                             <div class="obm-funcao-group"
-                                 style="display: flex; align-items: center; width: 100%; margin-bottom: 10px;">
+                                style="display: flex; align-items: center; width: 100%; margin-bottom: 10px;">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         {{ form_militar.obm_ids_1.label(class="form-control-label") }}
@@ -231,7 +238,7 @@
                                 </div>
                             </div>
                             <div class="obm-funcao-group"
-                                 style="display: flex; align-items: center; width: 100%; margin-bottom: 10px;">
+                                style="display: flex; align-items: center; width: 100%; margin-bottom: 10px;">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         {{ form_militar.obm_ids_2.label(class="form-control-label") }}
@@ -380,7 +387,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-3">
                                 <div class="form-group">
                                     {{ form_militar.data_nascimento.label(class="form-control-label") }}
@@ -484,7 +491,8 @@
                                 <div class="form-group">
                                     {{ form_militar.comportamento_id.label(class="form-control-label") }}
                                     {% if form_militar.comportamento_id.errors %}
-                                    {{ form_militar.comportamento_id(class="form-control is-invalid", id="comportamento_id")}}
+                                    {{ form_militar.comportamento_id(class="form-control is-invalid",
+                                    id="comportamento_id")}}
                                     <div class="invalid-feedback">
                                         {% for erro in form_militar.comportamento_id.errors %}
                                         {{ erro }}
@@ -623,7 +631,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-2">
                                 <div class="form-group">
                                     {{ form_militar.pronto.label(class="form-control-label", id="label_pronto") }}
@@ -733,7 +741,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-3">
                                 <div class="form-group">
                                     {{ form_militar.ltip_afastamento_cargo_eletivo.label(class="form-control-label") }}
@@ -811,7 +819,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-6">
                                 <div class="form-group">
                                     {{ form_militar.cursos.label(class="form-control-label") }}
@@ -1052,7 +1060,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-12">
                                 <div class="form-group">
                                     {{ form_militar.endereco.label(class="form-control-label") }}
@@ -1128,7 +1136,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-2">
                                 <div class="form-group">
                                     {{ form_militar.celular.label(class="form-control-label") }}
@@ -1174,7 +1182,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-3">
                                 <div class="form-group">
                                     {{ form_militar.soldado_tres.label(class="form-control-label") }}
@@ -1475,7 +1483,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             <div class="col-md-6">
                                 <div class="form-group">
                                     {{ form_militar.alteracao_nome_guerra.label(class="form-control-label") }}
@@ -1513,7 +1521,7 @@
                                 </label>
                                 <span id="bg-arquivo" class=""></span>
                             </div>
-                            <hr style="border: 1px solid red;"/>
+                            <hr style="border: 1px solid red;" />
                             {{ form_militar.botao_submit(class="btn btn-outline-primary mt-2") }}
                         </form>
                     </div>

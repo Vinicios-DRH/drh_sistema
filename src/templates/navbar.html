@@ -62,6 +62,18 @@
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Militares Inativos
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('listar_militares_inativos') }}">👥 Mapa da
+                                    Força Inativos</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('adicionar_militar_inativo') }}">➕ Adicionar
+                                    Militar Inativo</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-id-card me-2"></i> Motoristas
                         </a>
                         <ul class="dropdown-menu">

@@ -131,6 +131,22 @@ class FormMilitar(FlaskForm):
     pub_cel = StringField("Publicidade")
     alteracao_nome_guerra = StringField("Alteração de nome de guerra")
     pub_alteracao = StringField("Publicidade")
+    inativo = BooleanField('Inativo?')
+    modalidade = SelectField('Modalidade', choices=[
+        ('A PEDIDO', 'A PEDIDO'),
+        ('A BEM DA DISCIPLINA', 'A BEM DA DISCIPLINA'),
+        ('DEMITIDO A PEDIDO', 'DEMITIDO A PEDIDO'),
+        ('DEMITIDO EX-OFFICIO', 'DEMITIDO EX-OFFICIO'),
+        ('EX-OFFICIO', 'EX-OFFICIO'),
+        ('FALECIDOS', 'FALECIDOS'),
+        ('LICENCIAMENTO', 'LICENCIAMENTO'),
+        ('PROC. INVALID. DE ATO', 'PROC. INVALID. DE ATO'),
+        ('REFORMA REMUNERADA', 'REFORMA REMUNERADA'),
+        ('REFORMA INVALIDEZ', 'REFORMA INVALIDEZ'),
+        ('RESERVA ADM', 'RESERVA ADM'),
+    ])
+
+    doe = StringField('D.O.E')
     botao_submit = SubmitField('Salvar')
     arquivo = MultipleFileField('Adicionar Boletins Gerais.')
 

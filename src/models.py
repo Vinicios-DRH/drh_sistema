@@ -428,6 +428,9 @@ class Militar(database.Model):
     ip_address = database.Column(database.String(45))
     funcao_gratificada_id = database.Column(
         database.Integer, database.ForeignKey('funcao_gratificada.id'))
+    inativo = database.Column(
+        database.Boolean, default=False)
+
     publicacoes_bg = database.relationship(
         'PublicacaoBg', backref='militar_pub', lazy=True)
     obm_funcoes = database.relationship(
@@ -695,3 +698,44 @@ class FichaAluno(database.Model):
 
     def __repr__(self):
         return f'<FichaAluno {self.nome_completo}>'
+
+
+class MilitaresInativos(database.Model):
+    __tablename__ = 'militares_inativos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    nome_completo = database.Column(database.String(100), nullable=False)
+    nome_guerra = database.Column(database.String(100))
+    estado_civil_id = database.Column(
+        database.Integer, database.ForeignKey('estado_civil.id'))
+    nome_pai = database.Column(database.String(100))
+    nome_mae = database.Column(database.String(100))
+    matricula = database.Column(database.String(50))
+    rg = database.Column(database.String(14))
+    cpf = database.Column(database.String(14))
+    pis_pasep = database.Column(database.String(50))
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'))
+    quadro_id = database.Column(
+        database.Integer, database.ForeignKey('quadro.id'))
+    sexo = database.Column(database.String(10))
+    data_nascimento = database.Column(database.Date)
+    idade_atual = database.Column(database.Integer)
+    endereco = database.Column(database.String(200))
+    complemento = database.Column(database.String(200))
+    cidade = database.Column(database.String(100))
+    estado = database.Column(database.String(100))
+    cep = database.Column(database.String(20))
+    celular = database.Column(database.String(15))
+    email = database.Column(database.String(100))
+    modalidade = database.Column(database.String(50))
+    doe = database.Column(database.String(50))
+
+    posto_grad = database.relationship(
+        'PostoGrad', foreign_keys=[posto_grad_id])
+    quadro = database.relationship('Quadro', foreign_keys=[quadro_id])
+
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+    ip_address = database.Column(database.String(45))
