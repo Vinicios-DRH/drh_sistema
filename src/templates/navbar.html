@@ -113,16 +113,19 @@
                         </ul>
                     </li>
                     {% endif %}
+                    {% set funcao = current_user.funcao_user_id %}
+                    {% set obm = current_user.obm_id_1 %}
 
-                    {% if user_funcao in [5, 6, 7, 8] %}
+                    {% if (funcao == 2 and obm == 26) or funcao == 6 or obm == 37 %}
+                    <!-- ACESSO TOTAL -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-graduate me-2"></i> Alunos Soldados
                         </a>
-
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('ficha_aluno') }}">➕ Nova Ficha</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('listar_fichas') }}">📄 Ver Fichas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_fichas') }}">📄 Ver Fichas</a>
+                            </li>
                             <li><a class="dropdown-item"
                                     href="{{ url_for('listar_por_pelotao', slug='rio-javari') }}">📊 Pelotão Rio
                                     Javari</a></li>
@@ -136,6 +139,34 @@
                                     Pelotão Rio
                                     Purus</a></li>
                         </ul>
+                    </li>
+
+                    {% elif funcao == 8 %}
+                    <!-- Monitor JAVARI -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-javari') }}">📊 Pelotão
+                            Rio Javari</a>
+                    </li>
+
+                    {% elif funcao == 9 %}
+                    <!-- Monitor JURUÁ -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-jurua') }}">📊 Pelotão
+                            Rio Juruá</a>
+                    </li>
+
+                    {% elif funcao == 10 %}
+                    <!-- Monitor JAPURÁ -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-japura') }}">📊 Pelotão
+                            Rio Japurá</a>
+                    </li>
+
+                    {% elif funcao == 11 %}
+                    <!-- Monitor PURUS -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-purus') }}">📊 Pelotão
+                            Rio Purus</a>
                     </li>
                     {% endif %}
 
