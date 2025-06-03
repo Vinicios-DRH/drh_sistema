@@ -20,6 +20,18 @@
 
                         <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                             {{ form_militar.csrf_token }}
+                            {% if form_militar.errors %}
+                            <div class="alert alert-danger">
+                                <h5 class="mb-2"><strong>Erros no preenchimento:</strong></h5>
+                                <ul class="mb-0">
+                                    {% for field, errors in form_militar.errors.items() %}
+                                    {% for error in errors %}
+                                    <li><strong>{{ form_militar[field].label.text }}:</strong> {{ error }}</li>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
 
                             <div class="form-check form-switch mb-4">
                                 {{ form_militar.inativo(class="form-check-input", id="inativo") }}
@@ -34,7 +46,7 @@
                                     {{ macros.render_field(form_militar.nome_guerra, 'Nome de Guerra') }}
                                 </div>
                                 <div class="col-md-2">
-                                    {{ macros.render_field(form_militar.estado_civil, 'Estado Civil') }}
+                                    {{ macros.render_field(form_militar.estado_civil_id, 'Estado Civil') }}
                                 </div>
                                 <div class="col-md-6">
                                     {{ macros.render_field(form_militar.nome_pai, 'Nome do Pai') }}

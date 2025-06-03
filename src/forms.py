@@ -383,3 +383,44 @@ class FichaAlunosForm(FlaskForm):
         ('Mau', 'Mau')
     ])
     botao_submit = SubmitField('Salvar')
+
+
+class FormMilitarInativo(FlaskForm):
+    nome_completo = StringField('Nome Completo', validators=[DataRequired()])
+    nome_guerra = StringField('Nome de Guerra')
+    estado_civil_id = SelectField('Estado Civil', coerce=int)
+    nome_pai = StringField('Nome do Pai')
+    nome_mae = StringField('Nome da Mãe')
+    matricula = StringField('Matrícula')
+    rg = StringField('RG')
+    pis_pasep = StringField('PIS/PASEP')
+    cpf = StringField('CPF')
+    posto_grad_id = SelectField('Posto/Graduação', coerce=int)
+    quadro_id = SelectField('Quadro', coerce=int)
+    sexo = SelectField('Sexo', choices=[('M', 'Masculino'), ('F', 'Feminino')])
+    data_nascimento = DateField(
+        'Data de Nascimento', format='%Y-%m-%d', validators=[Optional()])
+    endereco = StringField('Endereço')
+    complemento = StringField('Complemento')
+    cidade = StringField('Cidade')
+    estado = StringField('Estado')
+    cep = StringField('CEP')
+    celular = StringField('Celular')
+    email = StringField('Email')
+    modalidade = SelectField('Modalidade', choices=[
+        ('A PEDIDO', 'A PEDIDO'),
+        ('A BEM DA DISCIPLINA', 'A BEM DA DISCIPLINA'),
+        ('DEMITIDO A PEDIDO', 'DEMITIDO A PEDIDO'),
+        ('DEMITIDO EX-OFFICIO', 'DEMITIDO EX-OFFICIO'),
+        ('EX-OFFICIO', 'EX-OFFICIO'),
+        ('FALECIDOS', 'FALECIDOS'),
+        ('LICENCIAMENTO', 'LICENCIAMENTO'),
+        ('PROC. INVALID. DE ATO', 'PROC. INVALID. DE ATO'),
+        ('REFORMA REMUNERADA', 'REFORMA REMUNERADA'),
+        ('REFORMA INVALIDEZ', 'REFORMA INVALIDEZ'),
+        ('RESERVA ADM', 'RESERVA ADM'),
+    ], validators=[Optional()])
+
+    doe = StringField('DOE')
+    inativo = BooleanField('Inativo', default=True)
+    botao_submit = SubmitField('Salvar')

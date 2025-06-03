@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, FichaAlunosForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
+from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
 from src.models import (ControleConvocacao, Convocacao, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
@@ -570,7 +570,7 @@ def adicionar_militar():
 @login_required
 def adicionar_militar_inativo():
     """Rota para adicionar um militar inativo."""
-    form_militar = FormMilitar()
+    form_militar = FormMilitarInativo()  # Usando a nova form específica
 
     form_militar.posto_grad_id.choices = [('', '-- Selecione uma opção --')] + [
         (posto.id, posto.sigla) for posto in PostoGrad.query.all()
@@ -578,16 +578,17 @@ def adicionar_militar_inativo():
     form_militar.quadro_id.choices = [('', '-- Selecione uma opção --')] + [
         (quadro.id, quadro.quadro) for quadro in Quadro.query.all()
     ]
-    form_militar.estado_civil.choices = [('', '-- Selecione uma opção --')] + [
+    form_militar.estado_civil_id.choices = [('', '-- Selecione uma opção --')] + [
         (estado.id, estado.estado) for estado in EstadoCivil.query.all()
     ]
+
     form_militar.inativo.data = True
 
     if form_militar.validate_on_submit():
         novo = MilitaresInativos(
             nome_completo=form_militar.nome_completo.data,
             nome_guerra=form_militar.nome_guerra.data,
-            estado_civil_id=form_militar.estado_civil.data,
+            estado_civil_id=form_militar.estado_civil_id.data,  # <== aqui a correção
             nome_pai=form_militar.nome_pai.data,
             nome_mae=form_militar.nome_mae.data,
             matricula=form_militar.matricula.data,
@@ -653,29 +654,25 @@ def listar_militares_inativos():
 @login_required
 def editar_militar_inativo(id):
     militar = MilitaresInativos.query.get_or_404(id)
-    form_militar = FormMilitar(obj=militar)
 
-    # Preenche os choices dos selects
-    form_militar.posto_grad_id.choices = [
-        (p.id, p.sigla) for p in PostoGrad.query.all()]
-    form_militar.quadro_id.choices = [
-        (q.id, q.quadro) for q in Quadro.query.all()]
-    form_militar.estado_civil.choices = [
-        (e.id, e.estado) for e in EstadoCivil.query.all()]
+    form = FormMilitarInativo(obj=militar)
 
-    form_militar.inativo.data = True
+    # ⚠️ Preencha os choices antes de qualquer validação
+    form.posto_grad_id.choices = [(p.id, p.sigla)
+                                  for p in PostoGrad.query.all()]
+    form.quadro_id.choices = [(q.id, q.quadro) for q in Quadro.query.all()]
 
-    # Campos extras (se ainda não estiverem no FormMilitar)
-    form_militar.modalidade.data = militar.modalidade
-    form_militar.doe.data = militar.doe
+    form.estado_civil_id.choices = [
+        (0, '-- Selecione uma opção --')
+    ] + [(estado.id, estado.estado) for estado in EstadoCivil.query.all()]
 
-    if form_militar.validate_on_submit():
-        form_militar.populate_obj(militar)
+    if form.validate_on_submit():
+        form.populate_obj(militar)
         database.session.commit()
-        flash("Militar atualizado com sucesso!", "success")
+        flash("Dados atualizados com sucesso!", "success")
         return redirect(url_for("listar_militares_inativos"))
 
-    return render_template("adicionar_militar_inativo.html", form_militar=form_militar)
+    return render_template("adicionar_militar_inativo.html", form_militar=form)
 
 
 @app.route('/verificar-arquivos', methods=['POST'])
