@@ -3365,8 +3365,8 @@ def ficha_aluno():
             formacao_academica=form.formacao_academica.data,
             tipo_sanguineo=form.tipo_sanguineo.data,
             categoria_cnh=form.categoria_cnh.data,
-            classificacao_final_concurso=form.classificacao_final_concurso.data,
             comportamento=form.comportamento.data,
+            caso_aluno_nao_resida_em_manaus = form.hospedagem_aluno_de_fora.data,
             foto=foto_filename
         )
         database.session.add(novo_aluno)

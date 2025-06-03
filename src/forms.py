@@ -379,6 +379,8 @@ class FichaAlunosForm(FlaskForm):
     ])
     nota_comportamento = FloatField(
         'Nota do Comportamento', validators=[InputRequired()])
+    hospedagem_aluno_de_fora = StringField(
+        'Hospedagem (se fora de Manaus )', validators=[Optional(), Length(max=200)])
     botao_submit = SubmitField('Salvar')
 
 
