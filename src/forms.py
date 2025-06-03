@@ -373,8 +373,6 @@ class FichaAlunosForm(FlaskForm):
     tipo_sanguineo = StringField('Tipo Sanguíneo e Fator', validators=[
         Optional(), Length(max=10)])
     categoria_cnh = SelectField('Categoria CNH', choices=[])
-    classificacao_final_concurso = StringField(
-        'Classificação Final do Concurso', validators=[Optional(), Length(max=50)])
     comportamento = SelectField('Comportamento', choices=[
         ('Excepcional', 'Excepcional'), ('Ótimo', 'Ótimo'), ('Bom',
                                                              'Bom'), ('Insuficiente', 'Insuficiente'), ('Mau', 'Mau')

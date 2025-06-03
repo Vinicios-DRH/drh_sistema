@@ -30,7 +30,6 @@
                         <th>Nome Completo</th>
                         <th>Pelotão</th>
                         <th>Idade</th>
-                        <th>Classificação</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,7 +47,6 @@
                         </td>
                         <td>{{ aluno.pelotao or '-' }}</td>
                         <td>{{ aluno.idade_atual or '-' }}</td>
-                        <td>{{ aluno.classificacao_final_concurso or '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
