@@ -71,8 +71,19 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-md-4">{{ form.pelotao.label(class="form-label") }}{{
-                        form.pelotao(class="form-select") }}</div>
+                    {% set pode_editar_pelotao = (current_user.funcao_user_id == 2 and current_user.obm_id_1 == 26)
+                    or current_user.funcao_user_id == 6
+                    or current_user.obm_id_1 == 37 %}
+
+                    <div class="col-md-4">
+                        {{ form.pelotao.label(class="form-label") }}
+                        {% if pode_editar_pelotao %}
+                        {{ form.pelotao(class="form-select") }}
+                        {% else %}
+                        {{ form.pelotao(class="form-select", disabled=True) }}
+                        {% endif %}
+                    </div>
+
                     <div class="col-md-4">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control")
                         }}</div>
                     <div class="col-md-4">{{ form.telefone.label(class="form-label") }}{{
