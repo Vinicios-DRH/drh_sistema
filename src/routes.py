@@ -23,7 +23,7 @@ from src.models import (ControleConvocacao, Convocacao, Militar, MilitaresInativ
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAluno)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos)
 from src.querys import obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -3345,7 +3345,7 @@ def ficha_aluno():
             form.foto.data.save(foto_path)
             foto_filename = foto_path
 
-        novo_aluno = FichaAluno(
+        novo_aluno = FichaAlunos(
             nome_completo=form.nome_completo.data,
             nome_guerra=form.nome_guerra.data,
             idade_atual=form.idade_atual.data,
@@ -3383,36 +3383,51 @@ def listar_fichas():
     search = request.args.get('search', '').strip()
 
     if search:
-        alunos = FichaAluno.query.filter(
-            FichaAluno.nome_completo.ilike(f"%{search}%")
-        ).order_by(FichaAluno.nome_completo.asc()).all()
+        alunos = FichaAlunos.query.filter(
+            FichaAlunos.nome_completo.ilike(f"%{search}%")
+        ).order_by(FichaAlunos.nome_completo.asc()).all()
     else:
-        alunos = FichaAluno.query.order_by(
-            FichaAluno.nome_completo.asc()).all()
+        alunos = FichaAlunos.query.order_by(
+            FichaAlunos.nome_completo.asc()).all()
 
     idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
     cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
-    estado_civil_raw = [a.estado_civil.strip().lower().capitalize()
-                        for a in alunos if a.estado_civil]
-    estado_civil_chart = Counter(estado_civil_raw)
+    comportamento_raw = [a.comportamento.strip().capitalize()
+                         for a in alunos if a.comportamento]
+    comportamento_chart = Counter(comportamento_raw)
 
-    return render_template('fichas.html',
-                           alunos=alunos,
-                           idade_chart=idade_chart,
-                           cnh_chart=cnh_chart,
-                           estado_civil_chart=estado_civil_chart,
-                           search=search)
+    return render_template(
+        'fichas.html',
+        alunos=alunos,
+        search=search,
+        idade_chart=idade_chart,
+        cnh_chart=cnh_chart,
+        comportamento_chart=comportamento_chart
+    )
 
 
 @app.route('/fichas/<int:aluno_id>')
 def ficha_detalhada(aluno_id):
-    aluno = FichaAluno.query.get_or_404(aluno_id)
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
     return render_template('ficha_detalhada.html', aluno=aluno)
+
+
+def calcular_comportamento(nota):
+    if nota < 4:
+        return "Mau"
+    elif nota < 5:
+        return "Insuficiente"
+    elif nota < 8:
+        return "Bom"
+    elif nota < 9:
+        return "Ótimo"
+    else:
+        return "Excepcional"
 
 
 @app.route('/fichas/<int:aluno_id>/editar', methods=['GET', 'POST'])
 def editar_ficha(aluno_id):
-    aluno = FichaAluno.query.get_or_404(aluno_id)
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
     form = FichaAlunosForm(obj=aluno)
 
     form.pelotao.choices = [('Rio Javari', 'Rio Javari'), ('Rio Juruá', 'Rio Juruá'),
@@ -3425,7 +3440,7 @@ def editar_ficha(aluno_id):
         ('C', 'C (Caminhão)'), ('D', 'D (Ônibus)'), ('E', 'E (Carreta)'),
         ('AC', 'AC (Moto + Caminhão)'), ('AD', 'AD (Moto + Ônibus)'), ('AE', 'AE (Moto + Carreta)')]
     form.comportamento.choices = [
-        ('Ótimo', 'Ótimo'), ('Bom', 'Bom'), ('Regular', 'Regular'), ('Insuficiente', 'Insuficiente')]
+        ('Excepcional', 'Excepcional'), ('Ótimo', 'Ótimo'), ('Bom', 'Bom'), ('Insuficiente', 'Insuficiente'), ('Mau', 'Mau')]
 
     foto_url = url_for('static', filename=aluno.foto) if aluno.foto else url_for(
         'static', filename='img/avatar-default.png')
@@ -3454,9 +3469,9 @@ def editar_ficha(aluno_id):
 
         database.session.commit()
         flash("Ficha atualizada com sucesso!", "success")
-        return redirect(url_for('ficha_detalhada', aluno_id=aluno.id))
+        return redirect(url_for('listar_fichas', aluno_id=aluno.id))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url)
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno)
 
 
 @app.route('/pelotao/<slug>', methods=['GET'])
@@ -3474,19 +3489,19 @@ def listar_por_pelotao(slug):
         abort(404)
 
     termo = request.args.get('termo', '').strip()
-    query = FichaAluno.query.filter(FichaAluno.pelotao == nome_pelotao)
+    query = FichaAlunos.query.filter(FichaAlunos.pelotao == nome_pelotao)
 
     if termo:
-        query = query.filter(FichaAluno.nome_completo.ilike(f'%{termo}%'))
+        query = query.filter(FichaAlunos.nome_completo.ilike(f'%{termo}%'))
 
-    alunos = query.order_by(FichaAluno.nome_completo.asc()).all()
+    alunos = query.order_by(FichaAlunos.nome_completo.asc()).all()
 
     # GERAÇÃO DOS DADOS PARA OS GRÁFICOS
     idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
     cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
-    estado_civil_raw = [a.estado_civil.strip().lower().capitalize()
-                        for a in alunos if a.estado_civil]
-    estado_civil_chart = Counter(estado_civil_raw)
+    comportamento_raw = [a.comportamento.strip().capitalize()
+                         for a in alunos if a.comportamento]
+    comportamento_chart = Counter(comportamento_raw)
 
     return render_template('fichas.html',
                            alunos=alunos,
@@ -3494,4 +3509,5 @@ def listar_por_pelotao(slug):
                            titulo=f'Alunos do {nome_pelotao}',
                            idade_chart=idade_chart,
                            cnh_chart=cnh_chart,
-                           estado_civil_chart=estado_civil_chart)
+                           comportamento_chart=comportamento_chart
+                           )

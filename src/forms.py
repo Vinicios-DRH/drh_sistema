@@ -1,9 +1,9 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
-from wtforms import (StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
+from wtforms import (FloatField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
                      MultipleFileField, FileField, DecimalField)
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired
 from src.models import Militar, User, SituacaoConvocacao
 
 
@@ -376,12 +376,11 @@ class FichaAlunosForm(FlaskForm):
     classificacao_final_concurso = StringField(
         'Classificação Final do Concurso', validators=[Optional(), Length(max=50)])
     comportamento = SelectField('Comportamento', choices=[
-        ('Ótimo', 'Ótimo'),
-        ('Bom', 'Bom'),
-        ('Regular', 'Regular'),
-        ('Insuficiente', 'Insuficiente'),
-        ('Mau', 'Mau')
+        ('Excepcional', 'Excepcional'), ('Ótimo', 'Ótimo'), ('Bom',
+                                                             'Bom'), ('Insuficiente', 'Insuficiente'), ('Mau', 'Mau')
     ])
+    nota_comportamento = FloatField(
+        'Nota do Comportamento', validators=[InputRequired()])
     botao_submit = SubmitField('Salvar')
 
 

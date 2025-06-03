@@ -667,7 +667,7 @@ class ControleConvocacao(database.Model):
         'SituacaoConvocacao', backref='convocados')
 
 
-class FichaAluno(database.Model):
+class FichaAlunos(database.Model):
     __tablename__ = 'ficha_alunos'
 
     id = database.Column(database.Integer, primary_key=True)
@@ -693,11 +693,13 @@ class FichaAluno(database.Model):
     tipo_sanguineo = database.Column(database.String(10))
     categoria_cnh = database.Column(database.String(20))
     classificacao_final_concurso = database.Column(database.String(50))
-    comportamento = database.Column(database.String(50))
+    nota_comportamento = database.Column(database.Float, default=5.0)
+    comportamento = database.Column(database.String(20), default="Bom")
     foto = database.Column(database.String(200))
 
-    def __repr__(self):
-        return f'<FichaAluno {self.nome_completo}>'
+
+def __repr__(self):
+    return f'<FichaAluno {self.nome_completo}>'
 
 
 class MilitaresInativos(database.Model):

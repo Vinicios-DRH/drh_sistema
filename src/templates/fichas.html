@@ -56,35 +56,32 @@
         </div>
     </div>
 </div>
-
-
 <div class="row my-4">
-    <div class="col-md-6 mb-4">
-        <div class="card shadow">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
             <div class="card-header bg-info text-white">Distribuição por Idade</div>
             <div class="card-body">
-                <canvas id="idadeChart"></canvas>
+                <canvas id="idadeChart" style="height: 250px;"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-md-6 mb-4">
-        <div class="card shadow">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
             <div class="card-header bg-success text-white">Categorias da CNH</div>
             <div class="card-body">
-                <canvas id="cnhChart"></canvas>
+                <canvas id="cnhChart" style="height: 250px;"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-md-12 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-secondary text-white">Estado Civil</div>
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-secondary text-white">Comportamento</div>
             <div class="card-body">
-                <canvas id="estadoCivilChart"></canvas>
+                <canvas id="comportamentoChart" style="height: 250px;"></canvas>
             </div>
         </div>
     </div>
 </div>
-
 <script>
     // Gráfico de Idade
     const idadeCtx = document.getElementById('idadeChart');
@@ -120,18 +117,18 @@
     }
     });
 
-    // Gráfico de Estado Civil
-    const estadoCivilCtx = document.getElementById('estadoCivilChart');
-    new Chart(estadoCivilCtx, {
+    // Gráfico de Comportamento
+    const comportamentoCtx = document.getElementById('comportamentoChart');
+    new Chart(comportamentoCtx, {
         type: 'bar',
         data: {
-            labels: {{ estado_civil_chart.keys() | list | tojson }},
+            labels: {{ comportamento_chart.keys() | list | tojson }},
         datasets: [{
             label: 'Quantidade',
-            data: {{ estado_civil_chart.values() | list | tojson }},
-        backgroundColor: 'rgba(255, 99, 132, 0.7)'
-            }]
-        },
+            data: {{ comportamento_chart.values() | list | tojson }},
+        backgroundColor: 'rgba(153, 102, 255, 0.7)'
+        }]
+    },
         options: {
         responsive: true,
         indexAxis: 'y',

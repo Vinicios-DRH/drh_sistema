@@ -111,11 +111,17 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        {{ form.comportamento.label(class="form-label") }}
-                        {{ form.comportamento(class="form-select") }}
+                        <label class="form-label">Nota do Comportamento</label>
+                        <input type="number" step="0.01" min="0" max="10" name="nota_comportamento"
+                            id="notaComportamento" class="form-control" value="{{ aluno.nota_comportamento or 5.0 }}"
+                            oninput="atualizarComportamento()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Comportamento Atual</label>
+                        <input type="text" class="form-control" id="comportamentoAtual"
+                            value="{{ aluno.comportamento or 'Bom' }}" readonly style="font-weight: bold;">
                     </div>
                 </div>
-
                 <div class="text-end">
                     {{ form.botao_submit(class="btn btn-success", value='Atualizar' if request.path.endswith('editar')
                     else 'Salvar') }}
@@ -138,4 +144,52 @@
         }
     }
 </script>
+
+<script>
+    function previewFoto(event) {
+        const input = event.target;
+        const reader = new FileReader();
+        reader.onload = function () {
+            const img = document.querySelector("#previewImage");
+            img.src = reader.result;
+        }
+        if (input.files && input.files[0]) {
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function atualizarComportamento() {
+        const nota = parseFloat(document.getElementById("notaComportamento").value);
+        const comportamentoInput = document.getElementById("comportamentoAtual");
+
+        let comportamento = "Bom";
+        let cor = "#0d6efd"; // Azul padrão
+
+        if (!isNaN(nota)) {
+            if (nota < 4.00) {
+                comportamento = "Mau";
+                cor = "#dc3545"; // Vermelho
+            } else if (nota < 5.00) {
+                comportamento = "Insuficiente";
+                cor = "#fd7e14"; // Laranja
+            } else if (nota < 8.00) {
+                comportamento = "Bom";
+                cor = "#0d6efd"; // Azul
+            } else if (nota < 9.00) {
+                comportamento = "Ótimo";
+                cor = "#198754"; // Verde
+            } else {
+                comportamento = "Excepcional";
+                cor = "#6f42c1"; // Roxo
+            }
+        }
+
+        comportamentoInput.value = comportamento;
+        comportamentoInput.style.backgroundColor = cor;
+        comportamentoInput.style.color = "#fff";
+    }
+
+    document.addEventListener('DOMContentLoaded', atualizarComportamento);
+</script>
+
 {% endblock %}
