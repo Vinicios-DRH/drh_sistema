@@ -3425,6 +3425,7 @@ def calcular_comportamento(nota):
 
 
 @app.route('/fichas/<int:aluno_id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_ficha(aluno_id):
     aluno = FichaAlunos.query.get_or_404(aluno_id)
     form = FichaAlunosForm(obj=aluno)
@@ -3474,6 +3475,7 @@ def editar_ficha(aluno_id):
 
 
 @app.route('/fichas/<int:aluno_id>/inativar', methods=['GET', 'POST'])
+@login_required
 def inativar_aluno(aluno_id):
     aluno = FichaAlunos.query.get_or_404(aluno_id)
 
@@ -3499,6 +3501,7 @@ def inativar_aluno(aluno_id):
 
 
 @app.route('/alunos-inativos')
+@login_required
 def listar_alunos_inativos():
     nome = request.args.get('nome', '')
     motivo = request.args.get('motivo', '')
