@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h3>Inativar Aluno: {{ aluno.nome_completo }}</h3>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.motivo_saida.label(class="form-label") }}
+            {{ form.motivo_saida(class="form-select") }}
+        </div>
+        <div class="mb-3">
+            {{ form.data_saida.label(class="form-label") }}
+            {{ form.data_saida(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-danger">{{ form.botao_submit.label.text }}</button>
+        <a href="{{ url_for('editar_ficha', aluno_id=aluno.id) }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

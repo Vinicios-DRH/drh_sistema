@@ -695,11 +695,28 @@ class FichaAlunos(database.Model):
     classificacao_final_concurso = database.Column(database.String(50))
     nota_comportamento = database.Column(database.Float, default=5.0)
     comportamento = database.Column(database.String(20), default="Bom")
+    ativo = database.Column(database.Boolean, default=True)
     foto = database.Column(database.String(200))
 
 
 def __repr__(self):
     return f'<FichaAluno {self.nome_completo}>'
+
+
+class AlunoInativo(database.Model):
+    __tablename__ = 'alunos_inativos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    ficha_aluno_id = database.Column(database.Integer, database.ForeignKey(
+        'ficha_alunos.id'), nullable=False, unique=True)
+    motivo_saida = database.Column(database.String(200), nullable=False)
+    data_saida = database.Column(database.Date, nullable=False)
+
+    ficha_aluno = database.relationship(
+        'FichaAlunos', backref=database.backref('inativo', uselist=False))
+
+    def __repr__(self):
+        return f'<AlunoInativo {self.ficha_aluno.nome_completo}>'
 
 
 class MilitaresInativos(database.Model):

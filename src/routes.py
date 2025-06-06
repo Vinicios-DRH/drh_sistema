@@ -18,12 +18,12 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm
+from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm, InativarAlunoForm
 from src.models import (ControleConvocacao, Convocacao, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo)
 from src.querys import obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -3366,7 +3366,7 @@ def ficha_aluno():
             tipo_sanguineo=form.tipo_sanguineo.data,
             categoria_cnh=form.categoria_cnh.data,
             comportamento=form.comportamento.data,
-            caso_aluno_nao_resida_em_manaus = form.hospedagem_aluno_de_fora.data,
+            caso_aluno_nao_resida_em_manaus=form.hospedagem_aluno_de_fora.data,
             foto=foto_filename
         )
         database.session.add(novo_aluno)
@@ -3382,13 +3382,12 @@ def ficha_aluno():
 def listar_fichas():
     search = request.args.get('search', '').strip()
 
+    query = FichaAlunos.query.filter(FichaAlunos.ativo == True)
+
     if search:
-        alunos = FichaAlunos.query.filter(
-            FichaAlunos.nome_completo.ilike(f"%{search}%")
-        ).order_by(FichaAlunos.nome_completo.asc()).all()
-    else:
-        alunos = FichaAlunos.query.order_by(
-            FichaAlunos.nome_completo.asc()).all()
+        query = query.filter(FichaAlunos.nome_completo.ilike(f"%{search}%"))
+
+    alunos = query.order_by(FichaAlunos.nome_completo.asc()).all()
 
     idade_chart = Counter([a.idade_atual for a in alunos if a.idade_atual])
     cnh_chart = Counter([a.categoria_cnh for a in alunos if a.categoria_cnh])
@@ -3472,6 +3471,48 @@ def editar_ficha(aluno_id):
         return redirect(url_for('listar_fichas', aluno_id=aluno.id))
 
     return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno)
+
+
+@app.route('/fichas/<int:aluno_id>/inativar', methods=['GET', 'POST'])
+def inativar_aluno(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+
+    if aluno.inativo:
+        flash('Este aluno já está marcado como inativo.', 'warning')
+        return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+    form = InativarAlunoForm()
+
+    if form.validate_on_submit():
+        novo_inativo = AlunoInativo(
+            ficha_aluno_id=aluno.id,
+            motivo_saida=form.motivo_saida.data,
+            data_saida=form.data_saida.data
+        )
+        aluno.ativo = False
+        database.session.add(novo_inativo)
+        database.session.commit()
+        flash('Aluno marcado como inativo com sucesso.', 'success')
+        return redirect(url_for('listar_fichas'))
+
+    return render_template('inativar_aluno.html', form=form, aluno=aluno)
+
+
+@app.route('/alunos-inativos')
+def listar_alunos_inativos():
+    nome = request.args.get('nome', '')
+    motivo = request.args.get('motivo', '')
+
+    query = AlunoInativo.query.join(FichaAlunos)
+
+    if nome:
+        query = query.filter(FichaAlunos.nome_completo.ilike(f'%{nome}%'))
+    if motivo:
+        query = query.filter(AlunoInativo.motivo_saida == motivo)
+
+    alunos = query.order_by(AlunoInativo.data_saida.desc()).all()
+
+    return render_template('listar_alunos_inativos.html', alunos=alunos)
 
 
 @app.route('/pelotao/<slug>', methods=['GET'])

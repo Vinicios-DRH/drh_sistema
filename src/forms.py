@@ -385,6 +385,17 @@ class FichaAlunosForm(FlaskForm):
     botao_submit = SubmitField('Salvar')
 
 
+class InativarAlunoForm(FlaskForm):
+    motivo_saida = SelectField('Motivo da Saída', choices=[
+        ('Desistência', 'Desistência'),
+        ('Desligamento por Conduta', 'Desligamento por Conduta'),
+        ('Motivo de Saúde', 'Motivo de Saúde'),
+        ('Outros', 'Outros')
+    ], validators=[InputRequired()])
+    data_saida = DateField('Data da Saída', validators=[InputRequired()])
+    botao_submit = SubmitField('Confirmar Inativação')
+
+
 class FormMilitarInativo(FlaskForm):
     nome_completo = StringField('Nome Completo', validators=[DataRequired()])
     nome_guerra = StringField('Nome de Guerra')

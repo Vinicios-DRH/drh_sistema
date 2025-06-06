@@ -134,6 +134,11 @@
                     {{ form.botao_submit(class="btn btn-success", value='Atualizar' if request.path.endswith('editar')
                     else 'Salvar') }}
                 </div>
+                <div class="text-end">
+                    <a href="{{ url_for('inativar_aluno', aluno_id=aluno.id) }}" class="btn btn-danger mt-3">
+                        <i class="bi bi-person-x-fill"></i> Marcar como Inativo
+                    </a>
+                </div>
             </form>
         </div>
     </div>
