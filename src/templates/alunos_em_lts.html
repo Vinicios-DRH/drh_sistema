@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h4 class="mb-4">Alunos Soldados Ativamente em LTS</h4>
+    {% if licencas %}
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Nome do Aluno</th>
+                <th>Pelotão</th>
+                <th>BI</th>
+                <th>Período</th>
+                <th>Responsável</th>
+                <th>Registrado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lts in licencas %}
+            <tr>
+                <td>{{ lts.ficha_aluno.nome_completo }}</td>
+                <td>{{ lts.ficha_aluno.pelotao }}</td>
+                <td>{{ lts.boletim_interno }}</td>
+                <td>{{ lts.data_inicio.strftime('%d/%m/%Y') }} a {{ lts.data_fim.strftime('%d/%m/%Y') }}</td>
+                <td>{{ lts.usuario.nome }}</td>
+                <td>{{ lts.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">Nenhum aluno está em LTS no momento.</div>
+    {% endif %}
+</div>
+{% endblock %}

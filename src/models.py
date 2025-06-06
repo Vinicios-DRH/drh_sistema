@@ -711,12 +711,35 @@ class AlunoInativo(database.Model):
         'ficha_alunos.id'), nullable=False, unique=True)
     motivo_saida = database.Column(database.String(200), nullable=False)
     data_saida = database.Column(database.Date, nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
 
     ficha_aluno = database.relationship(
         'FichaAlunos', backref=database.backref('inativo', uselist=False))
 
     def __repr__(self):
         return f'<AlunoInativo {self.ficha_aluno.nome_completo}>'
+
+
+class LtsAlunos(database.Model):
+    __tablename__ = 'lts_alunos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    ficha_aluno_id = database.Column(
+        database.Integer, database.ForeignKey('ficha_alunos.id'), nullable=False)
+    boletim_interno = database.Column(database.String(50), nullable=False)
+    data_inicio = database.Column(database.Date, nullable=False)
+    data_fim = database.Column(database.Date, nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+
+    ficha_aluno = database.relationship('FichaAlunos', backref='licencas_lts')
+    usuario = database.relationship('User', backref='lts_adicionadas')
+
+    def __repr__(self):
+        return f'<LTS {self.boletim_interno} - {self.ficha_aluno.nome_completo}>'
 
 
 class MilitaresInativos(database.Model):

@@ -139,9 +139,41 @@
                         <i class="bi bi-person-x-fill"></i> Marcar como Inativo
                     </a>
                 </div>
+
+                <div class="text-end">
+                    <a href="{{ url_for('registrar_lts', aluno_id=aluno.id) }}" class="btn btn-warning mt-2">
+                        <i class="bi bi-file-medical"></i> Registrar LTS
+                    </a>
+                </div>
             </form>
         </div>
     </div>
+    {% if aluno.licencas_lts %}
+    <hr>
+    <h5>Histórico de Licenças para Tratamento de Saúde (LTS)</h5>
+    <table class="table table-bordered table-hover">
+        <thead class="table-secondary">
+            <tr>
+                <th>BI</th>
+                <th>Início</th>
+                <th>Término</th>
+                <th>Responsável</th>
+                <th>Registrado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lts in aluno.licencas_lts %}
+            <tr>
+                <td>{{ lts.boletim_interno }}</td>
+                <td>{{ lts.data_inicio.strftime('%d/%m/%Y') }}</td>
+                <td>{{ lts.data_fim.strftime('%d/%m/%Y') }}</td>
+                <td>{{ lts.usuario.nome }}</td>
+                <td>{{ lts.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
 </div>
 
 <script>

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h4>Registrar LTS - {{ aluno.nome_completo }}</h4>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.boletim_interno.label(class="form-label") }}
+            {{ form.boletim_interno(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.data_inicio.label(class="form-label") }}
+            {{ form.data_inicio(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.data_fim.label(class="form-label") }}
+            {{ form.data_fim(class="form-control") }}
+        </div>
+        <div class="text-end">
+            {{ form.botao_submit(class="btn btn-primary") }}
+        </div>
+    </form>
+</div>
+{% endblock %}

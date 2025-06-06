@@ -396,6 +396,14 @@ class InativarAlunoForm(FlaskForm):
     botao_submit = SubmitField('Confirmar Inativação')
 
 
+class LtsAlunoForm(FlaskForm):
+    boletim_interno = StringField("Boletim Interno (BI)", validators=[
+                                  InputRequired(), Length(max=50)])
+    data_inicio = DateField("Data de Início", validators=[InputRequired()])
+    data_fim = DateField("Data de Término", validators=[InputRequired()])
+    botao_submit = SubmitField("Registrar LTS")
+
+
 class FormMilitarInativo(FlaskForm):
     nome_completo = StringField('Nome Completo', validators=[DataRequired()])
     nome_guerra = StringField('Nome de Guerra')

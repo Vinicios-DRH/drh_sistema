@@ -18,8 +18,8 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, TabelaVencimentoForm, InativarAlunoForm
-from src.models import (ControleConvocacao, Convocacao, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, TabelaVencimentoForm, InativarAlunoForm
+from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -3555,3 +3555,39 @@ def listar_por_pelotao(slug):
                            cnh_chart=cnh_chart,
                            comportamento_chart=comportamento_chart
                            )
+
+
+@app.route('/fichas/<int:aluno_id>/lts', methods=['GET', 'POST'])
+@login_required
+def registrar_lts(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    form = LtsAlunoForm()
+
+    if form.validate_on_submit():
+        nova_lts = LtsAlunos(
+            ficha_aluno_id=aluno.id,
+            boletim_interno=form.boletim_interno.data,
+            data_inicio=form.data_inicio.data,
+            data_fim=form.data_fim.data,
+            usuario_id=current_user.id
+        )
+
+        database.session.add(nova_lts)
+        database.session.commit()
+        flash('LTS registrada com sucesso!', 'success')
+        return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+    return render_template('registrar_lts_aluno.html', form=form, aluno=aluno)
+
+
+@app.route('/alunos-em-lts')
+@login_required
+def listar_alunos_em_lts():
+    hoje = datetime.utcnow().date()
+
+    licencas_ativas = LtsAlunos.query.join(FichaAlunos).filter(
+        LtsAlunos.data_inicio <= hoje,
+        LtsAlunos.data_fim >= hoje
+    ).order_by(LtsAlunos.data_inicio.asc()).all()
+
+    return render_template('alunos_em_lts.html', licencas=licencas_ativas)
