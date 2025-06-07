@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
 from wtforms import (FloatField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField, FileField, DecimalField)
+                     MultipleFileField, FileField, DecimalField, TextAreaField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired
 from src.models import Militar, User, SituacaoConvocacao
 
@@ -402,6 +402,14 @@ class LtsAlunoForm(FlaskForm):
     data_inicio = DateField("Data de Início", validators=[InputRequired()])
     data_fim = DateField("Data de Término", validators=[InputRequired()])
     botao_submit = SubmitField("Registrar LTS")
+
+
+class RestricaoAlunoForm(FlaskForm):
+    descricao = TextAreaField(
+        "Motivo/Descrição da Restrição", validators=[InputRequired()])
+    data_inicio = DateField("Data de Início", validators=[InputRequired()])
+    data_fim = DateField("Data de Término", validators=[InputRequired()])
+    botao_submit = SubmitField("Registrar Restrição")
 
 
 class FormMilitarInativo(FlaskForm):

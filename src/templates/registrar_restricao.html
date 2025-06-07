@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h4>Registrar Restrição Temporária - {{ aluno.nome_completo }}</h4>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.descricao.label(class="form-label") }}
+            {{ form.descricao(class="form-control", rows=4) }}
+        </div>
+        <div class="mb-3">
+            {{ form.data_inicio.label(class="form-label") }}
+            {{ form.data_inicio(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.data_fim.label(class="form-label") }}
+            {{ form.data_fim(class="form-control") }}
+        </div>
+        <div class="text-end">
+            <button type="submit" class="btn btn-warning" id="btnSubmit">
+                <i class="bi bi-save me-1" id="iconSubmit"></i> Registrar Restrição
+            </button>
+        </div>
+    </form>
+</div>
+<script>
+    const form = document.querySelector("form");
+    form.addEventListener("submit", () => {
+        const btn = document.getElementById("btnSubmit");
+        const icon = document.getElementById("iconSubmit");
+        if (btn && icon) {
+            btn.disabled = true;
+            icon.classList.remove("bi-save");
+            icon.classList.add("bi-arrow-repeat", "spinner-border", "spinner-border-sm");
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Salvando...`;
+        }
+    });
+</script>
+
+<script>
+    const form = document.querySelector("form");
+    form.addEventListener("submit", () => {
+        const btn = form.querySelector("button[type='submit']");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+        }
+    });
+</script>
+{% endblock %}

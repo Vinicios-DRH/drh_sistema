@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h4 class="mb-4">Alunos com Restrições de Serviço Ativas</h4>
+
+    <div class="mb-3 text-end">
+        <a href="{{ url_for('exportar_restricoes_excel') }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+        </a>
+        <a href="{{ url_for('imprimir_restricoes_ativas') }}" class="btn btn-outline-danger">
+            <i class="bi bi-printer"></i> Imprimir Restrições Ativas
+        </a>
+    </div>
+
+    {% if restricoes %}
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Nome do Aluno</th>
+                <th>Pelotão</th>
+                <th>Motivo</th>
+                <th>Período</th>
+                <th>Responsável</th>
+                <th>Registrado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in restricoes %}
+            <tr>
+                <td>{{ r.ficha_aluno.nome_completo }}</td>
+                <td>{{ r.ficha_aluno.pelotao }}</td>
+                <td>{{ r.descricao }}</td>
+                <td>{{ r.data_inicio.strftime('%d/%m/%Y') }} a {{ r.data_fim.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.usuario.nome }}</td>
+                <td>{{ r.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">Nenhum aluno está com restrição no momento.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -742,6 +742,26 @@ class LtsAlunos(database.Model):
         return f'<LTS {self.boletim_interno} - {self.ficha_aluno.nome_completo}>'
 
 
+class RestricaoAluno(database.Model):
+    __tablename__ = 'restricoes_alunos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    ficha_aluno_id = database.Column(
+        database.Integer, database.ForeignKey('ficha_alunos.id'), nullable=False)
+    descricao = database.Column(database.Text, nullable=False)
+    data_inicio = database.Column(database.Date, nullable=False)
+    data_fim = database.Column(database.Date, nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+
+    ficha_aluno = database.relationship('FichaAlunos', backref='restricoes')
+    usuario = database.relationship('User', backref='restricoes_registradas')
+
+    def __repr__(self):
+        return f'<Restrição {self.ficha_aluno.nome_completo} - {self.data_inicio} a {self.data_fim}>'
+
+
 class MilitaresInativos(database.Model):
     __tablename__ = 'militares_inativos'
 

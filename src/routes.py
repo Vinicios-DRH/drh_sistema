@@ -18,8 +18,8 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, TabelaVencimentoForm, InativarAlunoForm
-from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RestricaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm
+from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RestricaoAluno, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -3591,3 +3591,96 @@ def listar_alunos_em_lts():
     ).order_by(LtsAlunos.data_inicio.asc()).all()
 
     return render_template('alunos_em_lts.html', licencas=licencas_ativas)
+
+
+@app.route('/fichas/<int:aluno_id>/restricao', methods=['GET', 'POST'])
+@login_required
+def registrar_restricao(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    form = RestricaoAlunoForm()
+
+    if form.validate_on_submit():
+        existe_igual = RestricaoAluno.query.filter_by(
+            ficha_aluno_id=aluno.id,
+            descricao=form.descricao.data,
+            data_inicio=form.data_inicio.data,
+            data_fim=form.data_fim.data
+        ).first()
+
+        if existe_igual:
+            flash('Restrição já registrada para esse período.', 'warning')
+            return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+        nova_restricao = RestricaoAluno(
+            ficha_aluno_id=aluno.id,
+            descricao=form.descricao.data,
+            data_inicio=form.data_inicio.data,
+            data_fim=form.data_fim.data,
+            usuario_id=current_user.id
+        )
+        database.session.add(nova_restricao)
+        database.session.commit()
+        flash('Restrição registrada com sucesso!', 'success')
+        return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+    return render_template('registrar_restricao.html', form=form, aluno=aluno)
+
+
+@app.route('/restricoes-ativas')
+@login_required
+def restricoes_ativas():
+    hoje = date.today()
+
+    restricoes = RestricaoAluno.query.join(FichaAlunos).filter(
+        RestricaoAluno.data_inicio <= hoje,
+        RestricaoAluno.data_fim >= hoje
+    ).order_by(RestricaoAluno.data_inicio.asc()).all()
+
+    return render_template('restricoes_ativas.html', restricoes=restricoes)
+
+
+@app.route('/restricoes-ativas/excel')
+@login_required
+def exportar_restricoes_excel():
+    hoje = date.today()
+    restricoes = RestricaoAluno.query.join(FichaAlunos).filter(
+        RestricaoAluno.data_inicio <= hoje,
+        RestricaoAluno.data_fim >= hoje
+    ).all()
+
+    dados = [{
+        'Nome do Aluno': r.ficha_aluno.nome_completo,
+        'Pelotão': r.ficha_aluno.pelotao,
+        'Motivo': r.descricao,
+        'Data Início': r.data_inicio.strftime('%d/%m/%Y'),
+        'Data Fim': r.data_fim.strftime('%d/%m/%Y'),
+        'Registrado por': r.usuario.nome,
+        'Data Registro': r.data_criacao.strftime('%d/%m/%Y %H:%M'),
+    } for r in restricoes]
+
+    df = pd.DataFrame(dados)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Restrições Ativas')
+
+    output.seek(0)
+    return send_file(output, download_name='restricoes_ativas.xlsx', as_attachment=True)
+
+
+@app.route('/restricoes-ativas/print')
+@login_required
+def imprimir_restricoes_ativas():
+    hoje = date.today()
+    restricoes = RestricaoAluno.query.join(FichaAlunos).filter(
+        RestricaoAluno.data_inicio <= hoje,
+        RestricaoAluno.data_fim >= hoje
+    ).all()
+    return render_template('restricoes_print.html', restricoes=restricoes)
+
+
+@app.route('/fichas/<int:aluno_id>/imprimir')
+@login_required
+def imprimir_ficha_aluno(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    return render_template('ficha_detalhada_print.html', aluno=aluno)

@@ -145,6 +145,11 @@
                         <i class="bi bi-file-medical"></i> Registrar LTS
                     </a>
                 </div>
+                <div class="text-end">
+                    <a href="{{ url_for('registrar_restricao', aluno_id=aluno.id) }}" class="btn btn-secondary mt-2">
+                        <i class="bi bi-exclamation-triangle"></i> Registrar Restrição
+                    </a>
+                </div>
             </form>
         </div>
     </div>
@@ -174,6 +179,32 @@
         </tbody>
     </table>
     {% endif %}
+
+    {% if aluno.restricoes %}
+    <hr>
+    <h5>Histórico de Restrições Temporárias</h5>
+    <table class="table table-bordered table-hover">
+        <thead class="table-secondary">
+            <tr>
+                <th>Motivo</th>
+                <th>Período</th>
+                <th>Responsável</th>
+                <th>Registrado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in aluno.restricoes %}
+            <tr>
+                <td>{{ r.descricao }}</td>
+                <td>{{ r.data_inicio.strftime('%d/%m/%Y') }} a {{ r.data_fim.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.usuario.nome }}</td>
+                <td>{{ r.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
 </div>
 
 <script>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Restrições Ativas</title>
+    <style>
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #333;
+            padding: 6px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eee;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-bottom: 10px;
+        }
+
+        .btn i {
+            margin-right: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="no-print">
+        <a href="#" class="btn" onclick="window.print()">
+            <i class="bi bi-printer"></i> Imprimir / Salvar como PDF
+        </a>
+    </div>
+
+    <h2>Restrições Ativas de Alunos Soldados</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Pelotão</th>
+                <th>Motivo</th>
+                <th>Período</th>
+                <th>Responsável</th>
+                <th>Registrado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in restricoes %}
+            <tr>
+                <td>{{ r.ficha_aluno.nome_completo }}</td>
+                <td>{{ r.ficha_aluno.pelotao }}</td>
+                <td>{{ r.descricao }}</td>
+                <td>{{ r.data_inicio.strftime('%d/%m/%Y') }} a {{ r.data_fim.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.usuario.nome }}</td>
+                <td>{{ r.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+
+</html>
