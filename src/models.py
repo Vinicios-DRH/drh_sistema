@@ -1,3 +1,4 @@
+import pytz
 from sqlalchemy.orm import backref, foreign
 
 from src import database, login_manager
@@ -721,6 +722,10 @@ class AlunoInativo(database.Model):
         return f'<AlunoInativo {self.ficha_aluno.nome_completo}>'
 
 
+def now_manaus():
+    return datetime.now(pytz.timezone('America/Manaus'))
+
+
 class LtsAlunos(database.Model):
     __tablename__ = 'lts_alunos'
 
@@ -733,7 +738,7 @@ class LtsAlunos(database.Model):
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
 
-    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+    data_criacao = database.Column(database.DateTime, default=now_manaus)
 
     ficha_aluno = database.relationship('FichaAlunos', backref='licencas_lts')
     usuario = database.relationship('User', backref='lts_adicionadas')
@@ -753,7 +758,7 @@ class RestricaoAluno(database.Model):
     data_fim = database.Column(database.Date, nullable=False)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
-    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+    data_criacao = database.Column(database.DateTime, default=now_manaus)
 
     ficha_aluno = database.relationship('FichaAlunos', backref='restricoes')
     usuario = database.relationship('User', backref='restricoes_registradas')
