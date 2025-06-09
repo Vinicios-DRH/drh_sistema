@@ -150,11 +150,11 @@ class FormMilitar(FlaskForm):
     botao_submit = SubmitField('Salvar')
     arquivo = MultipleFileField('Adicionar Boletins Gerais.')
 
-    def validate_cpf(self, cpf):
-        """Valida o campo CPF para evitar militares duplicados."""
-        usuario = Militar.query.filter_by(cpf=cpf.data).first()
-        if usuario:
-            raise ValidationError('Militar já cadastrado.')
+    # def validate_cpf(self, cpf):
+    #     """Valida o campo CPF para evitar militares duplicados."""
+    #     usuario = Militar.query.filter_by(cpf=cpf.data).first()
+    #     if usuario:
+    #         raise ValidationError('Militar já cadastrado.')
 
 
 class FormLogin(FlaskForm):
