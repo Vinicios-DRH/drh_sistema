@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Oficiais - CBMAM</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #a00;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #filtros {
+            padding: 10px 20px;
+            background-color: #1e1e1e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #mapa {
+            width: 100%;
+            height: 88vh;
+        }
+
+        select {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>Dashboard Oficiais - CBMAM</header>
+    <div id="filtros">
+        <label for="cidade">Filtrar por cidade:</label>
+        <select id="cidade" onchange="filtrar()">
+            <option value="TODOS">Todas</option>
+            {% for cidade in dados|map(attribute='cidade')|unique %}
+            <option value="{{ cidade }}">{{ cidade }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div id="mapa"></div>
+
+    <script>
+        const dados = {{ dados | tojson }};
+        async function renderizarMapa(filtroCidade = null) {
+            const filtrado = filtroCidade && filtroCidade !== 'TODOS'
+                ? dados.filter(d => d.cidade === filtroCidade)
+                : dados;
+
+            const [munRes, estRes] = await Promise.all([
+                axios.get('https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-13-mun.json'),
+                axios.get('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson')
+            ]);
+
+            const municipios = munRes.data;
+            const estados = estRes.data;
+
+            const normalize = txt => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+            const cidadeInfo = {};
+            filtrado.forEach(d => {
+                const key = normalize(d.cidade);
+                if (!cidadeInfo[key]) cidadeInfo[key] = { efetivo: 0, obms: new Set() };
+                cidadeInfo[key].efetivo += d.efetivo;
+                cidadeInfo[key].obms.add(d.nome);
+            });
+
+            const locations = Object.keys(cidadeInfo);
+            const efetivos = locations.map(key => cidadeInfo[key].efetivo);
+            const obmCounts = locations.map(key => cidadeInfo[key].obms.size);
+
+            municipios.features.forEach(f => {
+                const nome = normalize(f.properties.name);
+                f.properties.id = nome;
+            });
+
+            const choropleth = {
+                type: 'choroplethmapbox',
+                geojson: municipios,
+                locations,
+                z: efetivos,
+                customdata: obmCounts,
+                featureidkey: 'properties.id',
+                colorscale: 'YlOrRd',
+                zmin: 0,
+                zmax: Math.max(...efetivos),
+                marker: {
+                    opacity: 0.6,
+                    line: {
+                        width: 1.5,
+                        color: '#FFFFFF'
+                    }
+                },
+                hovertemplate:
+                    '<b>%{location}</b><br>' +
+                    'Efetivo: %{z}<br>' +
+                    'OBMs: %{customdata}<extra></extra>',
+                showscale: true,
+                colorbar: { title: 'Efetivo por Cidade' }
+            };
+
+            const bordaAmazonas = {
+                type: 'scattermapbox',
+                mode: 'lines',
+                lon: [],
+                lat: [],
+                line: { width: 3, color: '#000000' },
+                text: [],
+                hoverinfo: 'skip'
+            };
+
+            const labelShadow = {
+                type: 'scattermapbox',
+                mode: 'text',
+                text: [],
+                lat: [],
+                lon: [],
+                textfont: { color: 'black', size: 16, family: 'Arial' },
+                textposition: 'top center',
+                hoverinfo: 'skip'
+            };
+
+            const labelText = {
+                type: 'scattermapbox',
+                mode: 'text',
+                text: [],
+                lat: [],
+                lon: [],
+                textfont: {
+                    color: '#ffffff',
+                    size: 13,
+                    family: 'Arial',
+                    outline: 'black'
+                },
+                textposition: 'middle center',
+                hoverinfo: 'skip'
+            };
+
+            const cidadesUnicas = Array.from(new Set(filtrado.map(d => d.cidade)));
+            cidadesUnicas.forEach(cidade => {
+                const pontos = filtrado.filter(d => d.cidade === cidade);
+                const lat = pontos.reduce((sum, d) => sum + d.latitude, 0) / pontos.length;
+                const lon = pontos.reduce((sum, d) => sum + d.longitude, 0) / pontos.length;
+
+                labelShadow.text.push(cidade.toUpperCase());
+                labelShadow.lat.push(lat);
+                labelShadow.lon.push(lon);
+
+                labelText.text.push(cidade.toUpperCase());
+                labelText.lat.push(lat);
+                labelText.lon.push(lon);
+            });
+
+            estados.features.forEach(f => {
+                if (f.properties.name === 'Amazonas') {
+                    f.geometry.coordinates.forEach(polygon => {
+                        const coords = polygon[0];
+                        coords.forEach(([lon, lat]) => {
+                            bordaAmazonas.lon.push(lon);
+                            bordaAmazonas.lat.push(lat);
+                        });
+                        bordaAmazonas.lon.push(null);
+                        bordaAmazonas.lat.push(null);
+                    });
+                }
+            });
+
+            const layout = {
+                mapbox: {
+                    center: { lat: -4.5, lon: -64.5 },
+                    zoom: 5.3,
+                    style: 'open-street-map'
+                },
+                margin: { t: 0, b: 0, l: 0, r: 0 },
+                paper_bgcolor: '#121212',
+                font: { color: 'white' }
+            };
+
+            Plotly.newPlot('mapa', [choropleth, bordaAmazonas, labelShadow, labelText], layout);
+        }
+
+        function filtrar() {
+            const cidade = document.getElementById('cidade').value;
+            renderizarMapa(cidade);
+        }
+
+        renderizarMapa();
+    </script>
+</body>
+
+</html>

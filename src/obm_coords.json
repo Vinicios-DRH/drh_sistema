@@ -1,0 +1,380 @@
+[
+  {
+    "id": 1,
+    "nome": "1 BI",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 2,
+    "nome": "ABMAM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 3,
+    "nome": "AJAI",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 4,
+    "nome": "AJUDANCIA GERAL",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 5,
+    "nome": "BBE",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 6,
+    "nome": "BBE/PELOTÃO FLUVIAL",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 7,
+    "nome": "BIFMA",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 8,
+    "nome": "BM1-SJD",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 9,
+    "nome": "BM-2",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 10,
+    "nome": "BM-3",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 11,
+    "nome": "BM-4",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 13,
+    "nome": "BM-5",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 14,
+    "nome": "BM-6",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 15,
+    "nome": "CBC",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 16,
+    "nome": "CBI",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 17,
+    "nome": "CBI/1 CIBM/1 PDBM/RIO PRETO DA EVA",
+    "cidade": "Rio Preto da Eva",
+    "latitude": -2.69872,
+    "longitude": -59.7007
+  },
+  {
+    "id": 18,
+    "nome": "CBI/1 CIBM/2 PDBM/HUMAITÁ",
+    "cidade": "Humaitá",
+    "latitude": -7.5099404,
+    "longitude": -63.0248674
+  },
+  {
+    "id": 19,
+    "nome": "CBI/1 CIBM/3 PDBM PRESIDENTE FIGUEIREDO",
+    "cidade": "Presidente Figueiredo",
+    "latitude": -2.029813,
+    "longitude": -60.02338
+  },
+  {
+    "id": 20,
+    "nome": "CBI/1 CIBM/ITACOATIARA",
+    "cidade": "Itacoatiara",
+    "latitude": -3.1477898,
+    "longitude": -58.4461041
+  },
+  {
+    "id": 21,
+    "nome": "CBI/1 PIBM/TEFÉ",
+    "cidade": "Tefé",
+    "latitude": -3.3485276,
+    "longitude": -64.7102278
+  },
+  {
+    "id": 22,
+    "nome": "CBI/2 CIBM/MANACAPURU",
+    "cidade": "Manacapuru",
+    "latitude": -3.2996768,
+    "longitude": -60.6213528
+  },
+  {
+    "id": 23,
+    "nome": "CBI/2 CIBM/2 PDBM/NOVO AIRÃO",
+    "cidade": "Novo Airão",
+    "latitude": -2.62587,
+    "longitude": -60.9435
+  },
+  {
+    "id": 24,
+    "nome": "CBI/2 PIBM/TABATINGA",
+    "cidade": "Tabatinga",
+    "latitude": -4.2327349,
+    "longitude": -69.9263372
+  },
+  {
+    "id": 25,
+    "nome": "CBI/3 CIBM/PARINTINS",
+    "cidade": "Parintins",
+    "latitude": -2.6344567,
+    "longitude": -56.7319324
+  },
+  {
+    "id": 26,
+    "nome": "CFAP",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 27,
+    "nome": "CIA CG",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 28,
+    "nome": "CMBM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 29,
+    "nome": "COBOM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 30,
+    "nome": "CONTROLADORIA",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 31,
+    "nome": "CORREGEDORIA/CBMAM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 32,
+    "nome": "CSM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 33,
+    "nome": "DAT",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 34,
+    "nome": "DF",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 35,
+    "nome": "DFEP",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 36,
+    "nome": "DL",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 37,
+    "nome": "DRH",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 38,
+    "nome": "DS",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 39,
+    "nome": "EMG",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 40,
+    "nome": "FCECON",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 41,
+    "nome": "FUNESBOM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 42,
+    "nome": "GAB CMT GERAL",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 43,
+    "nome": "GAB SUBCMT-GERAL",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 44,
+    "nome": "GRAPH",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 45,
+    "nome": "GSE",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 46,
+    "nome": "JOIS",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 47,
+    "nome": "OUVIDORIA",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 48,
+    "nome": "PGGM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 49,
+    "nome": "PMAM",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 50,
+    "nome": "PROVIDA",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 51,
+    "nome": "SCI",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 52,
+    "nome": "SJD",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 53,
+    "nome": "SUBCOMADEC",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  },
+  {
+    "id": 54,
+    "nome": "CBI/1 PDBM/IRANDUBA",
+    "cidade": "Iranduba",
+    "latitude": -3.2758203,
+    "longitude": -60.1867429
+  },
+  {
+    "id": 55,
+    "nome": "A DEFINIR",
+    "cidade": "Manaus",
+    "latitude": -3.1,
+    "longitude": -60.02
+  }
+]

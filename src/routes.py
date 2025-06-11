@@ -1,3 +1,4 @@
+import json
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify
@@ -24,7 +25,7 @@ from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, Mili
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
                         Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo)
-from src.querys import obter_estatisticas_militares, login_usuario
+from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
@@ -3684,3 +3685,10 @@ def imprimir_restricoes_ativas():
 def imprimir_ficha_aluno(aluno_id):
     aluno = FichaAlunos.query.get_or_404(aluno_id)
     return render_template('ficha_detalhada_print.html', aluno=aluno)
+
+
+@app.route('/dashboard-obms')
+@login_required
+def dashboard_obms():
+    dados = dados_para_mapa()
+    return render_template('dashboard_obms.html', dados=dados)

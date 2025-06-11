@@ -1,6 +1,7 @@
-from src import bcrypt
-from src.models import Militar, MilitaresAgregados, MilitaresADisposicao, User
-from sqlalchemy import and_
+import json
+from src import bcrypt, database
+from src.models import Militar, MilitaresAgregados, MilitaresADisposicao, User, Obm, MilitarObmFuncao
+from sqlalchemy import and_, func
 from datetime import datetime
 from flask import request
 import pytz
@@ -11,7 +12,8 @@ def obter_estatisticas_militares():
     efetivo_total = Militar.query.count()
 
     # Excluindo os civis (posto_grad_id != 15)
-    efetivo_total_sem_civis = Militar.query.filter(Militar.posto_grad_id != 15).count()
+    efetivo_total_sem_civis = Militar.query.filter(
+        Militar.posto_grad_id != 15).count()
 
     efetivo_civis = Militar.query.filter(Militar.posto_grad_id == 15).count()
 
@@ -36,19 +38,22 @@ def obter_estatisticas_militares():
     agregados_total = MilitaresAgregados.query.count()
 
     agregados = (
-        Militar.query.join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
+        Militar.query.join(MilitaresAgregados, Militar.id ==
+                           MilitaresAgregados.militar_id)
         .filter(Militar.agregacoes_id == 5)
         .count()
     )
 
     agregados_lts = (
-        Militar.query.join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
+        Militar.query.join(MilitaresAgregados, Militar.id ==
+                           MilitaresAgregados.militar_id)
         .filter(Militar.agregacoes_id == 2)
         .count()
     )
 
     agregados_rr = (
-        Militar.query.join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
+        Militar.query.join(MilitaresAgregados, Militar.id ==
+                           MilitaresAgregados.militar_id)
         .filter(Militar.agregacoes_id == 4)
         .count()
     )
@@ -199,5 +204,59 @@ def login_usuario(cpf, senha):
         user.data_ultimo_acesso = datetime.now(fuso_horario)
         user.ip_address = get_user_ip()
         return user
-    
+
     return None
+
+
+def efetivo_oficiais_por_obm():
+    oficiais_ids = [9, 10, 11, 12, 13, 14]
+
+    resultados = (
+        database.session.query(
+            Obm.id,
+            Obm.sigla,
+            func.count(Militar.id).label("quantidade_oficiais")
+        )
+        .join(MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id)
+        .join(Militar, Militar.id == MilitarObmFuncao.militar_id)
+        .filter(Militar.posto_grad_id.in_(oficiais_ids))
+        .group_by(Obm.id, Obm.sigla)
+        .order_by(Obm.sigla)
+        .all()
+    )
+
+    return [{"obm_id": r.id, "obm_sigla": r.sigla, "efetivo_oficiais": r.quantidade_oficiais} for r in resultados]
+
+
+def dados_para_mapa():
+    # Query do banco com efetivo por OBM
+    resultado = (
+        database.session.query(
+            Obm.id, Obm.sigla, func.count(Militar.id).label("efetivo")
+        )
+        .join(MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id)
+        .join(Militar, Militar.id == MilitarObmFuncao.militar_id)
+        .filter(Militar.posto_grad_id.in_([9, 10, 11, 12, 13, 14]))  # oficiais
+        .group_by(Obm.id, Obm.sigla)
+        .all()
+    )
+
+    # Carrega coordenadas
+    with open("src/obm_coords.json", "r", encoding="utf-8") as f:
+        coords = json.load(f)
+
+    coord_map = {item["id"]: item for item in coords}
+
+    dados = []
+    for obm_id, nome, efetivo in resultado:
+        info = coord_map.get(obm_id)
+        if info:
+            dados.append({
+                "nome": nome,
+                "cidade": info.get("cidade", "Desconhecida"),
+                "latitude": info["latitude"],
+                "longitude": info["longitude"],
+                "efetivo": efetivo
+            })
+
+    return dados
