@@ -1,4 +1,5 @@
 import json
+import uuid
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify
@@ -11,6 +12,10 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
+import smtplib
+from src.formatar_cpf import formatar_cpf
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
     Response
 from flask_login import login_user, logout_user, login_required, current_user
@@ -19,12 +24,12 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import ControleConvocacaoForm, FichaAlunosForm, FormMilitarInativo, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RestricaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm
-from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RestricaoAluno, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.forms import AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RestricaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm
+from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RestricaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao)
 from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -131,27 +136,6 @@ def login():
             fuso_horario = pytz.timezone('America/Manaus')
             cpf.data_ultimo_acesso = datetime.now(fuso_horario)
             cpf.ip_address = get_user_ip()
-
-            # Capturar latitude e longitude do formulário
-            # latitude = request.form.get('latitude')
-            # longitude = request.form.get('longitude')
-
-            # # Atualizar os campos de latitude e longitude no banco de dados
-            # cpf.latitude = latitude
-            # cpf.longitude = longitude
-
-            # # Usar geopy com Nominatim para obter o endereço
-            # if latitude and longitude:
-            #     try:
-            #         geolocator = Nominatim(user_agent="MeuApp")
-            #         location = geolocator.reverse((latitude, longitude), exactly_one=True, zoom=18)
-            #         if location and location.address:
-            #             cpf.endereco_acesso = location.address
-            #         else:
-            #             cpf.endereco_acesso = 'Endereço não encontrado'
-            #     except GeocoderServiceError as e:
-            #         print(f"Erro na geocodificação reversa: {e}")
-            #         cpf.endereco_acesso = 'Erro na API de geocodificação'
 
             database.session.commit()
 
@@ -3692,3 +3676,299 @@ def imprimir_ficha_aluno(aluno_id):
 def dashboard_obms():
     dados = dados_para_mapa()
     return render_template('dashboard_obms.html', dados=dados)
+
+
+# Config SMTP
+SMTP_SERVER = 'smtp.office365.com'
+SMTP_PORT = 587
+SMTP_LOGIN = 'drh@cbm.am.gov.br'
+SMTP_PASSWORD = 'Cbmam2023#'
+
+
+@app.route('/atualizacao-cadastral', methods=['GET', 'POST'])
+def atualizacao_cadastral():
+    form = IdentificacaoForm()
+
+    if form.validate_on_submit():
+        print("VALIDOU ✅")
+        cpf = form.cpf.data
+        email_digitado = form.email.data.strip().lower()
+
+        militar = Militar.query.filter_by(cpf=cpf).first()
+
+        if not militar:
+            flash(
+                "⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
+            return render_template("atualizacao/identificacao.html", form=form)
+
+        # 🔒 VERIFICA SE CPF JÁ EXISTE NA TABELA USER
+        # Exemplo: 12345678900 → 123.456.789-00
+        cpf_formatado = formatar_cpf(cpf)
+        user = User.query.filter_by(cpf=cpf_formatado).first()
+
+        if user:
+            flash("⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar a atualização.", "warning")
+            # Altere para a sua rota de login de atualização cadastral
+            return redirect(url_for('login_atualizacao'))
+
+        # Gera token
+        token = str(uuid.uuid4())[:6].upper()  # Ex: 'A1B2C3'
+
+        # Salva no banco
+        token_entry = TokenVerificacao(
+            cpf=cpf,
+            token=token,
+            criado_em=datetime.utcnow(),
+            usado=False
+        )
+        database.session.add(token_entry)
+        database.session.commit()
+
+        # Corpo do e-mail em HTML
+        corpo_email_html = f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', sans-serif;
+                    background-color: #f4f4f4;
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    background-color: #ffffff;
+                    max-width: 600px;
+                    margin: auto;
+                    border-radius: 8px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    padding: 30px;
+                }}
+                .titulo {{
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #a50000;
+                    margin-bottom: 20px;
+                }}
+                .token {{
+                    font-size: 26px;
+                    font-weight: bold;
+                    color: #a50000;
+                    margin: 20px 0;
+                    text-align: center;
+                    letter-spacing: 3px;
+                }}
+                .rodape {{
+                    font-size: 14px;
+                    color: #777;
+                    margin-top: 40px;
+                    border-top: 1px solid #ddd;
+                    padding-top: 15px;
+                    text-align: center;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <p class="titulo">Solicitação de Atualização Cadastral</p>
+
+                <p>Recebemos uma solicitação para atualização cadastral no sistema do Corpo de Bombeiros Militar do Amazonas (CBMAM).</p>
+
+                <p>Utilize o código abaixo para prosseguir com a atualização:</p>
+
+                <p class="token">{token}</p>
+
+                <p>Este código é válido por até <strong>10 minutos</strong>.</p>
+
+                <p>Caso você não tenha solicitado esta operação, nenhuma ação será realizada e este e-mail pode ser desconsiderado.</p>
+
+                <div class="rodape">
+                    Diretoria de Recursos Humanos<br>
+                    Corpo de Bombeiros Militar do Amazonas – CBMAM
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Envia e-mail HTML com smtplib
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = "Token de Verificação - Atualização Cadastral CBMAM"
+            msg["From"] = SMTP_LOGIN
+            msg["To"] = email_digitado
+
+            parte_html = MIMEText(corpo_email_html, "html")
+            msg.attach(parte_html)
+
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_LOGIN, SMTP_PASSWORD)
+                server.sendmail(SMTP_LOGIN, [email_digitado], msg.as_string())
+
+            flash("✅ Token enviado com sucesso para o e-mail informado!", "success")
+            return redirect(url_for('validar_token', cpf=cpf))
+        except Exception as e:
+            print(f"Erro ao enviar e-mail: {e}")
+            flash(f"❌ Erro ao enviar o e-mail: {str(e)}", "danger")
+
+    return render_template("atualizacao/identificacao.html", form=form)
+
+
+@app.route('/validar-token/<cpf>', methods=['GET', 'POST'])
+def validar_token(cpf):
+    form = TokenForm()
+
+    if form.validate_on_submit():
+        token_digitado = form.token.data.strip().upper()
+
+        # Busca token válido no banco
+        token_registro = TokenVerificacao.query.filter_by(
+            cpf=cpf,
+            token=token_digitado,
+            usado=False
+        ).order_by(TokenVerificacao.criado_em.desc()).first()
+
+        if not token_registro:
+            flash("❌ Token inválido ou já utilizado.", "danger")
+            return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
+
+        # Validade de 10 minutos
+        criado_em_naive = token_registro.criado_em.replace(tzinfo=None)
+        expirado = criado_em_naive + timedelta(minutes=10) < datetime.now()
+        if expirado:
+            flash("⏰ Token expirado. Solicite um novo para continuar.", "warning")
+            return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
+
+        # Marca como usado
+        token_registro.usado = True
+        database.session.commit()
+
+        flash("✅ Token validado com sucesso! Crie sua senha para continuar.", "success")
+        return redirect(url_for('criar_senha', cpf=cpf))
+
+    return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
+
+
+@app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
+def criar_senha(cpf):
+    form = CriarSenhaForm()
+
+    # Já tem conta?
+    usuario_existente = User.query.filter_by(cpf=cpf).first()
+    if usuario_existente:
+        flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
+        return redirect(url_for('login'))
+
+    militar = Militar.query.filter_by(cpf=cpf).first()
+    if not militar:
+        flash("❌ Militar não encontrado para este CPF.", "danger")
+        return redirect(url_for('atualizacao_cadastral'))
+
+    if form.validate_on_submit():
+        senha_hash = bcrypt.generate_password_hash(
+            form.senha.data).decode('utf-8')
+
+        novo_usuario = User(
+            nome=militar.nome_completo,
+            cpf=cpf,
+            email=None,  # Pode buscar no TokenVerificacao se quiser salvar
+            senha=senha_hash,
+            funcao_user_id=12  # ID do perfil USUÁRIO COMUM
+        )
+
+        database.session.add(novo_usuario)
+        database.session.commit()
+
+        flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
+        # ou redirecionar direto pra home se quiser
+        return redirect(url_for('login_atualizacao'))
+
+    return render_template('atualizacao/criar_senha.html', form=form, cpf=cpf)
+
+
+@app.route('/formulario-atualizacao-cadastral', methods=['GET', 'POST'])
+@login_required
+def formulario_atualizacao_cadastral():
+    if current_user.funcao_user_id != 12:
+        flash("⚠️ Acesso restrito à atualização cadastral.", "danger")
+        return redirect(url_for('home'))
+
+    # Busca o militar vinculado ao CPF do usuário logado
+    militar = Militar.query.filter_by(cpf=current_user.cpf).first()
+
+    if not militar:
+        flash("❌ Dados do militar não encontrados.", "danger")
+        return redirect(url_for('home'))
+
+    form = AtualizacaoCadastralForm(obj=militar)
+
+    if form.validate_on_submit():
+        militar.celular = form.celular.data
+        militar.email = form.email.data
+        militar.endereco = form.endereco.data
+        militar.complemento = form.complemento.data
+        militar.cidade = form.cidade.data
+        militar.estado = form.estado.data
+        militar.grau_instrucao = form.grau_instrucao.data
+
+        database.session.commit()
+
+        vinculo = SegundoVinculo.query.filter_by(militar_id=militar.id).first()
+        if not vinculo:
+            vinculo = SegundoVinculo(militar_id=militar.id)
+
+        vinculo.possui_vinculo = form.possui_vinculo.data
+        vinculo.quantidade_vinculos = form.quantidade_vinculos.data
+        vinculo.descricao_vinculo = form.descricao_vinculo.data
+        vinculo.horario_inicio = form.horario_inicio.data
+        vinculo.horario_fim = form.horario_fim.data
+
+        database.session.add(vinculo)
+        database.session.commit()
+        flash("✅ Dados atualizados com sucesso!", "success")
+        return redirect(url_for('ficha_atualizada'))
+
+    return render_template('atualizacao/formulario_cadastro.html', form=form)
+
+
+@app.route("/login-atualizacao", methods=['GET', 'POST'])
+def login_atualizacao():
+    if current_user.is_authenticated:
+        flash('Você já está logado.', 'alert-info')
+        return redirect(url_for('formulario_atualizacao_cadastral'))
+
+    form_login = FormLogin()
+
+    if form_login.validate_on_submit() and 'botao_submit_login' in request.form:
+        cpf_formatado = form_login.cpf.data.strip()
+        usuario = User.query.filter_by(cpf=cpf_formatado).first()
+
+        if usuario and bcrypt.check_password_hash(usuario.senha, form_login.senha.data):
+            if usuario.funcao_user_id == 12:
+                login_user(usuario, remember=form_login.lembrar_dados.data)
+                flash('Login realizado com sucesso.', 'success')
+                return redirect(url_for('formulario_atualizacao_cadastral'))
+            else:
+                flash(
+                    'Este usuário não tem permissão para acessar a atualização cadastral.', 'danger')
+        else:
+            flash('CPF ou senha incorretos.', 'danger')
+
+    return render_template("atualizacao/login_atualizacao.html", form_login=form_login)
+
+
+@app.route('/ficha-atualizada')
+@login_required
+def ficha_atualizada():
+    militar = Militar.query.filter_by(cpf=current_user.cpf).first_or_404()
+    segundo_vinculo = SegundoVinculo.query.filter_by(
+        militar_id=militar.id).first()
+
+    return render_template(
+        'atualizacao/ficha_atualizada.html',
+        militar=militar,
+        segundo_vinculo=segundo_vinculo
+    )

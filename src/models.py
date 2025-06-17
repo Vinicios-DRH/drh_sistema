@@ -806,3 +806,27 @@ class MilitaresInativos(database.Model):
         database.Integer, database.ForeignKey('user.id'))
     data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
     ip_address = database.Column(database.String(45))
+
+
+class TokenVerificacao(database.Model):
+    __tablename__ = 'token_verificacao'
+    id = database.Column(database.Integer, primary_key=True)
+    cpf = database.Column(database.String(50), nullable=False)
+    token = database.Column(database.String(100), nullable=False)
+    criado_em = database.Column(database.DateTime, default=datetime.utcnow)
+    usado = database.Column(database.Boolean, default=False)
+
+
+class SegundoVinculo(database.Model):
+    __tablename__ = "segundo_vinculo"
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'))
+    possui_vinculo = database.Column(database.Boolean, default=False)
+    quantidade_vinculos = database.Column(database.Integer)
+    descricao_vinculo = database.Column(database.String(255))
+    horario_inicio = database.Column(database.Time)
+    horario_fim = database.Column(database.Time)
+    data_registro = database.Column(database.DateTime, default=datetime.utcnow)
+
+    militar = database.relationship('Militar', backref='segundo_vinculo')

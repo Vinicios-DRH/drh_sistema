@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ficha Atualizada</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #a50000, #2c2c2c);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        .container-ficha {
+            background-color: #1f1f1f;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 1000px;
+            margin: auto;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 20px auto;
+            width: 80px;
+        }
+
+        h2 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #f1f1f1;
+            margin-top: 30px;
+            border-bottom: 1px solid #a50000;
+            padding-bottom: 5px;
+        }
+
+        .row+.row {
+            margin-top: 15px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #ccc;
+        }
+
+        .value {
+            color: white;
+        }
+
+        .btn-voltar {
+            background-color: #a50000;
+            border: none;
+        }
+
+        .btn-voltar:hover {
+            background-color: #850000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="position-absolute top-0 end-0 m-3">
+        <a href="{{ url_for('sair') }}" class="btn btn-outline-light btn-sm">
+            Sair
+        </a>
+    </div>
+    <div class="container-ficha">
+        <img src="{{ url_for('static', filename='img/logobm.png') }}" class="logo" alt="Logo CBMAM">
+        <h2>Ficha Atualizada</h2>
+
+        <div class="section-title">Dados Pessoais</div>
+        <div class="row">
+            <div class="col-md-6"><span class="label">Nome:</span> <span class="value">{{ militar.nome_completo
+                    }}</span></div>
+            <div class="col-md-6"><span class="label">CPF:</span> <span class="value">{{ militar.cpf }}</span></div>
+        </div>
+        <div class="row">
+            <div class="col-md-6"><span class="label">Celular:</span> <span class="value">{{ militar.celular or '---'
+                    }}</span></div>
+            <div class="col-md-6"><span class="label">E-mail:</span> <span class="value">{{ militar.email or '---'
+                    }}</span></div>
+        </div>
+        <div class="row">
+            <div class="col-md-8"><span class="label">Endereço:</span> <span class="value">{{ militar.endereco or '---'
+                    }}</span></div>
+            <div class="col-md-4"><span class="label">Complemento:</span> <span class="value">{{ militar.complemento or
+                    '---' }}</span></div>
+        </div>
+        <div class="row">
+            <div class="col-md-4"><span class="label">Cidade:</span> <span class="value">{{ militar.cidade or '---'
+                    }}</span></div>
+            <div class="col-md-4"><span class="label">Estado:</span> <span class="value">{{ militar.estado or '---'
+                    }}</span></div>
+            <div class="col-md-4"><span class="label">Grau de Instrução:</span> <span class="value">{{
+                    militar.grau_instrucao or '---' }}</span></div>
+        </div>
+
+        {% if segundo_vinculo %}
+        <div class="section-title">Segundo Vínculo</div>
+        <div class="row">
+            <div class="col-md-4"><span class="label">Possui Vínculo:</span> <span class="value">{{ 'Sim' if
+                    segundo_vinculo.possui_vinculo else 'Não' }}</span></div>
+            <div class="col-md-4"><span class="label">Quantidade:</span> <span class="value">{{
+                    segundo_vinculo.quantidade_vinculos or '---' }}</span></div>
+            <div class="col-md-4"><span class="label">Horário:</span>
+                <span class="value">
+                    {{ segundo_vinculo.horario_inicio.strftime('%H:%M') if segundo_vinculo.horario_inicio else '--:--'
+                    }}
+                    às
+                    {{ segundo_vinculo.horario_fim.strftime('%H:%M') if segundo_vinculo.horario_fim else '--:--' }}
+                </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12"><span class="label">Descrição:</span> <span class="value">{{
+                    segundo_vinculo.descricao_vinculo or '---' }}</span></div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('home') }}" class="btn btn-voltar btn-lg text-white">Voltar ao Início</a>
+        </div>
+    </div>
+</body>
+
+</html>

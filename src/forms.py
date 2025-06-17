@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
 from wtforms import (FloatField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField, FileField, DecimalField, TextAreaField)
+                     MultipleFileField, FileField, DecimalField, TextAreaField, TimeField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired
 from src.models import Militar, User, SituacaoConvocacao
 
@@ -434,3 +434,92 @@ class FormMilitarInativo(FlaskForm):
     doe = StringField('DOE')
     inativo = BooleanField('Inativo', default=True)
     botao_submit = SubmitField('Salvar')
+
+
+class IdentificacaoForm(FlaskForm):
+    cpf = StringField("CPF", validators=[DataRequired()])
+    email = StringField("E-mail para envio do token",
+                        validators=[DataRequired(), Email()])
+    submit = SubmitField("Receber Token")
+
+
+class TokenForm(FlaskForm):
+    token = StringField("Token de Verificação", validators=[
+                        DataRequired(), Length(min=6, max=6)])
+    submit = SubmitField("Validar Token")
+
+
+class CriarSenhaForm(FlaskForm):
+    senha = PasswordField('Senha', validators=[
+                          DataRequired(), Length(min=6, max=20)])
+    confirmar_senha = PasswordField('Confirmar Senha', validators=[
+                                    DataRequired(), EqualTo('senha')])
+    submit = SubmitField('Criar Conta')
+
+
+class AtualizacaoCadastralForm(FlaskForm):
+    celular = StringField('Celular', validators=[DataRequired()])
+    email = StringField('E-mail', validators=[DataRequired(), Email()])
+    endereco = StringField('Endereço', validators=[DataRequired()])
+    complemento = StringField('Complemento', validators=[Optional()])
+    cidade = StringField('Cidade', validators=[DataRequired()])
+    estado = SelectField('Estado', choices=[
+        ('', '-- Selecione o Estado --'),
+        ('AC', 'Acre'),
+        ('AL', 'Alagoas'),
+        ('AP', 'Amapá'),
+        ('AM', 'Amazonas'),
+        ('BA', 'Bahia'),
+        ('CE', 'Ceará'),
+        ('DF', 'Distrito Federal'),
+        ('ES', 'Espírito Santo'),
+        ('GO', 'Goiás'),
+        ('MA', 'Maranhão'),
+        ('MT', 'Mato Grosso'),
+        ('MS', 'Mato Grosso do Sul'),
+        ('MG', 'Minas Gerais'),
+        ('PA', 'Pará'),
+        ('PB', 'Paraíba'),
+        ('PR', 'Paraná'),
+        ('PE', 'Pernambuco'),
+        ('PI', 'Piauí'),
+        ('RJ', 'Rio de Janeiro'),
+        ('RN', 'Rio Grande do Norte'),
+        ('RS', 'Rio Grande do Sul'),
+        ('RO', 'Rondônia'),
+        ('RR', 'Roraima'),
+        ('SC', 'Santa Catarina'),
+        ('SP', 'São Paulo'),
+        ('SE', 'Sergipe'),
+        ('TO', 'Tocantins')
+    ], validators=[DataRequired()])
+
+    grau_instrucao = SelectField('Grau de Instrução', choices=[
+        ('', '-- Selecione --'),
+        ('Ensino Médio Incompleto', 'Ensino Médio Incompleto'),
+        ('Ensino Médio Completo', 'Ensino Médio Completo'),
+        ('Ensino Técnico', 'Ensino Técnico'),
+        ('Ensino Superior Incompleto', 'Ensino Superior Incompleto'),
+        ('Ensino Superior Completo', 'Ensino Superior Completo'),
+        ('Pós-graduação', 'Pós-graduação'),
+        ('Mestrado', 'Mestrado'),
+        ('Doutorado', 'Doutorado'),
+        ('Pós-doutorado', 'Pós-doutorado')
+    ], validators=[Optional()])
+
+    possui_vinculo = BooleanField('Possui segundo vínculo?', default=False)
+    quantidade_vinculos = IntegerField('Quantidade de vínculos', validators=[
+                                       Optional(), NumberRange(min=1, max=5)])
+    descricao_vinculo = StringField(
+        'Descrição do vínculo', validators=[Optional()])
+    horario_inicio = TimeField(
+        'Horário de início do serviço', validators=[Optional()])
+    horario_fim = TimeField(
+        'Horário de término do serviço', validators=[Optional()])
+
+    numero_emergencia = StringField(
+        'Telefone de Emergência', validators=[DataRequired()])
+    responsavel_emergencia = StringField(
+        'Responsável pelo Número', validators=[DataRequired()])
+
+    submit = SubmitField('Salvar Alterações')
