@@ -523,3 +523,22 @@ class AtualizacaoCadastralForm(FlaskForm):
         'Responsável pelo Número', validators=[DataRequired()])
 
     submit = SubmitField('Salvar Alterações')
+
+
+class RecompensaAlunoForm(FlaskForm):
+    natureza = StringField('Natureza', validators=[DataRequired()])
+    autoridade = StringField('Autoridade', validators=[DataRequired()])
+    boletim = StringField('Boletim', validators=[DataRequired()])
+    discriminacao = TextAreaField('Discriminação', validators=[DataRequired()])
+    botao_submit = SubmitField('Registrar Recompensa')
+
+
+class SancaoAlunoForm(FlaskForm):
+    natureza = StringField('Natureza', validators=[DataRequired()])
+    numero_dias = IntegerField('Número de Dias', validators=[DataRequired()])
+    boletim = StringField('Boletim', validators=[DataRequired()])
+    data_inicio = DateField('Data de Início', validators=[DataRequired()])
+    data_fim = DateField('Data de Término', validators=[DataRequired()])
+    discriminacao = TextAreaField(
+        'Discriminação/Medidas Aplicadas', validators=[DataRequired()])
+    botao_submit = SubmitField('Registrar Sanção')

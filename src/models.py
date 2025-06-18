@@ -831,3 +831,41 @@ class SegundoVinculo(database.Model):
     data_registro = database.Column(database.DateTime, default=datetime.utcnow)
 
     militar = database.relationship('Militar', backref='segundo_vinculo')
+
+
+class RecompensaAluno(database.Model):
+    __tablename__ = 'recompensas_alunos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    ficha_aluno_id = database.Column(
+        database.Integer, database.ForeignKey('ficha_alunos.id'), nullable=False)
+    natureza = database.Column(database.String(200), nullable=False)
+    autoridade = database.Column(database.String(200), nullable=False)
+    boletim = database.Column(database.String(50), nullable=False)
+    discriminacao = database.Column(database.Text, nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_criacao = database.Column(database.DateTime, default=now_manaus)
+
+    ficha_aluno = database.relationship('FichaAlunos', backref='recompensas')
+    usuario = database.relationship('User', backref='recompensas_registradas')
+
+
+class SancaoAluno(database.Model):
+    __tablename__ = 'sancoes_alunos'
+
+    id = database.Column(database.Integer, primary_key=True)
+    ficha_aluno_id = database.Column(
+        database.Integer, database.ForeignKey('ficha_alunos.id'), nullable=False)
+    natureza = database.Column(database.String(200), nullable=False)
+    numero_dias = database.Column(database.Integer, nullable=False)
+    boletim = database.Column(database.String(50), nullable=False)
+    data_inicio = database.Column(database.Date, nullable=False)
+    data_fim = database.Column(database.Date, nullable=False)
+    discriminacao = database.Column(database.Text, nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_criacao = database.Column(database.DateTime, default=now_manaus)
+
+    ficha_aluno = database.relationship('FichaAlunos', backref='sancoes')
+    usuario = database.relationship('User', backref='sancoes_registradas')

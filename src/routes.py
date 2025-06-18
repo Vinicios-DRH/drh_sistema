@@ -24,8 +24,8 @@ from werkzeug.utils import secure_filename
 from wtforms import SelectField, StringField
 from wtforms.widgets import TextInput
 from src import app, database, bcrypt
-from src.forms import AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RestricaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm
-from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RestricaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.forms import AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm, RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm
+from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -3972,3 +3972,51 @@ def ficha_atualizada():
         militar=militar,
         segundo_vinculo=segundo_vinculo
     )
+
+
+@app.route('/fichas/<int:aluno_id>/recompensa', methods=['GET', 'POST'])
+@login_required
+def registrar_recompensa(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    form = RecompensaAlunoForm()
+
+    if form.validate_on_submit():
+        nova = RecompensaAluno(
+            ficha_aluno_id=aluno.id,
+            natureza=form.natureza.data,
+            autoridade=form.autoridade.data,
+            boletim=form.boletim.data,
+            discriminacao=form.discriminacao.data,
+            usuario_id=current_user.id
+        )
+        database.session.add(nova)
+        database.session.commit()
+        flash('Recompensa registrada com sucesso!', 'success')
+        return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+    return render_template('registrar_recompensa.html', form=form, aluno=aluno)
+
+
+@app.route('/fichas/<int:aluno_id>/sancao', methods=['GET', 'POST'])
+@login_required
+def registrar_sancao(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    form = SancaoAlunoForm()
+
+    if form.validate_on_submit():
+        nova = SancaoAluno(
+            ficha_aluno_id=aluno.id,
+            natureza=form.natureza.data,
+            numero_dias=form.numero_dias.data,
+            boletim=form.boletim.data,
+            data_inicio=form.data_inicio.data,
+            data_fim=form.data_fim.data,
+            discriminacao=form.discriminacao.data,
+            usuario_id=current_user.id
+        )
+        database.session.add(nova)
+        database.session.commit()
+        flash('Sanção registrada com sucesso!', 'success')
+        return redirect(url_for('editar_ficha', aluno_id=aluno.id))
+
+    return render_template('registrar_sancao.html', form=form, aluno=aluno)

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">Ficha de Acompanhamento Disciplinar Escolar – SANÇÕES ESCOLARES</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label">Nome Completo:</label>
+                    <input class="form-control" value="{{ aluno.nome_completo }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nome de Guerra:</label>
+                    <input class="form-control" value="{{ aluno.nome_guerra }}" readonly>
+                </div>
+
+                <div class="mb-3">
+                    {{ form.natureza.label(class="form-label") }}
+                    {{ form.natureza(class="form-control") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.numero_dias.label(class="form-label") }}
+                    {{ form.numero_dias(class="form-control") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.boletim.label(class="form-label") }}
+                    {{ form.boletim(class="form-control") }}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        {{ form.data_inicio.label(class="form-label") }}
+                        {{ form.data_inicio(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.data_fim.label(class="form-label") }}
+                        {{ form.data_fim(class="form-control") }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    {{ form.discriminacao.label(class="form-label") }}
+                    {{ form.discriminacao(class="form-control", rows="5") }}
+                </div>
+
+                <div class="text-end">
+                    {{ form.botao_submit(class="btn btn-danger") }}
+                    <a href="{{ url_for('editar_ficha', aluno_id=aluno.id) }}" class="btn btn-secondary">Voltar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
