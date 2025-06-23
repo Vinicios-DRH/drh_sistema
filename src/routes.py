@@ -3359,7 +3359,7 @@ def ficha_aluno():
         flash('Ficha do aluno salva com sucesso!', 'success')
         return redirect(url_for('ficha_aluno'))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url)
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year)
 
 
 @app.route('/fichas')
@@ -3386,14 +3386,15 @@ def listar_fichas():
         search=search,
         idade_chart=idade_chart,
         cnh_chart=cnh_chart,
-        comportamento_chart=comportamento_chart
+        comportamento_chart=comportamento_chart,
+        ano_atual=datetime.now().year
     )
 
 
 @app.route('/fichas/<int:aluno_id>')
 def ficha_detalhada(aluno_id):
     aluno = FichaAlunos.query.get_or_404(aluno_id)
-    return render_template('ficha_detalhada.html', aluno=aluno)
+    return render_template('ficha_detalhada.html', aluno=aluno, ano_atual=datetime.now().year)
 
 
 def calcular_comportamento(nota):
@@ -3456,7 +3457,7 @@ def editar_ficha(aluno_id):
         flash("Ficha atualizada com sucesso!", "success")
         return redirect(url_for('listar_fichas', aluno_id=aluno.id))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno)
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno, ano_atual=datetime.now().year)
 
 
 @app.route('/fichas/<int:aluno_id>/inativar', methods=['GET', 'POST'])
@@ -3482,7 +3483,7 @@ def inativar_aluno(aluno_id):
         flash('Aluno marcado como inativo com sucesso.', 'success')
         return redirect(url_for('listar_fichas'))
 
-    return render_template('inativar_aluno.html', form=form, aluno=aluno)
+    return render_template('inativar_aluno.html', form=form, aluno=aluno, ano_atual=datetime.now().year)
 
 
 @app.route('/alunos-inativos')
@@ -3500,7 +3501,7 @@ def listar_alunos_inativos():
 
     alunos = query.order_by(AlunoInativo.data_saida.desc()).all()
 
-    return render_template('listar_alunos_inativos.html', alunos=alunos)
+    return render_template('listar_alunos_inativos.html', alunos=alunos, ano_atual=datetime.now().year)
 
 
 @app.route('/pelotao/<slug>', methods=['GET'])
@@ -3538,7 +3539,8 @@ def listar_por_pelotao(slug):
                            titulo=f'Alunos do {nome_pelotao}',
                            idade_chart=idade_chart,
                            cnh_chart=cnh_chart,
-                           comportamento_chart=comportamento_chart
+                           comportamento_chart=comportamento_chart,
+                           ano_atual=datetime.now().year
                            )
 
 
@@ -3562,7 +3564,7 @@ def registrar_lts(aluno_id):
         flash('LTS registrada com sucesso!', 'success')
         return redirect(url_for('editar_ficha', aluno_id=aluno.id))
 
-    return render_template('registrar_lts_aluno.html', form=form, aluno=aluno)
+    return render_template('registrar_lts_aluno.html', form=form, aluno=aluno, ano_atual=datetime.now().year)
 
 
 @app.route('/alunos-em-lts')
@@ -3575,7 +3577,7 @@ def listar_alunos_em_lts():
         LtsAlunos.data_fim >= hoje
     ).order_by(LtsAlunos.data_inicio.asc()).all()
 
-    return render_template('alunos_em_lts.html', licencas=licencas_ativas)
+    return render_template('alunos_em_lts.html', licencas=licencas_ativas, ano_atual=datetime.now().year)
 
 
 @app.route('/fichas/<int:aluno_id>/restricao', methods=['GET', 'POST'])
@@ -3608,7 +3610,7 @@ def registrar_restricao(aluno_id):
         flash('Restrição registrada com sucesso!', 'success')
         return redirect(url_for('editar_ficha', aluno_id=aluno.id))
 
-    return render_template('registrar_restricao.html', form=form, aluno=aluno)
+    return render_template('registrar_restricao.html', form=form, aluno=aluno, ano_atual=datetime.now().year)
 
 
 @app.route('/restricoes-ativas')
@@ -3621,7 +3623,7 @@ def restricoes_ativas():
         RestricaoAluno.data_fim >= hoje
     ).order_by(RestricaoAluno.data_inicio.asc()).all()
 
-    return render_template('restricoes_ativas.html', restricoes=restricoes)
+    return render_template('restricoes_ativas.html', restricoes=restricoes, ano_atual=datetime.now().year)
 
 
 @app.route('/restricoes-ativas/excel')

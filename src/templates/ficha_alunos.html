@@ -2,167 +2,242 @@
 
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    .painel-acoes .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+    }
+
+    .painel-acoes .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1;
+    }
+
+    footer {
+        background-color: #f8f9fa;
+        padding: 15px 0;
+        text-align: center;
+        border-top: 1px solid #ddd;
+        font-size: 0.9rem;
+        color: #555;
+    }
+</style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <div class="card shadow-lg">
-        {% if form.errors %}
-        <div class="alert alert-danger">
-            <ul>
-                {% for field, errors in form.errors.items() %}
-                {% for error in errors %}
-                <li>{{ form[field].label.text }}: {{ error }}</li>
-                {% endfor %}
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
+<main>
 
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Ficha do Aluno Soldado</h4>
-        </div>
-        <div class="card-body">
-            <form method="POST" enctype="multipart/form-data">
-                {{ form.hidden_tag() }}
+    <div class="container mt-5">
+        <div class="card shadow-lg">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <ul>
+                    {% for field, errors in form.errors.items() %}
+                    {% for error in errors %}
+                    <li>{{ form[field].label.text }}: {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
-                <div class="row mb-4 align-items-center">
-                    <div class="col-md-3 text-center">
-                        <img id="previewImage"
-                            src="{{ foto_url or url_for('static', filename='img/avatar-default.png') }}"
-                            class="img-thumbnail" style="max-height: 150px; max-width: 150px; object-fit: cover;">
-                        <div class="mt-2">
-                            <label for="fotoInput" class="btn btn-outline-primary">
-                                <i class="bi bi-upload"></i> Selecionar Foto
-                            </label>
-                            {{ form.foto(class="d-none", id="fotoInput", onchange="previewFoto(event)") }}
-                        </div>
-                    </div>
-                    <div class="col-md-9">
-                        <div class="row">
-                            <div class="col-md-12">
-                                {{ form.nome_completo.label(class="form-label") }}
-                                {{ form.nome_completo(class="form-control") }}
-                            </div>
-                            <div class="col-md-12 mt-2">
-                                {{ form.nome_guerra.label(class="form-label") }}
-                                {{ form.nome_guerra(class="form-control") }}
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Ficha do Aluno Soldado</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-4 align-items-center">
+                        <div class="col-md-3 text-center">
+                            <img id="previewImage"
+                                src="{{ foto_url or url_for('static', filename='img/avatar-default.png') }}"
+                                class="img-thumbnail" style="max-height: 150px; max-width: 150px; object-fit: cover;">
+                            <div class="mt-2">
+                                <label for="fotoInput" class="btn btn-outline-primary">
+                                    <i class="bi bi-upload"></i> Selecionar Foto
+                                </label>
+                                {{ form.foto(class="d-none", id="fotoInput", onchange="previewFoto(event)") }}
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-3">{{ form.idade_atual.label(class="form-label") }}{{
-                        form.idade_atual(class="form-control") }}</div>
-                    <div class="col-md-3">{{ form.cpf.label(class="form-label") }}{{ form.cpf(class="form-control") }}
-                    </div>
-                    <div class="col-md-3">{{ form.rg.label(class="form-label") }}{{ form.rg(class="form-control") }}
-                    </div>
-                    <div class="col-md-3">{{ form.estado_civil.label(class="form-label") }}{{
-                        form.estado_civil(class="form-control") }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">{{ form.nome_pai.label(class="form-label") }}{{
-                        form.nome_pai(class="form-control") }}</div>
-                    <div class="col-md-6">{{ form.nome_mae.label(class="form-label") }}{{
-                        form.nome_mae(class="form-control") }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    {% set pode_editar_pelotao = (current_user.funcao_user_id == 2 and current_user.obm_id_1 == 26)
-                    or current_user.funcao_user_id == 6
-                    or current_user.obm_id_1 == 37 %}
-
-                    <div class="col-md-4">
-                        {{ form.pelotao.label(class="form-label") }}
-                        {% if pode_editar_pelotao %}
-                        {{ form.pelotao(class="form-select") }}
-                        {% else %}
-                        {{ form.pelotao(class="form-select", disabled=True) }}
-                        {% endif %}
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ form.nome_completo.label(class="form-label") }}
+                                    {{ form.nome_completo(class="form-control") }}
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    {{ form.nome_guerra.label(class="form-label") }}
+                                    {{ form.nome_guerra(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="col-md-4">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control")
-                        }}</div>
-                    <div class="col-md-4">{{ form.telefone.label(class="form-label") }}{{
-                        form.telefone(class="form-control") }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">{{ form.telefone_emergencia.label(class="form-label") }}{{
-                        form.telefone_emergencia(class="form-control") }}</div>
-                    <div class="col-md-6">{{ form.estado.label(class="form-label") }}{{ form.estado(class="form-select")
-                        }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-4">{{ form.rua.label(class="form-label") }}{{ form.rua(class="form-control") }}
+                    <div class="row mb-3">
+                        <div class="col-md-3">{{ form.idade_atual.label(class="form-label") }}{{
+                            form.idade_atual(class="form-control") }}</div>
+                        <div class="col-md-3">{{ form.cpf.label(class="form-label") }}{{ form.cpf(class="form-control")
+                            }}
+                        </div>
+                        <div class="col-md-3">{{ form.rg.label(class="form-label") }}{{ form.rg(class="form-control") }}
+                        </div>
+                        <div class="col-md-3">{{ form.estado_civil.label(class="form-label") }}{{
+                            form.estado_civil(class="form-control") }}</div>
                     </div>
-                    <div class="col-md-4">{{ form.bairro.label(class="form-label") }}{{
-                        form.bairro(class="form-control") }}</div>
-                    <div class="col-md-4">{{ form.complemento.label(class="form-label") }}{{
-                        form.complemento(class="form-control") }}</div>
-                    <div class="col-md-4">{{ form.hospedagem_aluno_de_fora.label(class="form-label") }}{{
-                        form.hospedagem_aluno_de_fora(class="form-control") }}</div>
-                </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-4">{{ form.formacao_academica.label(class="form-label") }}{{
-                        form.formacao_academica(class="form-control") }}</div>
-                    <div class="col-md-4">{{ form.tipo_sanguineo.label(class="form-label") }}{{
-                        form.tipo_sanguineo(class="form-control") }}</div>
-                    <div class="col-md-4">{{ form.categoria_cnh.label(class="form-label") }}{{
-                        form.categoria_cnh(class="form-select") }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Nota do Comportamento</label>
-                        <input type="number" step="0.01" min="0" max="10" name="nota_comportamento"
-                            id="notaComportamento" class="form-control" value="{{ aluno.nota_comportamento or 5.0 }}"
-                            oninput="atualizarComportamento()">
+                    <div class="row mb-3">
+                        <div class="col-md-6">{{ form.nome_pai.label(class="form-label") }}{{
+                            form.nome_pai(class="form-control") }}</div>
+                        <div class="col-md-6">{{ form.nome_mae.label(class="form-label") }}{{
+                            form.nome_mae(class="form-control") }}</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Comportamento Atual</label>
-                        <input type="text" class="form-control" id="comportamentoAtual"
-                            value="{{ aluno.comportamento or 'Bom' }}" readonly style="font-weight: bold;">
+
+                    <div class="row mb-3">
+                        {% set pode_editar_pelotao = (current_user.funcao_user_id == 2 and current_user.obm_id_1 == 26)
+                        or current_user.funcao_user_id == 6
+                        or current_user.obm_id_1 == 37 %}
+
+                        <div class="col-md-4">
+                            {{ form.pelotao.label(class="form-label") }}
+                            {% if pode_editar_pelotao %}
+                            {{ form.pelotao(class="form-select") }}
+                            {% else %}
+                            {{ form.pelotao(class="form-select", disabled=True) }}
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4">{{ form.email.label(class="form-label") }}{{
+                            form.email(class="form-control")
+                            }}</div>
+                        <div class="col-md-4">{{ form.telefone.label(class="form-label") }}{{
+                            form.telefone(class="form-control") }}</div>
                     </div>
-                </div>
-                <div class="text-end">
-                    {{ form.botao_submit(class="btn btn-success", value='Atualizar' if request.path.endswith('editar')
-                    else 'Salvar') }}
-                </div>
-                <div class="text-end">
-                    <a href="{{ url_for('inativar_aluno', aluno_id=aluno.id) }}" class="btn btn-danger mt-3">
-                        <i class="bi bi-person-x-fill"></i> Marcar como Inativo
-                    </a>
-                </div>
 
-                <div class="text-end">
-                    <a href="{{ url_for('registrar_lts', aluno_id=aluno.id) }}" class="btn btn-warning mt-2">
-                        <i class="bi bi-file-medical"></i> Registrar LTS
-                    </a>
-                </div>
-                <div class="text-end">
-                    <a href="{{ url_for('registrar_restricao', aluno_id=aluno.id) }}" class="btn btn-secondary mt-2">
-                        <i class="bi bi-exclamation-triangle"></i> Registrar Restrição
-                    </a>
-                </div>
-                <div class="text-end">
-                    <a href="{{ url_for('registrar_recompensa', aluno_id=aluno.id) }}" class="btn btn-success mt-2">
-                        <i class="bi bi-award"></i> Registrar Recompensa
-                    </a>
-                </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">{{ form.telefone_emergencia.label(class="form-label") }}{{
+                            form.telefone_emergencia(class="form-control") }}</div>
+                        <div class="col-md-6">{{ form.estado.label(class="form-label") }}{{
+                            form.estado(class="form-select")
+                            }}</div>
+                    </div>
 
-                <div class="text-end">
-                    <a href="{{ url_for('registrar_sancao', aluno_id=aluno.id) }}" class="btn btn-danger mt-2">
-                        <i class="bi bi-exclamation-diamond"></i> Registrar Sanção Escolar
-                    </a>
-                </div>
-            </form>
+                    <div class="row mb-3">
+                        <div class="col-md-4">{{ form.rua.label(class="form-label") }}{{ form.rua(class="form-control")
+                            }}
+                        </div>
+                        <div class="col-md-4">{{ form.bairro.label(class="form-label") }}{{
+                            form.bairro(class="form-control") }}</div>
+                        <div class="col-md-4">{{ form.complemento.label(class="form-label") }}{{
+                            form.complemento(class="form-control") }}</div>
+                        <div class="col-md-4">{{ form.hospedagem_aluno_de_fora.label(class="form-label") }}{{
+                            form.hospedagem_aluno_de_fora(class="form-control") }}</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">{{ form.formacao_academica.label(class="form-label") }}{{
+                            form.formacao_academica(class="form-control") }}</div>
+                        <div class="col-md-4">{{ form.tipo_sanguineo.label(class="form-label") }}{{
+                            form.tipo_sanguineo(class="form-control") }}</div>
+                        <div class="col-md-4">{{ form.categoria_cnh.label(class="form-label") }}{{
+                            form.categoria_cnh(class="form-select") }}</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Nota do Comportamento</label>
+                            <input type="number" step="0.01" min="0" max="10" name="nota_comportamento"
+                                id="notaComportamento" class="form-control"
+                                value="{{ aluno.nota_comportamento or 5.0 }}" oninput="atualizarComportamento()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Comportamento Atual</label>
+                            <input type="text" class="form-control" id="comportamentoAtual"
+                                value="{{ aluno.comportamento or 'Bom' }}" readonly style="font-weight: bold;">
+                        </div>
+                    </div>
+                    <div class="text-end mt-4">
+                        {{ form.botao_submit(class="btn btn-success btn-lg", value='Atualizar' if
+                        request.path.endswith('editar') else 'Salvar') }}
+                    </div>
+                </form>
+            </div>
         </div>
+
+        <!-- AQUI COMEÇA O PAINEL PREMIUM -->
+        <div class="mt-5">
+            <h4 class="text-center mb-4"><i class="bi bi-tools"></i> Ações Disponíveis</h4>
+
+            <div class="row painel-acoes justify-content-center g-4">
+
+                <div class="col-md-3">
+                    <a href="{{ url_for('inativar_aluno', aluno_id=aluno.id) }}" class="text-decoration-none">
+                        <div class="card shadow h-100 text-center border-danger">
+                            <div class="card-body">
+                                <i class="bi bi-person-x-fill text-danger" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2 text-danger">Marcar como Inativo</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <a href="{{ url_for('registrar_lts', aluno_id=aluno.id) }}" class="text-decoration-none">
+                        <div class="card shadow h-100 text-center border-warning">
+                            <div class="card-body">
+                                <i class="bi bi-file-medical text-warning" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2 text-warning">Registrar LTS</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <a href="{{ url_for('registrar_restricao', aluno_id=aluno.id) }}" class="text-decoration-none">
+                        <div class="card shadow h-100 text-center border-secondary">
+                            <div class="card-body">
+                                <i class="bi bi-exclamation-triangle text-secondary" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2 text-secondary">Registrar Restrição</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <a href="{{ url_for('registrar_recompensa', aluno_id=aluno.id) }}" class="text-decoration-none">
+                        <div class="card shadow h-100 text-center border-success">
+                            <div class="card-body">
+                                <i class="bi bi-award text-success" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2 text-success">Registrar Recompensa</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <a href="{{ url_for('registrar_sancao', aluno_id=aluno.id) }}" class="text-decoration-none">
+                        <div class="card shadow h-100 text-center border-dark">
+                            <div class="card-body">
+                                <i class="bi bi-exclamation-diamond text-dark" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2 text-dark">Registrar Sanção</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
     </div>
     {% if aluno.licencas_lts %}
     <hr>
@@ -216,21 +291,12 @@
     </table>
     {% endif %}
 
-</div>
+    </div>
+</main>
 
-<script>
-    function previewFoto(event) {
-        const input = event.target;
-        const reader = new FileReader();
-        reader.onload = function () {
-            const img = document.querySelector("#previewImage");
-            img.src = reader.result;
-        }
-        if (input.files && input.files[0]) {
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-</script>
+<footer>
+    Sistema de Controle Acadêmico CBMAM &copy; {{ ano_atual }}
+</footer>
 
 <script>
     function previewFoto(event) {
