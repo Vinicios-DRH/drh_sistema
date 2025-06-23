@@ -2493,7 +2493,7 @@ def excluir_militar(militar_id):
     militar = Militar.query.get(militar_id)
     database.session.delete(militar)
     database.session.commit()
-    flash('Militar excluído permanentemente', 'alert-danger')
+    flash('Militar e registros vinculados excluídos permanentemente', 'alert-danger')
     return redirect(url_for('militares'))
 
 

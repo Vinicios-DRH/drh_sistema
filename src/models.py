@@ -447,6 +447,8 @@ class Militar(database.Model):
         'Localidade', backref='militares_loc', foreign_keys=[localidade_id])
     situacao = database.relationship(
         'Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
+    pafs = database.relationship('Paf', backref='militar',
+                           cascade="all, delete-orphan")
 
 
 class MilitarObmFuncao(database.Model):
@@ -495,7 +497,7 @@ class Paf(database.Model):
         database.Integer, database.ForeignKey('user.id'))
 
     # Relacionamentos
-    militar = database.relationship('Militar', backref='ferias', lazy=True)
+    # militar = database.relationship('Militar', backref='ferias', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
 
