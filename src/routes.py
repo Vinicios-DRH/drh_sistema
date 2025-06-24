@@ -2062,41 +2062,61 @@ def exibir_ferias_chefe():
         "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
     }
-    current_month = datetime.now().month
-    current_date = datetime.now().date()
+
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
-
-    def obter_militares_por_obm(obm_id):
-        return (
-            database.session.query(Militar, Paf)
-            .outerjoin(Paf, Paf.militar_id == Militar.id)
-            .options(joinedload(Militar.obm_funcoes))
-            .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-            .filter(
-                MilitarObmFuncao.obm_id == obm_id,
-                MilitarObmFuncao.data_fim.is_(None)
-            )
-            .all()
-        )
-
-    militares_por_obm = {}
+    lista_obms = []
 
     obm1 = Obm.query.get(current_user.obm_id_1)
-    militares_por_obm[obm1] = obter_militares_por_obm(current_user.obm_id_1)
+    if obm1:
+        lista_obms.append(obm1)
 
     if current_user.obm_id_2:
         obm2 = Obm.query.get(current_user.obm_id_2)
-        militares_por_obm[obm2] = obter_militares_por_obm(
-            current_user.obm_id_2)
+        if obm2:
+            lista_obms.append(obm2)
 
     if current_user.obm_id_1 == 16:
-        for obm_id in obms_adicionais:
-            obm = Obm.query.get(obm_id)
-            militares_por_obm[obm] = obter_militares_por_obm(obm_id)
+        adicionais = Obm.query.filter(Obm.id.in_(obms_adicionais)).all()
+        lista_obms.extend(adicionais)
 
     return render_template(
         'ferias_chefe2.html',
-        militares_por_obm=militares_por_obm,
+        lista_obms=lista_obms,
+        ano_atual=datetime.now().year
+    )
+
+
+@app.route('/pafs/tabela/<int:obm_id>', methods=['GET'])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def carregar_tabela_obm(obm_id):
+    meses = {
+        "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
+        "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+    }
+    current_month = datetime.now().month
+    current_date = datetime.now().date()
+
+    obm = Obm.query.get(obm_id)
+    if not obm:
+        return "<div class='alert alert-danger'>OBM não encontrada</div>", 404
+
+    militares_pafs = (
+        database.session.query(Militar, Paf)
+        .outerjoin(Paf, Paf.militar_id == Militar.id)
+        .options(joinedload(Militar.obm_funcoes))
+        .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+        .filter(
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None)
+        )
+        .all()
+    )
+
+    return render_template(
+        'partial_tabela_obm.html',
+        obm=obm,
+        militares_pafs=militares_pafs,
         meses=meses,
         current_month=current_month,
         current_date=current_date
