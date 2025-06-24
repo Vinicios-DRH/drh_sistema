@@ -16,6 +16,22 @@
 
     body {
         background-color: var(--cor-fundo);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1;
+    }
+
+    footer {
+        background-color: #f8f9fa;
+        padding: 15px 0;
+        text-align: center;
+        border-top: 1px solid #ddd;
+        font-size: 0.9rem;
+        color: #555;
     }
 
     .area-conteudo {
@@ -57,7 +73,7 @@
 {% endblock %}
 
 {% block body %}
-<section class="area-conteudo">
+<main class="area-conteudo">
     <div class="card-institucional">
         <div class="titulo-institucional">
             <i class="bi bi-calendar-week"></i> Gestão de PAFs - CBMAM
@@ -96,7 +112,10 @@
             </table>
         </div>
     </div>
-</section>
+</main>
+<footer>
+    Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}
+</footer>
 
 <!-- Modal do Gráfico -->
 <div class="modal fade" id="modalGrafico" tabindex="-1" aria-labelledby="modalGraficoLabel" aria-hidden="true">

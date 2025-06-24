@@ -1937,7 +1937,8 @@ def ferias_dados():
 @login_required
 @checar_ocupacao('SUPER USER')
 def exibir_ferias():
-    return render_template('ferias.html')
+    return render_template('ferias.html',
+                           ano_atual=datetime.now().year)
 
 
 @app.route('/pafs/nao_preenchidos')
