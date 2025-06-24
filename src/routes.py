@@ -1628,17 +1628,63 @@ def exportar_excel(tabela):
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
+@app.route("/api/usuarios", methods=["GET"])
+@login_required
+@checar_ocupacao('DIRETOR', 'SUPER USER')
+def api_usuarios():
+    # Parâmetros vindos do DataTables
+    draw = int(request.args.get('draw', 1))
+    start = int(request.args.get('start', 0))
+    length = int(request.args.get('length', 10))
+    search_value = request.args.get('search[value]', '')
+
+    query = User.query.join(FuncaoUser, User.funcao_user_id == FuncaoUser.id)
+
+    if search_value:
+        query = query.filter(
+            database.or_(
+                User.nome.ilike(f"%{search_value}%"),
+                User.cpf.ilike(f"%{search_value}%"),
+                FuncaoUser.ocupacao.ilike(f"%{search_value}%"),
+            )
+        )
+
+    total_records = User.query.count()
+    filtered_records = query.count()
+
+    usuarios = query.add_columns(
+        User.id, User.nome, User.cpf,
+        FuncaoUser.ocupacao.label('funcao_ocupacao')
+    ).offset(start).limit(length).all()
+
+    data = []
+    for usuario in usuarios:
+        data.append([
+            usuario.nome,
+            usuario.cpf,
+            usuario.funcao_ocupacao,
+            f"""
+            <a href="{url_for('exibir_usuario', id_usuario=usuario.id)}" class="btn btn-sm btn-primary"><i class="bi bi-eye-fill"></i></a>
+            <a href="{url_for('exibir_usuario', id_usuario=usuario.id)}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-fill"></i></a>
+            <a href="{url_for('excluir_usuario', usuario_id=usuario.id)}" class="btn btn-sm btn-danger"
+            onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
+            <i class="bi bi-trash-fill"></i></a>
+            """
+        ])
+
+    return {
+        "draw": draw,
+        "recordsTotal": total_records,
+        "recordsFiltered": filtered_records,
+        "data": data
+    }
+
+
 @app.route("/usuarios", methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def usuarios():
-    page = request.args.get('page', 1, type=int)
-    usuarios = User.query \
-        .join(FuncaoUser, User.funcao_user_id == FuncaoUser.id) \
-        .add_columns(User.nome, User.cpf, User.id,
-                     FuncaoUser.ocupacao.label('funcao_ocupacao')) \
-        .paginate(page=page, per_page=10)
-    return render_template('usuarios.html', usuarios=usuarios)
+    return render_template('usuarios.html')
 
 
 @app.route('/usuario/<int:id_usuario>', methods=['GET', 'POST'])
