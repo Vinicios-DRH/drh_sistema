@@ -49,6 +49,12 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 
+@app.route('/acesso-negado')
+def acesso_negado():
+    """Rota para exibir a página de acesso negado."""
+    return render_template('acesso_negado.html')
+
+
 @app.route('/api/estatisticas', methods=['GET'])
 def estatisticas():
     """Retorna as estatísticas dos militares em formato JSON."""
