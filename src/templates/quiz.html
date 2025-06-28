@@ -143,7 +143,7 @@
     <div class="quiz-box">
         <div id="cronometro"
             style="font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: right; color: #4e89ae;">
-            ⏱️ 00:30
+            ⏱️ 02:00
         </div>
         <div id="quiz-content"></div>
         <button onclick="nextQuestion()" id="next-btn">Próxima</button>
@@ -154,7 +154,7 @@
         const gabarito = ["C", "B", "C", "B", "A", "C", "A", "C", "C", "A", "C"];
         let index = 0;
         let acertos = 0;
-        let tempoRestante = 30;
+        let tempoRestante = 120;
         let intervalo = null;
 
         const perguntas = [
@@ -233,7 +233,7 @@
             document.getElementById("next-btn").innerText = (index === perguntas.length - 1) ? "Finalizar" : "Próxima";
 
             // Reset e inicia o cronômetro por pergunta
-            tempoRestante = 30;
+            tempoRestante = 120;
             clearInterval(intervalo);
             atualizarCronometro(); // força primeira exibição 15s
             intervalo = setInterval(atualizarCronometro, 1000);
