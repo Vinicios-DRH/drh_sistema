@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Quiz Cristão</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(-45deg, #ffecd2, #fcb69f, #a1c4fd, #c2e9fb);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .quiz-box {
+            background: #fff;
+            padding: 35px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 650px;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade {
+            animation: fadeUp 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .question {
+            font-size: 24px;
+            margin-bottom: 25px;
+            color: #333;
+            animation: fadeUp 0.5s ease;
+        }
+
+        .options label {
+            display: block;
+            margin-bottom: 14px;
+            padding: 14px 16px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            opacity: 0;
+        }
+
+        .options label:hover {
+            background: #e6e6ff;
+        }
+
+        .options input {
+            display: none;
+        }
+
+        .correct {
+            background-color: #c8f7c5 !important;
+            border: 1px solid #36b336 !important;
+        }
+
+        .wrong {
+            background-color: #f7c5c5 !important;
+            border: 1px solid #d63a3a !important;
+        }
+
+        .disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 12px 28px;
+            background-color: #4e89ae;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: none;
+        }
+
+        button:hover {
+            background-color: #3c6e90;
+        }
+
+        #resultado {
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="quiz-box">
+        <div id="cronometro"
+            style="font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: right; color: #4e89ae;">
+            ⏱️ 00:30
+        </div>
+        <div id="quiz-content"></div>
+        <button onclick="nextQuestion()" id="next-btn">Próxima</button>
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        const gabarito = ["C", "C", "C", "B", "A", "C", "A", "C", "C", "C", "A"];
+        let index = 0;
+        let acertos = 0;
+        let tempoRestante = 30;
+        let intervalo = null;
+
+        const perguntas = [
+            {
+                pergunta: "Qual a primeira parábola que encontramos em Marcos 2:18-20?",
+                opcoes: ["A. A Manifestação do reino", "B. A agitação do reino", "C. A inauguração do reino"]
+            },
+            {
+                pergunta: "Na lição 7, Jesus demonstrou seu amor pelas ovelhas tendo?",
+                opcoes: ["a. Compaixão ao bem-estar moral", "b. Compaixão ao bem-estar espiritual e material", "c. Compaixão pelos perdidos"]
+            },
+            {
+                pergunta: "As exigências do servo na lição 8 refletem:",
+                opcoes: ["a. Guardar os 10 mandamentos", "b. Abandonar a fé", "c. A si mesmo se negue, tome sua a sua cruz e siga-me"]
+            },
+            {
+                pergunta: "Tiago e João, filhos de Zebedeu, lhe pediram: “concede-nos que ...",
+                opcoes: ["a. ... sejamos salvos", "b. ... que nos assentemos, um à tua direita, e outro à tua esquerda", "c. ... que sejamos felizes servos"]
+            },
+            {
+                pergunta: "Quantas predições estudamos na lição 10 “As predições do servo”?",
+                opcoes: ["a. 4", "b. 2", "c. 5"]
+            },
+            {
+                pergunta: "Eis que o anjo apareceu a José e disse-lhe: “Levanta, toma o menino e a sua mãe e foge para ...”",
+                opcoes: ["a. Nazaré", "b. Roma", "c. Egito"]
+            },
+            {
+                pergunta: "Com base no exemplo de Jesus, devemos enfrentar as oposições com:",
+                opcoes: ["a. Firmeza, doçura e confiança", "b. Alegria, doçura e confiança", "c. Destemor, doçura e confiança"]
+            },
+            {
+                pergunta: "“Somos um com os que sofrem em Burkina Faso”. Este momento missionário faz parte de qual lição?",
+                opcoes: ["a. As predições do servo – Lição 10", "b. A grandeza do servo – Lição 9", "c. A oposição ao Servo – Lição 11"]
+            },
+            {
+                pergunta: "Qual o tema da lição de nº 12?",
+                opcoes: ["a. A crucificação", "b. A traição do servo", "c. O cálice do servo"]
+            },
+            {
+                pergunta: "Qual o número da lição com o tema “O precursor do servo”?",
+                opcoes: ["a. 1", "b. 3", "c. 2"]
+            },
+            {
+                pergunta: "Quantas Marias a lição menciona indo ao túmulo de Jesus?",
+                opcoes: ["a. 3", "b. 4", "c. 2"]
+            }
+        ];
+
+        function renderQuestion() {
+            const atual = perguntas[index];
+            const correta = gabarito[index];
+            let html = `<div class="question fade">${atual.pergunta}</div><div class="options">`;
+
+            atual.opcoes.forEach((opcao, i) => {
+                const letra = opcao.charAt(0).toUpperCase();
+                html += `
+        <label data-letra="${letra}" style="animation-delay: ${i * 0.1 + 0.3}s" class="fade">
+            <input type="radio" name="resposta" value="${letra}">
+            ${opcao}
+        </label>`;
+            });
+
+            html += `</div>`;
+            document.getElementById("quiz-content").innerHTML = html;
+
+            setTimeout(() => {
+                document.querySelectorAll('.fade').forEach(el => {
+                    el.style.opacity = "1";
+                });
+            }, 10);
+
+            registrarResposta(correta);
+
+            document.getElementById("next-btn").style.display = "none";
+            document.getElementById("next-btn").innerText = (index === perguntas.length - 1) ? "Finalizar" : "Próxima";
+
+            // Reset e inicia o cronômetro por pergunta
+            tempoRestante = 30;
+            clearInterval(intervalo);
+            atualizarCronometro(); // força primeira exibição 15s
+            intervalo = setInterval(atualizarCronometro, 1000);
+
+        }
+
+        function registrarResposta(correta) {
+            const radios = document.querySelectorAll('input[name="resposta"]');
+            radios.forEach(input => {
+                input.addEventListener("change", function () {
+                    const escolhida = this.value;
+                    const labels = document.querySelectorAll('.options label');
+
+                    labels.forEach(label => {
+                        const letra = label.getAttribute("data-letra");
+                        label.classList.add("disabled");
+                        if (letra === correta) label.classList.add("correct");
+                        if (letra === escolhida && letra !== correta) label.classList.add("wrong");
+                    });
+
+                    if (escolhida === correta) acertos++;
+                    document.getElementById("next-btn").style.display = "block";
+                });
+            });
+        }
+
+        function nextQuestion() {
+            index++;
+            if (index < perguntas.length) {
+                renderQuestion();
+            } else {
+                clearInterval(intervalo);
+                document.getElementById("cronometro").textContent = `⏱️ Tempo encerrado`;
+
+                document.getElementById("next-btn").style.display = "none";
+            }
+        }
+
+        function atualizarCronometro() {
+            const minutos = String(Math.floor(tempoRestante / 60)).padStart(2, '0');
+            const segundos = String(tempoRestante % 60).padStart(2, '0');
+            document.getElementById("cronometro").textContent = `⏱️ ${minutos}:${segundos}`;
+
+            if (tempoRestante === 0) {
+                clearInterval(intervalo);
+                document.getElementById("next-btn").style.display = "block";
+                document.getElementById("next-btn").click(); // força passar
+            } else {
+                tempoRestante--;
+            }
+        }
+
+        // Início do quiz
+        renderQuestion();
+    </script>
+
+</body>
+
+</html>

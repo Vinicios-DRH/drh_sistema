@@ -4095,3 +4095,8 @@ def registrar_sancao(aluno_id):
         return redirect(url_for('editar_ficha', aluno_id=aluno.id))
 
     return render_template('registrar_sancao.html', form=form, aluno=aluno)
+
+
+@app.route('/quiz')
+def quiz():
+    return render_template('quiz.html')
