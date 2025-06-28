@@ -136,6 +136,23 @@
             font-size: 20px;
             margin-top: 25px;
         }
+
+        #start-timer-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        #start-timer-btn:hover {
+            background-color: #218838;
+        }
+
     </style>
 </head>
 
@@ -145,6 +162,8 @@
             style="font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: right; color: #4e89ae;">
             ⏱️ 02:00
         </div>
+        <button onclick="iniciarCronometro()" id="start-timer-btn">Iniciar Tempo</button>
+
         <div id="quiz-content"></div>
         <button onclick="nextQuestion()" id="next-btn">Próxima</button>
         <div id="resultado"></div>
@@ -232,11 +251,10 @@
             document.getElementById("next-btn").style.display = "none";
             document.getElementById("next-btn").innerText = (index === perguntas.length - 1) ? "Finalizar" : "Próxima";
 
-            // Reset e inicia o cronômetro por pergunta
             tempoRestante = 120;
             clearInterval(intervalo);
-            atualizarCronometro(); // força primeira exibição 15s
-            intervalo = setInterval(atualizarCronometro, 1000);
+            atualizarCronometro(); // só mostra o tempo, sem iniciar
+            document.getElementById("start-timer-btn").style.display = "inline-block";
 
         }
 
@@ -285,6 +303,14 @@
                 tempoRestante--;
             }
         }
+
+        function iniciarCronometro() {
+            clearInterval(intervalo);
+            atualizarCronometro(); // primeira exibição
+            intervalo = setInterval(atualizarCronometro, 1000);
+            document.getElementById("start-timer-btn").style.display = "none"; // esconde o botão após iniciar
+        }
+
 
         // Início do quiz
         renderQuestion();
