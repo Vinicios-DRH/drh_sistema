@@ -33,23 +33,28 @@
 {% block body %}
 <main class="container mt-5">
     <div class="filtro-container">
-        <h4>Gestão de PAFs - CBMAM</h4>
-        <div class="row mt-3">
-            <div class="col-md-6">
-                <label><strong>Selecione a OBM:</strong></label>
-                <select id="obmSelect" class="form-select">
-                    <option value="">-- Selecione --</option>
-                    {% for obm in lista_obms %}
-                    <option value="{{ obm.id }}">{{ obm.sigla }}</option>
-                    {% endfor %}
-                </select>
+        {% if dia_atual < 10 or dia_atual> 20 %}
+            <div class="alert alert-warning text-center" role="alert">
+                ⚠️ As alterações de férias estão disponíveis apenas do dia 10 ao 20 de cada mês.
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-outline-primary" id="btnGrafico" disabled>
-                    <i class="bi bi-bar-chart-line"></i> Ver Gráfico
-                </button>
+        {% endif %}
+            <h4>Gestão de PAFs - CBMAM</h4>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <label><strong>Selecione a OBM:</strong></label>
+                    <select id="obmSelect" class="form-select">
+                        <option value="">-- Selecione --</option>
+                        {% for obm in lista_obms %}
+                        <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-outline-primary" id="btnGrafico" disabled>
+                        <i class="bi bi-bar-chart-line"></i> Ver Gráfico
+                    </button>
+                </div>
             </div>
-        </div>
     </div>
 
     <div id="tabelaContainer"></div>
@@ -58,6 +63,29 @@
 <footer>Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}</footer>
 
 <script>
+    const hoje = new Date();
+    const diaAtual = hoje.getDate();
+
+    const foraDoPeriodo = diaAtual < 10 || diaAtual > 20;
+
+    if (foraDoPeriodo) {
+        document.addEventListener("DOMContentLoaded", () => {
+            // Desativa todos os inputs e selects da tabela (após carregamento da tabela)
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll("#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar").forEach(el => {
+                    if (!el.hasAttribute("data-keep-disabled")) {
+                        el.disabled = true;
+                    }
+                });
+            });
+
+            observer.observe(document.getElementById("tabelaContainer"), {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+
     // Ao selecionar OBM
     document.getElementById("obmSelect").addEventListener("change", function () {
         const obmId = this.value;
