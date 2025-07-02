@@ -2116,6 +2116,7 @@ def exibir_ferias_chefe():
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
     }
 
+    dia_atual = datetime.now().day
     obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
     lista_obms = []
 
@@ -2135,7 +2136,8 @@ def exibir_ferias_chefe():
     return render_template(
         'ferias_chefe2.html',
         lista_obms=lista_obms,
-        ano_atual=datetime.now().year
+        ano_atual=datetime.now().year,
+        dia_atual=dia_atual
     )
 
 
@@ -2240,6 +2242,10 @@ def parse_date(date_string):
 @app.route('/pafs/update', methods=['POST'])
 @login_required
 def update_paf():
+
+    hoje = datetime.now().day
+    if hoje < 10 or hoje > 20:
+        return jsonify({"message": "Alterações só são permitidas de 10 a 20 de cada mês."}), 403
     data = request.form
     militar_id = data.get('militar_id')
 
@@ -2288,7 +2294,8 @@ def update_paf():
     paf.terceiro_periodo_ferias = terceiro_periodo_inicio
     paf.fim_terceiro_periodo = terceiro_periodo_fim
     paf.usuario_id = current_user.id
-
+    paf.data_alteracao = datetime.now()
+    
     database.session.add(paf)
     database.session.commit()
 
