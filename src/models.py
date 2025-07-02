@@ -448,7 +448,7 @@ class Militar(database.Model):
     situacao = database.relationship(
         'Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
     pafs = database.relationship('Paf', backref='militar',
-                           cascade="all, delete-orphan")
+                                 cascade="all, delete-orphan")
 
 
 class MilitarObmFuncao(database.Model):
@@ -495,6 +495,9 @@ class Paf(database.Model):
     fim_terceiro_periodo = database.Column(database.Date)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
+
+    data_alteracao = database.Column(
+        database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relacionamentos
     # militar = database.relationship('Militar', backref='ferias', lazy=True)
