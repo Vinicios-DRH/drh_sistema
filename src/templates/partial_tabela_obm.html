@@ -95,8 +95,17 @@
                     <td><input type="date" name="fim_3_{{ militar.id }}" class="form-control"
                             value="{{ paf.fim_terceiro_periodo if paf }}"></td>
 
-                    <td><button class="botao-salvar btn btn-success btn-sm"
-                            data-militar-id="{{ militar.id }}">Salvar</button></td>
+                    <td>
+                        <button class="botao-salvar btn btn-success btn-sm"
+                            data-militar-id="{{ militar.id }}">Salvar</button>
+                        {% if paf and paf.data_alteracao %}
+                        <div class="mt-1 text-muted small">
+                            <i class="bi bi-clock-history"></i>
+                            {{ paf.usuario.nome }}<br>
+                            {{ paf.data_alteracao.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
