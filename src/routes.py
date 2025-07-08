@@ -37,14 +37,17 @@ from src.controller.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func, and_, cast, Integer, Boolean
+from sqlalchemy import case, func
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
+from docx import Document
 from urllib.parse import urlencode
-from jinja2 import Template
 from collections import defaultdict, Counter
+from docx.shared import Pt
+from docx.oxml.ns import qn
+import re
 import plotly.graph_objs as go
 import plotly.io as pio
 
@@ -2295,7 +2298,7 @@ def update_paf():
     paf.fim_terceiro_periodo = terceiro_periodo_fim
     paf.usuario_id = current_user.id
     paf.data_alteracao = datetime.now()
-    
+
     database.session.add(paf)
     database.session.commit()
 
@@ -4107,3 +4110,99 @@ def registrar_sancao(aluno_id):
 @app.route('/quiz')
 def quiz():
     return render_template('quiz.html')
+
+
+@app.route('/gerar-documento', methods=['GET', 'POST'])
+@login_required
+def gerar_documento():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        genero = 'a' if nome.strip().split()[0][-1].upper() == 'A' else 'o'
+        genero_maiusculo = genero.upper()
+        do_da = 'da' if genero == 'a' else 'do'
+        referido = 'referida' if genero == 'a' else 'referido'
+        pronto = 'pronta' if genero == 'a' else 'pronto'
+
+        def formatar_data_extenso(data_str):
+            meses = {
+                "01": "janeiro", "02": "fevereiro", "03": "março", "04": "abril",
+                "05": "maio", "06": "junho", "07": "julho", "08": "agosto",
+                "09": "setembro", "10": "outubro", "11": "novembro", "12": "dezembro"
+            }
+            dt = datetime.strptime(data_str, "%Y-%m-%d")
+            dia = str(int(dt.strftime("%d")))
+            mes = meses[dt.strftime("%m")]
+            ano = dt.strftime("%Y")
+            return f"{dia} de {mes} de {ano}"
+
+        def formatar_data_sem_zero(data_str):
+            dt = datetime.strptime(data_str, "%Y-%m-%d")
+            return f"{dt.day}/{dt.month}/{dt.year}"
+
+        dados = {
+            'nota_bg': request.form['nota_bg'],
+            'data_do_requerimento': formatar_data_extenso(request.form['data_do_requerimento']),
+            'POSTO/GRADUACAO': request.form['posto'],
+            'QUADRO': request.form['quadro'],
+            'NOME do MILITAR': nome,
+            'OBM do militar': request.form['obm'],
+            'tipo_licenca_especial': request.form['tipo_licenca_especial'],
+            'data_inicio_licenca_especial a data_fim_licenca_especial': request.form['periodo_licenca'],
+            'data_inicio_pedido': formatar_data_sem_zero(request.form['data_inicio_pedido']),
+            'data_de_apresentacao': formatar_data_sem_zero(request.form['data_apresentacao']),
+            'numero_siged': request.form['numero_siged'],
+            'data_atual': formatar_data_sem_zero(datetime.today().strftime('%Y-%m-%d')),
+            'o/a': genero,
+            'O/A': genero_maiusculo,
+            'do/da': do_da,
+            'referido/referida': referido,
+            'pronto/pronta': pronto
+        }
+
+        NEGRITO = ['nota_bg', 'POSTO/GRADUACAO', 'QUADRO',
+                   'NOME do MILITAR', 'data_inicio_pedido']
+        ITALICO = ['numero_siged']
+
+        doc = Document('src/template/nota_tecnica.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                    if chave in ITALICO:
+                        novo_run.italic = True
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name='Nota_Tecnica_Gerada.docx')
+
+    return render_template('gerar_documentos.html')

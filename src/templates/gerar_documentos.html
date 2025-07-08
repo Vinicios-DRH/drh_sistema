@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container mt-5">
+    <h3>Gerar Nota Técnica</h3>
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <label>Número da Nota para BG</label>
+                <input type="text" name="nota_bg" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>Data do Requerimento</label>
+                <input type="date" name="data_do_requerimento" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label>Posto/Graduação (Ex: 1º TEN)</label>
+                <input type="text" name="posto" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label>Quadro</label>
+                <input type="text" name="quadro" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label>Nome do Militar</label>
+                <input type="text" name="nome" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>OBM do Militar</label>
+                <input type="text" name="obm" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>Tipo da Licença</label>
+                <select name="tipo_licenca_especial" class="form-control" required>
+                    <option value="">Selecione</option>
+                    <option value="quinquênio">Quinquênio</option>
+                    <option value="decênio">Decênio</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label>Período da Licença (ex: 10/5/2025 a 10/6/2025)</label>
+                <input type="text" name="periodo_licenca" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>Data de Início do Pedido</label>
+                <input type="date" name="data_inicio_pedido" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>Data de Apresentação</label>
+                <input type="date" name="data_apresentacao" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label>Número SIGED</label>
+                <input type="text" name="numero_siged" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Gerar Documento</button>
+    </form>
+</div>
+{% endblock %}

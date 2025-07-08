@@ -42,6 +42,15 @@
                     {% if user_funcao in [5, 6, 7] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-id-card me-2"></i> Documentação
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_documento') }}">📄 Licença Especial</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-friends me-2"></i> Militares Ativos
                         </a>
                         <ul class="dropdown-menu">
