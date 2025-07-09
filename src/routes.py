@@ -4117,11 +4117,6 @@ def quiz():
 def gerar_documento():
     if request.method == 'POST':
         nome = request.form['nome']
-        genero = 'a' if nome.strip().split()[0][-1].upper() == 'A' else 'o'
-        genero_maiusculo = genero.upper()
-        do_da = 'da' if genero == 'a' else 'do'
-        referido = 'referida' if genero == 'a' else 'referido'
-        pronto = 'pronta' if genero == 'a' else 'pronto'
 
         def formatar_data_extenso(data_str):
             meses = {
@@ -4142,7 +4137,8 @@ def gerar_documento():
         dados = {
             'nota_bg': request.form['nota_bg'],
             'data_do_requerimento': formatar_data_extenso(request.form['data_do_requerimento']),
-            'POSTO/GRADUACAO': request.form['posto'],
+            # <-- corrigido aqui
+            'POSTO/GRADUACAO': request.form['posto_grad'],
             'QUADRO': request.form['quadro'],
             'NOME do MILITAR': nome,
             'OBM do militar': request.form['obm'],
@@ -4151,12 +4147,7 @@ def gerar_documento():
             'data_inicio_pedido': formatar_data_sem_zero(request.form['data_inicio_pedido']),
             'data_de_apresentacao': formatar_data_sem_zero(request.form['data_apresentacao']),
             'numero_siged': request.form['numero_siged'],
-            'data_atual': formatar_data_sem_zero(datetime.today().strftime('%Y-%m-%d')),
-            'o/a': genero,
-            'O/A': genero_maiusculo,
-            'do/da': do_da,
-            'referido/referida': referido,
-            'pronto/pronta': pronto
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
         }
 
         NEGRITO = ['nota_bg', 'POSTO/GRADUACAO', 'QUADRO',
@@ -4192,6 +4183,9 @@ def gerar_documento():
                         novo_run.bold = True
                     if chave in ITALICO:
                         novo_run.italic = True
+                        if chave == 'numero_siged':
+                            novo_run.text = f"({valor})"
+                            novo_run.font.size = Pt(10)
                 else:
                     novo_run = p.add_run(parte)
                     novo_run.font.name = 'Times New Roman'
