@@ -44,11 +44,15 @@
                     <td>{{ militar.matricula }}</td>
                     <td>{{ militar.quadro.quadro }}</td>
                     <td>
-                        <select name="mes_usufruto_{{ militar.id }}" class="form-select" disabled data-keep-disabled>
-                            <option value="">Selecione...</option>
+                        {% set mes_paf = meses.get(paf.mes_usufruto) if paf and paf.mes_usufruto else None %}
+                        <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if mes_paf and mes_paf
+                            <=current_month %}disabled{% endif %}>
+
                             {% for mes in meses.keys() %}
                             <option value="{{ mes }}" {% if paf and paf.mes_usufruto==mes %}selected{% endif %} {% if
-                                meses[mes] <=current_month %}disabled{% endif %}>{{ mes }}</option>
+                                meses[mes] <=current_month %}disabled{% endif %}>
+                                {{ mes }}
+                            </option>
                             {% endfor %}
                         </select>
                     </td>
