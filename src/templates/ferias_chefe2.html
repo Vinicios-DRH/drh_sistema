@@ -105,6 +105,11 @@
                     language: { search: "Pesquisar:", lengthMenu: "Mostrar _MENU_ registros", info: "Mostrando _START_ a _END_ de _TOTAL_ registros", paginate: { previous: "Anterior", next: "Próximo" } }
                 });
                 inicializarListeners();  // <- Importante: chama o script de controle após carregar tabela
+
+                // 👇 Garante reexecução após paginação, filtro, etc
+                $('#militaresTable').on('draw.dt', function () {
+                    inicializarListeners();
+                });
             });
     });
 
@@ -154,14 +159,6 @@
                 const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
                 const dias2 = parseInt(dias2Select.value || 0);
                 const dias3Select = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
-
-                // BLOQUEIO TOTAL se primeiro período já atingiu o limite
-                if (dias1 === maxDias) {
-                    dias2Select.value = ''; dias2Select.disabled = true;
-                    dias3Select.value = ''; dias3Select.disabled = true;
-                    limparDatas(militarId, 2); limparDatas(militarId, 3);
-                    return;
-                }
 
                 // Liberação do 2º período:
                 let opcoesSegundo = [];
@@ -247,7 +244,30 @@
                 });
             });
 
+            ["1", "2", "3"].forEach(periodo => {
+                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+                const fimInput = document.querySelector(`[name="fim_${periodo}_${militarId}"]`);
+                if (inicioInput && inicioInput.value) {
+                    const dataInicio = new Date(inicioInput.value);
+                    const anoInicio = dataInicio.getFullYear();
+                    const mesInicio = dataInicio.getMonth(); // zero-based!
+                    const anoAtual = hoje.getFullYear();
+                    const mesAtual = hoje.getMonth();
+
+                    let deveBloquear = false;
+                    if (anoInicio < anoAtual) {
+                        deveBloquear = true;
+                    } else if (anoInicio === anoAtual && mesInicio <= mesAtual) {
+                        deveBloquear = true;
+                    }
+
+                    inicioInput.disabled = deveBloquear;
+                    fimInput.disabled = deveBloquear;
+                }
+            });
+
             atualizarCampos();  // inicializa ao carregar
+
         });
 
         // Botões salvar
