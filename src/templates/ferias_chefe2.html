@@ -37,7 +37,7 @@
             <div class="alert alert-warning text-center" role="alert">
                 ⚠️ As alterações de férias estão disponíveis apenas do dia 10 ao 20 de cada mês.
             </div>
-        {% endif %}
+            {% endif %}
             <h4>Gestão de PAFs - CBMAM</h4>
             <div class="row mt-3">
                 <div class="col-md-6">
@@ -125,6 +125,29 @@
             const militarId = row.dataset.militarId;
             const podeTer40 = row.dataset.podeTer40 === 'true';
             const maxDias = podeTer40 ? 40 : 30;
+            // DESATIVA campos se o mês de usufruto já passou
+            const mesSelect = document.querySelector(`[name="mes_usufruto_${militarId}"]`);
+            if (mesSelect) {
+                const mesSelecionado = mesSelect.value;
+                const meses = {
+                    "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4,
+                    "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8,
+                    "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+                };
+
+                const mesValor = meses[mesSelecionado];
+                const mesAtual = hoje.getMonth() + 1;
+                const anoAtual = hoje.getFullYear();
+
+                const inputAno = document.querySelector(`[name="inicio_1_${militarId}"]`);
+                const anoInputValor = inputAno?.value?.split("-")[0];  // formato YYYY-MM-DD
+
+                if (anoInputValor && parseInt(anoInputValor) < anoAtual || (mesValor && mesValor < mesAtual)) {
+                    row.querySelectorAll("input, select, button").forEach(el => {
+                        el.disabled = true;
+                    });
+                }
+            }
 
             function atualizarCampos() {
                 const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value || 0);
@@ -169,16 +192,30 @@
             }
 
             function calcularFim(periodo) {
-                const inicio = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`).value;
-                const dias = parseInt(document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`).value);
+                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+                const diasInput = document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
                 const fimInput = document.querySelector(`[name="fim_${periodo}_${militarId}"]`);
+
+                const inicio = inicioInput.value;
+                const dias = parseInt(diasInput.value || 0);
+
                 if (inicio && dias) {
-                    const dataFim = new Date(inicio);
-                    dataFim.setDate(dataFim.getDate() + dias - 1);
-                    fimInput.value = dataFim.toISOString().split("T")[0];
+                    const dataInicio = new Date(inicio);
+                    dataInicio.setDate(dataInicio.getDate() + dias - 1);
+                    const fimStr = dataInicio.toISOString().split("T")[0];
+                    fimInput.value = fimStr;
                 } else {
                     fimInput.value = '';
                 }
+
+                const dataInicio = new Date(inicio);
+
+                // BLOQUEIA cálculo se mês já passou
+                if (dataInicio.getMonth() + 1 < hoje.getMonth() + 1 || dataInicio.getFullYear() < hoje.getFullYear()) {
+                    fimInput.value = '';
+                    return;
+                }
+
             }
 
             function atualizarSelect(select, opcoesPermitidas) {
@@ -194,17 +231,23 @@
                 document.querySelector(`[name="fim_${periodo}_${militarId}"]`).value = '';
             }
 
+            // Listeners por período
             ["1", "2", "3"].forEach(periodo => {
-                document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`).addEventListener('change', () => {
+                const diasInput = document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
+                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+
+                diasInput.addEventListener('change', () => {
                     calcularFim(periodo);
                     atualizarCampos();
                 });
-                document.querySelector(`[name="inicio_${periodo}_${militarId}"]`).addEventListener('change', () => {
+
+                inicioInput.addEventListener('change', () => {
                     calcularFim(periodo);
+                    atualizarCampos();
                 });
             });
 
-            atualizarCampos();  // inicializa
+            atualizarCampos();  // inicializa ao carregar
         });
 
         // Botões salvar
@@ -221,7 +264,9 @@
                     .then(res => res.json()).then(resp => alert(resp.message)).catch(() => alert("Erro ao salvar."));
             });
         });
+
     }
+
 </script>
 
 {% endblock %}
