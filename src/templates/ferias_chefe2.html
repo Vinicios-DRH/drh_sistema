@@ -124,6 +124,18 @@
             });
     });
 
+    function atualizarBotaoSalvar(militarId, maxDias) {
+        const btnSalvar = document.querySelector(`button.botao-salvar[data-militar-id="${militarId}"]`);
+        const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value || 0);
+        const dias2 = parseInt(document.querySelector(`[name="qtd_dias_2_${militarId}"]`).value || 0);
+        const dias3 = parseInt(document.querySelector(`[name="qtd_dias_3_${militarId}"]`).value || 0);
+
+        const total = dias1 + dias2 + dias3;
+        // Botão habilita só se total > 0 e <= maxDias
+        btnSalvar.disabled = (total > maxDias || total === 0 || total < 10);
+    }
+
+
     // Script central de lógica
     function inicializarListeners() {
         document.querySelectorAll("tr[data-militar-id]").forEach(row => {
@@ -180,11 +192,25 @@
                     dias3Select.value = ''; limparDatas(militarId, 3);
                 }
 
-                const total = dias1 + (parseInt(dias2Select.value || 0));
-                if (total >= maxDias || total < 20) {
-                    dias3Select.value = ''; dias3Select.disabled = true; limparDatas(militarId, 3);
+                const total = dias1 + dias2;
+                if (total >= maxDias) {
+                    // Desabilita o 3º período, limpa seus campos
+                    dias3Select.value = '';
+                    dias3Select.disabled = true;
+                    limparDatas(militarId, 3);
+
+                    // Desabilita também campos de data do 3º período
+                    const inicio3 = document.querySelector(`[name="inicio_3_${militarId}"]`);
+                    const fim3 = document.querySelector(`[name="fim_3_${militarId}"]`);
+                    if (inicio3) inicio3.disabled = true;
+                    if (fim3) fim3.disabled = true;
                 } else {
+                    // Habilita campos do 3º período
                     dias3Select.disabled = false;
+                    const inicio3 = document.querySelector(`[name="inicio_3_${militarId}"]`);
+                    const fim3 = document.querySelector(`[name="fim_3_${militarId}"]`);
+                    if (inicio3) inicio3.disabled = false;
+                    if (fim3) fim3.disabled = false;
                 }
             }
 
@@ -214,6 +240,24 @@
                 }
 
             }
+
+            // Listeners por período
+            ["1", "2", "3"].forEach(periodo => {
+                const diasInput = document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
+                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+
+                diasInput.addEventListener('change', () => {
+                    calcularFim(periodo);
+                    atualizarCampos();
+                    atualizarBotaoSalvar(militarId, maxDias);  // <-- ADICIONADO AQUI
+                });
+
+                inicioInput.addEventListener('change', () => {
+                    calcularFim(periodo);
+                    atualizarCampos();
+                    atualizarBotaoSalvar(militarId, maxDias);  // <-- ADICIONADO AQUI
+                });
+            });
 
             function atualizarSelect(select, opcoesPermitidas) {
                 Array.from(select.options).forEach(opt => {
@@ -257,7 +301,7 @@
                     let deveBloquear = false;
                     if (anoInicio < anoAtual) {
                         deveBloquear = true;
-                    } else if (anoInicio === anoAtual && mesInicio <= mesAtual) {
+                    } else if (anoInicio === anoAtual && mesInicio < mesAtual) {
                         deveBloquear = true;
                     }
 
@@ -267,6 +311,7 @@
             });
 
             atualizarCampos();  // inicializa ao carregar
+            atualizarBotaoSalvar(militarId, maxDias);
 
         });
 
