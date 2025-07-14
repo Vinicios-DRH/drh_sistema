@@ -148,7 +148,7 @@
                 const anoInputValor = inputAno?.value?.split("-")[0];  // formato YYYY-MM-DD
 
                 if (anoInputValor && parseInt(anoInputValor) < anoAtual || (mesValor && mesValor < mesAtual)) {
-                    row.querySelectorAll("input, select, button").forEach(el => {
+                    row.querySelectorAll("input, select").forEach(el => {
                         el.disabled = true;
                     });
                 }
