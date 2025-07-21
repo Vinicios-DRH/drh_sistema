@@ -2247,7 +2247,7 @@ def parse_date(date_string):
 def update_paf():
 
     hoje = datetime.now().day
-    if hoje < 10 or hoje > 20:
+    if (hoje < 10 or hoje > 20) and getattr(current_user, 'funcao_user_id', None) != 6:
         return jsonify({"message": "Alterações só são permitidas de 10 a 20 de cada mês."}), 403
     data = request.form
     militar_id = data.get('militar_id')
