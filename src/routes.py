@@ -53,6 +53,13 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 
+# Config SMTP
+SMTP_SERVER = 'smtp.office365.com'
+SMTP_PORT = 587
+SMTP_LOGIN = 'drh@cbm.am.gov.br'
+SMTP_PASSWORD = 'Cbmam2023#'
+
+
 @app.route('/acesso-negado')
 def acesso_negado():
     """Rota para exibir a página de acesso negado."""
@@ -2814,8 +2821,8 @@ def calcular_impacto():
             })
 
         # Cálculo do impacto atual fixo
-        data_inicio_atual = date(2025, 4, 21)
-        data_fim_atual = date(2025, 12, 30)
+        data_inicio_atual = date.today()
+        data_fim_atual = data_fim
         dias_atual = dias360_europeu(
             data_inicio_atual, data_fim_atual + timedelta(days=1))
         meses_coef = Decimal(dias_atual) / Decimal(30)
@@ -3762,13 +3769,6 @@ def imprimir_ficha_aluno(aluno_id):
 def dashboard_obms():
     dados = dados_para_mapa()
     return render_template('dashboard_obms.html', dados=dados)
-
-
-# Config SMTP
-SMTP_SERVER = 'smtp.office365.com'
-SMTP_PORT = 587
-SMTP_LOGIN = 'drh@cbm.am.gov.br'
-SMTP_PASSWORD = 'Cbmam2023#'
 
 
 @app.route('/atualizacao-cadastral', methods=['GET', 'POST'])
