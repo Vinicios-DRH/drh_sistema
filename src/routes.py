@@ -4253,3 +4253,77 @@ def indeferimento_le():
         return send_file(output, as_attachment=True, download_name='indeferimento_le_gerada.docx')
 
     return render_template('indeferimento_le.html')
+
+
+@app.route('/gerar-lp', methods=['GET', 'POST'])
+@login_required
+def gerar_lp():
+    if request.method == 'POST':
+        dados = {
+            'nota_bg': request.form['nota_bg'],
+            'matricula_certidao': request.form['matricula_certidao'],
+            'cartorio': request.form['cartorio'],
+            'nome_filho': request.form['nome_filho'],
+            'cidade_natal': request.form['cidade_natal'],
+            'pai': request.form['pai'],
+            'mae': request.form['mae'],
+            'data_certidao': formatar_data_extenso(request.form['data_certidao']),
+            'oficial_responsavel': request.form['oficial_responsavel'],
+            'data_inicio_lp': formatar_data_extenso(request.form['data_inicio_lp']),
+            'data_apresentacao': formatar_data_extenso(request.form['data_apresentacao']),
+            'numero_siged': request.form['numero_siged'],
+            'posto_graduacao': request.form['posto_grad'],
+            'quadro': request.form['quadro'],
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+        NEGRITO = ['nota_bg', 'pai', 'posto_graduacao', 'quadro',
+                   'data_inicio_lp', 'data_apresentacao', 'matricula_certidao']
+
+        ITALICO = ['numero_siged']
+
+        doc = Document('src/template/certidao_lp.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                    if chave in ITALICO:
+                        novo_run.italic = True
+                        if chave == 'numero_siged':
+                            novo_run.text = f"({valor})"
+                            novo_run.font.size = Pt(10)
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name='certidao_lp_gerada.docx')
+
+    return render_template('gerar_lp.html')
