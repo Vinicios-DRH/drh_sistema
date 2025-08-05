@@ -4327,3 +4327,80 @@ def gerar_lp():
         return send_file(output, as_attachment=True, download_name='certidao_lp_gerada.docx')
 
     return render_template('gerar_lp.html')
+
+
+@app.route('/gerar-certidao-casamento', methods=['GET', 'POST'])
+@login_required
+def gerar_certidao_casamento():
+    if request.method == 'POST':
+
+        dados = {
+            'nota_bg': request.form['nota_bg'],
+            'matricula_certidao': request.form['matricula_certidao'],
+            'cartorio': request.form['cartorio'],
+            'esposo': request.form['esposo'],
+            'posto_grad': request.form['posto_grad'],
+            'quadro': request.form['quadro'],
+            'esposa': request.form['esposa'],
+            'posto_grad_esposa': request.form['posto_grad_esposa'],
+            'quadro_esposa': request.form['quadro_esposa'],
+            'data_casamento': formatar_data_extenso(request.form['data_casamento']),
+            'regime_casamento': request.form['regime_casamento'],
+            'escrevente': request.form['escrevente'],
+            'data_registro': formatar_data_extenso(request.form['data_registro']),
+            'data_inicio_licenca': formatar_data_sem_zero(request.form['data_inicio_licenca']),
+            'data_apresentacao': formatar_data_sem_zero(request.form['data_apresentacao']),
+            'numero_siged': request.form['numero_siged'],
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+
+        NEGRITO = ['nota_bg', 'matricula_certidao', 'cartorio',
+                   'esposo', 'esposa', 'data_casamento', 'regime_casamento', 'data_inicio_licenca', 'data_apresentacao']
+
+        ITALICO = ['numero_siged']
+
+        doc = Document('src/template/certidao_casamento.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                    if chave in ITALICO:
+                        novo_run.italic = True
+                        if chave == 'numero_siged':
+                            novo_run.text = f"({valor})"
+                            novo_run.font.size = Pt(10)
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        return send_file(output, as_attachment=True, download_name='certidao_casamento_gerada.docx')
+
+    return render_template('gerar_certidao_casamento.html')
