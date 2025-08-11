@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+    .card-custom {
+        background: #fff;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    h3,
+    h4 {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        font-weight: bold;
+    }
+
+    .btn-success {
+        font-weight: bold;
+    }
+
+    hr {
+        border-top: 2px dashed #ccc;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+
+    <div class="card-custom">
+        <h3>Gerar declaração de óbito</h3>
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-4">
+                    <label>Número da Nota para BG</label>
+                    <input type="text" name="nota_bg" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Número da Certidão</label>
+                    <input type="text" name="numero_certidao" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Cartório</label>
+                    <input type="text" name="cartorio" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Cidade/Estado</label>
+                    <input type="text" name="cidade_estado" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Nome falecido (a)</label>
+                    <input type="text" name="nome_falecido" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Cidade falecido (a)</label>
+                    <input type="text" name="cidade_falecido" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Data do falecimento</label>
+                    <input type="date" name="data_falecimento" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label>Posto/Graduação</label>
+                    <select name="posto_grad" class="form-control" opitional>
+                        <option value="">Selecione</option>
+                        <option value="CEL">CEL</option>
+                        <option value="TC">TC</option>
+                        <option value="MAJ">MAJ</option>
+                        <option value="CAP">CAP</option>
+                        <option value="1º TEN">1º TEN</option>
+                        <option value="2º TEN">2º TEN</option>
+                        <option value="ST">ST</option>
+                        <option value="1º SGT">1º SGT</option>
+                        <option value="2º SGT">2º SGT</option>
+                        <option value="3º SGT">3º SGT</option>
+                        <option value="CB">CB</option>
+                        <option value="SD">SD</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Quadro</label>
+                    <select name="quadro" class="form-control" opitional>
+                        <option value="">Selecione</option>
+                        <option value="QOBM">QOBM</option>
+                        <option value="QOABM">QOABM</option>
+                        <option value="QCOBM">QCOBM</option>
+                        <option value="QCPBM">QCPBM</option>
+                        <option value="QPBM">QPBM</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label>Nome do militar</label>
+                    <input type="text" name="nome_militar" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Escrevente</label>
+                    <input type="text" name="escrevente" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Data início da licença</label>
+                    <input type="date" name="data_inicio_licenca" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Data aprensetação</label>
+                    <input type="date" name="data_apresentacao" class="form-control" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label>Número SIGED</label>
+                    <input type="text" name="numero_siged" class="form-control" required>
+                </div>
+                
+                <div class="col-md-12 mt-3">
+                    <button type="submit" class="btn btn-primary">Gerar Certidão</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
