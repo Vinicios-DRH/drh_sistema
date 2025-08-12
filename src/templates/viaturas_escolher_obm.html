@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container mt-5">
+    <h1 class="h3 mb-3">Selecione uma OBM</h1>
+    <form method="get" action="">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Escolha a OBM</label>
+                <select class="form-select" onchange="if(this.value) location.href=this.value+'/viaturas'">
+                    <option value="">-- selecione --</option>
+                    {% for o in obms %}
+                    <option value="{{ o.id }}">{{ o.sigla }} (ID {{ o.id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

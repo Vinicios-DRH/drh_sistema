@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 m-0">OBM: {{ obm.sigla }} (ID {{ obm.id }})</h1>
+        <a class="btn btn-outline-secondary" href="{{ url_for('escolher_obm') }}">Trocar OBM</a>
+    </div>
+
+    <!-- Atribuir viaturas à OBM (dual list) -->
+    <div class="card mb-4">
+        <div class="card-header">Atribuir viaturas a esta OBM</div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('atribuir_viaturas_obm', obm_id=obm.id) }}">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Viaturas disponíveis (sem OBM)</label>
+                        <select id="list-left" class="form-select" size="12" multiple>
+                            {% for v in viaturas_sem_obm %}
+                            <option value="{{ v.id }}">{{ v.prefixo or 'sem prefixo' }} — {{ v.marca_modelo or '' }} ({{
+                                v.placa or '' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-2">
+                        <button type="button" class="btn btn-primary w-100"
+                            onclick="moveSelected('list-left','list-right')"> &raquo; </button>
+                        <button type="button" class="btn btn-secondary w-100"
+                            onclick="moveSelected('list-right','list-left')"> &laquo; </button>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Viaturas desta OBM</label>
+                        <select id="list-right" class="form-select" size="12" multiple>
+                            {% for v in viaturas_da_obm %}
+                            <option value="{{ v.id }}">{{ v.prefixo or 'sem prefixo' }} — {{ v.marca_modelo or '' }} ({{
+                                v.placa or '' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- campo hidden que receberá as opções da direita -->
+                <input type="hidden" name="assigned_ids[]" id="assigned_ids">
+
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-success" onclick="prepareAssigned()">Salvar
+                        atribuições</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Atribuir motoristas por viatura (máx 5) -->
+    <div class="card mb-4">
+        <div class="card-header">Motoristas por viatura (máximo 5)</div>
+        <div class="card-body">
+            {% if viaturas_da_obm|length == 0 %}
+            <div class="alert alert-info">Nenhuma viatura atribuída a esta OBM ainda.</div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 28%">Viatura</th>
+                            <th>Motoristas (Ctrl/Cmd + clique para múltiplos)</th>
+                            <th style="width: 12%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in viaturas_da_obm %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ v.prefixo or 'sem prefixo' }}</div>
+                                <div class="text-muted small">{{ v.marca_modelo or '' }} — {{ v.placa or '' }}</div>
+                            </td>
+                            <td>
+                                <form method="post" action="{{ url_for('salvar_motoristas_viatura', viatura_id=v.id) }}"
+                                    class="d-flex gap-2">
+                                    <select name="motoristas[]" class="form-select" size="5" multiple
+                                        onchange="limitFive(this)">
+                                        {% set selecionados = motoristas_por_viatura.get(v.id, []) %}
+                                        {% for m in motoristas %}
+                                        {% set selected = 'selected' if m.militar_id in selecionados else '' %}
+                                        <option value="{{ m.militar_id }}" {{ selected }}>
+                                            {{ m.militar.nome_completo if m.militar else ('Motorista '+m.id|string) }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-outline-primary">Salvar</button>
+                                </form>
+                            </td>
+                            <td class="text-muted small">
+                                Máx 5 por viatura
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function moveSelected(fromId, toId) {
+        const from = document.getElementById(fromId);
+        const to = document.getElementById(toId);
+        Array.from(from.selectedOptions).forEach(opt => {
+            to.add(opt);
+        });
+    }
+
+    function prepareAssigned() {
+        const right = document.getElementById('list-right');
+        const hidden = document.getElementById('assigned_ids');
+        const values = Array.from(right.options).map(o => o.value);
+        hidden.value = values.join(',');
+        // como é field [] no backend, vamos clonar inputs:
+        // substitui por vários inputs (assigned_ids[])
+        const form = hidden.closest('form');
+        // remove o hidden atual para evitar confusão
+        hidden.remove();
+        values.forEach(v => {
+            const i = document.createElement('input');
+            i.type = 'hidden';
+            i.name = 'assigned_ids[]';
+            i.value = v;
+            form.appendChild(i);
+        });
+    }
+
+    function limitFive(selectEl) {
+        const selected = Array.from(selectEl.selectedOptions);
+        if (selected.length > 5) {
+            // desmarca o último que a pessoa acabou de selecionar
+            selected[selected.length - 1].selected = false;
+            alert('Selecione no máximo 5 motoristas.');
+        }
+    }
+</script>
+{% endblock %}

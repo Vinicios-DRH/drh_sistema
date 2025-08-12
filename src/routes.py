@@ -29,7 +29,7 @@ from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, Mili
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar)
 from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
 from src.controller.control import checar_ocupacao
 from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -38,6 +38,7 @@ from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import case, func
+from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -2378,7 +2379,7 @@ def adicionar_motorista():
                     f"{nome_militar}_cnh_{timestamp}.{ext}")
                 file_bytes = file.read()
 
-                # Upload para o root do bucket (sem subpasta)
+                # Upload para o root do bucket (sem suappasta)
                 app.supabase.storage.from_('motoristas').upload(
                     path=nome_arquivo,
                     file=file_bytes,
@@ -2564,6 +2565,131 @@ def atualizar_motorista(motorista_id):
         form_motorista=form_motorista,
         motorista=motorista
     )
+
+
+@app.route("/viaturas", methods=["GET"])
+def escolher_obm():
+    obms = Obm.query.order_by(Obm.sigla.asc()).all()
+    return render_template("viaturas_escolher_obm.html", obms=obms)
+
+
+@app.route("/<int:obm_id>/viaturas", methods=["GET"])
+def gerenciar_viaturas(obm_id):
+    obm = Obm.query.get_or_404(obm_id)
+
+    # Viaturas já dessa OBM
+    viaturas_da_obm = (Viaturas.query
+                       .filter(Viaturas.obm_id == obm_id)
+                       .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
+                       .all())
+
+    # Viaturas sem OBM (ou de outra OBM) – mostramos as sem OBM para facilitar atribuição
+    viaturas_sem_obm = (Viaturas.query
+                        .filter(Viaturas.obm_id.is_(None))
+                        .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
+                        .all())
+
+    # Motoristas preferencialmente desta OBM (se houver vínculo Militar↔OBM via MilitarObmFuncao)
+    # Se não houver essa tabela/ligação, troque por Motoristas.query.all()
+    motoristas = (database.session.query(Motoristas)
+                  .join(Militar, Motoristas.militar_id == Militar.id)
+                  .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                  .filter(MilitarObmFuncao.obm_id == obm_id)
+                  .order_by(Militar.nome_completo.asc())
+                  .all())
+
+    # Mapa de motoristas atuais por viatura (para preencher selects)
+    motoristas_por_viatura = {}
+    for v in viaturas_da_obm:
+        vms = (ViaturaMilitar.query
+               .filter_by(viatura_id=v.id)
+               .all())
+        motoristas_por_viatura[v.id] = [vm.militar_id for vm in vms]
+
+    return render_template(
+        "viaturas_gerenciar.html",
+        obm=obm,
+        viaturas_da_obm=viaturas_da_obm,
+        viaturas_sem_obm=viaturas_sem_obm,
+        motoristas=motoristas,
+        motoristas_por_viatura=motoristas_por_viatura,
+    )
+
+
+@app.route("/<int:obm_id>/viaturas/atribuir", methods=["POST"])
+def atribuir_viaturas_obm(obm_id):
+    """
+    Recebe a lista 'assigned_ids[]' (viaturas que devem ficar na OBM).
+    Vamos:
+      - Setar obm_id = obm_id para as IDs enviadas
+      - Remover desta OBM (setar NULL) todas as que estavam e não vieram no POST
+    """
+    obm = Obm.query.get_or_404(obm_id)
+    ids_enviados = request.form.getlist("assigned_ids[]")
+    ids_enviados = [int(x) for x in ids_enviados]
+
+    # Viaturas que hoje estão nessa OBM
+    atuais = Viaturas.query.filter_by(obm_id=obm_id).all()
+    ids_atuais = {v.id for v in atuais}
+
+    # 1) adicionar/mover para esta OBM os enviados que não estão
+    if ids_enviados:
+        (Viaturas.query
+         .filter(Viaturas.id.in_(ids_enviados))
+         .update({Viaturas.obm_id: obm_id}, synchronize_session=False))
+
+    # 2) remover desta OBM os que estavam e não estão mais na lista
+    ids_remover = list(ids_atuais - set(ids_enviados))
+    if ids_remover:
+        (Viaturas.query
+         .filter(Viaturas.id.in_(ids_remover))
+         .update({Viaturas.obm_id: None}, synchronize_session=False))
+
+    database.session.commit()
+    flash("Atribuições de viaturas atualizadas para a OBM {}.".format(
+        obm.sigla), "success")
+    return redirect(url_for("gerenciar_viaturas", obm_id=obm_id))
+
+
+@app.route("/viaturas/<int:viatura_id>/motoristas", methods=["POST"])
+def salvar_motoristas_viatura(viatura_id):
+    """
+    Salva até 5 motoristas (militar_id) para a viatura.
+    O gatilho no banco impede >5, mas também checamos aqui para UX.
+    """
+    v = Viaturas.query.get_or_404(viatura_id)
+    selecionados = request.form.getlist("motoristas[]")
+    selecionados = [int(x) for x in selecionados if x]
+
+    if len(selecionados) > 5:
+        flash("Selecione no máximo 5 motoristas para a viatura.", "warning")
+        return redirect(url_for("viaturas_admin.gerenciar_viaturas", obm_id=v.obm_id or 0))
+
+    # Atualiza o conjunto: remove os que saíram e adiciona os novos
+    atuais = ViaturaMilitar.query.filter_by(viatura_id=viatura_id).all()
+    ids_atuais = {vm.militar_id for vm in atuais}
+    novos = set(selecionados) - ids_atuais
+    remover = ids_atuais - set(selecionados)
+
+    if remover:
+        (ViaturaMilitar.query
+            .filter(ViaturaMilitar.viatura_id == viatura_id,
+                    ViaturaMilitar.militar_id.in_(remover))
+            .delete(synchronize_session=False))
+
+    for mid in novos:
+        database.session.add(ViaturaMilitar(
+            viatura_id=viatura_id, militar_id=mid))
+
+    try:
+        database.session.commit()
+        flash("Motoristas atualizados para a viatura {}.".format(
+            v.prefixo or v.placa), "success")
+    except IntegrityError:
+        database.session.rollback()
+        flash("Não foi possível salvar: limite atingido ou motorista duplicado.", "danger")
+
+    return redirect(url_for("viaturas_admin.gerenciar_viaturas", obm_id=v.obm_id or 0))
 
 
 @app.route('/usuario/<usuario_id>/excluir', methods=['GET', 'POST'])
@@ -4479,3 +4605,10 @@ def gerar_certidao_obito():
         return send_file(output, as_attachment=True, download_name='certidao_obito.docx')
 
     return render_template('gerar_certidao_obito.html')
+
+
+@app.route('/gerar-declaracao', methods=['GET', 'POST'])
+@login_required
+def gerar_declaracao():
+    if request.method == 'POST':
+        nome = request.form['nome']

@@ -450,6 +450,9 @@ class Militar(database.Model):
     pafs = database.relationship('Paf', backref='militar',
                                  cascade="all, delete-orphan")
 
+    viaturas = database.relationship(
+        "ViaturaMilitar", back_populates="militar")
+
 
 class MilitarObmFuncao(database.Model):
     __tablename__ = 'militar_obm_funcao'
@@ -534,6 +537,43 @@ class Motoristas(database.Model):
     categoria = database.relationship(
         'Categoria', backref='motorista_categoria', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
+
+
+class Viaturas(database.Model):
+    __tablename__ = 'viaturas'
+    id = database.Column(database.Integer, primary_key=True)
+    marca_modelo = database.Column(database.String(100))
+    placa = database.Column(database.String(20))
+    prefixo = database.Column(database.String(20))
+    obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'))
+    created_at = database.Column(database.DateTime, default=datetime.utcnow)
+    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+
+    militares = database.relationship(
+        "ViaturaMilitar",
+        back_populates="viatura",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+
+class ViaturaMilitar(database.Model):
+    __tablename__ = 'viatura_militar'
+
+    id = database.Column(database.Integer, primary_key=True)
+    viatura_id = database.Column(database.Integer, database.ForeignKey(
+        'viaturas.id', ondelete="CASCADE"), nullable=False)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        'militar.id', ondelete="CASCADE"), nullable=False)
+    created_at = database.Column(database.DateTime, default=datetime.utcnow)
+
+    viatura = database.relationship("Viaturas", back_populates="militares")
+    militar = database.relationship("Militar", back_populates="viaturas")
+
+    __table_args__ = (
+        database.UniqueConstraint('viatura_id', 'militar_id',
+                                  name='uq_viatura_militar'),
+    )
 
 
 class TabelaVencimento(database.Model):
