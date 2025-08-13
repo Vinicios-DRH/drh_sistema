@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block body %}
+
+<style>
+    .page-title {
+        font-weight: 600;
+        letter-spacing: .2px
+    }
+
+    .subtle {
+        color: var(--bs-secondary-color)
+    }
+
+    .card-soft {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 16px
+    }
+
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .2rem .55rem;
+        font-size: .78rem;
+        border-radius: 999px;
+        border: 1px solid var(--bs-border-color)
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bs-body-bg);
+        z-index: 2
+    }
+
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--bs-body-bg)
+    }
+
+    .empty {
+        text-align: center;
+        padding: 48px 20px;
+        border: 2px dashed var(--bs-border-color);
+        border-radius: 16px
+    }
+</style>
+
+<div class="container-xxl py-3">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-end justify-content-between mb-3 mt-5">
+        <div>
+            <h1 class="page-title h3 mb-1">Recebimento — DRH</h1>
+            <div class="subtle">Conferência de declarações, download dos arquivos e exportação para Excel.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <!-- placeholder de export até a rota existir -->
+            <a class="btn btn-outline-secondary"
+                href="?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&export=1">
+                Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <form class="card card-soft p-3 mb-3" method="get">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="form-label">Ano</label>
+                <input class="form-control" name="ano" placeholder="AAAA" value="{{ ano }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label">OBM</label>
+                <select class="form-select" name="obm_id">
+                    <option value="">Todas</option>
+                    {% for o in obms %}
+                    <option value="{{ o.id }}" {{ 'selected' if obm_id==o.id else '' }}>{{ o.sigla }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="todos" {{ 'selected' if status=='todos' else '' }}>Todos</option>
+                    <option value="pendente" {{ 'selected' if status=='pendente' else '' }}>Pendentes</option>
+                    <option value="validado" {{ 'selected' if status=='validado' else '' }}>Validadas</option>
+                    <option value="inconforme" {{ 'selected' if status=='inconforme' else '' }}>Inconformes</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label">Busca</label>
+                <input class="form-control" name="q" placeholder="Nome, matrícula, empregador…" value="{{ q }}">
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+                <button class="btn btn-primary">Filtrar</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Total</div>
+                <div class="h4 m-0">{{ total_ano }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Pendentes</div>
+                <div class="h4 m-0">{{ total_pendentes }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Validadas</div>
+                <div class="h4 m-0">{{ total_validados }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Inconformes</div>
+                <div class="h4 m-0">{{ total_inconformes }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações em massa -->
+    <div class="d-flex flex-wrap gap-2 mb-2">
+        <button class="btn btn-outline-secondary btn-sm" id="selecionar-todos" type="button">Selecionar todos</button>
+        <button class="btn btn-outline-secondary btn-sm" id="limpar-selecao" type="button">Limpar seleção</button>
+        <div class="vr"></div>
+        <button class="btn btn-outline-success btn-sm" id="mass-validar" type="button">Validar selecionados</button>
+        <button class="btn btn-outline-danger btn-sm" id="mass-inconforme" type="button">Marcar inconforme</button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card card-soft">
+        {% if declaracoes %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th style="width:32px;"><input class="form-check-input" type="checkbox" id="chk-all"></th>
+                        <th class="sticky-col">Militar</th>
+                        <th>Posto/Grad.</th>
+                        <th>OBM</th>
+                        <th>Ano</th>
+                        <th>Tipo</th>
+                        <th>Arquivo</th>
+                        <th>Status</th>
+                        <th class="text-end" style="width:170px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in declaracoes %}
+                    <tr data-id="{{ d.id }}">
+                        <td><input class="form-check-input row-check" type="checkbox"></td>
+                        <td class="sticky-col">
+                            <div class="fw-semibold">{{ d.militar.nome_completo }}</div>
+                            {% if d.militar.matricula %}<div class="subtle small">Matrícula {{ d.militar.matricula }}
+                            </div>{% endif %}
+                        </td>
+                        <td>{{ d.militar.posto_grad.sigla if d.militar.posto_grad else "-" }}</td>
+                        <td>{{ obm_map.get(d.militar_id, "-") }}</td>
+                        <td>{{ d.ano_referencia }}</td>
+                        <td>
+                            {% if d.tipo == 'positiva' %}
+                            <span class="badge text-bg-primary">positiva</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">negativa</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="btn btn-link btn-sm p-0" target="_blank" href="{{ url_map.get(d.id, '#') }}">Ver
+                                arquivo</a>
+                        </td>
+                        <td>
+                            {% if d.status == 'pendente' %}
+                            <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
+                            {% elif d.status == 'validado' %}
+                            <span class="chip"><span class="badge text-bg-success">validado</span></span>
+                            {% else %}
+                            <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <a class="btn btn-outline-primary btn-sm"
+                                    href="{{ url_for('acumulo.detalhe', decl_id=d.id) }}">Detalhe</a>
+
+                                {% if pode_editar_map and pode_editar_map.get(d.id) %}
+                                <a class="btn btn-outline-warning btn-sm"
+                                    href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Editar</a>
+                                {% endif %}
+
+                                <form method="post"
+                                    action="{{ url_for('acumulo.recebimento_mudar_status', decl_id=d.id) }}?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&page={{ request.args.get('page', 1) }}&per_page={{ request.args.get('per_page', 20) }}"
+                                    class="d-inline">
+                                    {# Se usar Flask-WTF, inclua o token:
+                                    {{ csrf_token() }} #}
+                                    <button type="submit" name="status" value="validado"
+                                        class="btn btn-outline-success btn-sm">Validar</button>
+                                    <button type="submit" name="status" value="inconforme"
+                                        class="btn btn-outline-danger btn-sm">Inconforme</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination %}
+        <div class="d-flex justify-content-end p-3">{{ pagination|safe }}</div>
+        {% endif %}
+        {% else %}
+        <div class="p-4">
+            <div class="empty">
+                <div style="font-size:42px; line-height:1;">📂</div>
+                <div class="mt-2 fw-semibold">Nenhuma declaração encontrada</div>
+                <div class="subtle">Ajuste os filtros acima ou aguarde novos envios.</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // seleção em massa
+    const chkAll = document.getElementById('chk-all');
+    const rowChecks = () => Array.from(document.querySelectorAll('.row-check'));
+    chkAll?.addEventListener('change', () => rowChecks().forEach(c => c.checked = chkAll.checked));
+    document.getElementById('selecionar-todos')?.addEventListener('click', () => rowChecks().forEach(c => c.checked = true));
+    document.getElementById('limpar-selecao')?.addEventListener('click', () => { rowChecks().forEach(c => c.checked = false); if (chkAll) chkAll.checked = false; });
+</script>
+
+<script>
+    function selectedIds() {
+        return Array.from(document.querySelectorAll('tbody tr[data-id] .row-check:checked'))
+            .map(chk => chk.closest('tr').dataset.id);
+    }
+    async function postStatus(id, novo) {
+        const params = new URLSearchParams({
+            ano: '{{ ano }}', status: '{{ status }}', q: '{{ q }}',
+            obm_id: '{{ obm_id or "" }}',
+            page: '{{ request.args.get("page", 1) }}',
+            per_page: '{{ request.args.get("per_page", 20) }}',
+        });
+        await fetch('{{ url_for("acumulo.recebimento_mudar_status", decl_id=0) }}'.replace('0', id) + '?' + params.toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'status=' + encodeURIComponent(novo)
+        });
+    }
+    document.getElementById('mass-validar')?.addEventListener('click', async () => {
+        const ids = selectedIds(); if (!ids.length) return;
+        for (const id of ids) await postStatus(id, 'validado');
+        location.reload();
+    });
+    document.getElementById('mass-inconforme')?.addEventListener('click', async () => {
+        const ids = selectedIds(); if (!ids.length) return;
+        for (const id of ids) await postStatus(id, 'inconforme');
+        location.reload();
+    });
+</script>
+
+
+{% endblock %}

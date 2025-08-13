@@ -1,0 +1,39 @@
+# --- Secrets / envs ---
+.env
+.env.*
+!.env.example
+
+# --- Virtual env ---
+.venv/
+venv/
+
+# --- Python build/cache ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.cache/
+.coverage
+htmlcov/
+
+# --- Flask ---
+instance/
+*.sqlite3
+*.db
+
+# --- IDE/OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- (se tiver frontend) ---
+node_modules/
+npm-debug.log*
+yarn-error.log*

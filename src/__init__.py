@@ -3,12 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from supabase import create_client  # ← importa aqui
+from dotenv import load_dotenv
+import os, pathlib
+
+# Carrega variáveis do .env
+load_dotenv()
 
 # Dados do Supabase
-SUPABASE_URL = "https://cselsnczhbsinizmwtcv.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZWxzbmN6aGJzaW5pem13dGN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYxMzIzNTQsImV4cCI6MjA1MTcwODM1NH0.SrdZIC5o03q5V5SK_RpzvoqqXrK6X37Dw9cObeLSjL8"
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)  # ← cliente global
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
@@ -34,8 +38,13 @@ def br_currency(value):
     except:
         return value
 
+# if pathlib.Path(".env").exists():
+#     from dotenv import load_dotenv
+#     load_dotenv() 
 
 # Importa rotas depois
 from src import routes
+from src.routes_acumulo import bp_acumulo
+app.register_blueprint(bp_acumulo)
 # Torna o supabase acessível de fora
 app.supabase = supabase

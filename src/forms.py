@@ -1,10 +1,20 @@
 
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileAllowed
-from wtforms import (FloatField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
+from flask_wtf.file import FileAllowed, FileField, FileRequired
+from wtforms import (FieldList, FloatField, FormField, HiddenField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
                      MultipleFileField, FileField, DecimalField, TextAreaField, TimeField)
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired, Regexp
 from src.models import Militar, User, SituacaoConvocacao
+
+
+TIPO_DECLARACAO_CHOICES = [
+    ("positiva", "Positiva (com vínculo)"), ("negativa", "Negativa (sem vínculo)")]
+
+EMPREGADOR_TIPO_CHOICES = [("publico", "Público"), ("privado", "Privado"),
+                           ("cooperativa", "Cooperativa"), ("autonomo", "Autônomo")]
+
+NATUREZA_VINCULO_CHOICES = [("efetivo", "Efetivo"), ("contratado", "Contratado"), (
+    "prestacao_servicos", "Prestação de serviços"), ("autonomo", "Autônomo")]
 
 
 def coerce_int_or_none(value):
@@ -542,3 +552,46 @@ class SancaoAlunoForm(FlaskForm):
     discriminacao = TextAreaField(
         'Discriminação/Medidas Aplicadas', validators=[DataRequired()])
     botao_submit = SubmitField('Registrar Sanção')
+
+
+class VinculoExternoSubForm(FlaskForm):
+    empregador_nome = StringField("Empregador", validators=[
+                                  DataRequired(), Length(max=150)])
+    empregador_tipo = SelectField(
+        "Tipo do empregador", choices=EMPREGADOR_TIPO_CHOICES, validators=[DataRequired()])
+    empregador_doc = StringField("CNPJ/CPF do empregador", validators=[
+        DataRequired(),
+        Regexp(r"^\d{11}$|^\d{14}$",
+               message="Apenas dígitos (11=CPF, 14=CNPJ).")
+    ])
+    natureza_vinculo = SelectField(
+        "Natureza do vínculo", choices=NATUREZA_VINCULO_CHOICES, validators=[DataRequired()])
+    cargo_funcao = StringField(
+        "Cargo/Função", validators=[DataRequired(), Length(max=120)])
+    carga_horaria_semanal = IntegerField("Carga horária semanal (h)", validators=[
+                                         DataRequired(), NumberRange(min=1, max=80)])
+    horario_inicio = TimeField("Horário início", validators=[DataRequired()])
+    horario_fim = TimeField("Horário fim", validators=[DataRequired()])
+    data_inicio = DateField("Data de início", validators=[DataRequired()])
+
+
+class DeclaracaoAcumuloForm(FlaskForm):
+    militar_id = HiddenField()  # chefe/diretor escolhe antes
+    ano_referencia = IntegerField("Ano", render_kw={"readonly": True})
+
+    militar_nome = StringField("Militar", render_kw={"readonly": True})
+    militar_posto_grad = StringField(
+        "Posto/Graduação", render_kw={"readonly": True})
+    militar_obm = StringField("OBM", render_kw={"readonly": True})
+
+    tipo = SelectField("Tipo de declaração",
+                       choices=TIPO_DECLARACAO_CHOICES, validators=[DataRequired()])
+    arquivo_declaracao = FileField(
+        "Arquivo da declaração assinada (PDF/JPG/PNG)",
+        validators=[FileRequired(), FileAllowed(
+            ["pdf", "jpg", "jpeg", "png"], "Envie PDF ou imagem.")]
+    )
+    observacoes = TextAreaField("Observações (opcional)", validators=[
+                                Optional(), Length(max=2000)])
+
+    vinculos = FieldList(FormField(VinculoExternoSubForm), min_entries=1)

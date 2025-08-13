@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block body %}
+
+<style>
+    .page-title {
+        font-weight: 600;
+        letter-spacing: .2px
+    }
+
+    .subtle {
+        color: var(--bs-secondary-color)
+    }
+
+    .card-soft {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 16px
+    }
+
+    .section-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin: 0
+    }
+
+    .hint {
+        font-size: .85rem
+    }
+
+    .vinculo-card {
+        border: 1px dashed var(--bs-border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        background: var(--bs-body-bg)
+    }
+
+    .remove-btn {
+        opacity: .8
+    }
+</style>
+
+<div class="container-xxl py-3 mt-5">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="page-title h4 mb-1">
+                Nova Declaração — {{ militar.nome_guerra or militar.nome_completo }}
+            </h1>
+            <div class="subtle">Preencha a declaração (positiva ou negativa) e anexe o documento assinado.</div>
+        </div>
+        <a href="{{ url_for('acumulo.lista') }}" class="btn btn-light">← Voltar</a>
+    </div>
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" action="" class="needs-validation" novalidate>
+        <input type="hidden" name="ano" value="{{ ano }}">
+
+        <!-- Cabeçalho do militar -->
+        <div class="card card-soft p-3 mb-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Militar</label>
+                    <input class="form-control" value="{{ militar.nome_completo }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Posto/Graduação</label>
+                    <input class="form-control" value="{{ posto_grad_sigla or '-' }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">OBM</label>
+                    <input class="form-control" value="{{ obm_sigla or '-' }}" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Ano</label>
+                    <input class="form-control" value="{{ ano }}" readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tipo + Anexo -->
+        <div class="card card-soft p-3 mb-3">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de declaração</label>
+                    <select class="form-select" id="tipo-select" name="tipo" required>
+                        <option value="" selected disabled>Selecione…</option>
+                        <option value="positiva">Positiva (com vínculo)</option>
+                        <option value="negativa">Negativa (sem vínculo)</option>
+                    </select>
+                    <div class="invalid-feedback">Escolha o tipo de declaração.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Meio de entrega</label>
+                    <select class="form-select" name="meio_entrega">
+                        <option value="digital" selected>Digital</option>
+                        <option value="presencial">Presencial</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Arquivo (somente PDF)</label>
+                    <input type="file" class="form-control" name="arquivo_declaracao" accept=".pdf,.jpg,.jpeg,.png"
+                        required>
+                    <div class="hint subtle mt-1">Envie a declaração assinada (modelo DRH).</div>
+                    <div class="invalid-feedback">Anexe o arquivo da declaração.</div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" name="observacoes" rows="3" placeholder="(opcional)"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vínculos externos -->
+        <div class="card card-soft p-3 mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h2 class="section-title">Vínculos externos</h2>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="add-vinculo">+ Adicionar
+                    vínculo</button>
+            </div>
+            <div class="subtle mb-3">Preencha apenas quando a declaração for <strong>positiva</strong>.</div>
+
+            <div id="vinculos-container" class="d-grid gap-3">
+                <!-- itens adicionados via JS -->
+            </div>
+
+            <!-- template invisível para clonar -->
+            <template id="tpl-vinculo">
+                <div class="vinculo-card">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Empregador</label>
+                            <input class="form-control" name="empregador_nome[]" maxlength="150" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="empregador_tipo[]" required>
+                                <option value="" disabled selected>Selecione…</option>
+                                <option value="publico">Público</option>
+                                <option value="privado">Privado</option>
+                                <option value="cooperativa">Cooperativa</option>
+                                <option value="autonomo">Autônomo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CNPJ/CPF</label>
+                            <input class="form-control" name="empregador_doc[]" pattern="^\d{11}$|^\d{14}$"
+                                placeholder="somente dígitos" required>
+                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Natureza do vínculo</label>
+                            <select class="form-select" name="natureza_vinculo[]" required>
+                                <option value="" disabled selected>Selecione…</option>
+                                <option value="efetivo">Efetivo</option>
+                                <option value="contratado">Contratado</option>
+                                <option value="prestacao_servicos">Prestação de serviços</option>
+                                <option value="autonomo">Autônomo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cargo/Função</label>
+                            <input class="form-control" name="cargo_funcao[]" maxlength="120" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Carga horária semanal (h)</label>
+                            <input type="number" class="form-control" name="carga_horaria_semanal[]" min="1" max="80"
+                                required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Horário início</label>
+                            <input type="time" class="form-control" name="horario_inicio[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário fim</label>
+                            <input type="time" class="form-control" name="horario_fim[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data de início</label>
+                            <input type="date" class="form-control" name="data_inicio[]" required>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end justify-content-end">
+                            <button type="button" class="btn btn-outline-danger remove-btn">Remover</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Ações -->
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('acumulo.lista') }}" class="btn btn-light">Voltar</a>
+            <button class="btn btn-success" type="submit">Salvar</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const tipoSelect = document.getElementById('tipo-select');
+    const container = document.getElementById('vinculos-container');
+    const addBtn = document.getElementById('add-vinculo');
+    const tpl = document.getElementById('tpl-vinculo');
+
+    function toggleVinculos() {
+        const isPositiva = tipoSelect.value === 'positiva';
+        addBtn.disabled = !isPositiva;
+        container.querySelectorAll('input, select, button.remove-btn').forEach(el => {
+            if (el.classList.contains('remove-btn')) {
+                el.disabled = !isPositiva;
+            } else {
+                el.required = isPositiva;
+                el.disabled = !isPositiva;
+            }
+        });
+    }
+
+    function addVinculo() {
+        const node = tpl.content.cloneNode(true);
+        node.querySelector('.remove-btn').addEventListener('click', (e) => {
+            e.target.closest('.vinculo-card').remove();
+        });
+        container.appendChild(node);
+        toggleVinculos();
+    }
+
+    // init
+    tipoSelect.addEventListener('change', () => {
+        if (tipoSelect.value === 'positiva' && container.children.length === 0) {
+            addVinculo();
+        }
+        toggleVinculos();
+    });
+    toggleVinculos();
+    addBtn.addEventListener('click', addVinculo);
+
+    // validação bootstrap
+    (() => {
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+
+{% endblock %}

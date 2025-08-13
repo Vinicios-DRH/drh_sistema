@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block body %}
+
+<style>
+    /* toques finos */
+    .page-title {
+        font-weight: 600;
+        letter-spacing: .2px;
+    }
+
+    .subtle {
+        color: var(--bs-secondary-color);
+    }
+
+    .card-soft {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 16px;
+    }
+
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .2rem .55rem;
+        font-size: .78rem;
+        border-radius: 999px;
+        border: 1px solid var(--bs-border-color);
+        background: var(--bs-body-bg);
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bs-body-bg);
+        z-index: 2;
+    }
+
+    .table td.sticky-col,
+    .table th.sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--bs-body-bg);
+    }
+
+    .empty {
+        text-align: center;
+        padding: 48px 20px;
+        border: 2px dashed var(--bs-border-color);
+        border-radius: 16px;
+    }
+</style>
+
+<div class="container-xxl py-3 mt-5">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-end justify-content-between mb-3">
+        <div>
+            <h1 class="page-title h3 mb-1">Declarações de Vínculo</h1>
+            <div class="subtle">Listagem dos militares da sua OBM. Selecione <em>Preencher</em> para registrar a
+                declaração.</div>
+        </div>
+
+        <form class="d-flex align-items-center gap-2" method="get">
+            <input class="form-control" style="max-width: 160px" name="ano" placeholder="Ano" value="{{ ano or '' }}">
+            <input class="form-control" style="min-width: 220px" name="q" placeholder="Buscar por nome, posto, OBM"
+                value="{{ request.args.get('q','') }}">
+            <button class="btn btn-primary">Filtrar</button>
+        </form>
+    </div>
+
+    <!-- KPIs rápidos (opcional, preenche depois) -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Total de militares</div>
+                <div class="h4 m-0">{{ militares|length if militares is defined else 0 }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Entregues (ano {{ ano or "—" }})</div>
+                <div class="h4 m-0">{{ entregues if entregues is defined else 0 }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Pendentes</div>
+                <div class="h4 m-0">{{ pendentes if pendentes is defined else 0 }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Adesão</div>
+                <div class="h4 m-0">{{ adesao if adesao is defined else "0%" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card card-soft">
+        {% if militares is defined and militares %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">Militar</th>
+                        <th>Posto/Grad.</th>
+                        <th>OBM</th>
+                        <th class="text-center">Última declaração</th>
+                        <th class="text-end" style="width: 110px;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in militares %}
+                    <tr>
+                        <td class="sticky-col">
+                            <div class="fw-semibold">{{ m.nome_completo }}</div>
+                            {% if m.matricula %}<div class="subtle small">Matrícula {{ m.matricula }}</div>{% endif %}
+                        </td>
+                        <td>{{ m.posto_grad.sigla if m.posto_grad else "-" }}</td>
+                        <td>{{ m.obm_sigla }}</td>
+                        <td class="text-center">
+                            {% if m.ultima_declaracao %}
+                            <span class="chip">
+                                {{ m.ultima_declaracao.ano_referencia }}
+                                {% if m.ultima_declaracao.status == "validado" %}
+                                <span class="badge text-bg-success">validada</span>
+                                {% elif m.ultima_declaracao.status == "pendente" %}
+                                <span class="badge text-bg-warning text-dark">pendente</span>
+                                {% else %}
+                                <span class="badge text-bg-danger">inconforme</span>
+                                {% endif %}
+                            </span>
+                            {% else %}
+                            <span class="subtle">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if m.ultima_declaracao and (not ano or m.ultima_declaracao.ano_referencia == (ano|int))
+                            %}
+                            <a class="btn btn-outline-secondary btn-sm"
+                                href="{{ url_for('acumulo.editar', decl_id=m.ultima_declaracao.id) }}">
+                                Editar
+                            </a>
+                            {% else %}
+                            <a class="btn btn-primary btn-sm"
+                                href="{{ url_for('acumulo.novo', militar_id=m.id, ano=ano) }}">
+                                Preencher
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação (placeholder) -->
+        {% if pagination %}
+        <div class="d-flex justify-content-end p-3">
+            {{ pagination|safe }}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="p-4">
+            <div class="empty">
+                <div style="font-size:42px; line-height:1;">📄</div>
+                <div class="mt-2 fw-semibold">Nenhum militar listado</div>
+                <div class="subtle">A lista aparecerá assim que conectarmos ao banco e filtros.</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

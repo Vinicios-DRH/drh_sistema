@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container-xxl py-3 mt-5">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h4 mb-1">Detalhe da Declaração — {{ militar.nome_guerra or militar.nome_completo }}</h1>
+            <div class="text-muted">Ano {{ ano }} · Status: <span class="badge bg-secondary">{{ decl.status }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if pode_editar %}
+            <a href="{{ url_for('acumulo.editar', decl_id=decl.id) }}" class="btn btn-warning">Editar</a>
+            {% endif %}
+            <a href="{{ url_for('acumulo.recebimento') }}" class="btn btn-light">← Voltar</a>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Militar</label>
+                <div class="form-control-plaintext">{{ militar.nome_completo }}</div>
+            </div>
+            <div class="col-md-3"><label class="form-label">Posto/Graduação</label>
+                <div class="form-control-plaintext">{{ posto_grad_sigla or '-' }}</div>
+            </div>
+            <div class="col-md-3"><label class="form-label">OBM(s)</label>
+                <div class="form-control-plaintext">{{ obm_siglas }}</div>
+            </div>
+            <div class="col-md-2"><label class="form-label">Ano</label>
+                <div class="form-control-plaintext">{{ ano }}</div>
+            </div>
+            <div class="col-md-3"><label class="form-label">Tipo</label>
+                <div class="form-control-plaintext">{{ decl.tipo }}</div>
+            </div>
+            <div class="col-md-3"><label class="form-label">Meio de entrega</label>
+                <div class="form-control-plaintext">{{ decl.meio_entrega }}</div>
+            </div>
+            <div class="col-md-3"><label class="form-label">Arquivo</label>
+                {% if url_arquivo %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_arquivo }}" target="_blank">Ver arquivo</a>
+                {% else %}
+                <div class="form-control-plaintext">—</div>
+                {% endif %}
+            </div>
+            <div class="col-12"><label class="form-label">Observações</label>
+                <div class="form-control-plaintext">{{ decl.observacoes or '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <h2 class="h6 mb-3">Vínculos externos</h2>
+        {% if decl.vinculos %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Empregador</th>
+                        <th>Tipo</th>
+                        <th>Doc</th>
+                        <th>Natureza</th>
+                        <th>Cargo/Função</th>
+                        <th>CH Semanal</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Desde</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in decl.vinculos %}
+                    <tr>
+                        <td>{{ v.empregador_nome }}</td>
+                        <td>{{ v.empregador_tipo }}</td>
+                        <td>{{ v.empregador_doc }}</td>
+                        <td>{{ v.natureza_vinculo }}</td>
+                        <td>{{ v.cargo_funcao }}</td>
+                        <td>{{ v.carga_horaria_semanal }}</td>
+                        <td>{{ v.horario_inicio }}</td>
+                        <td>{{ v.horario_fim }}</td>
+                        <td>{{ v.data_inicio }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-muted">Sem vínculos declarados.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

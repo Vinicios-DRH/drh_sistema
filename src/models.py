@@ -914,3 +914,95 @@ class SancaoAluno(database.Model):
 
     ficha_aluno = database.relationship('FichaAlunos', backref='sancoes')
     usuario = database.relationship('User', backref='sancoes_registradas')
+
+
+class DeclaracaoAcumulo(database.Model):
+    __tablename__ = "declaracao_acumulo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    # p/ ciclo anual (envio até 31/10)
+    ano_referencia = database.Column(database.Integer, nullable=False)
+    tipo = database.Column(database.Enum(
+        'positiva', 'negativa', name='tipo_declaracao'), nullable=False)
+    meio_entrega = database.Column(database.Enum(
+        'digital', 'presencial', name='meio_entrega'), nullable=False, default='digital')
+    data_entrega = database.Column(
+        database.DateTime, default=datetime.utcnow, nullable=False)
+    status = database.Column(database.Enum('pendente', 'validado', 'inconforme',
+                             name='status_declaracao'), nullable=False, default='pendente')
+    recebido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))  # quem conferiu/recebeu
+    # caminho/URL no storage (PDF/JPG da declaração)
+    arquivo_declaracao = database.Column(database.String(255))
+    observacoes = database.Column(database.Text)
+
+    created_at = database.Column(database.DateTime, default=datetime.utcnow)
+    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+
+    militar = database.relationship('Militar', backref='declaracoes_acumulo')
+    recebido_por = database.relationship('User')
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            'militar_id', 'ano_referencia', name='uq_declaracao_militar_ano'),
+    )
+
+
+class VinculoExterno(database.Model):
+    """
+    Vínculo(es) declarado(s) quando tipo='positiva'. Uma declaração pode ter 1+ vínculos.
+    """
+    __tablename__ = "vinculo_externo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    declaracao_id = database.Column(database.Integer, database.ForeignKey(
+        'declaracao_acumulo.id'), nullable=False)
+
+    empregador_nome = database.Column(database.String(150), nullable=False)
+    empregador_tipo = database.Column(database.Enum(
+        'publico', 'privado', 'cooperativa', 'autonomo', name='tipo_empregador'), nullable=False)
+    # CNPJ (14) ou CPF (11) - salvar limpo
+    empregador_doc = database.Column(database.String(18), nullable=False)
+    natureza_vinculo = database.Column(database.Enum(
+        'efetivo', 'contratado', 'prestacao_servicos', 'autonomo', name='natureza_vinculo'), nullable=False)
+    cargo_funcao = database.Column(database.String(120), nullable=False)
+
+    carga_horaria_semanal = database.Column(
+        database.Integer, nullable=False)  # em horas
+    horario_inicio = database.Column(database.Time, nullable=False)
+    horario_fim = database.Column(database.Time, nullable=False)
+    data_inicio = database.Column(database.Date, nullable=False)
+
+    compatibilidade_horaria = database.Column(
+        database.Boolean, default=None)  # marcado após conferência
+    conflito_descricao = database.Column(
+        database.Text)  # se incompatível, justificar
+
+    created_at = database.Column(database.DateTime, default=datetime.utcnow)
+    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+
+    declaracao = database.relationship('DeclaracaoAcumulo', backref='vinculos')
+
+
+class AuditoriaDeclaracao(database.Model):
+    """
+    Histórico de mudanças de status para rastreabilidade/auditoria.
+    """
+    __tablename__ = "auditoria_declaracao"
+
+    id = database.Column(database.Integer, primary_key=True)
+    declaracao_id = database.Column(database.Integer, database.ForeignKey(
+        'declaracao_acumulo.id'), nullable=False)
+    de_status = database.Column(database.String(20))
+    para_status = database.Column(database.String(20), nullable=False)
+    motivo = database.Column(database.Text)
+    alterado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_alteracao = database.Column(
+        database.DateTime, default=datetime.utcnow)
+
+    declaracao = database.relationship(
+        'DeclaracaoAcumulo', backref='auditorias')
+    alterado_por = database.relationship('User')

@@ -38,6 +38,35 @@
                         </a>
                     </li>
 
+                    {# ---- Declarações de Vínculo (Acúmulo) ---- #}
+                    {% set ocup = (current_user.funcao_user.ocupacao or '').upper() if current_user.funcao_user else ''
+                    %}
+                    {% set is_super = 'SUPER' in ocup %}
+                    {% set is_drh = 'DRH' in ocup %} {# casa DRH, DIRETOR DRH, DRH CHEFE, CHEFE DRH... #}
+                    {% set is_chefe_ou_diretor_obm = ('CHEFE' in ocup or 'DIRETOR' in ocup) and not is_drh and not
+                    is_super %}
+
+                    {% if is_chefe_ou_diretor_obm %}
+                    {# Chefes/Diretores de OBM: somente a lista #}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('acumulo.lista') }}">
+                            <i class="fas fa-file-signature me-2"></i> Declarações de Vínculo
+                        </a>
+                    </li>
+                    {% elif is_drh or is_super %}
+                    {# DRH (qualquer variação) e SUPER USER: lista + recebimento #}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-signature me-2"></i> Declarações de Vínculo
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('acumulo.lista') }}">📋 Lista</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">✅ Recebimento</a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
                     {# Se o usuário é da OBM DRH ou SUPER USER #}
                     {% if user_funcao in [5, 6, 7] %}
                     <li class="nav-item dropdown">

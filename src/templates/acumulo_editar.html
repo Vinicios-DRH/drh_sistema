@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="container-xxl py-3 mt-5">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h4 mb-1">Editar Declaração — {{ militar.nome_guerra or militar.nome_completo }}</h1>
+            <div class="text-muted">Ano {{ ano }} · Status atual: <span class="badge bg-secondary">{{ decl.status
+                    }}</span></div>
+        </div>
+        <a href="{{ url_for('acumulo.lista', ano=ano) }}" class="btn btn-light">← Voltar</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" action="">
+        <input type="hidden" name="ano" value="{{ ano }}">
+
+        <div class="card p-3 mb-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Militar</label>
+                    <input class="form-control" value="{{ militar.nome_completo }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Posto/Graduação</label>
+                    <input class="form-control" value="{{ posto_grad_sigla or '-' }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">OBM</label>
+                    <input class="form-control" value="{{ obm_sigla or '-' }}" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Ano</label>
+                    <input class="form-control" value="{{ ano }}" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de declaração</label>
+                    <select class="form-select" id="tipo-select" name="tipo" required>
+                        <option value="positiva" {{ 'selected' if decl.tipo=='positiva' else '' }}>Positiva</option>
+                        <option value="negativa" {{ 'selected' if decl.tipo=='negativa' else '' }}>Negativa</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Meio de entrega</label>
+                    <select class="form-select" name="meio_entrega">
+                        <option value="digital" {{ 'selected' if decl.meio_entrega=='digital' else '' }}>Digital
+                        </option>
+                        <option value="presencial" {{ 'selected' if decl.meio_entrega=='presencial' else '' }}>
+                            Presencial</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Arquivo (PDF/JPG/PNG)</label>
+                    {% if url_arquivo %}
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-secondary w-100" href="{{ url_arquivo }}" target="_blank">Ver arquivo
+                            atual</a>
+                    </div>
+                    <div class="form-text">Envie abaixo para substituir o arquivo atual</div>
+                    {% endif %}
+                    <input type="file" class="form-control mt-2" name="arquivo_declaracao"
+                        accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" name="observacoes" rows="3">{{ decl.observacoes or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h2 class="h6 m-0">Vínculos externos</h2>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="add-vinculo">+ Adicionar
+                    vínculo</button>
+            </div>
+            <div id="vinculos-container" class="d-grid gap-3">
+                {% for v in decl.vinculos %}
+                <div class="border rounded p-3 vinculo-card">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Empregador</label>
+                            <input class="form-control" name="empregador_nome[]" value="{{ v.empregador_nome }}"
+                                required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="empregador_tipo[]" required>
+                                {% for opt in ['publico','privado','cooperativa','autonomo'] %}
+                                <option value="{{ opt }}" {{ 'selected' if v.empregador_tipo==opt else '' }}>{{
+                                    opt|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CNPJ/CPF</label>
+                            <input class="form-control" name="empregador_doc[]" value="{{ v.empregador_doc }}" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Natureza</label>
+                            <select class="form-select" name="natureza_vinculo[]" required>
+                                {% for opt in ['efetivo','contratado','prestacao_servicos','autonomo'] %}
+                                <option value="{{ opt }}" {{ 'selected' if v.natureza_vinculo==opt else '' }}>{{
+                                    opt.replace('_',' ')|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cargo/Função</label>
+                            <input class="form-control" name="cargo_funcao[]" value="{{ v.cargo_funcao }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Carga horária semanal (h)</label>
+                            <input type="number" class="form-control" name="carga_horaria_semanal[]" min="1" max="80"
+                                value="{{ v.carga_horaria_semanal }}" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Horário início</label>
+                            <input type="time" class="form-control" name="horario_inicio[]"
+                                value="{{ v.horario_inicio }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário fim</label>
+                            <input type="time" class="form-control" name="horario_fim[]" value="{{ v.horario_fim }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data de início</label>
+                            <input type="date" class="form-control" name="data_inicio[]" value="{{ v.data_inicio }}">
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end justify-content-end">
+                            <button type="button" class="btn btn-outline-danger remove-btn">Remover</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- template para novos vínculos -->
+            <template id="tpl-vinculo">
+                <div class="border rounded p-3 vinculo-card">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Empregador</label>
+                            <input class="form-control" name="empregador_nome[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="empregador_tipo[]" required>
+                                <option value="publico">Público</option>
+                                <option value="privado">Privado</option>
+                                <option value="cooperativa">Cooperativa</option>
+                                <option value="autonomo">Autônomo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CNPJ/CPF</label>
+                            <input class="form-control" name="empregador_doc[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Natureza</label>
+                            <select class="form-select" name="natureza_vinculo[]" required>
+                                <option value="efetivo">Efetivo</option>
+                                <option value="contratado">Contratado</option>
+                                <option value="prestacao_servicos">Prestação de serviços</option>
+                                <option value="autonomo">Autônomo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cargo/Função</label>
+                            <input class="form-control" name="cargo_funcao[]" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Carga horária semanal (h)</label>
+                            <input type="number" class="form-control" name="carga_horaria_semanal[]" min="1" max="80"
+                                required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário início</label>
+                            <input type="time" class="form-control" name="horario_inicio[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário fim</label>
+                            <input type="time" class="form-control" name="horario_fim[]" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data de início</label>
+                            <input type="date" class="form-control" name="data_inicio[]" required>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end justify-content-end">
+                            <button type="button" class="btn btn-outline-danger remove-btn">Remover</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('acumulo.lista', ano=ano) }}" class="btn btn-light">Cancelar</a>
+            <button class="btn btn-success" type="submit">Salvar alterações</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const tipoSelect = document.getElementById('tipo-select');
+    const container = document.getElementById('vinculos-container');
+    const addBtn = document.getElementById('add-vinculo');
+    const tpl = document.getElementById('tpl-vinculo');
+
+    function toggleVinculos() {
+        const isPositiva = tipoSelect.value === 'positiva';
+        addBtn.disabled = !isPositiva;
+        container.querySelectorAll('input, select, button.remove-btn').forEach(el => {
+            if (el.classList.contains('remove-btn')) el.disabled = !isPositiva;
+            else { el.required = isPositiva; el.disabled = !isPositiva; }
+        });
+    }
+    function addVinculo() {
+        const node = tpl.content.cloneNode(true);
+        node.querySelector('.remove-btn').addEventListener('click', e => {
+            e.target.closest('.vinculo-card').remove();
+        });
+        container.appendChild(node);
+        toggleVinculos();
+    }
+    addBtn.addEventListener('click', addVinculo);
+    tipoSelect.addEventListener('change', () => {
+        if (tipoSelect.value === 'positiva' && container.children.length === 0) addVinculo();
+        toggleVinculos();
+    });
+    toggleVinculos();
+    // remover já renderizados
+    container.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => e.target.closest('.vinculo-card').remove());
+    });
+</script>
+
+{% endblock %}
