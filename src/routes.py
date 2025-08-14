@@ -6,7 +6,6 @@ from flask import abort, request, jsonify
 from flask import make_response
 import os
 import zipfile
-import tempfile
 import qrcode
 import pytz
 import pandas as pd
@@ -21,8 +20,6 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
-from wtforms import SelectField, StringField
-from wtforms.widgets import TextInput
 from src import app, database, bcrypt
 from src.forms import AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm, RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm
 from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,

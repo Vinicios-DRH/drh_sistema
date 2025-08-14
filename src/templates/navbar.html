@@ -46,14 +46,14 @@
                     {% set is_chefe_ou_diretor_obm = ('CHEFE' in ocup or 'DIRETOR' in ocup) and not is_drh and not
                     is_super %}
 
-                    {% if is_chefe_ou_diretor_obm %}
+                    <!-- {% if is_chefe_ou_diretor_obm %}
                     {# Chefes/Diretores de OBM: somente a lista #}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('acumulo.lista') }}">
                             <i class="fas fa-file-signature me-2"></i> Declarações de Vínculo
                         </a>
                     </li>
-                    {% elif is_drh or is_super %}
+                    {% elif is_drh or is_super %} -->
                     {# DRH (qualquer variação) e SUPER USER: lista + recebimento #}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">

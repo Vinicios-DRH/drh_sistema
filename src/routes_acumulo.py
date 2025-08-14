@@ -1,9 +1,6 @@
-# src/routes_acumulo.py (trecho)
-
 from io import BytesIO
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import login_required, current_user
-from datetime import datetime
 from openpyxl import Workbook
 from sqlalchemy import exists, or_, and_, func
 from src.controller.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
@@ -11,7 +8,13 @@ from src.models import AuditoriaDeclaracao, database as db, Militar, PostoGrad, 
 from src.controller.control import checar_ocupacao
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
+from src.controller.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
 import re
+from docx import Document
+from docx.shared import Pt
+from docx.oxml.ns import qn
+from src.controller.helpers_docx import render_docx_from_template
+
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 
@@ -127,6 +130,40 @@ def _can_editar_declaracao(militar_id: int) -> bool:
         return False
     return bool(admin & _militar_obm_ativas_ids(militar_id))
 
+
+def _digits(s):
+    import re
+    return re.sub(r"\D+", "", s or "")
+
+# --- motor de substituição no estilo que você já usa ---
+
+
+def _replace_in_paragraph(p, mapping, bold_keys=None, italic_keys=None):
+    text = p.text
+    if not any(f"{{{k}}}" in text for k in mapping):
+        return
+    # limpa runs
+    for run in list(p.runs):
+        p._element.remove(run._element)
+    parts = re.split(r'(\{.*?\})', text)
+    for part in parts:
+        if re.fullmatch(r'\{.*?\}', part or ""):
+            key = part[1:-1]
+            value = str(mapping.get(key, ""))
+
+            run = p.add_run(value)
+            run.font.name = 'Times New Roman'
+            run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+            run.font.size = Pt(10)
+            if bold_keys and key in bold_keys:
+                run.bold = True
+            if italic_keys and key in italic_keys:
+                run.italic = True
+        else:
+            run = p.add_run(part)
+            run.font.name = 'Times New Roman'
+            run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+            run.font.size = Pt(10)
 
 # ---------- /acumulo/lista ----------
 
@@ -311,15 +348,12 @@ def lista():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
 def novo(militar_id):
-    # segurança de escopo
     if not _militar_permitido(militar_id):
         flash("Você não tem permissão para lançar declaração para este militar (fora da sua(s) OBM(s)).", "alert-danger")
         return redirect(url_for("acumulo.lista"))
 
-    # ano alvo (querystring ou hidden no form)
     ano = request.values.get("ano", type=int) or datetime.now().year
 
-    # carregar dados para o cabeçalho do form
     MOF = MilitarObmFuncao
     row = (
         db.session.query(Militar, PostoGrad.sigla.label(
@@ -363,73 +397,46 @@ def novo(militar_id):
         flash("Anexe o arquivo da declaração (PDF/JPG/PNG).", "alert-danger")
         return redirect(request.url)
 
-    # se positiva, ao menos 1 vínculo válido
-    vinculos_payload = []
+    # vínculo único (apenas se positiva)
+    vinculo_row = None
     if tipo == "positiva":
-        nomes = request.form.getlist("empregador_nome[]")
-        # publico|privado|cooperativa|autonomo
-        tipos = request.form.getlist("empregador_tipo[]")
-        docs = request.form.getlist("empregador_doc[]")            # CNPJ/CPF
-        # efetivo|contratado|prestacao_servicos|autonomo
-        natur = request.form.getlist("natureza_vinculo[]")
-        cargos = request.form.getlist("cargo_funcao[]")
-        cargas = request.form.getlist(
-            "carga_horaria_semanal[]")     # int horas
-        h_ini = request.form.getlist("horario_inicio[]")            # HH:MM
-        h_fim = request.form.getlist("horario_fim[]")               # HH:MM
-        # YYYY-MM-DD ou dd/mm/YYYY
-        d_ini = request.form.getlist("data_inicio[]")
+        emp_nome = (request.form.get("empregador_nome") or "").strip()
+        emp_tipo = (request.form.get("empregador_tipo") or "").strip().lower()
+        emp_doc = _digits(request.form.get("empregador_doc") or "")
+        natureza = (request.form.get("natureza_vinculo") or "").strip().lower()
+        cargo = (request.form.get("cargo_funcao") or "").strip()
+        try:
+            carga = int(
+                (request.form.get("carga_horaria_semanal") or "0").strip() or "0")
+        except Exception:
+            carga = 0
+        h_ini = _parse_time(request.form.get("horario_inicio"))
+        h_fim = _parse_time(request.form.get("horario_fim"))
+        d_ini = _parse_date(request.form.get("data_inicio"))
 
-        n = max(len(nomes), len(tipos), len(docs), len(natur), len(
-            cargos), len(cargas), len(h_ini), len(h_fim), len(d_ini))
-        for i in range(n):
-            nome = (nomes[i] if i < len(nomes) else "").strip()
-            if not nome:
-                continue
-            emp_tipo = (tipos[i] if i < len(tipos) else "").strip().lower()
-            emp_doc = _digits(docs[i] if i < len(docs) else "")
-            nat = (natur[i] if i < len(natur) else "").strip().lower()
-            cargo = (cargos[i] if i < len(cargos) else "").strip()
-            try:
-                carga = int((cargas[i] if i < len(cargas) else "0") or "0")
-            except Exception:
-                carga = 0
-            t_ini = _parse_time(h_ini[i] if i < len(h_ini) else None)
-            t_fim = _parse_time(h_fim[i] if i < len(h_fim) else None)
-            dstart = _parse_date(d_ini[i] if i < len(d_ini) else None)
-
-            # valida mínimas do modelo
-            if emp_tipo not in {"publico", "privado", "cooperativa", "autonomo"}:  # Enum
-                flash("Tipo de empregador inválido em um dos vínculos.",
-                      "alert-danger")
-                return redirect(request.url)
-            if nat not in {"efetivo", "contratado", "prestacao_servicos", "autonomo"}:  # Enum
-                flash("Natureza do vínculo inválida em um dos vínculos.",
-                      "alert-danger")
-                return redirect(request.url)
-            if not (emp_doc and cargo and carga > 0 and t_ini and t_fim and dstart):
-                flash(
-                    "Preencha todos os campos obrigatórios do vínculo externo.", "alert-danger")
-                return redirect(request.url)
-
-            vinculos_payload.append(dict(
-                empregador_nome=nome,
-                empregador_tipo=emp_tipo,
-                empregador_doc=emp_doc,
-                natureza_vinculo=nat,
-                cargo_funcao=cargo,
-                carga_horaria_semanal=carga,
-                horario_inicio=t_ini,
-                horario_fim=t_fim,
-                data_inicio=dstart,
-            ))
-
-        if not vinculos_payload:
-            flash(
-                "Adicione ao menos um vínculo externo para declaração positiva.", "alert-danger")
+        if emp_tipo not in {"publico", "privado", "cooperativa", "autonomo"}:
+            flash("Tipo de empregador inválido.", "alert-danger")
+            return redirect(request.url)
+        if natureza not in {"efetivo", "contratado", "prestacao_servicos", "autonomo"}:
+            flash("Natureza do vínculo inválida.", "alert-danger")
+            return redirect(request.url)
+        if not (emp_nome and emp_doc and cargo and carga > 0 and h_ini and h_fim and d_ini):
+            flash("Preencha todos os campos do vínculo externo.", "alert-danger")
             return redirect(request.url)
 
-    # upload Backblaze (organizado por ano/militar)
+        vinculo_row = dict(
+            empregador_nome=emp_nome,
+            empregador_tipo=emp_tipo,
+            empregador_doc=emp_doc,
+            natureza_vinculo=natureza,
+            cargo_funcao=cargo,
+            carga_horaria_semanal=carga,
+            horario_inicio=h_ini,
+            horario_fim=h_fim,
+            data_inicio=d_ini,
+        )
+
+    # upload Backblaze
     try:
         object_key = b2_upload_fileobj(
             arquivo_fs, key_prefix=f"acumulo/{ano}/{militar_id}")
@@ -438,29 +445,24 @@ def novo(militar_id):
         flash(f"Falha no upload do arquivo: {e}", "alert-danger")
         return redirect(request.url)
 
-    # UPSERT da declaração (unique militar+ano)
+    # UPSERT
     try:
         decl = (
             db.session.query(DeclaracaoAcumulo)
             .filter(
                 DeclaracaoAcumulo.militar_id == militar_id,
                 DeclaracaoAcumulo.ano_referencia == ano
-            )
-            .first()
+            ).first()
         )
+
         if decl:
             de_status = decl.status
-            # atualiza
             decl.tipo = tipo
             decl.meio_entrega = meio_entrega
             decl.observacoes = observacoes or None
             decl.arquivo_declaracao = object_key
-            decl.status = "pendente"  # novo envio → volta para pendente
+            decl.status = "pendente"
             decl.updated_at = datetime.utcnow()
-            # zera vínculos antigos
-            for v in list(getattr(decl, "vinculos", [])):
-                db.session.delete(v)
-            db.session.flush()
         else:
             de_status = None
             decl = DeclaracaoAcumulo(
@@ -474,40 +476,32 @@ def novo(militar_id):
                 created_at=datetime.utcnow(),
             )
             db.session.add(decl)
-            db.session.flush()  # precisamos de decl.id
+            db.session.flush()
 
-        # vínculos (apenas se positiva)
-        if tipo == "positiva":
-            for row in vinculos_payload:
-                v = VinculoExterno(
-                    declaracao_id=decl.id,
-                    empregador_nome=row["empregador_nome"],
-                    empregador_tipo=row["empregador_tipo"],
-                    empregador_doc=row["empregador_doc"],
-                    natureza_vinculo=row["natureza_vinculo"],
-                    cargo_funcao=row["cargo_funcao"],
-                    carga_horaria_semanal=row["carga_horaria_semanal"],
-                    horario_inicio=row["horario_inicio"],
-                    horario_fim=row["horario_fim"],
-                    data_inicio=row["data_inicio"],
-                )
-                db.session.add(v)
+        # zera vínculos antigos (uma vez só)
+        for v in list(getattr(decl, "vinculos", [])):
+            db.session.delete(v)
 
-        # auditoria (opcional, só registra se mudou status)
+        # insere vínculo único se positiva
+        if tipo == "positiva" and vinculo_row:
+            db.session.add(VinculoExterno(
+                declaracao_id=decl.id, **vinculo_row))
+
+        # auditoria opcional se mudou
         if de_status and de_status != decl.status:
-            aud = AuditoriaDeclaracao(
+            db.session.add(AuditoriaDeclaracao(
                 declaracao_id=decl.id,
                 de_status=de_status,
                 para_status=decl.status,
                 motivo="Reenvio/atualização de declaração.",
                 alterado_por_user_id=getattr(current_user, "id", None),
                 data_alteracao=datetime.utcnow()
-            )
-            db.session.add(aud)
+            ))
 
         db.session.commit()
         flash("Declaração salva com sucesso!", "alert-success")
         return redirect(url_for("acumulo.lista", ano=ano))
+
     except Exception as e:
         db.session.rollback()
         flash(f"Erro ao salvar a declaração: {e}", "alert-danger")
@@ -923,4 +917,73 @@ def detalhe(decl_id):
         ano=decl.ano_referencia,
         url_arquivo=url_arquivo,
         pode_editar=pode_editar,
+    )
+
+
+@bp_acumulo.route("/modelo_docx/<int:militar_id>", methods=["POST"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
+def modelo_docx(militar_id):
+    if not (_is_super_user() or _militar_permitido(militar_id)):
+        flash("Sem permissão para este militar.", "alert-danger")
+        return redirect(url_for("acumulo.lista"))
+
+    # Cabeçalho do militar
+    MOF = MilitarObmFuncao
+    row = (
+        db.session.query(Militar, PostoGrad.sigla.label(
+            "pg_sigla"), Obm.sigla.label("obm_sigla"))
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(MOF, and_(MOF.militar_id == Militar.id, MOF.data_fim.is_(None)))
+        .outerjoin(Obm, Obm.id == MOF.obm_id)
+        .filter(Militar.id == militar_id)
+        .first()
+    )
+    if not row:
+        abort(404)
+    militar, pg_sigla, obm_sigla = row
+
+    ano = request.form.get("ano") or datetime.now().year
+    tipo = (request.form.get("tipo") or "").lower()
+
+    # Campos do vínculo (1 vínculo)
+    emp_nome = (request.form.get("empregador_nome") or "").strip()
+    emp_doc = _digits(request.form.get("empregador_doc") or "")
+    natureza = (request.form.get("natureza_vinculo")
+                or "").strip().replace("_", " ")
+    cargo = (request.form.get("cargo_funcao") or "").strip()
+    carga = (request.form.get("carga_horaria_semanal") or "").strip()
+    hi = (request.form.get("horario_inicio") or "").strip()
+    hf = (request.form.get("horario_fim") or "").strip()
+    dinicio_raw = request.form.get("data_inicio") or ""
+    dinicio = formatar_data_sem_zero(dinicio_raw) if dinicio_raw else ""
+    horario = f"{hi} – {hf}" if (hi and hf) else ""
+
+    # Mapeamento exatamente com os placeholders do DOCX
+    mapping = {
+        "posto_grad": pg_sigla or "-",
+        "nome":       militar.nome_completo,
+        "obm":        obm_sigla or "-",
+        "ano":        str(ano),
+        "x_sim": "X" if tipo == "positiva" else "",
+        "x_nao": "X" if tipo == "negativa" else "",
+        "empregador_nome":       emp_nome if tipo == "positiva" else "",
+        "empregador_doc":        emp_doc if tipo == "positiva" else "",
+        "natureza_vinculo":      natureza if tipo == "positiva" else "",
+        "cargo_funcao":          cargo if tipo == "positiva" else "",
+        "carga_horaria_semanal": carga if tipo == "positiva" else "",
+        "horario":               (f"{hi} – {hf}" if (hi and hf) else "") if tipo == "positiva" else "",
+        "data_inicio":           dinicio if tipo == "positiva" else "",
+        "data_atual":            datetime.today().strftime("%d/%m/%Y"),
+    }
+
+    template_path = "src/template/declaracao_vinculo.docx"
+    buf = render_docx_from_template(template_path, mapping)
+
+    filename = f"Declaracao_{(militar.nome_guerra or militar.nome_completo).replace(' ', '_')}_{ano}.docx"
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
