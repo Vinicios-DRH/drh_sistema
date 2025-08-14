@@ -135,37 +135,73 @@
         btnSalvar.disabled = (total > maxDias || total === 0 || total < 10);
     }
 
+    function bloquearLinha(row, bloquear = true) {
+        row.querySelectorAll("input, select, button.botao-salvar").forEach(el => {
+            if (!el.hasAttribute("data-keep-disabled")) el.disabled = bloquear;
+        });
+    }
 
-    // Script central de lógica
+    function obterMesNumero(nomeMesRaw) {
+        if (!nomeMesRaw) return null;
+        const nomeMes = String(nomeMesRaw).trim().toLowerCase();
+        const mapa = {
+            "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4,
+            "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
+            "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12
+        };
+        return mapa[nomeMes] ?? null;
+    }
+
+    // Lê mês pelo select e ano pelo início do 1º período (fallback: ano corrente)
+    function resolverAnoMesUsufruto(militarId) {
+        const mesSelect = document.querySelector(`[name="mes_usufruto_${militarId}"]`);
+        const mesUsuf = obterMesNumero(mesSelect ? mesSelect.value : null);
+
+        let anoUsuf = null;
+        const inicio1 = document.querySelector(`[name="inicio_1_${militarId}"]`);
+        if (inicio1 && inicio1.value) {
+            const y = parseInt(inicio1.value.split("-")[0], 10);
+            if (!Number.isNaN(y)) anoUsuf = y;
+        }
+        if (!anoUsuf) anoUsuf = (new Date()).getFullYear();
+
+        return { ano: anoUsuf, mes: mesUsuf };
+    }
+
+    function deveBloquearPorMes(anoUsuf, mesUsuf) {
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        const mesAtual = hoje.getMonth() + 1;
+
+        // Ano passado -> bloqueia
+        if (anoUsuf < anoAtual) return true;
+
+        // Mesmo ano: mês atual ou anterior -> bloqueia
+        if (anoUsuf === anoAtual && mesUsuf !== null && mesUsuf <= mesAtual) return true;
+
+        return false;
+    }
+
+
     function inicializarListeners() {
         document.querySelectorAll("tr[data-militar-id]").forEach(row => {
             const militarId = row.dataset.militarId;
             const podeTer40 = row.dataset.podeTer40 === 'true';
             const maxDias = podeTer40 ? 40 : 30;
-            // DESATIVA campos se o mês de usufruto já passou
+
+            // >>> BLOQUEIO POR MÊS (atual ou anterior) <<<
+            const { ano: anoUsuf, mes: mesUsuf } = resolverAnoMesUsufruto(militarId);
+            const bloquear = deveBloquearPorMes(anoUsuf, mesUsuf);
+            bloquearLinha(row, bloquear);
+
+            // Rebloqueia quando mudar o mês
             const mesSelect = document.querySelector(`[name="mes_usufruto_${militarId}"]`);
             if (mesSelect) {
-                const mesSelecionado = mesSelect.value;
-                const meses = {
-                    "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4,
-                    "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8,
-                    "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
-                };
-
-                const mesValor = meses[mesSelecionado];
-                const mesAtual = hoje.getMonth() + 1;
-                const anoAtual = hoje.getFullYear();
-
-                const inputAno = document.querySelector(`[name="inicio_1_${militarId}"]`);
-                const anoInputValor = inputAno?.value?.split("-")[0];  // formato YYYY-MM-DD
-
-                if (anoInputValor && parseInt(anoInputValor) < anoAtual || (mesValor && mesValor < mesAtual)) {
-                    row.querySelectorAll("input, select").forEach(el => {
-                        el.disabled = true;
-                    });
-                }
+                mesSelect.addEventListener('change', () => {
+                    const { ano: a2, mes: m2 } = resolverAnoMesUsufruto(militarId);
+                    bloquearLinha(row, deveBloquearPorMes(a2, m2));
+                });
             }
-
             function atualizarCampos() {
                 const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value || 0);
                 const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
@@ -233,11 +269,16 @@
 
                 const dataInicio = new Date(inicio);
 
-                // BLOQUEIA cálculo se mês já passou
-                if (dataInicio.getMonth() + 1 < hoje.getMonth() + 1 || dataInicio.getFullYear() < hoje.getFullYear()) {
+                const anoIni = dataInicio.getFullYear();
+                const mesIni = dataInicio.getMonth() + 1;
+                const anoAtual = hoje.getFullYear();
+                const mesAtual = hoje.getMonth() + 1;
+
+                if (anoIni < anoAtual || (anoIni === anoAtual && mesIni <= mesAtual)) {
                     fimInput.value = '';
                     return;
                 }
+
 
             }
 
@@ -301,7 +342,7 @@
                     let deveBloquear = false;
                     if (anoInicio < anoAtual) {
                         deveBloquear = true;
-                    } else if (anoInicio === anoAtual && mesInicio < mesAtual) {
+                    } else if (anoInicio === anoAtual && mesInicio <= mesAtual) {
                         deveBloquear = true;
                     }
 
