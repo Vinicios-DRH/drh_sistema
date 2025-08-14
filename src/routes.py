@@ -52,10 +52,10 @@ import plotly.io as pio
 
 
 # Config SMTP
-SMTP_SERVER = 'smtp.office365.com'
+SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
-SMTP_LOGIN = 'drh@cbm.am.gov.br'
-SMTP_PASSWORD = 'Cbmam2023#'
+SMTP_LOGIN = 'drh3cbmam@gmail.com'
+SMTP_PASSWORD = 'tazjuiuytakwycir'
 
 
 @app.route('/acesso-negado')
@@ -4006,7 +4006,7 @@ def atualizacao_cadastral():
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = "Token de Verificação - Atualização Cadastral CBMAM"
-            msg["From"] = SMTP_LOGIN
+            msg["From"] = 'SMTP_LOGIN'
             msg["To"] = email_digitado
 
             parte_html = MIMEText(corpo_email_html, "html")
