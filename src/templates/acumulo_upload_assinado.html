@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container-xxl py-3 mt-5">
+    <h1 class="h4 mb-3">Enviar documentos assinados — {{ ano }}</h1>
+    <p class="text-muted mb-4">
+        Envie um <strong>único PDF</strong> contendo o modelo assinado
+        {% if tipo == 'positiva' %} e declaração emitida do segundo vínculo {% endif %}.
+    </p>
+
+    <form method="post" enctype="multipart/form-data" class="card p-3">
+        <div class="mb-3">
+            <label class="form-label">Arquivo (PDF)</label>
+            <input type="file" class="form-control" name="arquivo_declaracao" accept=".pdf" required>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('acumulo.novo', militar_id=militar.id) }}" class="btn btn-light">Voltar</a>
+            <button class="btn btn-success" type="submit">Enviar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

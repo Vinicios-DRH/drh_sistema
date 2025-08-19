@@ -2,8 +2,7 @@ import json
 import uuid
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
-from flask import abort, request, jsonify
-from flask import make_response
+from flask import abort, request, jsonify, make_response, current_app
 import os
 import zipfile
 import qrcode
@@ -12,7 +11,7 @@ import pandas as pd
 import base64
 import matplotlib.pyplot as plt
 import smtplib
-from src.formatar_cpf import formatar_cpf
+from src.formatar_cpf import formatar_cpf, get_militar_por_user
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
@@ -28,8 +27,8 @@ from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, Mili
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
                         Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar)
 from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
-from src.controller.control import checar_ocupacao
-from src.controller.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
+from src.decorators.control import checar_ocupacao
+from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta
 from io import BytesIO
@@ -45,10 +44,25 @@ from urllib.parse import urlencode
 from collections import defaultdict, Counter
 from docx.shared import Pt
 from docx.oxml.ns import qn
-from src.controller.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
+from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
 import re
 import plotly.graph_objs as go
 import plotly.io as pio
+from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
+
+
+@app.context_processor
+def inject_militar_atual():
+    mil = None
+    try:
+        if current_user.is_authenticated:
+            mil = get_militar_por_user(current_user)  # usa teu helper
+    except Exception:
+        mil = None
+    return {
+        "militar_atual": mil,
+        "militar_id_atual": (mil.id if mil else None),
+    }
 
 
 # Config SMTP
@@ -100,9 +114,18 @@ def api_login():
         return jsonify({"status": "erro", "mensagem": "CPF ou senha inválidos"}), 401
 
 
+@app.route("/home-atualizacao", methods=['GET'])
+@login_required
+def home_atualizacao():
+    return render_template('home_atualizacao.html')
+
+
 @app.route("/")
 @login_required
 def home():
+    if current_user.funcao_user_id == 12:
+        return redirect(url_for('home_atualizacao'))
+
     try:
         # enviando e-mails
         processar_militares_agregados()
@@ -137,6 +160,8 @@ def get_user_ip():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
+        militar = get_militar_por_user(current_user)
+        session['militar_id'] = militar.id
         flash('Você já está logado.', 'alert-info')
         return redirect(url_for('home'))
 
@@ -3910,6 +3935,8 @@ def atualizacao_cadastral():
                 "⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
             return render_template("atualizacao/identificacao.html", form=form)
 
+        session['email_atualizacao'] = email_digitado
+
         # 🔒 VERIFICA SE CPF JÁ EXISTE NA TABELA USER
         # Exemplo: 12345678900 → 123.456.789-00
         cpf_formatado = formatar_cpf(cpf)
@@ -4006,7 +4033,7 @@ def atualizacao_cadastral():
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = "Token de Verificação - Atualização Cadastral CBMAM"
-            msg["From"] = 'SMTP_LOGIN'
+            msg["From"] = SMTP_LOGIN
             msg["To"] = email_digitado
 
             parte_html = MIMEText(corpo_email_html, "html")
@@ -4088,6 +4115,21 @@ def criar_senha(cpf):
             funcao_user_id=12  # ID do perfil USUÁRIO COMUM
         )
 
+        email_sess = session.get('email_atualizacao')
+        if email_sess:
+            novo_usuario.email = email_sess
+
+        militar = Militar.query.filter_by(cpf=cpf).first()
+        if militar:
+            obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
+            if hasattr(novo_usuario, 'obm_id_1'):
+                novo_usuario.obm_id_1 = obm_id_1
+            if hasattr(novo_usuario, 'obm_id_2'):
+                novo_usuario.obm_id_2 = obm_id_2
+            if hasattr(novo_usuario, 'localidade_id'):
+                novo_usuario.localidade_id = getattr(
+                    militar, 'localidade_id', None)
+
         database.session.add(novo_usuario)
         database.session.commit()
 
@@ -4146,8 +4188,12 @@ def formulario_atualizacao_cadastral():
 @app.route("/login-atualizacao", methods=['GET', 'POST'])
 def login_atualizacao():
     if current_user.is_authenticated:
-        flash('Você já está logado.', 'alert-info')
-        return redirect(url_for('formulario_atualizacao_cadastral'))
+        militar = get_militar_por_user(current_user)
+        session['militar_id'] = militar.id
+        if not militar:
+            flash("Não foi possível localizar seus dados de militar.", "danger")
+            return redirect(url_for("home"))
+        return redirect(url_for('home_atualizacao'))
 
     form_login = FormLogin()
 
@@ -4158,8 +4204,12 @@ def login_atualizacao():
         if usuario and bcrypt.check_password_hash(usuario.senha, form_login.senha.data):
             if usuario.funcao_user_id == 12:
                 login_user(usuario, remember=form_login.lembrar_dados.data)
+                militar = get_militar_por_user(usuario)
+                if not militar:
+                    flash("Não foi possível localizar seus dados de militar.", "danger")
+                    return redirect(url_for("home"))
                 flash('Login realizado com sucesso.', 'success')
-                return redirect(url_for('formulario_atualizacao_cadastral'))
+                return redirect(url_for('home_atualizacao'))
             else:
                 flash(
                     'Este usuário não tem permissão para acessar a atualização cadastral.', 'danger')

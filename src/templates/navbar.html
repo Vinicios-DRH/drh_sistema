@@ -38,6 +38,18 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        {% if militar_id_atual %}
+                        <a class="nav-link" href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">
+                            <i class="fas fa-user me-2"></i> Declaração de Vínculo
+                        </a>
+                        {% else %}
+                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                            <i class="fas fa-user me-2"></i> Declaração de Vínculo
+                        </a>
+                        {% endif %}
+                    </li>
+
                     {# ---- Declarações de Vínculo (Acúmulo) ---- #}
                     {% set ocup = (current_user.funcao_user.ocupacao or '').upper() if current_user.funcao_user else ''
                     %}
@@ -166,7 +178,7 @@
                     {% set funcao = current_user.funcao_user_id %}
                     {% set obm = current_user.obm_id_1 %}
 
-                    {% if (funcao == 2 and obm == 26) or funcao == 6 or obm == 37 %}
+                    {% if (funcao == 2 and obm == 26) or funcao == 6 %}
                     <!-- ACESSO TOTAL -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">

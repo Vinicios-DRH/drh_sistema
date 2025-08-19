@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block body %}
-
 <style>
     .page-title {
         font-weight: 600;
@@ -22,40 +21,28 @@
         margin: 0
     }
 
-    .hint {
-        font-size: .85rem
-    }
-
     .vinculo-card {
         border: 1px dashed var(--bs-border-color);
         border-radius: 12px;
         padding: 1rem;
         background: var(--bs-body-bg)
     }
-
-    .remove-btn {
-        opacity: .8
-    }
 </style>
 
 <div class="container-xxl py-3 mt-5">
-
-    <!-- Header -->
     <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
         <div>
-            <h1 class="page-title h4 mb-1">
-                Nova Declaração — {{ militar.nome_guerra or militar.nome_completo }}
-            </h1>
-            <div class="subtle">Preencha a declaração (positiva ou negativa) e anexe o documento assinado.</div>
+            <h1 class="page-title h4 mb-1">Nova Declaração — {{ militar.nome_guerra or militar.nome_completo }}</h1>
+            <div class="subtle">Escolha o tipo, preencha (se positiva) e gere o modelo. O envio assinado será na próxima
+                tela.</div>
         </div>
         <a href="{{ url_for('acumulo.lista') }}" class="btn btn-light">← Voltar</a>
     </div>
 
-    <!-- Form -->
-    <form method="post" enctype="multipart/form-data" action="" class="needs-validation" novalidate>
+    <form id="form-declaracao" class="needs-validation" novalidate>
         <input type="hidden" name="ano" value="{{ ano }}">
+        <input type="hidden" name="militar_id" value="{{ militar.id }}">
 
-        <!-- Cabeçalho do militar -->
         <div class="card card-soft p-3 mb-3">
             <div class="row g-3">
                 <div class="col-md-6">
@@ -77,7 +64,6 @@
             </div>
         </div>
 
-        <!-- Tipo + Anexo -->
         <div class="card card-soft p-3 mb-3">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -92,27 +78,19 @@
 
                 <div class="col-md-4">
                     <label class="form-label">Meio de entrega</label>
-                    <select class="form-select" name="meio_entrega">
+                    <select class="form-select" name="meio_entrega" disabled>
                         <option value="digital" selected>Digital</option>
                         <option value="presencial">Presencial</option>
                     </select>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Arquivo (somente PDF)</label>
-                    <input type="file" class="form-control" name="arquivo_declaracao" accept=".pdf,.jpg,.jpeg,.png"
-                        required>
-                    <div class="hint subtle mt-1">Envie a declaração assinada (modelo DRH).</div>
-                    <div class="invalid-feedback">Anexe o arquivo da declaração.</div>
-                </div>
-
                 <div class="col-12">
                     <label class="form-label">Observações</label>
-                    <textarea class="form-control" name="observacoes" rows="3" placeholder="(opcional)"></textarea>
+                    <textarea class="form-control" name="observacoes" rows="2" placeholder="(opcional)"></textarea>
                 </div>
             </div>
         </div>
-        <!-- Vínculo externo (único) -->
+
         <div class="card card-soft p-3 mb-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h2 class="section-title">Vínculo externo</h2>
@@ -141,7 +119,6 @@
                             placeholder="somente dígitos">
                         <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">Natureza do vínculo</label>
                         <select class="form-select" name="natureza_vinculo">
@@ -160,7 +137,6 @@
                         <label class="form-label">Carga horária semanal (h)</label>
                         <input type="number" class="form-control" name="carga_horaria_semanal" min="1" max="80">
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">Horário início</label>
                         <input type="time" class="form-control" name="horario_inicio">
@@ -176,71 +152,68 @@
                 </div>
             </div>
         </div>
-        <!-- Ações -->
+
         <div class="d-flex gap-2">
-            <a href="{{ url_for('acumulo.lista') }}" class="btn btn-light">Voltar</a>
-            <button class="btn btn-success" type="submit">Salvar</button>
-
-            <button class="btn btn-outline-secondary" type="submit"
-                formaction="{{ url_for('acumulo.modelo_docx', militar_id=militar.id) }}" formmethod="post"
-                formtarget="_blank" formnovalidate id="btn-docx">
-                Gerar modelo preenchido (DOCX)
-            </button>
-
+            <a href="{{ url_for('home_atualizacao') }}" class="btn btn-light">Voltar</a>
+            <button class="btn btn-outline-secondary" type="button" id="btn-gerar-modelo">Gerar modelo preenchido
+                (DOCX)</button>
         </div>
     </form>
 </div>
 
 <script>
+    const form = document.getElementById('form-declaracao');
     const tipoSelect = document.getElementById('tipo-select');
     const vinculo = document.getElementById('vinculo-unique');
+    const btnModelo = document.getElementById('btn-gerar-modelo');
 
     function toggleVinculo() {
         const isPositiva = tipoSelect.value === 'positiva';
-        // habilita/obriga somente se positiva
-        vinculo.querySelectorAll('input, select').forEach(el => {
+        vinculo.querySelectorAll('input,select').forEach(el => {
             el.required = isPositiva;
             el.disabled = !isPositiva;
         });
-        // opcional: visualmente "apagar" quando negativa
         vinculo.style.opacity = isPositiva ? 1 : 0.6;
     }
-
     tipoSelect.addEventListener('change', toggleVinculo);
     toggleVinculo();
 
-    (() => {
-        const forms = document.querySelectorAll('.needs-validation');
-        Array.from(forms).forEach(form => {
-            form.addEventListener('submit', event => {
-                // quem disparou o submit (botão)
-                const submitter = event.submitter || document.activeElement;
-
-                // Se o botão tem formnovalidate, não bloqueia o envio
-                const skipValidation =
-                    submitter && (submitter.hasAttribute('formnovalidate') ||
-                        submitter.dataset.skipValidate === '1');
-
-                if (!skipValidation && !form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-
-    // (Opcional) habilitar/desabilitar o botão DOCX conforme o tipo
-    const btnDocx = document.getElementById('btn-docx');
-    function toggleVinculo() {
-        const isPositiva = tipoSelect.value === 'positiva';
-        vinculo.querySelectorAll('input, select').forEach(el => {
-            el.required = isPositiva;
-            el.disabled = !isPositiva;
-        });
-        vinculo.style.opacity = isPositiva ? 1 : 0.6;
-        if (btnDocx) btnDocx.disabled = !isPositiva;   // só gera modelo p/ positiva
+    function valida() {
+        if (!tipoSelect.value) return false;
+        if (tipoSelect.value === 'positiva') {
+            const req = ['empregador_nome', 'empregador_tipo', 'empregador_doc', 'natureza_vinculo', 'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'];
+            for (const name of req) {
+                const el = form.querySelector(`[name="${name}"]`);
+                if (!el || !el.value) return false;
+            }
+        }
+        return true;
     }
-</script>
 
+    btnModelo.addEventListener('click', async () => {
+        if (!valida()) { form.classList.add('was-validated'); return; }
+        const fd = new FormData(form);
+        try {
+            // 1) atualiza User + guarda dados em sessão
+            const resp = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
+
+            const militarId = fd.get('militar_id');
+
+            // 2) abre o DOCX numa nova aba (reutiliza tua rota atual)
+            const f2 = document.createElement('form');
+            f2.method = 'POST';
+            f2.action = '{{ url_for("acumulo.modelo_docx", militar_id=0) }}'.replace('/0', `/${militarId}`);
+            f2.target = '_blank';
+            for (const [k, v] of fd.entries()) {
+                const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f2.appendChild(i);
+            }
+            document.body.appendChild(f2); f2.submit();
+
+            // 3) redireciona para tela de upload simples
+            window.location.href = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+        } catch (e) { alert('Erro: ' + e.message); }
+    });
+</script>
 {% endblock %}

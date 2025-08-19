@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from src.models import MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude
-from src.controller.email_utils import enviar_email
+from src.decorators.email_utils import enviar_email
 from src import database
 
 

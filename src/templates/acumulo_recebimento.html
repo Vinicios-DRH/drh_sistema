@@ -53,12 +53,11 @@
     <!-- Header -->
     <div class="d-flex flex-wrap align-items-end justify-content-between mb-3 mt-5">
         <div>
-            <h1 class="page-title h3 mb-1">Recebimento — DRH</h1>
-            <div class="subtle">Conferência de declarações, download dos arquivos e exportação para Excel.</div>
+            <h1 class="page-title h3 mb-1">Recebimento — {{ 'DRH' if is_drh_like else 'Chefia/OBM' }}</h1>
+            <div class="subtle">{% if is_drh_like %}Conferência geral de declarações.{% else %}Somente militares da(s)
+                sua(s) OBM(s).{% endif %}</div>
         </div>
-
         <div class="d-flex gap-2">
-            <!-- placeholder de export até a rota existir -->
             <a class="btn btn-outline-secondary"
                 href="?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&export=1">
                 Exportar Excel
@@ -86,14 +85,26 @@
                 <label class="form-label">Status</label>
                 <select class="form-select" name="status">
                     <option value="todos" {{ 'selected' if status=='todos' else '' }}>Todos</option>
+                    <option value="nao_enviou" {{ 'selected' if status=='nao_enviou' else '' }}>Não enviou</option>
                     <option value="pendente" {{ 'selected' if status=='pendente' else '' }}>Pendentes</option>
                     <option value="validado" {{ 'selected' if status=='validado' else '' }}>Validadas</option>
                     <option value="inconforme" {{ 'selected' if status=='inconforme' else '' }}>Inconformes</option>
                 </select>
             </div>
+            {% if is_drh_like %}
+            <div class="col-6 col-md-2">
+                <label class="form-label">Chegada à DRH</label>
+                <select class="form-select" name="enc">
+                    <option value="">Todos</option>
+                    <option value="1" {{ 'selected' if request.args.get('enc')=='1' else '' }}>Somente encaminhados
+                    </option>
+                </select>
+            </div>
+            {% endif %}
+
             <div class="col-6 col-md-3">
                 <label class="form-label">Busca</label>
-                <input class="form-control" name="q" placeholder="Nome, matrícula, empregador…" value="{{ q }}">
+                <input class="form-control" name="q" placeholder="Nome, matrícula, posto/grad…" value="{{ q }}">
             </div>
             <div class="col-12 col-md-1 d-grid">
                 <button class="btn btn-primary">Filtrar</button>
@@ -105,26 +116,26 @@
     <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">
             <div class="card card-soft p-3">
-                <div class="subtle">Total</div>
+                <div class="subtle">Total militares</div>
                 <div class="h4 m-0">{{ total_ano }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Enviaram (qualquer status)</div>
+                <div class="h4 m-0">{{ total_ano - total_nao_enviaram }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-soft p-3">
+                <div class="subtle">Não enviaram</div>
+                <div class="h4 m-0">{{ total_nao_enviaram }}</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="card card-soft p-3">
                 <div class="subtle">Pendentes</div>
                 <div class="h4 m-0">{{ total_pendentes }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="subtle">Validadas</div>
-                <div class="h4 m-0">{{ total_validados }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="subtle">Inconformes</div>
-                <div class="h4 m-0">{{ total_inconformes }}</div>
             </div>
         </div>
     </div>
@@ -134,13 +145,15 @@
         <button class="btn btn-outline-secondary btn-sm" id="selecionar-todos" type="button">Selecionar todos</button>
         <button class="btn btn-outline-secondary btn-sm" id="limpar-selecao" type="button">Limpar seleção</button>
         <div class="vr"></div>
-        <button class="btn btn-outline-success btn-sm" id="mass-validar" type="button">Validar selecionados</button>
+        <button class="btn btn-outline-success btn-sm" id="mass-validar" type="button">
+            {{ 'Validar (DRH)' if is_drh_like else 'Encaminhar à DRH' }}
+        </button>
         <button class="btn btn-outline-danger btn-sm" id="mass-inconforme" type="button">Marcar inconforme</button>
     </div>
 
     <!-- Tabela -->
     <div class="card card-soft">
-        {% if declaracoes %}
+        {% if linhas %}
         <div class="table-responsive">
             <table class="table table-hover align-middle m-0">
                 <thead>
@@ -153,61 +166,101 @@
                         <th>Tipo</th>
                         <th>Arquivo</th>
                         <th>Status</th>
-                        <th class="text-end" style="width:170px;">Ações</th>
+                        <th class="text-end" style="width:210px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for d in declaracoes %}
-                    <tr data-id="{{ d.id }}">
-                        <td><input class="form-check-input row-check" type="checkbox"></td>
-                        <td class="sticky-col">
-                            <div class="fw-semibold">{{ d.militar.nome_completo }}</div>
-                            {% if d.militar.matricula %}<div class="subtle small">Matrícula {{ d.militar.matricula }}
-                            </div>{% endif %}
-                        </td>
-                        <td>{{ d.militar.posto_grad.sigla if d.militar.posto_grad else "-" }}</td>
-                        <td>{{ obm_map.get(d.militar_id, "-") }}</td>
-                        <td>{{ d.ano_referencia }}</td>
+                    {% for row in linhas or [] %}
+                    <tr data-id="{{ row.decl_id or '' }}">
                         <td>
-                            {% if d.tipo == 'positiva' %}
+                            {% if row.decl_id %}
+                            {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
+                            {% if is_drh_like or (not ja_enviado) %}
+                            <input class="form-check-input row-check" type="checkbox">
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="sticky-col">
+                            <div class="fw-semibold">{{ row.militar.nome_completo }}</div>
+                            {% if row.militar.matricula %}
+                            <div class="subtle small">Matrícula {{ row.militar.matricula }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.posto_grad_sigla }}</td>
+                        <td>{{ row.obm_sigla }}</td>
+                        <td>{{ ano }}</td>
+                        <td>
+                            {% if row.decl_id %}
+                            {% if row.decl_tipo == 'positiva' %}
                             <span class="badge text-bg-primary">positiva</span>
                             {% else %}
                             <span class="badge text-bg-secondary">negativa</span>
                             {% endif %}
+                            {% else %}
+                            <span class="badge text-bg-light text-dark">—</span>
+                            {% endif %}
                         </td>
                         <td>
-                            <a class="btn btn-link btn-sm p-0" target="_blank" href="{{ url_map.get(d.id, '#') }}">Ver
-                                arquivo</a>
+                            {% if row.decl_id %}
+                            <a class="btn btn-link btn-sm p-0" target="_blank"
+                                href="{{ url_map.get(row.decl_id, '#') }}">Ver arquivo</a>
+                            {% else %}
+                            <span class="subtle">Não enviado</span>
+                            {% endif %}
                         </td>
                         <td>
-                            {% if d.status == 'pendente' %}
+                            {% if not row.decl_id %}
+                            <span class="chip"><span class="badge text-bg-light text-dark">não enviado</span></span>
+                            {% else %}
+                            {% if row.decl_status == 'pendente' %}
                             <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
-                            {% elif d.status == 'validado' %}
+                            {% elif row.decl_status == 'validado' %}
                             <span class="chip"><span class="badge text-bg-success">validado</span></span>
                             {% else %}
                             <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
                             {% endif %}
+
+                            {% if is_drh_like and row.encaminhado_flag %}
+                            <div class="small subtle mt-1">
+                                Encaminhado por <strong>{{ row.encaminhado_por or '—' }}</strong>
+                                em {{ row.encaminhado_quando.strftime("%d/%m/%Y %H:%M") if row.encaminhado_quando else
+                                '-' }}
+                            </div>
+                            {% endif %}
+                            {% endif %}
                         </td>
                         <td class="text-end">
                             <div class="btn-group">
+                                {% if row.decl_id %}
                                 <a class="btn btn-outline-primary btn-sm"
-                                    href="{{ url_for('acumulo.detalhe', decl_id=d.id) }}">Detalhe</a>
+                                    href="{{ url_for('acumulo.detalhe', decl_id=row.decl_id) }}">Detalhe</a>
 
-                                {% if pode_editar_map and pode_editar_map.get(d.id) %}
+                                {% if pode_editar_map and pode_editar_map.get(row.decl_id) %}
                                 <a class="btn btn-outline-warning btn-sm"
-                                    href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Editar</a>
+                                    href="{{ url_for('acumulo.editar', decl_id=row.decl_id) }}">Editar</a>
                                 {% endif %}
 
+                                {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
+                                {% if is_drh_like or (not ja_enviado) %}
                                 <form method="post"
-                                    action="{{ url_for('acumulo.recebimento_mudar_status', decl_id=d.id) }}?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&page={{ request.args.get('page', 1) }}&per_page={{ request.args.get('per_page', 20) }}"
+                                    action="{{ url_for('acumulo.recebimento_mudar_status', decl_id=row.decl_id) }}?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&page={{ request.args.get('page', 1) }}&per_page={{ request.args.get('per_page', 20) }}"
                                     class="d-inline">
-                                    {# Se usar Flask-WTF, inclua o token:
-                                    {{ csrf_token() }} #}
-                                    <button type="submit" name="status" value="validado"
-                                        class="btn btn-outline-success btn-sm">Validar</button>
+                                    <button type="submit" name="status"
+                                        value="{{ 'validado' if is_drh_like else 'enviar_drh' }}"
+                                        class="btn btn-outline-success btn-sm">
+                                        {{ 'Validar (DRH)' if is_drh_like else 'Encaminhar à DRH' }}
+                                    </button>
                                     <button type="submit" name="status" value="inconforme"
-                                        class="btn btn-outline-danger btn-sm">Inconforme</button>
+                                        class="btn btn-outline-danger btn-sm">
+                                        Inconforme
+                                    </button>
                                 </form>
+                                {% else %}
+                                <span class="subtle small text-bg-info">Encaminhado à DRH — aguardando análise</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="subtle small">Sem ações (não enviado)</span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -223,8 +276,8 @@
         <div class="p-4">
             <div class="empty">
                 <div style="font-size:42px; line-height:1;">📂</div>
-                <div class="mt-2 fw-semibold">Nenhuma declaração encontrada</div>
-                <div class="subtle">Ajuste os filtros acima ou aguarde novos envios.</div>
+                <div class="mt-2 fw-semibold">Nenhum militar encontrado</div>
+                <div class="subtle">Ajuste os filtros acima.</div>
             </div>
         </div>
         {% endif %}
@@ -234,17 +287,23 @@
 <script>
     // seleção em massa
     const chkAll = document.getElementById('chk-all');
-    const rowChecks = () => Array.from(document.querySelectorAll('.row-check'));
-    chkAll?.addEventListener('change', () => rowChecks().forEach(c => c.checked = chkAll.checked));
-    document.getElementById('selecionar-todos')?.addEventListener('click', () => rowChecks().forEach(c => c.checked = true));
-    document.getElementById('limpar-selecao')?.addEventListener('click', () => { rowChecks().forEach(c => c.checked = false); if (chkAll) chkAll.checked = false; });
-</script>
+    const getRowChecks = () => Array.from(document.querySelectorAll('tbody .row-check'));
+    chkAll?.addEventListener('change', () => getRowChecks().forEach(c => c.checked = chkAll.checked));
+    document.getElementById('selecionar-todos')?.addEventListener('click', () => getRowChecks().forEach(c => c.checked = true));
+    document.getElementById('limpar-selecao')?.addEventListener('click', () => {
+        getRowChecks().forEach(c => c.checked = false);
+        if (chkAll) chkAll.checked = false;
+    });
 
-<script>
+    // ids selecionados
     function selectedIds() {
         return Array.from(document.querySelectorAll('tbody tr[data-id] .row-check:checked'))
             .map(chk => chk.closest('tr').dataset.id);
     }
+
+    // se usar Flask-WTF, pegue o token do meta:
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
     async function postStatus(id, novo) {
         const params = new URLSearchParams({
             ano: '{{ ano }}', status: '{{ status }}', q: '{{ q }}',
@@ -252,23 +311,39 @@
             page: '{{ request.args.get("page", 1) }}',
             per_page: '{{ request.args.get("per_page", 20) }}',
         });
-        await fetch('{{ url_for("acumulo.recebimento_mudar_status", decl_id=0) }}'.replace('0', id) + '?' + params.toString(), {
+
+        const url = '{{ url_for("acumulo.recebimento_mudar_status", decl_id=0) }}'.replace('0', id) + '?' + params.toString();
+
+        const body = new URLSearchParams();
+        body.set('status', novo);
+        if (csrf) body.set('csrf_token', csrf);
+
+        const resp = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'status=' + encodeURIComponent(novo)
+            body: body.toString()
         });
+        if (!resp.ok) console.error('Falha ao mudar status para', novo, 'na declaração', id);
     }
-    document.getElementById('mass-validar')?.addEventListener('click', async () => {
-        const ids = selectedIds(); if (!ids.length) return;
-        for (const id of ids) await postStatus(id, 'validado');
-        location.reload();
-    });
-    document.getElementById('mass-inconforme')?.addEventListener('click', async () => {
-        const ids = selectedIds(); if (!ids.length) return;
-        for (const id of ids) await postStatus(id, 'inconforme');
-        location.reload();
-    });
-</script>
 
+    // Se DRH: 'validado'; senão: 'enviar_drh'
+    const statusForBulkValidate = {{ '\"validado\"' if is_drh_like else '\"enviar_drh\"' }};
+
+    async function runBulk(action) {
+        const btns = [document.getElementById('mass-validar'), document.getElementById('mass-inconforme')].filter(Boolean);
+        btns.forEach(b => b.disabled = true);
+        try {
+            const ids = selectedIds();
+            if (!ids.length) return;
+            await Promise.allSettled(ids.map(id => postStatus(id, action)));
+            location.reload();
+        } finally {
+            btns.forEach(b => b.disabled = false);
+        }
+    }
+
+    document.getElementById('mass-validar')?.addEventListener('click', () => runBulk(statusForBulkValidate));
+    document.getElementById('mass-inconforme')?.addEventListener('click', () => runBulk('inconforme'));
+</script>
 
 {% endblock %}
