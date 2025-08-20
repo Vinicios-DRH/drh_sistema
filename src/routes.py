@@ -114,12 +114,6 @@ def api_login():
         return jsonify({"status": "erro", "mensagem": "CPF ou senha inválidos"}), 401
 
 
-@app.route("/home-atualizacao", methods=['GET'])
-@login_required
-def home_atualizacao():
-    return render_template('home_atualizacao.html')
-
-
 @app.route("/")
 @login_required
 def home():

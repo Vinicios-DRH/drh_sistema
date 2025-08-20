@@ -1,3 +1,6 @@
+from src.formatar_cpf import get_militar_por_user
+from sqlalchemy import func, cast, String
+from src import app
 from io import BytesIO
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, session, url_for
 from flask_login import login_required, current_user
@@ -220,6 +223,150 @@ def _is_drh_like() -> bool:
 # --- motor de substituição no estilo que você já usa ---
 
 # ---------- /acumulo/lista ----------
+
+# imports necessários
+
+
+@app.route("/home-atualizacao", methods=["GET"])
+@login_required
+def home_atualizacao():
+    M, PG, O, MOF = Militar, PostoGrad, Obm, MilitarObmFuncao
+    D = DeclaracaoAcumulo
+    U = current_user
+
+    # -------- 1) Resolver Militar do usuário --------
+    militar = None
+
+    # a) se já tiver FK direta mapeada no User, tenta ela primeiro
+    mid = getattr(U, "militar_id", None)
+    if mid:
+        militar = db.session.get(M, mid)
+
+    # b) se não achou OU se o perfil é "comum" (funcao_user_id == 12), usa o helper por CPF
+    if not militar or getattr(U, "funcao_user_id", None) == 12:
+        try:
+            m_by_helper = get_militar_por_user(U)  # usa CPF do User
+            if m_by_helper:
+                militar = m_by_helper
+        except Exception:
+            # não deixa a página quebrar se der problema no helper
+            pass
+
+    # c) se ainda não achou e o perfil for comum, avisa e volta pra home
+    if not militar and getattr(U, "funcao_user_id", None) == 12:
+        flash("Não foi possível localizar seus dados de militar.", "danger")
+        return redirect(url_for("home"))
+
+    militar_id = militar.id if militar else None
+
+    # -------- 2) Dados do cabeçalho --------
+    # posto/grad (do Militar)
+    user_pg = None
+    try:
+        if militar and getattr(militar, "posto_grad_id", None):
+            user_pg = db.session.query(PG.sigla).filter(
+                PG.id == militar.posto_grad_id).scalar()
+    except Exception:
+        pass
+
+    # OBMs ativas do militar
+    user_obm_siglas = []
+    try:
+        if militar_id:
+            rows = (
+                db.session.query(O.sigla)
+                .join(MOF, MOF.obm_id == O.id)
+                .filter(MOF.militar_id == militar_id, MOF.data_fim.is_(None))
+                .all()
+            )
+            user_obm_siglas = [s for (s,) in rows] or []
+    except Exception:
+        pass
+
+    # Funções (FuncaoUser) no User
+    user_funcoes = []
+    fun = getattr(U, "user_funcao", None)
+    if isinstance(fun, (list, tuple)):
+        user_funcoes = [
+            f.ocupacao for f in fun if getattr(f, "ocupacao", None)]
+    elif fun and getattr(fun, "ocupacao", None):
+        user_funcoes = [fun.ocupacao]
+
+    ano_atual = datetime.now().year
+
+    # -------- 3) KPIs / “Minhas declarações” (sempre via militar_id resolvido) --------
+    kpi_decl_total = kpi_decl_pendentes = kpi_decl_validadas = kpi_decl_inconformes = 0
+    minhas_declaracoes = []
+
+    if militar_id:
+        kpi_q = (
+            db.session.query(D.status, func.count(D.id))
+            .filter(D.militar_id == militar_id, D.ano_referencia == ano_atual)
+            .group_by(D.status)
+            .all()
+        )
+        kpi_map = {s: n for s, n in kpi_q}
+        kpi_decl_total = sum(kpi_map.values())
+        kpi_decl_pendentes = kpi_map.get("pendente", 0)
+        kpi_decl_validadas = kpi_map.get("validado", 0)
+        kpi_decl_inconformes = kpi_map.get("inconforme", 0)
+
+        minhas_declaracoes = (
+            db.session.query(D)
+            .filter(D.militar_id == militar_id, D.ano_referencia == ano_atual)
+            .order_by(D.updated_at.desc().nullslast(), D.id.desc())
+            .limit(6)
+            .all()
+        )
+
+    # -------- 4) Atividades recentes (por user_id mesmo) --------
+    atividades = []
+    try:
+        aud = (
+            db.session.query(AuditoriaDeclaracao)
+            .filter(AuditoriaDeclaracao.alterado_por_user_id == U.id)
+            .order_by(AuditoriaDeclaracao.data_alteracao.desc())
+            .limit(8)
+            .all()
+        )
+        for a in aud:
+            atividades.append(type("A", (), {
+                "quando": a.data_alteracao,
+                "texto": f"Alterou declaração #{a.declaracao_id} ({a.de_status} → {a.para_status})"
+            }))
+    except Exception:
+        pass
+
+    last_login_dt = getattr(U, "last_login_at", None)
+    last_ip = getattr(U, "last_login_ip", None)
+    drh_like = _is_drh_like()
+
+    nome_exibicao = (
+        getattr(militar, "nome_completo", None)
+        or getattr(current_user, "nome", None)
+        or getattr(current_user, "login", None)
+        or "Usuário"
+    )
+
+    return render_template(
+        "home_atualizacao.html",
+        ano_atual=ano_atual,
+        user_pg=user_pg,
+        user_obm_siglas=user_obm_siglas,
+        user_funcoes=user_funcoes,
+        kpi_decl_total=kpi_decl_total,
+        kpi_decl_pendentes=kpi_decl_pendentes,
+        kpi_decl_validadas=kpi_decl_validadas,
+        kpi_decl_inconformes=kpi_decl_inconformes,
+        minhas_declaracoes=minhas_declaracoes,
+        atividades=atividades,
+        last_login_dt=last_login_dt,
+        last_ip=last_ip,
+        twofa_enabled=getattr(U, "twofa_enabled", False),
+        drh_like=drh_like,
+        militar=militar,
+        nome_exibicao=nome_exibicao,
+    )
 
 
 @bp_acumulo.route("/lista", methods=["GET"])
@@ -815,7 +962,7 @@ def upload_assinado(militar_id):
         session.pop(f'pre_decl_{militar.id}_{ano}', None)
 
         flash("Declaração salva com sucesso!", "alert-success")
-        return redirect(url_for("acumulo.detalhe", ano=ano))
+        return redirect(url_for("home_atualizacao", ano=ano))
 
     except Exception as e:
         db.session.rollback()

@@ -186,39 +186,36 @@
     function parseInputDate(str) {
         if (!str) return null;
         const s = str.trim();
-
-        // YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {      // YYYY-MM-DD
             const [y, m, d] = s.split('-').map(Number);
             return new Date(y, m - 1, d);
         }
-
-        // dd/mm/YYYY
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {    // dd/mm/YYYY
             const [d, m, y] = s.split('/').map(Number);
             return new Date(y, m - 1, d);
         }
-
-        return null; // formato desconhecido
+        return null;
     }
 
-    function formatISO(d) {
-        // para salvar no input tipo date, se usar esse formato
+    function setDateInputValue(input, dateObj) {
         const pad = n => String(n).padStart(2, '0');
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const yyyy = dateObj.getFullYear();
+        const mm = pad(dateObj.getMonth() + 1);
+        const dd = pad(dateObj.getDate());
+        if (input.type === 'date') {
+            input.value = `${yyyy}-${mm}-${dd}`;   // ← tipo=date precisa de ISO
+        } else {
+            input.value = `${dd}/${mm}/${yyyy}`;   // ← tipo=text mostra BR
+        }
     }
 
     function isAtualOuAnterior(data) {
-        if (!data || isNaN(+data)) return false; // sem data -> não bloqueia
+        if (!data || isNaN(+data)) return false;
         const ano = data.getFullYear();
         const mes = data.getMonth() + 1;
-
-        const anoAtual = hoje.getFullYear();
-        const mesAtual = hoje.getMonth() + 1;
-
-        if (ano < anoAtual) return true;
-        if (ano === anoAtual && mes <= mesAtual) return true;
-        return false;
+        const aNow = hoje.getFullYear();
+        const mNow = hoje.getMonth() + 1;
+        return (ano < aNow) || (ano === aNow && mes <= mNow);
     }
 
     function bloquearPeriodo(row, militarId, periodo, bloquear) {
@@ -236,6 +233,45 @@
         return bloquear;
     }
 
+    function ativarListenersPeriodo(row, militarId, periodo, maxDias) {
+        const diasInput = row.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
+        const inicioInput = row.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+        if (diasInput) {
+            diasInput.addEventListener('change', () => {
+                calcularFim(row, militarId, periodo);
+                atualizarBotaoSalvar(militarId, maxDias);
+            });
+        }
+        if (inicioInput) {
+            inicioInput.addEventListener('change', () => {
+                aplicarRegraPeriodo(row, militarId, periodo);   // revalida bloqueio
+                calcularFim(row, militarId, periodo);           // e recalcula fim
+                atualizarBotaoSalvar(militarId, maxDias);
+            });
+        }
+    }
+
+    function calcularFim(row, militarId, periodo) {
+        const inicioInput = row.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+        const diasInput = row.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
+        const fimInput = row.querySelector(`[name="fim_${periodo}_${militarId}"]`);
+        if (!inicioInput || !diasInput || !fimInput) return;
+
+        const dataInicio = parseInputDate(inicioInput.value);
+        const dias = parseInt(diasInput.value || 0, 10);
+
+        // Se não tem início ou dias, NÃO mexe no valor existente (pode ter vindo do banco)
+        if (!dataInicio || !dias) return;
+
+        // Se início é mês atual/anteriores, mantém bloqueio e não recalcula
+        if (isAtualOuAnterior(dataInicio)) {
+            return;
+        }
+
+        const fim = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), dataInicio.getDate() + dias - 1);
+        setDateInputValue(fimInput, fim);
+    }
+
     function inicializarListeners() {
         document.querySelectorAll("tr[data-militar-id]").forEach(row => {
             const militarId = row.dataset.militarId;
@@ -249,24 +285,30 @@
             }
 
             // ===== Dentro do período 10–20: trava/libera por PERÍODO conforme a data de INÍCIO =====
-            ["1", "2", "3"].forEach(p => aplicarRegraPeriodo(row, militarId, p));
+            ["1", "2", "3"].forEach(p => aplicarRegraPeriodo(row, militarId, p, maxDias));
 
-            // Quando o usuário alterar a data de INÍCIO, reaplicar a regra naquele período
-            ["1", "2", "3"].forEach(p => {
-                const inicioInp = row.querySelector(`[name="inicio_${p}_${militarId}"]`);
-                if (inicioInp) {
-                    inicioInp.addEventListener('change', () => {
-                        aplicarRegraPeriodo(row, militarId, p);
-                    });
-                }
-            });
+            // Liga os listeners para cada período (início e qtd_dias)
+            ["1", "2", "3"].forEach(p => ativarListenersPeriodo(row, militarId, p, maxDias));
+
+            // Se já houver início e dias, calcula o fim na carga
+            ["1", "2", "3"].forEach(p => calcularFim(row, militarId, p));
+
+            // // Quando o usuário alterar a data de INÍCIO, reaplicar a regra naquele período
+            // ["1", "2", "3"].forEach(p => {
+            //     const inicioInp = row.querySelector(`[name="inicio_${p}_${militarId}"]`);
+            //     if (inicioInp) {
+            //         inicioInp.addEventListener('change', () => {
+            //             aplicarRegraPeriodo(row, militarId, p);
+            //         });
+            //     }
+            // });
             // ===================== SUA LÓGICA EXISTENTE =====================
 
             function atualizarCampos() {
-                const dias1 = parseInt(document.querySelector(`[name="qtd_dias_1_${militarId}"]`).value || 0);
-                const dias2Select = document.querySelector(`[name="qtd_dias_2_${militarId}"]`);
+                const dias1 = parseInt(row.querySelector(`[name="qtd_dias_1_${militarId}"]`).value || 0);
+                const dias2Select = row.querySelector(`[name="qtd_dias_2_${militarId}"]`);
                 const dias2 = parseInt(dias2Select.value || 0);
-                const dias3Select = document.querySelector(`[name="qtd_dias_3_${militarId}"]`);
+                const dias3Select = row.querySelector(`[name="qtd_dias_3_${militarId}"]`);
 
                 // Liberação do 2º período:
                 let opcoesSegundo = [];
@@ -310,31 +352,9 @@
                 }
             }
 
-            function calcularFim(periodo) {
-                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
-                const diasInput = document.querySelector(`[name="qtd_dias_${periodo}_${militarId}"]`);
-                const fimInput = document.querySelector(`[name="fim_${periodo}_${militarId}"]`);
-
-                const inicioStr = inicioInput.value;
-                const dias = parseInt(diasInput.value || 0, 10);
-
-                const dataInicio = parseInputDate(inicioStr);
-                if (!dataInicio || !dias) { fimInput.value = ''; return; }
-
-                // Se o início é mês atual/anteriores, mantém bloqueado e não calcula
-                if (isAtualOuAnterior(dataInicio)) { fimInput.value = ''; aplicarRegraPeriodo(document, militarId, periodo); return; }
-
-                // Calcula fim (mantendo formato dd/mm/YYYY – ajuste se seu input for type="date")
-                const fim = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), dataInicio.getDate() + dias - 1);
-                const dd = String(fim.getDate()).padStart(2, '0');
-                const mm = String(fim.getMonth() + 1).padStart(2, '0');
-                const yyyy = fim.getFullYear();
-                fimInput.value = `${dd}/${mm}/${yyyy}`;
-            }
-
             ["1", "2", "3"].forEach(periodo => {
-                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
-                const fimInput = document.querySelector(`[name="fim_${periodo}_${militarId}"]`);
+                const inicioInput = row.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+                const fimInput = row.querySelector(`[name="fim_${periodo}_${militarId}"]`);
                 if (inicioInput && inicioInput.value) {
                     const dataInicio = parseInputDate(inicioInput.value);
                     const deveBloquear = isAtualOuAnterior(dataInicio);
@@ -352,14 +372,14 @@
             }
 
             function limparDatas(militarId, periodo) {
-                document.querySelector(`[name="inicio_${periodo}_${militarId}"]`).value = '';
-                document.querySelector(`[name="fim_${periodo}_${militarId}"]`).value = '';
+                row.querySelector(`[name="inicio_${periodo}_${militarId}"]`).value = '';
+                row.querySelector(`[name="fim_${periodo}_${militarId}"]`).value = '';
             }
 
             // Revalidação inicial (se já houver datas)
             ["1", "2", "3"].forEach(periodo => {
-                const inicioInput = document.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
-                const fimInput = document.querySelector(`[name="fim_${periodo}_${militarId}"]`);
+                const inicioInput = row.querySelector(`[name="inicio_${periodo}_${militarId}"]`);
+                const fimInput = row.querySelector(`[name="fim_${periodo}_${militarId}"]`);
                 if (inicioInput && inicioInput.value) {
                     const dataInicio = parseInputDate(inicioInput.value);
                     let deveBloquear = false;
