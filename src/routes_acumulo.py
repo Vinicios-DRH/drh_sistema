@@ -282,6 +282,17 @@ def home_atualizacao():
             user_obm_siglas = [s for (s,) in rows] or []
     except Exception:
         pass
+    
+    militar_funcoes = []
+    try:
+        if militar and militar.obm_funcoes:
+            militar_funcoes = [
+                f.funcao.ocupacao
+                for f in militar.obm_funcoes
+                if f.data_fim is None and f.funcao
+            ]
+    except Exception:
+        pass
 
     # Funções (FuncaoUser) no User
     user_funcoes = []
@@ -366,6 +377,7 @@ def home_atualizacao():
         drh_like=drh_like,
         militar=militar,
         nome_exibicao=nome_exibicao,
+        militar_funcoes=militar_funcoes,
     )
 
 

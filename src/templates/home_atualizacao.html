@@ -173,10 +173,7 @@
                             </li>
                             <li>
                                 <span>Função</span>
-                                <strong>{{ militar.obm_funcoes.funcao_id|join(', ') if militar.obm_funcoes.funcao_id
-                                    else
-                                    "—"
-                                    }}</strong>
+                                <strong>{{ militar_funcoes |join(', ') if militar_funcoes else "—" }}</strong>
                             </li>
                             <li>
                                 <span>OBM(s)</span>
