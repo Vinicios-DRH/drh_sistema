@@ -1135,6 +1135,7 @@ def editar(decl_id):
         tipos = request.form.getlist("empregador_tipo[]")
         docs = request.form.getlist("empregador_doc[]")
         natur = request.form.getlist("natureza_vinculo[]")
+        jornada = request.form.getlist("jornada_trabalho[]")
         cargos = request.form.getlist("cargo_funcao[]")
         cargas = request.form.getlist("carga_horaria_semanal[]")
         h_ini = request.form.getlist("horario_inicio[]")
@@ -1161,6 +1162,7 @@ def editar(decl_id):
             "empregador_tipo": first_or_empty(tipos, idx).lower(),
             "empregador_doc": _digits(first_or_empty(docs, idx)),
             "natureza_vinculo": first_or_empty(natur, idx).lower(),
+            "jornada_trabalho": first_or_empty(jornada, idx).lower(),
             "cargo_funcao": first_or_empty(cargos, idx),
             "carga_horaria_semanal": (first_or_empty(cargas, idx) or "0").strip(),
 
@@ -1212,7 +1214,6 @@ def recebimento():
         db.session.query(M.id.label("m_id"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(F, F.id == MOF.funcao_id, isouter=True)
-        .filter(or_(F.ocupacao.is_(None), ~F.ocupacao.ilike("%ADIDO%")))
     )
     if obm_id:
         base_q = base_q.filter(MOF.obm_id == obm_id)
@@ -1246,7 +1247,6 @@ def recebimento():
         db.session.query(M.id.label("m_id"), M.nome_completo.label("nome"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(F, F.id == MOF.funcao_id, isouter=True)
-        .filter(or_(F.ocupacao.is_(None), ~F.ocupacao.ilike("%ADIDO%")))
     )
     if obm_id:
         base_page_q = base_page_q.filter(MOF.obm_id == obm_id)
