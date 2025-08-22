@@ -3923,9 +3923,8 @@ def atualizacao_cadastral():
         email_digitado = form.email.data.strip().lower()
 
         militar = Militar.query.filter_by(cpf=cpf).first()
-        aluno = FichaAlunos.query.filter_by(cpf=cpf).first()
 
-        if not (militar or aluno):
+        if not militar:
             flash(
                 "⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
             return render_template("atualizacao/identificacao.html", form=form)
@@ -4094,9 +4093,7 @@ def criar_senha(cpf):
         return redirect(url_for('login'))
 
     militar = Militar.query.filter_by(cpf=cpf).first()
-    aluno = FichaAlunos.query.filter_by(cpf=cpf).first()
-
-    if not (militar or aluno):
+    if not militar:
         flash("❌ Militar não encontrado para este CPF.", "danger")
         return redirect(url_for('atualizacao_cadastral'))
 
@@ -4104,10 +4101,8 @@ def criar_senha(cpf):
         senha_hash = bcrypt.generate_password_hash(
             form.senha.data).decode('utf-8')
 
-        nome_base = (militar.nome_completo if militar else aluno.nome_completo)
-
         novo_usuario = User(
-            nome=militar.nome_base,
+            nome=militar.nome_completo,
             cpf=cpf,
             email=None,  # Pode buscar no TokenVerificacao se quiser salvar
             senha=senha_hash,
