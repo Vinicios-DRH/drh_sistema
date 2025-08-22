@@ -92,7 +92,7 @@
                 <a class="btn btn-outline-primary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
                     Editar cadastro
                 </a>
-                <a class="btn btn-primary" href="{{ url_for('acumulo.recebimento') }}">Ir para Recebimento</a>
+                <!-- <a class="btn btn-primary" href="{{ url_for('acumulo.recebimento') }}">Ir para Recebimento</a> -->
             </div>
         </div>
     </div>
@@ -133,9 +133,9 @@
             <div class="card card-soft p-3">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <h2 class="h6 m-0">Seus dados</h2>
-                    <a class="btn btn-outline-primary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                    <!-- <a class="btn btn-outline-primary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
                         Editar cadastro
-                    </a>
+                    </a> -->
                 </div>
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
@@ -211,7 +211,10 @@
             <div class="card card-soft p-3">
                 <h2 class="h6">Ações rápidas</h2>
                 <div class="d-grid gap-2">
-                    <a class="btn btn-primary" href="#">Nova declaração</a>
+                    {# botão que decide no clique se abre modal ou segue para /acumulo/novo #}
+                    <button id="btn-nova-declaracao" class="btn btn-primary" type="button">
+                        Nova declaração
+                    </button>
                     <a class="btn btn-outline-primary" href="#">Minhas declarações</a>
                     {% if drh_like %}
                     <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}">Recebimento (DRH)</a>
@@ -226,15 +229,26 @@
                 <ul class="list-plain">
                     {% for d in minhas_declaracoes %}
                     <li>
+                        {% if d.status == 'inconforme' %}
+                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
+                            {{ d.ano_referencia }} — {{ d.tipo or "—" }} — Editar
+                        </a>
+                        {% else %}
                         <span>
                             {{ d.ano_referencia }} — {{ d.tipo or "—" }}
-                            <span class="muted">(#{{ d.id }})</span>
                         </span>
+                        {% endif %}
+
                         <span>
                             {% if d.status == 'validado' %}
                             <span class="chip"><span class="badge text-bg-success">validado</span></span>
                             {% elif d.status == 'inconforme' %}
                             <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
+                            <!-- 👉 Botão para abrir o modal com o motivo -->
+                            <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo"
+                                data-decl-id="{{ d.id }}">
+                                Ver motivo
+                            </button>
                             {% else %}
                             <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
                             {% endif %}
@@ -261,5 +275,242 @@
         </div>
     </div>
 
+    <!-- Modal básico para mostrar motivo do inconforme -->
+    <style>
+        .modal-backdrop-home {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+
+        .modal-backdrop-home.show {
+            display: flex;
+        }
+
+        .modal-card-home {
+            background: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            width: min(640px, 96vw);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+        }
+    </style>
+
+    <div id="modal-motivo-inconforme" class="modal-backdrop-home" aria-hidden="true">
+        <div class="modal-card-home">
+            <div class="p-3 border-bottom">
+                <h5 class="m-0">Motivo da inconformidade</h5>
+                <div class="small muted mt-1" id="motivo-quando"></div>
+            </div>
+            <div class="p-3">
+                <div id="motivo-texto" style="white-space:pre-wrap;"></div>
+            </div>
+            <div class="p-3 border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="btn-fechar-motivo">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        .modal-backdrop-home2 {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050
+        }
+
+        .modal-backdrop-home2.show {
+            display: flex
+        }
+
+        .modal-card-home2 {
+            background: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            width: min(640px, 96vw);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25)
+        }
+    </style>
+
+    <div id="modal-alerta-envio" class="modal-backdrop-home2" aria-hidden="true">
+        <div class="modal-card-home2">
+            <div class="p-3 border-bottom">
+                <h5 class="m-0">Você já enviou uma declaração</h5>
+                <div class="small muted mt-1" id="alerta-subtitle"></div>
+            </div>
+            <div class="p-3" id="alerta-body"></div>
+            <div class="p-3 border-top d-flex justify-content-end gap-2">
+                <a id="btn-ver-ou-editar" class="btn btn-outline-primary d-none" href="#" target="_self">Abrir</a>
+                <a id="btn-continuar-novo" class="btn btn-warning d-none"
+                    href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">Continuar mesmo assim</a>
+                <button type="button" class="btn btn-outline-secondary" id="btn-fechar-alerta">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
+
+{# pega a última declaração do ano corrente (já vem ordenado do backend) #}
+{% set tem_decl = (minhas_declaracoes|length > 0) %}
+{% set ultima = (minhas_declaracoes[0] if tem_decl else None) %}
+{% set ultima_status = (ultima.status if ultima else '') %}
+{% set ultima_id = (ultima.id if ultima else None) %}
+{% set ultima_tipo = (ultima.tipo if ultima else '') %}
+
+<script>
+(() => {
+  // dados vindos do Jinja
+  const ctx = {
+    tem: {{ tem_decl | tojson }},
+    status: {{ ultima_status | tojson }},
+    declId: {{ ultima_id | tojson }},
+    tipo: {{ ultima_tipo | tojson }},
+    // urls auxiliares
+    urlNovo: {{ (url_for('acumulo.novo', militar_id=militar_id_atual) if militar_id_atual else '') | tojson }},
+    urlEditar: {{ url_for('acumulo.editar', decl_id=0) | tojson }},
+    urlDetalhe: {{ url_for('acumulo.detalhe', decl_id=0) | tojson }},
+  };
+
+  const btnNova = document.getElementById('btn-nova-declaracao');
+  const modal = document.getElementById('modal-alerta-envio');
+  const sub = document.getElementById('alerta-subtitle');
+  const body = document.getElementById('alerta-body');
+  const btnAbrir = document.getElementById('btn-ver-ou-editar');
+  const btnContinuar = document.getElementById('btn-continuar-novo');
+  const btnFechar = document.getElementById('btn-fechar-alerta');
+
+  function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
+    if (sub) sub.textContent = subtitle || '';
+    if (body) body.innerHTML = htmlBody || '';
+    if (btnAbrir) {
+      if (abrirHref) {
+        btnAbrir.href = abrirHref;
+        btnAbrir.textContent = abrirLabel || 'Abrir';
+        btnAbrir.classList.remove('d-none');
+      } else {
+        btnAbrir.classList.add('d-none');
+      }
+    }
+    if (btnContinuar) {
+      if (mostrarContinuar) btnContinuar.classList.remove('d-none');
+      else btnContinuar.classList.add('d-none');
+    }
+    modal?.classList.add('show');
+    modal?.setAttribute('aria-hidden', 'false');
+  }
+  function hideModal() {
+    modal?.classList.remove('show');
+    modal?.setAttribute('aria-hidden', 'true');
+  }
+  btnFechar?.addEventListener('click', hideModal);
+  modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+  btnNova?.addEventListener('click', () => {
+    // se não tem nenhuma declaração do ano -> segue direto p/ nova
+    if (!ctx.tem) {
+      if (ctx.urlNovo) {
+        window.location.href = ctx.urlNovo;
+      } else {
+        alert('Não foi possível abrir a tela de nova declaração (militar_id ausente).');
+      }
+      return;
+    }
+
+    // já tem declaração — decide mensagem conforme status
+    const st = (ctx.status || '').toLowerCase();
+    if (st === 'inconforme') {
+      const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
+      showModal(
+        `<p>Sua declaração <strong>já foi enviada</strong> e está com status <strong>INCONFORME</strong>.</p>
+         <p>Por favor, <strong>edite a declaração</strong> para corrigir as pendências antes de enviar outra.</p>`,
+        'Status atual: inconforme',
+        hrefEditar,
+        'Editar declaração',
+        false
+      );
+    } else if (st === 'validado') {
+      const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+      showModal(
+        `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
+        'Status atual: validado',
+        hrefDet,
+        'Ver declaração',
+        false
+      );
+    } else {
+      const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+      showModal(
+        `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
+        'Status atual: pendente',
+        hrefDet,
+        'Ver envio',
+        false
+      );
+    }
+  });
+})();
+</script>
+
+<script>
+    (() => {
+        // Map vindo do backend: { decl_id: {motivo: "...", quando: "..." } }
+        const inconformeInfo = {{ (inconforme_info_map or { }) | tojson
+    }};
+
+    const modal = document.getElementById('modal-motivo-inconforme');
+    const txt = document.getElementById('motivo-texto');
+    const quandoEl = document.getElementById('motivo-quando');
+    const btnFechar = document.getElementById('btn-fechar-motivo');
+
+    function showModal(motivo, quandoStr) {
+        if (txt) txt.textContent = motivo || '(sem motivo informado)';
+        if (quandoEl) quandoEl.textContent = quandoStr ? ('Registrado em ' + quandoStr) : '';
+        modal?.classList.add('show');
+        modal?.setAttribute('aria-hidden', 'false');
+    }
+    function hideModal() {
+        modal?.classList.remove('show');
+        modal?.setAttribute('aria-hidden', 'true');
+        if (txt) txt.textContent = '';
+        if (quandoEl) quandoEl.textContent = '';
+    }
+    btnFechar?.addEventListener('click', hideModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+    // Delegação: clicar em "Ver motivo"
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-ver-motivo');
+        if (!btn) return;
+        e.preventDefault();
+        const id = btn.getAttribute('data-decl-id');
+        const info = inconformeInfo?.[id];
+        if (!info) {
+            showModal('(sem motivo encontrado)', '');
+            return;
+        }
+        // Formata a data no cliente (se vier em ISO). Se preferir, formate no backend.
+        let quandoStr = '';
+        try {
+            if (info.quando) {
+                const d = new Date(info.quando);
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yy = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                quandoStr = `${dd}/${mm}/${yy} ${hh}:${mi}`;
+            }
+        } catch (_) { }
+        showModal(info.motivo || '(sem motivo informado)', quandoStr);
+    });
+    }) ();
+</script>
+
 {% endblock %}

@@ -968,7 +968,8 @@ class VinculoExterno(database.Model):
     natureza_vinculo = database.Column(database.Enum(
         'efetivo', 'contratado', 'prestacao_servicos', 'autonomo', name='natureza_vinculo'), nullable=False)
     cargo_funcao = database.Column(database.String(120), nullable=False)
-
+    jornada_trabalho = database.Column(
+        database.Enum('Escala', 'Expediente',  name='jornada_trabalho'), nullable=False)
     carga_horaria_semanal = database.Column(
         database.Integer, nullable=False)  # em horas
     horario_inicio = database.Column(database.Time, nullable=False)

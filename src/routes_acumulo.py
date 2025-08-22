@@ -220,11 +220,42 @@ def _is_drh_like() -> bool:
     return tem_drh
 
 
-# --- motor de substituição no estilo que você já usa ---
+def _to_hhmm(s: str) -> str:
+    """Normaliza 'HH:MM' ou 'HH:MM:SS' para 'HH:MM'."""
+    if not s:
+        return ""
+    s = str(s)
+    if ":" not in s:
+        return s
+    parts = s.split(":")
+    # garante dois dígitos
+    h = parts[0].zfill(2)
+    m = (parts[1] if len(parts) > 1 else "00").zfill(2)
+    return f"{h}:{m}"
 
-# ---------- /acumulo/lista ----------
 
-# imports necessários
+def _digits(s: str) -> str:
+    return "".join(ch for ch in (s or "") if ch.isdigit())
+
+
+def _ymd(s: str) -> str:
+    """Aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY' e devolve 'YYYY-MM-DD'.
+       Se já estiver OK, devolve como veio."""
+    if not s:
+        return ""
+    s = s.strip()
+    try:
+        # já no formato correto?
+        if "-" in s and len(s.split("-")) == 3:
+            datetime.strptime(s, "%Y-%m-%d")
+            return s
+    except Exception:
+        pass
+    # tenta converter de DD/MM/YYYY
+    try:
+        return datetime.strptime(s, "%d/%m/%Y").strftime("%Y-%m-%d")
+    except Exception:
+        return s
 
 
 @app.route("/home-atualizacao", methods=["GET"])
@@ -282,7 +313,7 @@ def home_atualizacao():
             user_obm_siglas = [s for (s,) in rows] or []
     except Exception:
         pass
-    
+
     militar_funcoes = []
     try:
         if militar and militar.obm_funcoes:
@@ -329,6 +360,29 @@ def home_atualizacao():
             .limit(6)
             .all()
         )
+    
+    # -------- 3.1) Último motivo de INCONFORME por declaração (para o modal) --------
+    inconforme_info_map = {}  # {decl_id: {"motivo": str, "quando": datetime}}
+    if minhas_declaracoes:
+        decl_ids = [d.id for d in minhas_declaracoes]
+        auds = (
+            db.session.query(AuditoriaDeclaracao)
+            .filter(
+                AuditoriaDeclaracao.declaracao_id.in_(decl_ids),
+                AuditoriaDeclaracao.para_status == "inconforme",
+                AuditoriaDeclaracao.motivo.isnot(None),
+            )
+            .order_by(AuditoriaDeclaracao.declaracao_id.asc(),
+                      AuditoriaDeclaracao.data_alteracao.desc())
+            .all()
+        )
+        # pega o mais recente por declaração
+        for a in auds:
+            if a.declaracao_id not in inconforme_info_map:
+                inconforme_info_map[a.declaracao_id] = {
+                    "motivo": a.motivo or "",
+                    "quando": a.data_alteracao,
+                }
 
     # -------- 4) Atividades recentes (por user_id mesmo) --------
     atividades = []
@@ -378,6 +432,7 @@ def home_atualizacao():
         militar=militar,
         nome_exibicao=nome_exibicao,
         militar_funcoes=militar_funcoes,
+        inconforme_info_map=inconforme_info_map,
     )
 
 
@@ -633,6 +688,7 @@ def novo(militar_id):
         emp_tipo = (request.form.get("empregador_tipo") or "").strip().lower()
         emp_doc = _digits(request.form.get("empregador_doc") or "")
         natureza = (request.form.get("natureza_vinculo") or "").strip().lower()
+        jornada = (request.form.get("jornada_trabalho") or "").strip().lower()
         cargo = (request.form.get("cargo_funcao") or "").strip()
         try:
             carga = int(
@@ -643,11 +699,14 @@ def novo(militar_id):
         h_fim = _parse_time(request.form.get("horario_fim"))
         d_ini = _parse_date(request.form.get("data_inicio"))
 
-        if emp_tipo not in {"publico", "privado", "cooperativa", "autonomo"}:
+        if emp_tipo not in {"publico", "privado", "cooperativa", "profissional_liberal"}:
             flash("Tipo de empregador inválido.", "alert-danger")
             return redirect(request.url)
-        if natureza not in {"efetivo", "contratado", "prestacao_servicos", "autonomo"}:
+        if natureza not in {"efetivo", "contratado", "prestacao_servicos", "profissional_liberal"}:
             flash("Natureza do vínculo inválida.", "alert-danger")
+            return redirect(request.url)
+        if jornada not in {"Escala", "Expediente"}:
+            flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
             return redirect(request.url)
         if not (emp_nome and emp_doc and cargo and carga > 0 and h_ini and h_fim and d_ini):
             flash("Preencha todos os campos do vínculo externo.", "alert-danger")
@@ -658,6 +717,7 @@ def novo(militar_id):
             empregador_tipo=emp_tipo,
             empregador_doc=emp_doc,
             natureza_vinculo=natureza,
+            jornada_trabalho=jornada,
             cargo_funcao=cargo,
             carga_horaria_semanal=carga,
             horario_inicio=h_ini,
@@ -834,6 +894,7 @@ def prepara_geracao():
                 "empregador_tipo": (request.form.get("empregador_tipo") or "").strip().lower(),
                 "empregador_doc": ''.join(filter(str.isdigit, request.form.get("empregador_doc") or "")),
                 "natureza_vinculo": (request.form.get("natureza_vinculo") or "").strip().lower(),
+                "jornada_trabalho": (request.form.get("jornada_trabalho") or "").strip().lower(),
                 "cargo_funcao": (request.form.get("cargo_funcao") or "").strip(),
                 "carga_horaria_semanal": (request.form.get("carga_horaria_semanal") or "").strip(),
                 "horario_inicio": (request.form.get("horario_inicio") or "").strip(),
@@ -873,10 +934,6 @@ def upload_assinado(militar_id):
     if request.method == "GET":
         return render_template("acumulo_upload_assinado.html", militar=militar, ano=ano, tipo=tipo)
 
-    # ==============
-    # AQUI REUSA SUA LÓGICA ANTIGA
-    # ==============
-
     # arquivo obrigatório (igual ao seu código)
     arquivo_fs = request.files.get("arquivo_declaracao")
     if not arquivo_fs or not (arquivo_fs.filename or "").strip():
@@ -904,6 +961,7 @@ def upload_assinado(militar_id):
             empregador_tipo=pre["empregador_tipo"],
             empregador_doc=pre["empregador_doc"],
             natureza_vinculo=pre["natureza_vinculo"],
+            jornada_trabalho=pre["jornada_trabalho"],
             cargo_funcao=pre["cargo_funcao"],
             carga_horaria_semanal=int(pre["carga_horaria_semanal"]),
             horario_inicio=_p_time(pre["horario_inicio"]),
@@ -984,7 +1042,6 @@ def upload_assinado(militar_id):
 
 @bp_acumulo.route("/editar/<int:decl_id>", methods=["GET", "POST"])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
 def editar(decl_id):
     # carrega a declaração com militar e vínculos
     decl = (db.session.query(DeclaracaoAcumulo)
@@ -995,9 +1052,6 @@ def editar(decl_id):
     ).get(decl_id))
     if not decl:
         abort(404)
-    if not _can_editar_declaracao(decl.militar_id):
-        flash("Somente o chefe/diretor da OBM do militar (ou SUPER USER) pode editar.", "alert-danger")
-        return redirect(url_for("acumulo.detalhe", decl_id=decl.id))
 
     # SIGLA da OBM ativa (só pra exibir)
     MOF = MilitarObmFuncao
@@ -1012,6 +1066,7 @@ def editar(decl_id):
         if decl.arquivo_declaracao:
             url_arquivo = b2_presigned_get(
                 decl.arquivo_declaracao, expires_seconds=600)
+
         return render_template(
             "acumulo_editar.html",
             decl=decl,
@@ -1022,46 +1077,60 @@ def editar(decl_id):
             url_arquivo=url_arquivo,
         )
 
-    # -------- POST: salvar alterações --------
+    ano = decl.ano_referencia
+    militar = decl.militar
+
     tipo = (request.form.get("tipo") or "").strip().lower()
     if tipo not in {"positiva", "negativa"}:
-        flash("Informe o tipo de declaração.", "alert-danger")
+        flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
         return redirect(request.url)
 
-    meio_entrega = (request.form.get("meio_entrega")
-                    or "digital").strip().lower()
-    if meio_entrega not in {"digital", "presencial"}:
-        meio_entrega = "digital"
-
+    _ = (request.form.get("meio_entrega") or "digital").strip().lower()
     observacoes = (request.form.get("observacoes") or "").strip()
 
-    # arquivo: opcional (só troca se vier)
-    arquivo_fs = request.files.get("arquivo_declaracao")
-    if arquivo_fs and (arquivo_fs.filename or "").strip():
-        try:
-            key_prefix = build_prefix(decl.ano_referencia, decl.militar_id)
-            new_key = b2_upload_fileobj(arquivo_fs, key_prefix=key_prefix)
-            decl.arquivo_declaracao = new_key
-        except Exception as e:
-            db.session.rollback()
-            current_user.logger.exception("B2 upload failed")
-            flash(f"Falha no upload do arquivo: {e}", "alert-danger")
-            return redirect(request.url)
+    # === Atualiza User (igual ao prepara_geracao) ===
+    try:
+        email_sess = session.get('email_atualizacao')
 
-    # atualiza cabeçalho
-    decl.tipo = tipo
-    decl.meio_entrega = meio_entrega
-    decl.observacoes = (observacoes or None)
-    # reabre para conferência sempre que editar
-    decl.status = "pendente"
+        # OBMs ativas
+        rows = (db.session.query(MOF.obm_id)
+                .filter(and_(MOF.militar_id == militar.id, MOF.data_fim.is_(None)))
+                .order_by(MOF.id.asc()).all())
+        ids = [r.obm_id for r in rows]
+        obm_id_1 = ids[0] if len(ids) > 0 else None
+        obm_id_2 = ids[1] if len(ids) > 1 else None
+        localidade_id = getattr(militar, 'localidade_id', None)
 
-    # vínculos
-    # limpa os antigos
-    for v in list(decl.vinculos):
-        db.session.delete(v)
+        changed = False
+        if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
+            current_user.email = email_sess
+            changed = True
+        if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
+            current_user.obm_id_1 = obm_id_1
+            changed = True
+        if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
+            current_user.obm_id_2 = obm_id_2
+            changed = True
+        if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
+            current_user.localidade_id = localidade_id
+            changed = True
+        if changed:
+            db.session.add(current_user)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Não bloqueia o fluxo — só avisa
+        flash(
+            f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
+
+    # === Monta o pacote de pré-declaração para a sessão (igual ao prepara_geracao) ===
+    pre = {
+        "ano": ano,
+        "tipo": tipo,
+        "observacoes": observacoes,
+    }
 
     if tipo == "positiva":
-        # reconstrói pelos arrays do form
         nomes = request.form.getlist("empregador_nome[]")
         tipos = request.form.getlist("empregador_tipo[]")
         docs = request.form.getlist("empregador_doc[]")
@@ -1072,54 +1141,44 @@ def editar(decl_id):
         h_fim = request.form.getlist("horario_fim[]")
         d_ini = request.form.getlist("data_inicio[]")
 
-        def _digits(s):
-            import re
-            return re.sub(r"\D+", "", s or "")
-        n = max(len(nomes), len(tipos), len(docs), len(natur), len(
-            cargos), len(cargas), len(h_ini), len(h_fim), len(d_ini))
-        added = 0
-        for i in range(n):
-            nome = (nomes[i] if i < len(nomes) else "").strip()
-            if not nome:
-                continue
-            v = VinculoExterno(
-                declaracao_id=decl.id,
-                empregador_nome=nome,
-                empregador_tipo=(tipos[i] if i < len(
-                    tipos) else "").strip().lower(),
-                empregador_doc=_digits(docs[i] if i < len(docs) else ""),
-                natureza_vinculo=(natur[i] if i < len(
-                    natur) else "").strip().lower(),
-                cargo_funcao=(cargos[i] if i < len(cargos) else "").strip(),
-                carga_horaria_semanal=int(
-                    (cargas[i] if i < len(cargas) else "0") or "0"),
-                horario_inicio=_parse_time(
-                    h_ini[i] if i < len(h_ini) else None),
-                horario_fim=_parse_time(h_fim[i] if i < len(h_fim) else None),
-                data_inicio=_parse_date(d_ini[i] if i < len(d_ini) else None),
-            )
-            db.session.add(v)
-            added += 1
-        if added == 0:
-            db.session.rollback()
+        def first_or_empty(lst, i):
+            return (lst[i] if i < len(lst) else "").strip()
+
+        # acha o primeiro índice com nome preenchido
+        idx = None
+        for i, nome in enumerate(nomes or []):
+            if (nome or "").strip():
+                idx = i
+                break
+
+        if idx is None:
             flash("Inclua ao menos um vínculo para declaração positiva.",
                   "alert-danger")
             return redirect(request.url)
 
-    try:
-        db.session.commit()
-        flash("Declaração atualizada com sucesso!", "alert-success")
-        return redirect(url_for("acumulo.lista", ano=decl.ano_referencia))
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Erro ao salvar alterações: {e}", "alert-danger")
-        return redirect(request.url)
+        pre.update({
+            "empregador_nome": first_or_empty(nomes, idx),
+            "empregador_tipo": first_or_empty(tipos, idx).lower(),
+            "empregador_doc": _digits(first_or_empty(docs, idx)),
+            "natureza_vinculo": first_or_empty(natur, idx).lower(),
+            "cargo_funcao": first_or_empty(cargos, idx),
+            "carga_horaria_semanal": (first_or_empty(cargas, idx) or "0").strip(),
 
-# 4) DRH/Recebimento – visão geral (quando implementarmos)
+            # 🔴 GARANTE FORMATO QUE A /upload-assinado ESPERA
+            "horario_inicio": first_or_empty(h_ini, idx)[:5],  # HH:MM
+            "horario_fim":    first_or_empty(h_fim, idx)[:5],  # HH:MM
+            "data_inicio":    first_or_empty(d_ini, idx)[:10],  # YYYY-MM-DD
+        })
+
+    session[f'pre_decl_{militar.id}_{ano}'] = pre
+
+    # Redireciona para a mesma tela já usada no fluxo de NOVO
+    return redirect(url_for("acumulo.upload_assinado", militar_id=militar.id, ano=ano))
 
 
 @bp_acumulo.route("/recebimento", methods=["GET"])
 @login_required
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def recebimento():
     ano = request.args.get("ano", type=int) or datetime.now().year
     status = (request.args.get("status") or "todos").lower()
@@ -1129,18 +1188,26 @@ def recebimento():
     per_page = max(request.args.get("per_page", 20, type=int), 1)
 
     M, D, PG, MOF, O, F = Militar, DeclaracaoAcumulo, PostoGrad, MilitarObmFuncao, Obm, Funcao
-    IS_DRH_LIKE = _is_drh_like()  # <<< NOVO
+    IS_DRH_LIKE = _is_drh_like()
 
-    print(
-        "[recebimento] user=", getattr(current_user, "id", None),
-        "ocup=", (getattr(getattr(current_user, "user_funcao", None), "ocupacao", None)
-                  if not isinstance(getattr(current_user, "user_funcao", None), (list, tuple))
-                  else ",".join([f.ocupacao or "" for f in current_user.user_funcao])),
-        "obm_ids=", _user_obm_ids(),
-        "IS_DRH_LIKE=", _is_drh_like()
+    rn = func.row_number().over(
+        partition_by=D.militar_id,
+        order_by=(D.updated_at.desc().nullslast(), D.id.desc())
+    ).label("rn")
+    ultimo_subq = (
+        db.session.query(
+            D.militar_id.label("m_id"),
+            D.id.label("decl_id"),
+            D.status.label("decl_status"),
+            D.tipo.label("decl_tipo"),
+            D.meio_entrega.label("decl_meio"),
+            D.arquivo_declaracao.label("decl_arquivo"),
+            rn
+        )
+        .filter(D.ano_referencia == ano)
+        .subquery()
     )
 
-    # 1) Base de militares visíveis
     base_q = (
         db.session.query(M.id.label("m_id"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
@@ -1149,15 +1216,12 @@ def recebimento():
     )
     if obm_id:
         base_q = base_q.filter(MOF.obm_id == obm_id)
-
-    # Só restringe por OBM do usuário se NÃO for DRH-like
     if not IS_DRH_LIKE:
         obms_user = [getattr(current_user, "obm_id_1", None),
                      getattr(current_user, "obm_id_2", None)]
         obms_user = [x for x in obms_user if x]
         base_q = base_q.filter(MOF.obm_id.in_(
             obms_user)) if obms_user else base_q.filter(literal(False))
-
     if q:
         ilike = f"%{q}%"
         base_q = (base_q.join(PG, PG.id == M.posto_grad_id, isouter=True)
@@ -1175,10 +1239,9 @@ def recebimento():
             linhas=[], url_map={},
             total_ano=0, total_pendentes=0, total_validados=0, total_inconformes=0, total_nao_enviaram=0,
             pagination="", pode_editar_map={}, enviado_drh_map={},
-            is_drh_like=IS_DRH_LIKE,  # <<< rename no template
+            is_drh_like=IS_DRH_LIKE,
         )
 
-    # 1.1) Paginação (com nome no SELECT p/ ordenar)
     base_page_q = (
         db.session.query(M.id.label("m_id"), M.nome_completo.label("nome"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
@@ -1199,32 +1262,33 @@ def recebimento():
                        .filter(or_(M.nome_completo.ilike(ilike),
                                    M.matricula.ilike(ilike),
                                    PG.sigla.ilike(ilike))))
+
+    base_page_q = base_page_q.outerjoin(ultimo_subq, and_(
+        ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
+
+    if status == "pendente":
+        base_page_q = base_page_q.filter(
+            ultimo_subq.c.decl_status == "pendente")
+    elif status == "validado":
+        base_page_q = base_page_q.filter(
+            ultimo_subq.c.decl_status == "validado")
+    elif status == "inconforme":
+        base_page_q = base_page_q.filter(
+            ultimo_subq.c.decl_status == "inconforme")
+    elif status == "nao_enviou":
+        base_page_q = base_page_q.filter(ultimo_subq.c.decl_id.is_(None))
+    # "todos" -> sem filtro adicional
+
     base_page_q = base_page_q.distinct()
 
+    # Conte o TOTAL já FILTRADO para a paginação
+    total_filtrado = base_page_q.order_by(None).count()
+
+    # Paginado
     page_rows = (base_page_q.order_by(M.nome_completo.asc())
                  .limit(per_page).offset((page - 1) * per_page).all())
     page_ids = [r.m_id for r in page_rows]
 
-    # 2) Última declaração (row_number)
-    rn = func.row_number().over(
-        partition_by=D.militar_id,
-        order_by=(D.updated_at.desc().nullslast(), D.id.desc())
-    ).label("rn")
-    ultimo_subq = (
-        db.session.query(
-            D.militar_id.label("m_id"),
-            D.id.label("decl_id"),
-            D.status.label("decl_status"),
-            D.tipo.label("decl_tipo"),
-            D.meio_entrega.label("decl_meio"),
-            D.arquivo_declaracao.label("decl_arquivo"),
-            rn
-        )
-        .filter(D.ano_referencia == ano)
-        .subquery()
-    )
-
-    # Auditoria “enviado_drh”
     rn_enc = func.row_number().over(
         partition_by=AuditoriaDeclaracao.declaracao_id,
         order_by=AuditoriaDeclaracao.data_alteracao.desc()
@@ -1241,7 +1305,6 @@ def recebimento():
     )
 
     U = User
-    # 3) Linhas da página
     rows = (
         db.session.query(
             M, PG.sigla.label("pg_sigla"), O.sigla.label("obm_sigla"),
@@ -1260,8 +1323,6 @@ def recebimento():
         .order_by(M.nome_completo.asc())
         .all()
     )
-
-    # mapa “já encaminhado”
     decl_ids = [r.decl_id for r in rows if r.decl_id]
     enviado_drh_map = {}
     if decl_ids:
@@ -1274,7 +1335,6 @@ def recebimento():
         )}
         enviado_drh_map = {did: (did in enviado_drh_set) for did in decl_ids}
 
-    # 4) KPIs
     elegiveis_cte = base_q.subquery()
     kpi_rows = (
         db.session.query(
@@ -1299,16 +1359,6 @@ def recebimento():
     total_inconformes = kpi_rows.inconformes or 0
     total_nao_enviaram = max(total_ano - enviados, 0)
 
-    # 5) filtro de status só na exibição
-    def status_ok(decl_id, st):
-        if status == "todos":
-            return True
-        if status == "nao_enviou":
-            return decl_id is None
-        return (decl_id is not None) and (st == status)
-    rows = [r for r in rows if status_ok(r.decl_id, r.decl_status)]
-
-    # 6) linhas p/ template
     url_map, linhas = {}, []
     for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq, enc_por, enc_quando) in rows:
         if arq:
@@ -1326,7 +1376,6 @@ def recebimento():
             encaminhado_flag=bool(enc_quando),
         ))
 
-    # 7) paginação HTML
     def render_pagination(total, page, per_page):
         pages = max((total + per_page - 1) // per_page, 1)
         if pages <= 1:
@@ -1339,7 +1388,7 @@ def recebimento():
                 f'<li class="page-item {cls}"><a class="page-link" href="?{params}">{num}</a></li>')
         return '<nav><ul class="pagination pagination-sm justify-content-end mt-3">' + "".join(items) + "</ul></nav>"
 
-    pagination_html = render_pagination(total_ano, page, per_page)
+    pagination_html = render_pagination(total_filtrado, page, per_page)
 
     pode_editar_map = {decl_id: (IS_DRH_LIKE or _can_editar_declaracao(m.id))
                        for (m, _, _, decl_id, *_rest) in rows if decl_id}
@@ -1356,7 +1405,7 @@ def recebimento():
         pagination=pagination_html,
         pode_editar_map=pode_editar_map,
         enviado_drh_map=enviado_drh_map,
-        is_drh_like=IS_DRH_LIKE,   # <<< (renomeado no template)
+        is_drh_like=IS_DRH_LIKE,
     )
 
 

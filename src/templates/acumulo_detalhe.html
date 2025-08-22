@@ -7,11 +7,14 @@
             <div class="text-muted">Ano {{ ano }} · Status: <span class="badge bg-secondary">{{ decl.status }}</span>
             </div>
         </div>
+        {% set back_url = url_for('home_atualizacao') if current_user.funcao_user_id == 12 else
+        url_for('acumulo.recebimento') %}
+
         <div class="d-flex gap-2">
             {% if pode_editar %}
             <a href="{{ url_for('acumulo.editar', decl_id=decl.id) }}" class="btn btn-warning">Editar</a>
             {% endif %}
-            <a href="{{ url_for('acumulo.recebimento') }}" class="btn btn-light">← Voltar</a>
+            <a href="{{ back_url }}" class="btn btn-light">← Voltar</a>
         </div>
     </div>
 

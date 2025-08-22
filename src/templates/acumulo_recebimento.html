@@ -250,8 +250,8 @@
                                         class="btn btn-outline-success btn-sm">
                                         {{ 'Validar (DRH)' if is_drh_like else 'Encaminhar à DRH' }}
                                     </button>
-                                    <button type="submit" name="status" value="inconforme"
-                                        class="btn btn-outline-danger btn-sm">
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-inconforme"
+                                        data-decl-id="{{ row.decl_id }}">
                                         Inconforme
                                     </button>
                                 </form>
@@ -282,10 +282,73 @@
         </div>
         {% endif %}
     </div>
-</div>
 
+
+    <style>
+        .modal-backdrop-custom {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+
+        .modal-backdrop-custom.show {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            width: min(640px, 96vw);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+        }
+    </style>
+
+    <div id="modal-inconforme" class="modal-backdrop-custom" aria-hidden="true">
+        <div class="modal-card">
+            <form id="form-inconforme" method="post">
+                <div class="p-3 border-bottom">
+                    <h5 class="m-0">Marcar como inconforme</h5>
+                    <div class="small subtle mt-1">
+                        Informe o motivo. Esta observação ficará registrada para ciência do militar.
+                    </div>
+                </div>
+
+                <div class="p-3">
+                    <!-- necessário pra rota entender -->
+                    <input type="hidden" name="status" value="inconforme">
+                    <!-- se estiver usando Flask-WTF e meta csrf -->
+                    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+
+                    <div class="mb-2">
+                        <label class="form-label">Observação (obrigatória)</label>
+                        <textarea class="form-control" name="motivo" id="motivo-inconforme" rows="4" required
+                            placeholder="Explique o motivo da inconformidade..."></textarea>
+                    </div>
+
+                    <div class="alert alert-warning d-none" id="bulk-info" role="alert"></div>
+                </div>
+
+                <div class="p-3 border-top d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary"
+                        id="btn-cancelar-inconforme">Cancelar</button>
+                    <button type="submit" class="btn btn-danger" id="btn-confirmar-inconforme">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
 <script>
-    // seleção em massa
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[recebimento] script carregado');
+
+    // ===== seleção em massa =====
     const chkAll = document.getElementById('chk-all');
     const getRowChecks = () => Array.from(document.querySelectorAll('tbody .row-check'));
     chkAll?.addEventListener('change', () => getRowChecks().forEach(c => c.checked = chkAll.checked));
@@ -298,52 +361,162 @@
     // ids selecionados
     function selectedIds() {
         return Array.from(document.querySelectorAll('tbody tr[data-id] .row-check:checked'))
-            .map(chk => chk.closest('tr').dataset.id);
+        .map(chk => chk.closest('tr').dataset.id);
     }
 
-    // se usar Flask-WTF, pegue o token do meta:
+    // CSRF (via <meta>), se tiver
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    async function postStatus(id, novo) {
+    // ===== envio com suporte a 'motivo' =====
+    async function postStatus(id, novo, motivo) {
         const params = new URLSearchParams({
-            ano: '{{ ano }}', status: '{{ status }}', q: '{{ q }}',
-            obm_id: '{{ obm_id or "" }}',
-            page: '{{ request.args.get("page", 1) }}',
-            per_page: '{{ request.args.get("per_page", 20) }}',
+        ano: {{ (ano|default(''))|tojson }},
+        status: {{ (status|default(''))|tojson }},
+        q: {{ (q|default(''))|tojson }},
+        obm_id: {{ (obm_id|default(''))|tojson }},
+        page: {{ (request.args.get('page', 1))|tojson }},
+        per_page: {{ (request.args.get('per_page', 20))|tojson }},
         });
 
-        const url = '{{ url_for("acumulo.recebimento_mudar_status", decl_id=0) }}'.replace('0', id) + '?' + params.toString();
+        const url = {{ url_for("acumulo.recebimento_mudar_status", decl_id=0)|tojson }}.replace('0', id) + '?' + params.toString();
 
         const body = new URLSearchParams();
         body.set('status', novo);
+        if (motivo) body.set('motivo', motivo);
         if (csrf) body.set('csrf_token', csrf);
 
         const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString()
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
         });
-        if (!resp.ok) console.error('Falha ao mudar status para', novo, 'na declaração', id);
+        if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new Error(`Falha ao mudar status para ${novo} na declaração ${id}. HTTP ${resp.status}. ${txt}`);
+        }
     }
 
-    // Se DRH: 'validado'; senão: 'enviar_drh'
-    const statusForBulkValidate = {{ '\"validado\"' if is_drh_like else '\"enviar_drh\"' }};
-
+    // ===== mass-validate =====
+    const statusForBulkValidate = {{ ('validado' if is_drh_like else 'enviar_drh')|tojson }};
     async function runBulk(action) {
         const btns = [document.getElementById('mass-validar'), document.getElementById('mass-inconforme')].filter(Boolean);
         btns.forEach(b => b.disabled = true);
         try {
-            const ids = selectedIds();
-            if (!ids.length) return;
-            await Promise.allSettled(ids.map(id => postStatus(id, action)));
-            location.reload();
+        const ids = selectedIds();
+        if (!ids.length) {
+            alert('Selecione pelo menos uma declaração.');
+            return;
+        }
+        // motivo só é pedido no modal de inconforme (abaixo); aqui usamos sem motivo
+        await Promise.allSettled(ids.map(id => postStatus(id, action)));
+        location.reload();
         } finally {
-            btns.forEach(b => b.disabled = false);
+        btns.forEach(b => b.disabled = false);
+        }
+    }
+    document.getElementById('mass-validar')?.addEventListener('click', () => runBulk(statusForBulkValidate));
+
+    // =====================================================================
+    //                MODAL "INCONFORME" (linha e em massa)
+    // =====================================================================
+    const modalEl = document.getElementById('modal-inconforme');
+    const formInconforme = document.getElementById('form-inconforme');
+    const motivoInput = document.getElementById('motivo-inconforme');
+    const bulkInfo = document.getElementById('bulk-info');
+    const btnCancelar = document.getElementById('btn-cancelar-inconforme');
+
+    let inconformeMode = 'single';   // 'single' | 'bulk'
+    let currentDeclId = null;        // id da linha
+    let currentBulkIds = [];         // ids selecionados
+
+    function showModal() {
+        if (!modalEl) return;
+        modalEl.classList.add('show');
+        modalEl.setAttribute('aria-hidden', 'false');
+        if (motivoInput) {
+        motivoInput.value = '';
+        setTimeout(() => motivoInput.focus(), 0);
+        }
+        console.log('[recebimento] modal aberto, modo=', inconformeMode, 'declId=', currentDeclId, 'bulkIds=', currentBulkIds);
+    }
+    function hideModal() {
+        if (!modalEl) return;
+        modalEl.classList.remove('show');
+        modalEl.setAttribute('aria-hidden', 'true');
+        currentDeclId = null;
+        currentBulkIds = [];
+        if (bulkInfo) {
+        bulkInfo.classList.add('d-none');
+        bulkInfo.textContent = '';
         }
     }
 
-    document.getElementById('mass-validar')?.addEventListener('click', () => runBulk(statusForBulkValidate));
-    document.getElementById('mass-inconforme')?.addEventListener('click', () => runBulk('inconforme'));
+    btnCancelar?.addEventListener('click', hideModal);
+    modalEl?.addEventListener('click', (e) => {
+        if (e.target === modalEl) hideModal(); // clique fora fecha
+    });
+
+    // -------- abrir modal por linha (delegação) --------
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-inconforme');
+        if (!btn) return; // não é o botão de inconforme
+        e.preventDefault();
+        e.stopPropagation();
+
+        const tr = btn.closest('tr[data-id]');
+        const declId = btn.dataset.declId || tr?.dataset.id;
+        if (!declId) {
+        console.warn('[recebimento] botão Inconforme sem decl_id.');
+        return;
+        }
+
+        inconformeMode = 'single';
+        currentDeclId = declId;
+        if (bulkInfo) bulkInfo.classList.add('d-none');
+        showModal();
+    });
+
+    // -------- abrir modal em massa --------
+    document.getElementById('mass-inconforme')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const ids = selectedIds();
+        if (!ids.length) {
+        alert('Selecione pelo menos uma declaração.');
+        return;
+        }
+        inconformeMode = 'bulk';
+        currentBulkIds = ids;
+        if (bulkInfo) {
+        bulkInfo.textContent = `Você marcará ${ids.length} declaração(ões) como INCONFORME com o mesmo motivo.`;
+        bulkInfo.classList.remove('d-none');
+        }
+        showModal();
+    });
+
+    // -------- envio do modal --------
+    formInconforme?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const motivo = (motivoInput?.value || '').trim();
+        if (!motivo) {
+        motivoInput?.focus();
+        return;
+        }
+        try {
+        if (inconformeMode === 'single' && currentDeclId) {
+            await postStatus(currentDeclId, 'inconforme', motivo);
+        } else if (inconformeMode === 'bulk' && currentBulkIds.length) {
+            await Promise.allSettled(currentBulkIds.map(id => postStatus(id, 'inconforme', motivo)));
+        }
+        hideModal();
+        location.reload();
+        } catch (err) {
+        console.error('[recebimento] erro ao marcar inconforme:', err);
+        alert('Não foi possível atualizar. Tente novamente.');
+        }
+    });
+
+    console.log('[recebimento] handlers prontos');
+});
 </script>
 
 {% endblock %}

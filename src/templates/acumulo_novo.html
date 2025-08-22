@@ -70,8 +70,8 @@
                     <label class="form-label">Tipo de declaração</label>
                     <select class="form-select" id="tipo-select" name="tipo" required>
                         <option value="" selected disabled>Selecione…</option>
-                        <option value="positiva">Positiva (com vínculo)</option>
-                        <option value="negativa">Negativa (sem vínculo)</option>
+                        <option value="positiva">Com vínculo</option>
+                        <option value="negativa">Sem vínculo</option>
                     </select>
                     <div class="invalid-feedback">Escolha o tipo de declaração.</div>
                 </div>
@@ -110,7 +110,7 @@
                             <option value="publico">Público</option>
                             <option value="privado">Privado</option>
                             <option value="cooperativa">Cooperativa</option>
-                            <option value="autonomo">Autônomo</option>
+                            <option value="profissional_liberal">Profissional Liberal</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -126,7 +126,15 @@
                             <option value="efetivo">Efetivo</option>
                             <option value="contratado">Contratado</option>
                             <option value="prestacao_servicos">Prestação de serviços</option>
-                            <option value="autonomo">Autônomo</option>
+                            <option value="profissional_liberal">Profissional Liberal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Jornada de trabalho</label>
+                        <select class="form-select" name="jornada_trabalho">
+                            <option value="" selected disabled>Selecione…</option>
+                            <option value="Escala">Escala</option>
+                            <option value="Expediente">Expediente</option>
                         </select>
                     </div>
                     <div class="col-md-5">
@@ -138,11 +146,11 @@
                         <input type="number" class="form-control" name="carga_horaria_semanal" min="1" max="80">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Horário início</label>
+                        <label class="form-label">Horário de entrada</label>
                         <input type="time" class="form-control" name="horario_inicio">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Horário fim</label>
+                        <label class="form-label">Horário de saída</label>
                         <input type="time" class="form-control" name="horario_fim">
                     </div>
                     <div class="col-md-3">
