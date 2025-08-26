@@ -3931,20 +3931,15 @@ def atualizacao_cadastral():
 
         session['email_atualizacao'] = email_digitado
 
-        # 🔒 VERIFICA SE CPF JÁ EXISTE NA TABELA USER
-        # Exemplo: 12345678900 → 123.456.789-00
         cpf_formatado = formatar_cpf(cpf)
         user = User.query.filter_by(cpf=cpf_formatado).first()
 
         if user:
             flash("⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar a atualização.", "warning")
-            # Altere para a sua rota de login de atualização cadastral
             return redirect(url_for('login_atualizacao'))
 
         # Gera token
         token = str(uuid.uuid4())[:6].upper()  # Ex: 'A1B2C3'
-
-        # Salva no banco
         token_entry = TokenVerificacao(
             cpf=cpf,
             token=token,
