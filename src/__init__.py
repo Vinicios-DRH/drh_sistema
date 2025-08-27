@@ -5,9 +5,10 @@ from flask_login import LoginManager
 from supabase import create_client  # ← importa aqui
 from dotenv import load_dotenv
 import os, pathlib
-from sqlalchemy import event
+from sqlalchemy import event, text
 import time, logging
 from sqlalchemy.pool import Pool
+import threading
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -24,12 +25,16 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.cselsnczhbsinizmw
 app.config['SECRET_KEY'] = '60cc737479829f9462369024bee383ce'
 app.config["UPLOAD_FOLDER"] = "static/boletim_geral"
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 5,          # se tiver poucos workers, 3–5 é o suficiente
-    "max_overflow": 0,       # evita estourar conexões no plano free
+    "pool_size": 5,
+    "max_overflow": 0,       # free: evita estourar conexões
     "pool_pre_ping": True,
     "pool_recycle": 1800,
     "pool_use_lifo": True,   # devolve e pega a conexão mais recente -> mais quente
 }
+
+# --- flags para rodar só uma vez por worker ---
+_pool_warmed = False
+_pool_warm_lock = threading.Lock()
 
 app.jinja_env.globals.update(enumerate=enumerate)
 
@@ -65,6 +70,32 @@ def on_checkin(dbapi_con, con_record):
     if t0:
         alive_ms = (time.perf_counter() - t0)*1000
         logger.info(f"[POOL] conexão ficou viva por {alive_ms:.0f} ms")
+
+
+def _prime_pool_once():
+    global _pool_warmed
+    if _pool_warmed:
+        return
+    with _pool_warm_lock:
+        if _pool_warmed:
+            return
+        # estamos em app/request context aqui
+        eng = database.engine          # <-- troquei aqui (ou: database.get_engine())
+        pool_size = app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}).get('pool_size', 5)
+        conns = []
+        try:
+            for _ in range(pool_size):
+                c = eng.connect()
+                c.execute(text("SELECT 1")).fetchone()
+                conns.append(c)
+        finally:
+            for c in conns:
+                c.close()
+        _pool_warmed = True
+
+@app.before_request   # existe no Flask 3.x
+def _warm_pool_if_needed():
+    _prime_pool_once()
 
 
 @app.template_filter("br_currency")

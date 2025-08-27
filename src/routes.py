@@ -69,13 +69,39 @@ def db_ping_10():
     }
 
 
-@app.route("/db-ping")
-def db_ping():
-    t0 = time.perf_counter()
-    database.session.execute(database.text("SELECT 1"))
-    dt = (time.perf_counter() - t0)*1000
-    return {"db_ping_ms": round(dt, 1)}
+@app.route("/db-ping-conn")
+def db_ping_conn():
+    times = []
+    with database.engine.connect() as conn:
+        for _ in range(20):
+            t0 = time.perf_counter()
+            conn.execute(text("SELECT 1")).fetchone()
+            times.append((time.perf_counter()-t0)*1000)
+    return {
+        "avg_ms": round(statistics.mean(times),1),
+        "p50_ms": round(statistics.median(times),1),
+        "min_ms": round(min(times),1),
+        "max_ms": round(max(times),1),
+        "samples": [round(x,1) for x in times]
+    }
 
+
+
+@app.route("/db-ping-pool")
+def db_ping_pool():
+    times=[]
+    for _ in range(20):
+        t0=time.perf_counter()
+        database.session.execute(text("SELECT 1"))  # pega/devolve conexão sempre
+        times.append((time.perf_counter()-t0)*1000)
+    return {
+        "avg_ms": round(statistics.mean(times),1),
+        "p50_ms": round(statistics.median(times),1),
+        "min_ms": round(min(times),1),
+        "max_ms": round(max(times),1),
+        "samples": [round(x,1) for x in times]
+    }
+    
 
 @app.context_processor
 def inject_militar_atual():
