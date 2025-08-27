@@ -5,6 +5,9 @@ from flask_login import LoginManager
 from supabase import create_client  # ← importa aqui
 from dotenv import load_dotenv
 import os, pathlib
+from sqlalchemy import event
+import time, logging
+from sqlalchemy.pool import Pool
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -20,6 +23,14 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.cselsnczhbsinizmwtcv:drhsistema2025@aws-0-us-west-1.pooler.supabase.com:5432/postgres'
 app.config['SECRET_KEY'] = '60cc737479829f9462369024bee383ce'
 app.config["UPLOAD_FOLDER"] = "static/boletim_geral"
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 5,          # se tiver poucos workers, 3–5 é o suficiente
+    "max_overflow": 0,       # evita estourar conexões no plano free
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,
+    "pool_use_lifo": True,   # devolve e pega a conexão mais recente -> mais quente
+}
+
 app.jinja_env.globals.update(enumerate=enumerate)
 
 # Inicializa extensões
@@ -28,6 +39,32 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'alert-info'
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("sqlalchemy_timing")
+
+with app.app_context():
+    engine = database.engine
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        context._query_start_time = time.perf_counter()
+
+    @event.listens_for(engine, "after_cursor_execute")
+    def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        total_ms = (time.perf_counter() - getattr(context, "_query_start_time", time.perf_counter()))*1000
+        logger.info(f"[DB] {total_ms:.1f} ms | rows={cursor.rowcount} | {statement[:120]} ...")
+
+@event.listens_for(Pool, "checkout")
+def on_checkout(dbapi_con, con_record, con_proxy):
+    con_record.info["checkout_t0"] = time.perf_counter()
+
+@event.listens_for(Pool, "checkin")
+def on_checkin(dbapi_con, con_record):
+    t0 = con_record.info.pop("checkout_t0", None)
+    if t0:
+        alive_ms = (time.perf_counter() - t0)*1000
+        logger.info(f"[POOL] conexão ficou viva por {alive_ms:.0f} ms")
 
 
 @app.template_filter("br_currency")

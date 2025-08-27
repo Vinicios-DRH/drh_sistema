@@ -35,7 +35,7 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func
+from sqlalchemy import case, func, text
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -51,6 +51,30 @@ import re
 import plotly.graph_objs as go
 import plotly.io as pio
 from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
+import time, statistics
+
+@app.route("/db-ping-10")
+def db_ping_10():
+    times=[]
+    for _ in range(10):
+        t0=time.perf_counter()
+        database.session.execute(text("SELECT 1"))
+        times.append((time.perf_counter()-t0)*1000)
+    return {
+        "avg_ms": round(statistics.mean(times),1),
+        "p50_ms": round(statistics.median(times),1),
+        "min_ms": round(min(times),1),
+        "max_ms": round(max(times),1),
+        "samples": [round(x,1) for x in times]
+    }
+
+
+@app.route("/db-ping")
+def db_ping():
+    t0 = time.perf_counter()
+    database.session.execute(database.text("SELECT 1"))
+    dt = (time.perf_counter() - t0)*1000
+    return {"db_ping_ms": round(dt, 1)}
 
 
 @app.context_processor
