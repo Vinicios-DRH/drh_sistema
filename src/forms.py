@@ -450,7 +450,7 @@ class IdentificacaoForm(FlaskForm):
     cpf = StringField("CPF", validators=[DataRequired()])
     email = StringField("E-mail para envio do token",
                         validators=[DataRequired(), Email()])
-    submit = SubmitField("Receber Token")
+    submit = SubmitField("Prosseguir")
 
 
 class TokenForm(FlaskForm):
