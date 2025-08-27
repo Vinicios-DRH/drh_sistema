@@ -535,6 +535,14 @@ class AtualizacaoCadastralForm(FlaskForm):
     submit = SubmitField('Salvar Alterações')
 
 
+class MatriculaConfirmForm(FlaskForm):
+    matricula_completa = StringField(
+        'Matrícula completa',
+        validators=[DataRequired(message="Informe sua matrícula."), Length(min=3, max=50)]
+    )
+    submit = SubmitField('Confirmar')
+
+
 class RecompensaAlunoForm(FlaskForm):
     natureza = StringField('Natureza', validators=[DataRequired()])
     autoridade = StringField('Autoridade', validators=[DataRequired()])

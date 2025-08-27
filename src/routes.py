@@ -20,7 +20,9 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm, RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, 
+                       IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm, 
+                       RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
@@ -3919,214 +3921,134 @@ def atualizacao_cadastral():
 
     if form.validate_on_submit():
         print("VALIDOU ✅")
-        cpf = form.cpf.data
+        cpf_raw = form.cpf.data
         email_digitado = form.email.data.strip().lower()
 
-        militar = Militar.query.filter_by(cpf=cpf).first()
+        # Se seu banco Militar guarda CPF com máscara, normalize ambos (ajuste conforme seu formatar_cpf)
+        cpf_formatado = formatar_cpf(cpf_raw)
 
+        militar = Militar.query.filter_by(cpf=cpf_formatado).first()
         if not militar:
-            flash(
-                "⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
+            flash("⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
             return render_template("atualizacao/identificacao.html", form=form)
 
         session['email_atualizacao'] = email_digitado
 
-        cpf_formatado = formatar_cpf(cpf)
+        # Checa se já existe User com esse CPF (com máscara, como você usa no login)
         user = User.query.filter_by(cpf=cpf_formatado).first()
-
         if user:
-            flash("⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar a atualização.", "warning")
+            flash("⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar.", "warning")
             return redirect(url_for('login_atualizacao'))
 
-        # Gera token
-        token = str(uuid.uuid4())[:6].upper()  # Ex: 'A1B2C3'
-        token_entry = TokenVerificacao(
-            cpf=cpf,
-            token=token,
-            criado_em=datetime.utcnow(),
-            usado=False
-        )
-        database.session.add(token_entry)
-        database.session.commit()
-
-        # Corpo do e-mail em HTML
-        corpo_email_html = f"""
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{
-                    font-family: 'Segoe UI', sans-serif;
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 20px;
-                    color: #333;
-                }}
-                .container {{
-                    background-color: #ffffff;
-                    max-width: 600px;
-                    margin: auto;
-                    border-radius: 8px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                    padding: 30px;
-                }}
-                .titulo {{
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #a50000;
-                    margin-bottom: 20px;
-                }}
-                .token {{
-                    font-size: 26px;
-                    font-weight: bold;
-                    color: #a50000;
-                    margin: 20px 0;
-                    text-align: center;
-                    letter-spacing: 3px;
-                }}
-                .rodape {{
-                    font-size: 14px;
-                    color: #777;
-                    margin-top: 40px;
-                    border-top: 1px solid #ddd;
-                    padding-top: 15px;
-                    text-align: center;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <p class="titulo">Solicitação de Atualização Cadastral</p>
-
-                <p>Recebemos uma solicitação para atualização cadastral no sistema do Corpo de Bombeiros Militar do Amazonas (CBMAM).</p>
-
-                <p>Utilize o código abaixo para prosseguir com a atualização:</p>
-
-                <p class="token">{token}</p>
-
-                <p>Este código é válido por até <strong>10 minutos</strong>.</p>
-
-                <p>Caso você não tenha solicitado esta operação, nenhuma ação será realizada e este e-mail pode ser desconsiderado.</p>
-
-                <div class="rodape">
-                    Diretoria de Recursos Humanos<br>
-                    Corpo de Bombeiros Militar do Amazonas – CBMAM
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-
-        # Envia e-mail HTML com smtplib
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = "Token de Verificação - Atualização Cadastral CBMAM"
-            msg["From"] = SMTP_LOGIN
-            msg["To"] = email_digitado
-
-            parte_html = MIMEText(corpo_email_html, "html")
-            msg.attach(parte_html)
-
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SMTP_LOGIN, SMTP_PASSWORD)
-                server.sendmail(SMTP_LOGIN, [email_digitado], msg.as_string())
-
-            flash("✅ Token enviado com sucesso para o e-mail informado!", "success")
-            return redirect(url_for('validar_token', cpf=cpf))
-        except Exception as e:
-            print(f"Erro ao enviar e-mail: {e}")
-            flash(f"❌ Erro ao enviar o e-mail: {str(e)}", "danger")
+        # 👉 Novo fluxo: pede confirmação da matrícula completa
+        session['cpf_em_validacao'] = cpf_formatado
+        return redirect(url_for('confirmar_matricula'))
 
     return render_template("atualizacao/identificacao.html", form=form)
 
 
-@app.route('/validar-token/<cpf>', methods=['GET', 'POST'])
-def validar_token(cpf):
-    form = TokenForm()
+def normaliza_matricula(valor: str) -> str:
+    if not valor:
+        return ""
+    # Remove espaços extras, mantém só números e letra final
+    # Ex: "123.456-7 A" → "1234567A"
+    return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
+
+
+@app.route('/confirmar-matricula', methods=['GET', 'POST'])
+def confirmar_matricula():
+    cpf = session.get('cpf_em_validacao')
+    if not cpf:
+        flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
+        return redirect(url_for('atualizacao_cadastral'))
+
+    form = MatriculaConfirmForm()
+    militar = Militar.query.filter_by(cpf=cpf).first()
+    if not militar:
+        flash("Militar não encontrado para o CPF em validação.", "danger")
+        session.pop('cpf_em_validacao', None)
+        return redirect(url_for('atualizacao_cadastral'))
 
     if form.validate_on_submit():
-        token_digitado = form.token.data.strip().upper()
+        matricula_informada = form.matricula_completa.data.strip()
 
-        # Busca token válido no banco
-        token_registro = TokenVerificacao.query.filter_by(
-            cpf=cpf,
-            token=token_digitado,
-            usado=False
-        ).order_by(TokenVerificacao.criado_em.desc()).first()
+        if normaliza_matricula(matricula_informada) != normaliza_matricula(militar.matricula):
+            flash("❌ Matrícula não confere com nossos registros para este CPF.", "danger")
+            return render_template(
+                'atualizacao/confirmar_matricula.html',
+                form=form,
+                cpf=cpf,
+                militar_nome=militar.nome_completo
+            )
 
-        if not token_registro:
-            flash("❌ Token inválido ou já utilizado.", "danger")
-            return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
+        session['matricula_validada'] = True
+        session['militar_id_validado'] = militar.id
 
-        # Validade de 10 minutos
-        criado_em_naive = token_registro.criado_em.replace(tzinfo=None)
-        expirado = criado_em_naive + timedelta(minutes=10) < datetime.now()
-        if expirado:
-            flash("⏰ Token expirado. Solicite um novo para continuar.", "warning")
-            return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
-
-        # Marca como usado
-        token_registro.usado = True
-        database.session.commit()
-
-        flash("✅ Token validado com sucesso! Crie sua senha para continuar.", "success")
+        flash("✅ Identidade confirmada com sucesso. Crie sua senha.", "success")
         return redirect(url_for('criar_senha', cpf=cpf))
 
-    return render_template("atualizacao/validar_token.html", form=form, cpf=cpf)
+    return render_template('atualizacao/confirmar_matricula.html', form=form, cpf=cpf, militar_nome=militar.nome_completo, matricula=militar.matricula
+    )
 
 
 @app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
 def criar_senha(cpf):
+    # Garante o mesmo padrão de CPF usado no sistema
+    cpf = formatar_cpf(cpf)
+
+    # 🔒 Só prossegue se matrícula tiver sido validada há pouco
+    if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
+        flash("Valide sua identidade antes de criar a senha.", "warning")
+        return redirect(url_for('atualizacao_cadastral'))
+
     form = CriarSenhaForm()
 
     # Já tem conta?
-    usuario_existente = User.query.filter_by(cpf=cpf).first()
-    if usuario_existente:
+    if User.query.filter_by(cpf=cpf).first():
         flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
+        _limpa_sessao_validacao()
         return redirect(url_for('login'))
 
     militar = Militar.query.filter_by(cpf=cpf).first()
     if not militar:
         flash("❌ Militar não encontrado para este CPF.", "danger")
+        _limpa_sessao_validacao()
         return redirect(url_for('atualizacao_cadastral'))
 
     if form.validate_on_submit():
-        senha_hash = bcrypt.generate_password_hash(
-            form.senha.data).decode('utf-8')
+        senha_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
 
         novo_usuario = User(
-            nome=militar.nome_completo,
-            cpf=cpf,
-            email=None,  # Pode buscar no TokenVerificacao se quiser salvar
+            nome=getattr(militar, 'nome_completo', getattr(militar, 'nome', '')),
+            cpf=cpf,  # mantendo com máscara
+            email=session.get('email_atualizacao'),
             senha=senha_hash,
-            funcao_user_id=12  # ID do perfil USUÁRIO COMUM
+            funcao_user_id=12  # USUÁRIO COMUM
         )
 
-        email_sess = session.get('email_atualizacao')
-        if email_sess:
-            novo_usuario.email = email_sess
-
-        militar = Militar.query.filter_by(cpf=cpf).first()
-        if militar:
-            obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
-            if hasattr(novo_usuario, 'obm_id_1'):
-                novo_usuario.obm_id_1 = obm_id_1
-            if hasattr(novo_usuario, 'obm_id_2'):
-                novo_usuario.obm_id_2 = obm_id_2
-            if hasattr(novo_usuario, 'localidade_id'):
-                novo_usuario.localidade_id = getattr(
-                    militar, 'localidade_id', None)
+        # Atribuições extras (se existirem as colunas no model User)
+        obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
+        if hasattr(novo_usuario, 'obm_id_1'):
+            novo_usuario.obm_id_1 = obm_id_1
+        if hasattr(novo_usuario, 'obm_id_2'):
+            novo_usuario.obm_id_2 = obm_id_2
+        if hasattr(novo_usuario, 'localidade_id'):
+            novo_usuario.localidade_id = getattr(militar, 'localidade_id', None)
 
         database.session.add(novo_usuario)
         database.session.commit()
 
+        _limpa_sessao_validacao()
         flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
-        # ou redirecionar direto pra home se quiser
         return redirect(url_for('login_atualizacao'))
 
     return render_template('atualizacao/criar_senha.html', form=form, cpf=cpf)
+
+
+def _limpa_sessao_validacao():
+    for k in ['matricula_validada', 'cpf_em_validacao', 'militar_id_validado', 'email_atualizacao']:
+        session.pop(k, None)
+
 
 
 @app.route('/formulario-atualizacao-cadastral', methods=['GET', 'POST'])
