@@ -355,18 +355,15 @@
                                     <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') }}</td>
                                     <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') }}</td>
                                     <td>
-                        <span style="background-color:
-                            {% if militar.status == 'Vigente' %}
-                                lightgreen
-                            {% elif militar.status == 'Término da Licença Especial' %}
-                                lightcoral
-                            {% else %}
-                                transparent
-                            {% endif %}; padding: 5px;">
-                            {{ militar.status }}
-                        </span>
+                                        <span class="badge"
+                                            style="background-color:
+                                                {% if militar.status == 'Vigente' %}lightgreen
+                                                {% elif militar.status == 'A iniciar' %}khaki
+                                                {% else %}lightcoral{% endif %};">
+                                        {{ militar.status }}
+                                        </span>
                                     </td>
-                                    <td>{{ militar.publicacao_bg.boletim_geral }}</td>
+                                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
                                 </tr>
                                 {% endfor %}
                                 </tbody>
@@ -421,7 +418,7 @@
                                         {{ militar.status }}
                                     </span>
                                     </td>
-                                    <td>{{ militar.publicacao_bg.boletim_geral }}</td>
+                                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
                                 </tr>
                                 {% endfor %}
                                 </tbody>

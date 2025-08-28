@@ -53,6 +53,7 @@ import plotly.io as pio
 from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
 import time, statistics
 
+
 @app.route("/db-ping-10")
 def db_ping_10():
     times=[]
@@ -880,6 +881,30 @@ def exibir_militar(militar_id):
                 # Se o boletim_geral existir, utiliza o valor; caso contrário, mantém como vazio
                 getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
 
+
+    def parse_date(d):
+        """Aceita date, string 'YYYY-MM-DD' ou 'DD/MM/YYYY'. Retorna date ou None."""
+        if not d:
+            return None
+        if isinstance(d, datetime):
+            return d.date()
+        if hasattr(d, 'strftime'):  # já é date
+            return d
+        s = str(d).strip()
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                pass
+        return None  # não converteu
+
+
+    def safe_bg_id(militar_id):
+        """Tenta pegar BG de situacao_militar; se não achar, retorna None (não bloqueia criação)."""
+        bg = PublicacaoBg.query.filter_by(militar_id=militar_id, tipo_bg='situacao_militar').first()
+        return bg.id if bg else None
+
+
     if form_militar.validate_on_submit():
         form_militar.process(request.form)
 
@@ -942,8 +967,8 @@ def exibir_militar(militar_id):
         militar.situacao_id = form_militar.situacao_id.data
         militar.agregacoes_id = form_militar.agregacoes_id.data
         militar.destino_id = form_militar.destino_id.data
-        militar.inicio_periodo = form_militar.inicio_periodo.data
-        militar.fim_periodo = form_militar.fim_periodo.data
+        militar.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
+        militar.fim_periodo = parse_date(form_militar.fim_periodo.data)
         militar.ltip_afastamento_cargo_eletivo = form_militar.ltip_afastamento_cargo_eletivo.data
         militar.periodo_ltip = form_militar.periodo_ltip.data
         militar.total_ltip = form_militar.total_ltip.data
@@ -1068,163 +1093,71 @@ def exibir_militar(militar_id):
         situacao_selecionada = Situacao.query.get(
             form_militar.situacao_id.data)
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
+            bg_id = safe_bg_id(militar.id)  # pode ser None
+            militar_agregado = MilitaresAgregados.query.filter_by(militar_id=militar.id).first()
+            if not militar_agregado:
+                militar_agregado = MilitaresAgregados(militar_id=militar.id)
+                database.session.add(militar_agregado)
 
-            # Verifica se há uma publicação BG associada ao militar e à situação
-            publicacao_situacao_bg = PublicacaoBg.query.filter_by(
-                militar_id=militar.id,
-                tipo_bg='situacao_militar'
-            ).first()
+            militar_agregado.posto_grad_id = form_militar.posto_grad_id.data
+            militar_agregado.quadro_id = form_militar.quadro_id.data
+            militar_agregado.destino_id = form_militar.destino_id.data
+            militar_agregado.situacao_id = situacao_selecionada.id
+            militar_agregado.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
+            militar_agregado.fim_periodo_agregacao = parse_date(form_militar.fim_periodo.data)
+            militar_agregado.publicacao_bg_id = bg_id
+            militar_agregado.atualizar_status()
 
-            if publicacao_situacao_bg:
-                # Verifica se o militar já está na tabela 'militares_agregados'
-                militar_agregado = MilitaresAgregados.query.filter_by(
-                    militar_id=militar.id).first()
-
-                if militar_agregado:
-                    # Atualiza o registro existente
-                    militar_agregado.posto_grad_id = form_militar.posto_grad_id.data
-                    militar_agregado.quadro_id = form_militar.quadro_id.data
-                    militar_agregado.destino_id = form_militar.destino_id.data
-                    militar_agregado.situacao_id = situacao_selecionada.id
-                    militar_agregado.inicio_periodo = form_militar.inicio_periodo.data
-                    militar_agregado.fim_periodo_agregacao = form_militar.fim_periodo.data
-                    militar_agregado.publicacao_bg_id = publicacao_situacao_bg.id
-                else:
-                    # Cria um novo registro
-                    militar_agregado = MilitaresAgregados(
-                        militar_id=militar.id,
-                        posto_grad_id=form_militar.posto_grad_id.data,
-                        quadro_id=form_militar.quadro_id.data,
-                        destino_id=form_militar.destino_id.data,
-                        situacao_id=situacao_selecionada.id,
-                        inicio_periodo=form_militar.inicio_periodo.data,
-                        fim_periodo_agregacao=form_militar.fim_periodo.data,
-                        publicacao_bg_id=publicacao_situacao_bg.id
-                    )
-                    database.session.add(militar_agregado)
-
-                # Atualiza o status e faz o commit no banco
-                militar_agregado.atualizar_status()
-                database.session.commit()
-            else:
-                print("Publicação BG não encontrada para o militar agregado.")
-                flash(
-                    "Publicação BG não encontrada para o militar agregado.", "alert-danger")
-
-        # Verifica se a situação selecionada é "À DISPOSIÇÃO"
+        # À DISPOSIÇÃO
         if situacao_selecionada and situacao_selecionada.condicao == 'À DISPOSIÇÃO':
+            bg_id = safe_bg_id(militar.id)
+            militar_a_disposicao = MilitaresADisposicao.query.filter_by(militar_id=militar.id).first()
+            if not militar_a_disposicao:
+                militar_a_disposicao = MilitaresADisposicao(militar_id=militar.id)
+                database.session.add(militar_a_disposicao)
 
-            # Verifica se há uma publicação BG associada ao militar e à situação
-            publicacao_situacao_bg = PublicacaoBg.query.filter_by(
-                militar_id=militar.id,
-                tipo_bg='situacao_militar'
-            ).first()
+            militar_a_disposicao.posto_grad_id = form_militar.posto_grad_id.data
+            militar_a_disposicao.quadro_id = form_militar.quadro_id.data
+            militar_a_disposicao.destino_id = form_militar.destino_id.data
+            militar_a_disposicao.situacao_id = situacao_selecionada.id
+            militar_a_disposicao.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
+            militar_a_disposicao.fim_periodo_disposicao = parse_date(form_militar.fim_periodo.data)
+            militar_a_disposicao.publicacao_bg_id = bg_id
+            militar_a_disposicao.atualizar_status()
 
-            if publicacao_situacao_bg:
-                # Verifica se o militar já está na tabela 'militares_a_disposicao'
-                militar_a_disposicao = MilitaresADisposicao.query.filter_by(
-                    militar_id=militar.id).first()
-
-                if militar_a_disposicao:
-                    # Atualiza o registro existente
-                    militar_a_disposicao.posto_grad_id = form_militar.posto_grad_id.data
-                    militar_a_disposicao.quadro_id = form_militar.quadro_id.data
-                    militar_a_disposicao.destino_id = form_militar.destino_id.data
-                    militar_a_disposicao.situacao_id = situacao_selecionada.id
-                    militar_a_disposicao.inicio_periodo = form_militar.inicio_periodo.data
-                    militar_a_disposicao.fim_periodo_disposicao = form_militar.fim_periodo.data
-                    militar_a_disposicao.publicacao_bg_id = publicacao_situacao_bg.id
-                else:
-                    # Cria um novo registro
-                    militar_a_disposicao = MilitaresADisposicao(
-                        militar_id=militar.id,
-                        posto_grad_id=form_militar.posto_grad_id.data,
-                        quadro_id=form_militar.quadro_id.data,
-                        destino_id=form_militar.destino_id.data,
-                        situacao_id=situacao_selecionada.id,
-                        inicio_periodo=form_militar.inicio_periodo.data,
-                        fim_periodo_disposicao=form_militar.fim_periodo.data,
-                        publicacao_bg_id=publicacao_situacao_bg.id
-                    )
-                    database.session.add(militar_a_disposicao)
-
-                # Atualiza o status e faz o commit no banco
-                militar_a_disposicao.atualizar_status()
-                database.session.commit()
-            else:
-                flash(
-                    "Publicação BG não encontrada para o militar à disposição.", "alert-danger")
-
+        # LICENÇA ESPECIAL
         if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
-            publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
-                                                                  tipo_bg='situacao_militar').first()
+            bg_id = safe_bg_id(militar.id)
+            militar_le = LicencaEspecial.query.filter_by(militar_id=militar.id).first()
+            if not militar_le:
+                militar_le = LicencaEspecial(militar_id=militar.id)
+                database.session.add(militar_le)
 
-            if publicacao_situacao_bg:
-                militar_le = LicencaEspecial.query.filter_by(
-                    militar_id=militar.id).first()
+            militar_le.posto_grad_id = form_militar.posto_grad_id.data
+            militar_le.quadro_id = form_militar.quadro_id.data
+            militar_le.destino_id = form_militar.destino_id.data
+            militar_le.situacao_id = situacao_selecionada.id
+            militar_le.inicio_periodo_le = parse_date(form_militar.inicio_periodo.data)
+            militar_le.fim_periodo_le = parse_date(form_militar.fim_periodo.data)
+            militar_le.publicacao_bg_id = bg_id
+            militar_le.atualizar_status()
 
-                if militar_le:
-                    militar_le.posto_grad_id = form_militar.posto_grad_id.data
-                    militar_le.quadro_id = form_militar.quadro_id.data
-                    militar_le.destino_id = form_militar.destino_id.data
-                    militar_le.situacao_id = situacao_selecionada.id
-                    militar_le.inicio_periodo_le = form_militar.inicio_periodo.data
-                    militar_le.fim_periodo_le = form_militar.fim_periodo.data
-                    militar_le.publicacao_bg_id = publicacao_situacao_bg.id
-
-                else:
-                    militar_le = LicencaEspecial(
-                        militar_id=militar.id,
-                        posto_grad_id=form_militar.posto_grad_id.data,
-                        quadro_id=form_militar.quadro_id.data,
-                        destino_id=form_militar.destino_id.data,
-                        situacao_id=situacao_selecionada.id,
-                        inicio_periodo_le=form_militar.inicio_periodo.data,
-                        fim_periodo_le=form_militar.fim_periodo.data,
-                        publicacao_bg_id=publicacao_situacao_bg.id
-                    )
-                    database.session.add(militar_le)
-
-                militar_le.atualizar_status()
-                database.session.commit()
-            else:
-                flash(
-                    "Publicação BG não encontrada para a Licença Especial.", "alert-danger")
-
+        # LTS
         if situacao_selecionada and situacao_selecionada.condicao == 'LTS':
-            publicacao_situacao_bg = PublicacaoBg.query.filter_by(militar_id=militar.id,
-                                                                  tipo_bg='situacao_militar').first()
+            bg_id = safe_bg_id(militar.id)
+            militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(militar_id=militar.id).first()
+            if not militar_lts:
+                militar_lts = LicencaParaTratamentoDeSaude(militar_id=militar.id)
+                database.session.add(militar_lts)
 
-            if publicacao_situacao_bg:
-                militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(
-                    militar_id=militar.id).first()
-
-                if militar_lts:
-                    militar_lts.posto_grad_id = form_militar.posto_grad_id.data
-                    militar_lts.quadro_id = form_militar.quadro_id.data
-                    militar_lts.destino_id = form_militar.destino_id.data
-                    militar_lts.situacao_id = situacao_selecionada.id
-                    militar_lts.inicio_periodo_lts = form_militar.inicio_periodo.data
-                    militar_lts.fim_periodo_lts = form_militar.fim_periodo.data
-                    militar_lts.publicacao_bg_id = publicacao_situacao_bg.id
-
-                else:
-                    militar_lts = LicencaParaTratamentoDeSaude(
-                        militar_id=militar.id,
-                        posto_grad_id=form_militar.posto_grad_id.data,
-                        quadro_id=form_militar.quadro_id.data,
-                        destino_id=form_militar.destino_id.data,
-                        situacao_id=situacao_selecionada.id,
-                        inicio_periodo_lts=form_militar.inicio_periodo.data,
-                        fim_periodo_lts=form_militar.fim_periodo.data,
-                        publicacao_bg_id=publicacao_situacao_bg.id
-                    )
-                    database.session.add(militar_lts)
-
-                militar_lts.atualizar_status()
-                database.session.commit()
-            else:
-                flash("Publicação BG não encontrada para a LTS.", "alert-danger")
+            militar_lts.posto_grad_id = form_militar.posto_grad_id.data
+            militar_lts.quadro_id = form_militar.quadro_id.data
+            militar_lts.destino_id = form_militar.destino_id.data
+            militar_lts.situacao_id = situacao_selecionada.id
+            militar_lts.inicio_periodo_lts = parse_date(form_militar.inicio_periodo.data)
+            militar_lts.fim_periodo_lts = parse_date(form_militar.fim_periodo.data)
+            militar_lts.publicacao_bg_id = bg_id
+            militar_lts.atualizar_status()
 
         try:
             database.session.commit()
