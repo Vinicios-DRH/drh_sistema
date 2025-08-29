@@ -705,7 +705,7 @@ def novo(militar_id):
         if natureza not in {"efetivo", "contratado", "prestacao_servicos", "profissional_liberal"}:
             flash("Natureza do vínculo inválida.", "alert-danger")
             return redirect(request.url)
-        if jornada not in {"Escala", "Expediente"}:
+        if jornada not in {"escala", "expediente"}:
             flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
             return redirect(request.url)
         if not (emp_nome and emp_doc and cargo and carga > 0 and h_ini and h_fim and d_ini):
