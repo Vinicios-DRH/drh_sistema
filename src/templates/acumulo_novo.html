@@ -198,57 +198,22 @@
     return true;
   }
 
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-  function triggerDownload(urlDownload, urlUpload) {
-    if (isIOS) {
-      if (isStandalonePWA) {
-        // 1) iOS em PWA: navegar na MESMA ABA para a URL do arquivo
-        window.location.href = urlDownload;
-        // ✅ NÃO redirecione automaticamente para o upload aqui.
-        // Sugestão: mostre um aviso/btn na interface para o usuário voltar
-        // e então seguir para o upload. Ex.:
-        // setTimeout(() => showToastComBotaoProsseguir(urlUpload), 1200);
-        return;
-      } else {
-        // 2) iOS Safari normal: baixar via iframe oculto e depois redirecionar
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = urlDownload;
-        document.body.appendChild(iframe);
-        // pequeno delay para não cancelar o download
-        setTimeout(() => { window.location.href = urlUpload; }, 800);
-        return;
-      }
-    }
-
-    // 3) Android/desktop: mantém a estratégia da aba pré-aberta
-    const downloadTab = window.open('about:blank', '_blank');
-    if (downloadTab) {
-      downloadTab.location = urlDownload;
-      setTimeout(() => { window.location.href = urlUpload; }, 500);
-    } else {
-      // fallback se bloquearem popup
-      window.location.href = urlDownload;
-      // dá um tempinho e depois vai para upload
-      setTimeout(() => { window.location.href = urlUpload; }, 800);
-    }
-  }
-
-  // --- No seu handler atual, troque apenas o bloco que “abre” o arquivo:
   btnModelo.addEventListener('click', async () => {
     if (!valida()) { form.classList.add('was-validated'); return; }
 
+    // 1) iOS/Safari: pré-abre aba em branco SINCRONAMENTE (preserva gesto do usuário)
+    const downloadTab = window.open('about:blank', '_blank');
+
     const fd = new FormData(form);
     try {
+      // 2) prepara no backend
       const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
       const data = await prep.json();
       if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
 
       const militarId = fd.get('militar_id');
 
+      // 3) monta querystring
       const params = new URLSearchParams({
         ano: fd.get('ano') || '',
         tipo: fd.get('tipo') || '',
@@ -269,8 +234,22 @@
       const urlDownload = '{{ url_for("acumulo.modelo_docx", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?' + params.toString();
       const urlUpload   = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
 
-      triggerDownload(urlDownload, urlUpload);
+      // 4) envia o download para a ABA PRÉ-ABERTA
+      if (downloadTab) {
+        downloadTab.location = urlDownload;
+      } else {
+        // fallback (popup bloqueado): usa mesma aba
+        window.location.href = urlDownload;
+      }
+
+      // 5) dá um pequeno delay antes de redirecionar a aba atual (evita cancelar o download no iOS)
+      setTimeout(() => {
+        window.location.href = urlUpload;
+      }, 600);
+
     } catch (e) {
+      // se falhar, fecha a aba em branco pra não ficar lixo
+      try { downloadTab?.close(); } catch(_) {}
       alert('Erro: ' + e.message);
     }
   });
