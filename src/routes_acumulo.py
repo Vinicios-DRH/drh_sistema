@@ -1569,19 +1569,20 @@ def detalhe(decl_id):
         pode_editar=pode_editar,
     )
 
-
-@bp_acumulo.route("/modelo_docx/<int:militar_id>", methods=["POST"])
+@bp_acumulo.route("/modelo_docx/<int:militar_id>", methods=["GET"])
 @login_required
 def modelo_docx(militar_id):
     if not (_is_super_user() or _militar_permitido(militar_id)):
         flash("Sem permissão para este militar.", "alert-danger")
         return redirect(url_for("acumulo.lista"))
 
-    # Cabeçalho do militar
+    # Você pode ler ano/tipo de querystring OU da sessão (se já guardou no prepara_geracao)
+    ano = request.args.get("ano", type=int) or datetime.now().year
+    tipo = (request.args.get("tipo") or "").lower()
+
     MOF = MilitarObmFuncao
     row = (
-        db.session.query(Militar, PostoGrad.sigla.label(
-            "pg_sigla"), Obm.sigla.label("obm_sigla"))
+        db.session.query(Militar, PostoGrad.sigla.label("pg_sigla"), Obm.sigla.label("obm_sigla"))
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
         .outerjoin(MOF, and_(MOF.militar_id == Militar.id, MOF.data_fim.is_(None)))
         .outerjoin(Obm, Obm.id == MOF.obm_id)
@@ -1592,23 +1593,16 @@ def modelo_docx(militar_id):
         abort(404)
     militar, pg_sigla, obm_sigla = row
 
-    ano = request.form.get("ano") or datetime.now().year
-    tipo = (request.form.get("tipo") or "").lower()
+    emp_nome = (request.args.get("empregador_nome") or "").strip()
+    emp_doc  = _digits(request.args.get("empregador_doc") or "")
+    natureza = (request.args.get("natureza_vinculo") or "").strip().replace("_", " ")
+    cargo    = (request.args.get("cargo_funcao") or "").strip()
+    carga    = (request.args.get("carga_horaria_semanal") or "").strip()
+    hi       = (request.args.get("horario_inicio") or "").strip()
+    hf       = (request.args.get("horario_fim") or "").strip()
+    dinicio_raw = request.args.get("data_inicio") or ""
+    dinicio  = formatar_data_sem_zero(dinicio_raw) if dinicio_raw else ""
 
-    # Campos do vínculo (1 vínculo)
-    emp_nome = (request.form.get("empregador_nome") or "").strip()
-    emp_doc = _digits(request.form.get("empregador_doc") or "")
-    natureza = (request.form.get("natureza_vinculo")
-                or "").strip().replace("_", " ")
-    cargo = (request.form.get("cargo_funcao") or "").strip()
-    carga = (request.form.get("carga_horaria_semanal") or "").strip()
-    hi = (request.form.get("horario_inicio") or "").strip()
-    hf = (request.form.get("horario_fim") or "").strip()
-    dinicio_raw = request.form.get("data_inicio") or ""
-    dinicio = formatar_data_sem_zero(dinicio_raw) if dinicio_raw else ""
-    horario = f"{hi} – {hf}" if (hi and hf) else ""
-
-    # Mapeamento exatamente com os placeholders do DOCX
     mapping = {
         "posto_grad": pg_sigla or "-",
         "nome":       militar.nome_completo,
@@ -1626,13 +1620,21 @@ def modelo_docx(militar_id):
         "data_atual":            datetime.today().strftime("%d/%m/%Y"),
     }
 
-    template_path = "src/template/declaracao_vinculo.docx"
-    buf = render_docx_from_template(template_path, mapping)
-
+    buf = render_docx_from_template("src/template/declaracao_vinculo.docx", mapping)
     filename = f"Declaracao_{(militar.nome_guerra or militar.nome_completo).replace(' ', '_')}_{ano}.docx"
-    return send_file(
+
+    # >>> cabeçalhos extras p/ iOS
+    resp = send_file(
         buf,
         as_attachment=True,
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
+    # Garante Content-Length
+    try:
+        resp.headers["Content-Length"] = str(buf.getbuffer().nbytes)
+    except Exception:
+        pass
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp

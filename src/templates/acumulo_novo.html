@@ -200,28 +200,50 @@
 
     btnModelo.addEventListener('click', async () => {
         if (!valida()) { form.classList.add('was-validated'); return; }
+
         const fd = new FormData(form);
+
         try {
-            // 1) atualiza User + guarda dados em sessão
-            const resp = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
-            const data = await resp.json();
-            if (!resp.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
+            // 1) prepara (atualiza user / guarda sessão)
+            const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
+            const data = await prep.json();
+            if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
 
             const militarId = fd.get('militar_id');
 
-            // 2) abre o DOCX numa nova aba (reutiliza tua rota atual)
-            const f2 = document.createElement('form');
-            f2.method = 'POST';
-            f2.action = '{{ url_for("acumulo.modelo_docx", militar_id=0) }}'.replace('/0', `/${militarId}`);
-            f2.target = '_blank';
-            for (const [k, v] of fd.entries()) {
-                const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f2.appendChild(i);
-            }
-            document.body.appendChild(f2); f2.submit();
+            // 2) monta a URL GET com query params (iOS friendly)
+            const params = new URLSearchParams({
+                ano: fd.get('ano') || '',
+                tipo: fd.get('tipo') || '',
+                empregador_nome: fd.get('empregador_nome') || '',
+                empregador_doc: fd.get('empregador_doc') || '',
+                natureza_vinculo: fd.get('natureza_vinculo') || '',
+                cargo_funcao: fd.get('cargo_funcao') || '',
+                carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
+                horario_inicio: fd.get('horario_inicio') || '',
+                horario_fim: fd.get('horario_fim') || '',
+                data_inicio: fd.get('data_inicio') || '',
+            });
 
-            // 3) redireciona para tela de upload simples
-            window.location.href = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
-        } catch (e) { alert('Erro: ' + e.message); }
+            // Se for negativa, não precisamos mandar os campos do vínculo
+            if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
+                ['empregador_nome','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio']
+                .forEach(k => params.delete(k));
+            }
+
+            // 3) abre o download em NOVA ABA (iOS baixa direitinho assim)
+            const urlDownload = '{{ url_for("acumulo.modelo_docx", militar_id=0) }}'
+                                    .replace('/0', `/${militarId}`) + '?' + params.toString();
+            window.open(urlDownload, '_blank');
+
+            // 4) na aba atual, já segue pra tela de upload
+            const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
+                                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+            window.location.href = urlUpload;
+
+        } catch (e) {
+            alert('Erro: ' + e.message);
+        }
     });
 </script>
 {% endblock %}
