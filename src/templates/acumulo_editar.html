@@ -86,7 +86,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Tipo</label>
                             <select class="form-select" name="empregador_tipo[]">
-                                {% for opt in ['publico','privado','cooperativa','autonomo'] %}
+                                {% for opt in ['publico','privado','cooperativa','profissional liberal'] %}
                                 <option value="{{ opt }}" {{ 'selected' if v.empregador_tipo==opt else '' }}>{{
                                     opt|capitalize }}</option>
                                 {% endfor %}
@@ -100,7 +100,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Natureza</label>
                             <select class="form-select" name="natureza_vinculo[]">
-                                {% for opt in ['efetivo','contratado','prestacao_servicos','autonomo'] %}
+                                {% for opt in ['efetivo','contratado','prestacao_servicos','profissional liberal'] %}
                                 <option value="{{ opt }}" {{ 'selected' if v.natureza_vinculo==opt else '' }}>{{
                                     opt.replace('_',' ')|capitalize }}</option>
                                 {% endfor %}

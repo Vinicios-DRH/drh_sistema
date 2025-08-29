@@ -962,11 +962,11 @@ class VinculoExterno(database.Model):
 
     empregador_nome = database.Column(database.String(150), nullable=False)
     empregador_tipo = database.Column(database.Enum(
-        'publico', 'privado', 'cooperativa', 'autonomo', name='tipo_empregador'), nullable=False)
+        'publico', 'privado', 'cooperativa', 'profissional_liberal', name='tipo_empregador'), nullable=False)
     # CNPJ (14) ou CPF (11) - salvar limpo
     empregador_doc = database.Column(database.String(18), nullable=False)
     natureza_vinculo = database.Column(database.Enum(
-        'efetivo', 'contratado', 'prestacao_servicos', 'autonomo', name='natureza_vinculo'), nullable=False)
+        'efetivo', 'contratado', 'prestacao_servicos', 'profissional_liberal', name='natureza_vinculo'), nullable=False)
     cargo_funcao = database.Column(database.String(120), nullable=False)
     jornada_trabalho = database.Column(
         database.Enum('Escala', 'Expediente',  name='jornada_trabalho'), nullable=False)
