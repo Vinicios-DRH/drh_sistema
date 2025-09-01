@@ -94,9 +94,15 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">CNPJ/CPF</label>
-                            <input class="form-control" name="empregador_doc[]" value="{{ v.empregador_doc }}"pattern="^\d{11}$|^\d{14}$"
-                            placeholder="somente dígitos">
-                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                            <input
+                                class="form-control"
+                                name="empregador_doc[]"
+                                value="{{ v.empregador_doc }}"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                maxlength="18"
+                                placeholder="somente dígitos">
+                                <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
                         </div>
 
                         <div class="col-md-3">
@@ -170,7 +176,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">CNPJ/CPF</label>
-                            <input class="form-control" name="empregador_doc[]">
+                            <input class="form-control" name="empregador_doc[]" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="somente dígitos">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Natureza</label>
@@ -218,141 +224,177 @@
 </div>
 
 <script>
-  const tipoSelect = document.getElementById('tipo-select');
-  const container = document.getElementById('vinculos-container');
-  const addBtn = document.getElementById('add-vinculo');
-  const tpl = document.getElementById('tpl-vinculo');
-  const form = document.getElementById('form-editar');
-  const btnModelo = document.getElementById('btn-gerar-modelo');
+    const tipoSelect = document.getElementById('tipo-select');
+    const container = document.getElementById('vinculos-container');
+    const addBtn = document.getElementById('add-vinculo');
+    const tpl = document.getElementById('tpl-vinculo');
+    const form = document.getElementById('form-editar');
+    const btnModelo = document.getElementById('btn-gerar-modelo');
 
-  function toggleVinculos() {
-    const isPositiva = tipoSelect.value === 'positiva';
-    addBtn.disabled = !isPositiva;
-    container.querySelectorAll('input, select, button.remove-btn').forEach(el => {
-      if (el.classList.contains('remove-btn')) el.disabled = !isPositiva;
-      else { el.required = isPositiva; el.disabled = !isPositiva; }
+    function toggleVinculos() {
+        const isPositiva = tipoSelect.value === 'positiva';
+        addBtn.disabled = !isPositiva;
+        container.querySelectorAll('input, select, button.remove-btn').forEach(el => {
+        if (el.classList.contains('remove-btn')) el.disabled = !isPositiva;
+        else { el.required = isPositiva; el.disabled = !isPositiva; }
+        });
+    }
+    function addVinculo() {
+        const node = tpl.content.cloneNode(true);
+        node.querySelector('.remove-btn').addEventListener('click', e => {
+        e.target.closest('.vinculo-card').remove();
+        });
+        container.appendChild(node);
+        toggleVinculos();
+    }
+    addBtn.addEventListener('click', addVinculo);
+    tipoSelect.addEventListener('change', () => {
+        if (tipoSelect.value === 'positiva' && container.children.length === 0) addVinculo();
+        toggleVinculos();
     });
-  }
-  function addVinculo() {
-    const node = tpl.content.cloneNode(true);
-    node.querySelector('.remove-btn').addEventListener('click', e => {
-      e.target.closest('.vinculo-card').remove();
+    toggleVinculos();
+    container.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => e.target.closest('.vinculo-card').remove());
     });
-    container.appendChild(node);
-    toggleVinculos();
-  }
-  addBtn.addEventListener('click', addVinculo);
-  tipoSelect.addEventListener('change', () => {
-    if (tipoSelect.value === 'positiva' && container.children.length === 0) addVinculo();
-    toggleVinculos();
-  });
-  toggleVinculos();
-  container.querySelectorAll('.remove-btn').forEach(btn => {
-    btn.addEventListener('click', e => e.target.closest('.vinculo-card').remove());
-  });
 
-  function getFirstVinculoFields() {
-    const cards = Array.from(container.querySelectorAll('.vinculo-card'));
-    for (const card of cards) {
-      const get = (n) => card.querySelector(`[name="${n}[]"]`)?.value?.trim() || '';
-      const nome = get('empregador_nome');
-      if (nome) {
-        return {
-          empregador_nome: nome,
-          empregador_tipo: get('empregador_tipo'),
-          empregador_doc: get('empregador_doc'),
-          natureza_vinculo: get('natureza_vinculo'),
-          cargo_funcao: get('cargo_funcao'),
-          carga_horaria_semanal: get('carga_horaria_semanal'),
-          horario_inicio: get('horario_inicio'),
-          horario_fim: get('horario_fim'),
-          data_inicio: get('data_inicio'),
-        };
-      }
-    }
-    return null;
-  }
-
-  function valida() {
-    const tipo = tipoSelect.value;
-    if (!tipo) return false;
-    if (tipo === 'positiva') {
-      const v = getFirstVinculoFields();
-      if (!v) return false;
-      const req = ['empregador_nome','empregador_tipo','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
-      return req.every(k => v[k]);
-    }
-    return true;
-  }
-
-  function digitsOnly(v){ return (v || '').replace(/\D+/g, ''); }
-
-  btnModelo.addEventListener('click', async () => {
-    if (!valida()) { form.classList.add('was-validated'); return; }
-
-    // monta FD mínimo para o prepara_geracao
-    const fd = new FormData();
-    fd.set('ano', form.querySelector('[name="ano"]').value);
-    fd.set('militar_id', form.querySelector('[name="militar_id"]').value);
-    fd.set('tipo', tipoSelect.value);
-    fd.set('observacoes', form.querySelector('[name="observacoes"]').value || '');
-
-    if (tipoSelect.value === 'positiva') {
-      const v = getFirstVinculoFields();
-      fd.set('empregador_nome', v.empregador_nome);
-      fd.set('empregador_tipo', v.empregador_tipo);
-      fd.set('empregador_doc', digitsOnly(v.empregador_doc));
-      fd.set('natureza_vinculo', v.natureza_vinculo);
-      fd.set('cargo_funcao', v.cargo_funcao);
-      fd.set('carga_horaria_semanal', v.carga_horaria_semanal);
-      fd.set('horario_inicio', v.horario_inicio);
-      fd.set('horario_fim', v.horario_fim);
-      fd.set('data_inicio', v.data_inicio);
+    function getFirstVinculoFields() {
+        const cards = Array.from(container.querySelectorAll('.vinculo-card'));
+        for (const card of cards) {
+        const get = (n) => card.querySelector(`[name="${n}[]"]`)?.value?.trim() || '';
+        const nome = get('empregador_nome');
+        if (nome) {
+            return {
+            empregador_nome: nome,
+            empregador_tipo: get('empregador_tipo'),
+            empregador_doc: get('empregador_doc'),
+            natureza_vinculo: get('natureza_vinculo'),
+            cargo_funcao: get('cargo_funcao'),
+            carga_horaria_semanal: get('carga_horaria_semanal'),
+            horario_inicio: get('horario_inicio'),
+            horario_fim: get('horario_fim'),
+            data_inicio: get('data_inicio'),
+            };
+        }
+        }
+        return null;
     }
 
-    try {
-      const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
-      const data = await prep.json();
-      if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar geração');
-
-      const militarId = fd.get('militar_id');
-
-      // querystring para a página intermediária
-      const p = new URLSearchParams({
-        ano: fd.get('ano') || '',
-        tipo: fd.get('tipo') || '',
-      });
-      if (fd.get('tipo') === 'positiva') {
-        p.set('empregador_nome', fd.get('empregador_nome') || '');
-        p.set('empregador_doc', digitsOnly(fd.get('empregador_doc') || ''));
-        p.set('natureza_vinculo', fd.get('natureza_vinculo') || '');
-        p.set('cargo_funcao', fd.get('cargo_funcao') || '');
-        p.set('carga_horaria_semanal', fd.get('carga_horaria_semanal') || '');
-        p.set('horario_inicio', fd.get('horario_inicio') || '');
-        p.set('horario_fim', fd.get('horario_fim') || '');
-        p.set('data_inicio', fd.get('data_inicio') || '');
-      }
-
-      const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
-                          .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
-      p.set('return_to', urlUpload);
-
-      const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
-                                 .replace('/0', `/${militarId}`) + '?' + p.toString();
-
-      const popup = window.open(urlIntermediaria, '_blank');
-      if (!popup) {
-        // popup bloqueada — usa a própria aba; a intermediária volta para return_to
-        window.location.href = urlIntermediaria;
-        return;
-      }
-
-      setTimeout(() => { window.location.href = urlUpload; }, 500);
-
-    } catch (e) {
-      alert('Erro: ' + e.message);
+    function valida() {
+        const tipo = tipoSelect.value;
+        if (!tipo) return false;
+        if (tipo === 'positiva') {
+        const v = getFirstVinculoFields();
+        if (!v) return false;
+        const req = ['empregador_nome','empregador_tipo','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
+        return req.every(k => v[k]);
+        }
+        return true;
     }
-  });
+
+    function digitsOnly(v){ return (v || '').replace(/\D+/g, ''); }
+    function isCpfCnpjValid(v){ const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
+    function setFieldError(el, msg){
+    el.setCustomValidity(msg || '');
+    el.classList.add('is-invalid');
+    el.reportValidity?.();
+    }
+    function clearFieldError(el){
+    el.setCustomValidity('');
+    el.classList.remove('is-invalid');
+    }
+
+    function bindLiveDocValidation(root){
+    const inputs = root.querySelectorAll('input[name="empregador_doc[]"]');
+    inputs.forEach(inp => {
+        inp.addEventListener('input', () => {
+        const cur = inp.value;
+        const cleaned = digitsOnly(cur);
+        if (cur !== cleaned) inp.value = cleaned;
+        if (cleaned.length === 0) { clearFieldError(inp); return; }
+        if (isCpfCnpjValid(cleaned)) clearFieldError(inp);
+        else setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+        });
+        inp.addEventListener('blur', () => {
+        const d = digitsOnly(inp.value);
+        if (!d || isCpfCnpjValid(d)) clearFieldError(inp);
+        else setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+        });
+    });
+    }
+
+    // binda nos já existentes e nos novos do template
+    bindLiveDocValidation(document);
+    addBtn.addEventListener('click', () => {
+    // o seu addVinculo já injeta o template; só precisamos rebinder depois de adicionar
+    setTimeout(() => bindLiveDocValidation(document), 0);
+    });
+
+    btnModelo.addEventListener('click', async () => {
+        if (!valida()) { form.classList.add('was-validated'); return; }
+
+        // monta FD mínimo para o prepara_geracao
+        const fd = new FormData();
+        fd.set('ano', form.querySelector('[name="ano"]').value);
+        fd.set('militar_id', form.querySelector('[name="militar_id"]').value);
+        fd.set('tipo', tipoSelect.value);
+        fd.set('observacoes', form.querySelector('[name="observacoes"]').value || '');
+
+        if (tipoSelect.value === 'positiva') {
+        const v = getFirstVinculoFields();
+        fd.set('empregador_nome', v.empregador_nome);
+        fd.set('empregador_tipo', v.empregador_tipo);
+        fd.set('empregador_doc', digitsOnly(v.empregador_doc));
+        fd.set('natureza_vinculo', v.natureza_vinculo);
+        fd.set('cargo_funcao', v.cargo_funcao);
+        fd.set('carga_horaria_semanal', v.carga_horaria_semanal);
+        fd.set('horario_inicio', v.horario_inicio);
+        fd.set('horario_fim', v.horario_fim);
+        fd.set('data_inicio', v.data_inicio);
+        }
+
+        try {
+        const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
+        const data = await prep.json();
+        if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar geração');
+
+        const militarId = fd.get('militar_id');
+
+        // querystring para a página intermediária
+        const p = new URLSearchParams({
+            ano: fd.get('ano') || '',
+            tipo: fd.get('tipo') || '',
+        });
+        if (fd.get('tipo') === 'positiva') {
+            p.set('empregador_nome', fd.get('empregador_nome') || '');
+            p.set('empregador_doc', digitsOnly(fd.get('empregador_doc') || ''));
+            p.set('natureza_vinculo', fd.get('natureza_vinculo') || '');
+            p.set('cargo_funcao', fd.get('cargo_funcao') || '');
+            p.set('carga_horaria_semanal', fd.get('carga_horaria_semanal') || '');
+            p.set('horario_inicio', fd.get('horario_inicio') || '');
+            p.set('horario_fim', fd.get('horario_fim') || '');
+            p.set('data_inicio', fd.get('data_inicio') || '');
+        }
+
+        const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
+                            .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+        p.set('return_to', urlUpload);
+
+        const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
+                                    .replace('/0', `/${militarId}`) + '?' + p.toString();
+
+        const popup = window.open(urlIntermediaria, '_blank');
+        if (!popup) {
+            // popup bloqueada — usa a própria aba; a intermediária volta para return_to
+            window.location.href = urlIntermediaria;
+            return;
+        }
+
+        setTimeout(() => { window.location.href = urlUpload; }, 500);
+
+        } catch (e) {
+        alert('Erro: ' + e.message);
+        }
+    });
 </script>
 
 {% endblock %}
