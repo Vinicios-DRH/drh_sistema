@@ -1569,6 +1569,7 @@ def detalhe(decl_id):
         pode_editar=pode_editar,
     )
 
+
 @bp_acumulo.route("/modelo_docx/<int:militar_id>", methods=["GET"])
 @login_required
 def modelo_docx(militar_id):
@@ -1638,3 +1639,106 @@ def modelo_docx(militar_id):
     resp.headers["Cache-Control"] = "no-store"
     resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
+
+
+@bp_acumulo.route("/modelo_docx_page/<int:militar_id>")
+@login_required
+def modelo_docx_page(militar_id):
+    from urllib.parse import urlencode
+
+    if not (_is_super_user() or _militar_permitido(militar_id)):
+        flash("Sem permissão para este militar.", "alert-danger")
+        return redirect(url_for("acumulo.lista"))
+
+    qs = request.query_string.decode("utf-8")
+    download_url = url_for("acumulo.modelo_docx", militar_id=militar_id, _external=False)
+    if qs:
+        download_url = f"{download_url}?{qs}"
+
+    return_to = request.args.get("return_to") or ""
+
+    html = f"""
+        <!doctype html>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Preparando download…</title>
+        <style>
+        body {{ font-family: system-ui,-apple-system,Segoe UI,Roboto; padding:16px; color:#333 }}
+        .muted {{ color:#666; font-size:.9rem }}
+        .hide {{ display:none }}
+        </style>
+        <p id="status">Preparando o download…</p>
+        <p class="muted">Se não iniciar em alguns segundos, esta página tentará abrir o arquivo diretamente.</p>
+
+        <script>
+        (async function() {{
+        const downloadUrl = {download_url!r};
+        const returnTo = {return_to!r};
+        const statusEl = document.getElementById('status');
+
+        // Tenta baixar via fetch -> Blob -> <a download>, que é o modo mais estável no iOS.
+        try {{
+            statusEl.textContent = "Gerando arquivo…";
+            const res = await fetch(downloadUrl, {{
+            // mesma origem; envia cookies de sessão
+            credentials: 'same-origin',
+            cache: 'no-store'
+            }});
+            if (!res.ok) throw new Error("HTTP " + res.status);
+
+            // tenta extrair o filename do Content-Disposition
+            let filename = "Declaracao.docx";
+            const cd = res.headers.get('Content-Disposition') || "";
+            const m = cd.match(/filename\\*?=(?:UTF-8''|")?([^\";]+)/i);
+            if (m && m[1]) {{
+            try {{
+                filename = decodeURIComponent(m[1].replace(/\\+/g, '%20')).replace(/\"/g, '');
+            }} catch(_e) {{
+                filename = m[1].replace(/\"/g, '');
+            }}
+            }}
+
+            statusEl.textContent = "Iniciando download…";
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+
+            // cria link invisível e clica
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || "Declaracao.docx";
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+
+            // dá tempo do iOS criar o arquivo antes de fechar/navegar
+            setTimeout(() => {{
+            try {{ URL.revokeObjectURL(url); }} catch(_e) {{}}
+            if (window.opener && !window.opener.closed) {{
+                window.close();
+            }} else if (returnTo) {{
+                location.replace(returnTo);
+            }}
+            }}, 1200);
+
+        }} catch (err) {{
+            // Fallback: abre direto a URL do arquivo (Safari pode mostrar o preview nativo do DOCX)
+            try {{
+            statusEl.textContent = "Abrindo arquivo…";
+            window.location.replace(downloadUrl);
+
+            // Depois tenta fechar/voltar (se for popup, fecha; se não, volta p/ returnTo)
+            setTimeout(() => {{
+                if (window.opener && !window.opener.closed) {{
+                window.close();
+                }} else if (returnTo) {{
+                location.replace(returnTo);
+                }}
+            }}, 2000);
+            }} catch(_e) {{
+            statusEl.textContent = "Não foi possível iniciar o download automaticamente.";
+            }}
+        }}
+        }})();
+        </script>
+        """
+    return html

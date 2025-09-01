@@ -198,27 +198,27 @@
     return true;
   }
 
+  function digitsOnly(v){ return (v || '').replace(/\D+/g, ''); }
+
   btnModelo.addEventListener('click', async () => {
     if (!valida()) { form.classList.add('was-validated'); return; }
 
-    // 1) iOS/Safari: pré-abre aba em branco SINCRONAMENTE (preserva gesto do usuário)
-    const downloadTab = window.open('about:blank', '_blank');
-
     const fd = new FormData(form);
+
+    // prepara no backend (atualiza user / guarda sessão)
     try {
-      // 2) prepara no backend
       const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
       const data = await prep.json();
       if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
 
       const militarId = fd.get('militar_id');
 
-      // 3) monta querystring
+      // monta querystring p/ a página intermediária
       const params = new URLSearchParams({
         ano: fd.get('ano') || '',
         tipo: fd.get('tipo') || '',
         empregador_nome: fd.get('empregador_nome') || '',
-        empregador_doc: fd.get('empregador_doc') || '',
+        empregador_doc: digitsOnly(fd.get('empregador_doc') || ''),
         natureza_vinculo: fd.get('natureza_vinculo') || '',
         cargo_funcao: fd.get('cargo_funcao') || '',
         carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
@@ -226,30 +226,31 @@
         horario_fim: fd.get('horario_fim') || '',
         data_inicio: fd.get('data_inicio') || '',
       });
+
       if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
         ['empregador_nome','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio']
           .forEach(k => params.delete(k));
       }
 
-      const urlDownload = '{{ url_for("acumulo.modelo_docx", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?' + params.toString();
-      const urlUpload   = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+      const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
+                          .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+      params.set('return_to', urlUpload);
 
-      // 4) envia o download para a ABA PRÉ-ABERTA
-      if (downloadTab) {
-        downloadTab.location = urlDownload;
-      } else {
-        // fallback (popup bloqueado): usa mesma aba
-        window.location.href = urlDownload;
+      const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
+                                 .replace('/0', `/${militarId}`) + '?' + params.toString();
+
+      // abre popup da página intermediária (dispara download e se fecha)
+      const popup = window.open(urlIntermediaria, '_blank');
+      if (!popup) {
+        // popup bloqueada: usa a própria aba; a página intermediária volta via return_to
+        window.location.href = urlIntermediaria;
+        return;
       }
 
-      // 5) dá um pequeno delay antes de redirecionar a aba atual (evita cancelar o download no iOS)
-      setTimeout(() => {
-        window.location.href = urlUpload;
-      }, 600);
+      // redireciona esta aba para o upload (sem matar o download da popup)
+      setTimeout(() => { window.location.href = urlUpload; }, 500);
 
     } catch (e) {
-      // se falhar, fecha a aba em branco pra não ficar lixo
-      try { downloadTab?.close(); } catch(_) {}
       alert('Erro: ' + e.message);
     }
   });
