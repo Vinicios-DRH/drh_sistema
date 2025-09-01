@@ -1438,13 +1438,22 @@ def recebimento_mudar_status(decl_id):
         novo_status = novo
         motivo = (request.form.get("motivo") or None)
 
+    # >>> NOVO: registra quem recebeu (apenas se ainda não foi registrado)
+    if decl.recebido_por_user_id is None:
+        decl.recebido_por_user_id = current_user.id
+        decl.recebido_em = datetime.utcnow()
+
+    # atualiza status
     decl.status = novo_status
+
+    # auditoria
     db.session.add(AuditoriaDeclaracao(
         declaracao_id=decl.id,
         de_status=de, para_status=novo_status,
         motivo=motivo,
         alterado_por_user_id=current_user.id
     ))
+
     try:
         db.session.commit()
         flash("Status atualizado.", "alert-success")
@@ -1477,8 +1486,6 @@ def arquivo(decl_id):
 @login_required
 # @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
 def recebimento_export():
-    from io import BytesIO
-    from openpyxl import Workbook
 
     ano = request.args.get("ano", type=int) or datetime.now().year
     status = (request.args.get("status") or "todos").lower()

@@ -94,7 +94,9 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">CNPJ/CPF</label>
-                            <input class="form-control" name="empregador_doc[]" value="{{ v.empregador_doc }}">
+                            <input class="form-control" name="empregador_doc[]" value="{{ v.empregador_doc }}"pattern="^\d{11}$|^\d{14}$"
+                            placeholder="somente dígitos">
+                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
                         </div>
 
                         <div class="col-md-3">
@@ -104,6 +106,15 @@
                                 <option value="{{ opt }}" {{ 'selected' if v.natureza_vinculo==opt else '' }}>{{
                                     opt.replace('_',' ')|capitalize }}</option>
                                 {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Jornada de trabalho</label>
+                            <select class="form-select" name="jornada_trabalho">
+                                <option value="" selected disabled>Selecione…</option>
+                                <option value="escala">Escala</option>
+                                <option value="expediente">Expediente</option>
                             </select>
                         </div>
                         <div class="col-md-5">
