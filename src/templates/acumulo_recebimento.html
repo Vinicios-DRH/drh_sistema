@@ -60,7 +60,11 @@
         {% if is_drh_like %}
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary"
-                href="?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&export=1">
+                href="{{ url_for('acumulo.recebimento_export',
+                      ano=ano,
+                      status=status,
+                      q=q,
+                      obm_id=obm_id) }}">
                 Exportar Excel
             </a>
         </div>

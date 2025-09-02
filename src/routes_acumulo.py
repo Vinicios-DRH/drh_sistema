@@ -18,6 +18,7 @@ from docx import Document
 from docx.shared import Pt
 from docx.oxml.ns import qn
 from src.decorators.helpers_docx import render_docx_from_template
+from sqlalchemy.sql import functions
 
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
@@ -1487,57 +1488,268 @@ def arquivo(decl_id):
 @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
 def recebimento_export():
 
+    def fmt_dt(dt):
+        return dt.strftime("%d/%m/%Y %H:%M") if dt else ""
+
+    def fmt_d(d):
+        return d.strftime("%d/%m/%Y") if d else ""
+
+    def fmt_t(t):
+        return t.strftime("%H:%M") if t else ""
+
+    # mapeamentos legíveis
+    TIPO_PT   = {"positiva": "Positiva (com vínculo)", "negativa": "Negativa (sem vínculo)"}
+    STATUS_PT = {"pendente": "Pendente", "validado": "Validado", "inconforme": "Inconforme"}
+    MEIO_PT   = {"digital": "Digital", "presencial": "Presencial"}
+    EMPREG_TIPO_PT = {
+        "publico": "Público",
+        "privado": "Privado",
+        "cooperativa": "Cooperativa",
+        "profissional_liberal": "Profissional liberal",
+    }
+    NATUREZA_PT = {
+        "efetivo": "Efetivo",
+        "contratado": "Contratado",
+        "prestacao_servicos": "Prestação de serviços",
+        "profissional_liberal": "Profissional liberal",
+    }
+    JORNADA_PT = {"escala": "Escala", "expediente": "Expediente"}
+
+    def label(mapper, value):
+        if value is None:
+            return ""
+        return mapper.get(str(value).lower(), str(value))
+
     ano = request.args.get("ano", type=int) or datetime.now().year
     status = (request.args.get("status") or "todos").lower()
     q = (request.args.get("q") or "").strip()
     obm_id = request.args.get("obm_id", type=int)
 
-    D, M, PG = DeclaracaoAcumulo, Militar, PostoGrad
+    D, M, PG, U = DeclaracaoAcumulo, Militar, PostoGrad, User  # User: ajusta import se necessário
 
-    qry = (
-        db.session.query(D, M, PG.sigla.label("pg_sigla"))
+    # ---------------------------
+    # BASE: mesmas condições (ano/obm/status/q) + join em User
+    # ---------------------------
+    # tentar pegar User.nome; se o campo for 'name', troque abaixo
+    user_name_col = functions.coalesce(U.nome)  # <- ajuste caso seu modelo seja diferente
+
+    base_qry = (
+        db.session.query(
+            D,
+            M,
+            PG.sigla.label("pg_sigla"),
+            user_name_col.label("recebido_por_nome"),
+        )
         .join(M, M.id == D.militar_id)
         .outerjoin(PG, PG.id == M.posto_grad_id)
+        .outerjoin(U, U.id == D.recebido_por_user_id)
         .filter(D.ano_referencia == ano)
     )
+
     if obm_id:
-        qry = qry.filter(exists().where(and_(
+        base_qry = base_qry.filter(exists().where(and_(
             MilitarObmFuncao.militar_id == D.militar_id,
             MilitarObmFuncao.obm_id == obm_id,
             MilitarObmFuncao.data_fim.is_(None),
         )))
     if status in {"pendente", "validado", "inconforme"}:
-        qry = qry.filter(D.status == status)
+        base_qry = base_qry.filter(D.status == status)
     if q:
         ilike = f"%{q}%"
-        qry = qry.filter(or_(
+        base_qry = base_qry.filter(or_(
             M.nome_completo.ilike(ilike),
             M.matricula.ilike(ilike),
             PG.sigla.ilike(ilike),
         ))
 
-    rows = qry.order_by(D.data_entrega.desc(), D.id.desc()).all()
+    # ---------------------------
+    # 1) RESUMO
+    # ---------------------------
+    resumo_rows = base_qry.order_by(D.data_entrega.desc(), D.id.desc()).all()
 
     wb = Workbook()
-    ws = wb.active
-    ws.title = f"Declarações {ano}"
-    ws.append(["Ano", "Status", "Tipo", "Meio", "Data entrega",
-              "Militar", "Matrícula", "Posto/Grad.", "Qtd vínculos", "Obs"])
-    for d, m, pg_sigla in rows:
-        ws.append([
-            d.ano_referencia, d.status, d.tipo, d.meio_entrega,
-            d.data_entrega.strftime(
-                "%d/%m/%Y %H:%M") if d.data_entrega else "",
-            m.nome_completo, m.matricula, pg_sigla or "",
-            len(d.vinculos), d.observacoes or ""
+    ws_resumo = wb.active
+    ws_resumo.title = f"Resumo {ano}"
+    ws_resumo.append([
+        "Ano", "Status", "Tipo", "Meio", "Data de entrega",
+        "Recebido por (nome)", "Recebido em",
+        "Militar (nome completo)", "Matrícula", "Posto/Grad.", "Qtd vínculos", "Observações",
+        "Arquivo (URL/caminho)"
+    ])
+    for d, m, pg_sigla, recebido_por_nome in resumo_rows:
+        ws_resumo.append([
+            d.ano_referencia,
+            label(STATUS_PT, d.status),
+            label(TIPO_PT, d.tipo),
+            label(MEIO_PT, d.meio_entrega),
+            fmt_dt(d.data_entrega),
+            recebido_por_nome or "",
+            fmt_dt(d.recebido_em),
+            m.nome_completo,
+            m.matricula,
+            pg_sigla or "",
+            len(d.vinculos),
+            d.observacoes or "",
+            d.arquivo_declaracao or "",
         ])
 
+    # ---------------------------
+    # 2) VÍNCULOS das POSITIVAS (uma linha por vínculo)
+    # ---------------------------
+    VE = VinculoExterno
+    vinc_qry = (
+        db.session.query(
+            D.id.label("decl_id"),
+            D.status, D.meio_entrega, D.data_entrega,
+            user_name_col.label("recebido_por_nome"), D.recebido_em,
+            M.nome_completo, M.matricula, PG.sigla.label("pg_sigla"),
+            VE.empregador_nome, VE.empregador_tipo, VE.empregador_doc,
+            VE.natureza_vinculo, VE.cargo_funcao, VE.jornada_trabalho,
+            VE.carga_horaria_semanal, VE.horario_inicio, VE.horario_fim,
+            VE.data_inicio,
+        )
+        .join(M, M.id == D.militar_id)
+        .outerjoin(PG, PG.id == M.posto_grad_id)
+        .outerjoin(U, U.id == D.recebido_por_user_id)
+        .join(VE, VE.declaracao_id == D.id)
+        .filter(D.ano_referencia == ano, D.tipo == 'positiva')
+    )
+
+    if obm_id:
+        vinc_qry = vinc_qry.filter(exists().where(and_(
+            MilitarObmFuncao.militar_id == D.militar_id,
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None),
+        )))
+    if status in {"pendente", "validado", "inconforme"}:
+        vinc_qry = vinc_qry.filter(D.status == status)
+    if q:
+        ilike = f"%{q}%"
+        vinc_qry = vinc_qry.filter(or_(
+            M.nome_completo.ilike(ilike),
+            M.matricula.ilike(ilike),
+            PG.sigla.ilike(ilike),
+            VE.empregador_nome.ilike(ilike),
+            VE.empregador_doc.ilike(ilike),
+            VE.cargo_funcao.ilike(ilike),
+        ))
+
+    vinc_rows = vinc_qry.order_by(D.data_entrega.desc(), D.id.desc()).all()
+
+    ws_vinc = wb.create_sheet("Vínculos (positivas)")
+    ws_vinc.append([
+        "Declaração ID", "Status", "Meio", "Data de entrega",
+        "Recebido por (nome)", "Recebido em",
+        "Militar (nome completo)", "Matrícula", "Posto/Grad.",
+        "Empregador", "Tipo do empregador", "CPF/CNPJ",
+        "Natureza do vínculo", "Cargo/Função", "Jornada",
+        "Carga semanal (h)", "Entrada", "Saída", "Início do vínculo",
+    ])
+    for r in vinc_rows:
+        ws_vinc.append([
+            r.decl_id,
+            label(STATUS_PT, r.status),
+            label(MEIO_PT, r.meio_entrega),
+            fmt_dt(r.data_entrega),
+            r.recebido_por_nome or "",
+            fmt_dt(r.recebido_em),
+            r.nome_completo,
+            r.matricula,
+            (r.pg_sigla or ""),
+            r.empregador_nome,
+            label(EMPREG_TIPO_PT, r.empregador_tipo),
+            (r.empregador_doc or ""),
+            label(NATUREZA_PT, r.natureza_vinculo),
+            r.cargo_funcao,
+            label(JORNADA_PT, r.jornada_trabalho),
+            r.carga_horaria_semanal,
+            fmt_t(r.horario_inicio),
+            fmt_t(r.horario_fim),
+            fmt_d(r.data_inicio),
+        ])
+
+    # ---------------------------
+    # 3) DECLARAÇÕES NEGATIVAS (uma linha por declaração)
+    # ---------------------------
+    neg_qry = (
+        db.session.query(
+            D.id.label("decl_id"),
+            D.status, D.meio_entrega, D.data_entrega,
+            user_name_col.label("recebido_por_nome"), D.recebido_em,
+            D.observacoes, D.arquivo_declaracao,
+            M.nome_completo, M.matricula, PG.sigla.label("pg_sigla"),
+        )
+        .join(M, M.id == D.militar_id)
+        .outerjoin(PG, PG.id == M.posto_grad_id)
+        .outerjoin(U, U.id == D.recebido_por_user_id)
+        .filter(D.ano_referencia == ano, D.tipo == 'negativa')
+    )
+
+    if obm_id:
+        neg_qry = neg_qry.filter(exists().where(and_(
+            MilitarObmFuncao.militar_id == D.militar_id,
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None),
+        )))
+    if status in {"pendente", "validado", "inconforme"}:
+        neg_qry = neg_qry.filter(D.status == status)
+    if q:
+        ilike = f"%{q}%"
+        neg_qry = neg_qry.filter(or_(
+            M.nome_completo.ilike(ilike),
+            M.matricula.ilike(ilike),
+            PG.sigla.ilike(ilike),
+            D.observacoes.ilike(ilike),
+        ))
+
+    neg_rows = neg_qry.order_by(D.data_entrega.desc(), D.id.desc()).all()
+
+    ws_neg = wb.create_sheet("Declarações negativas")
+    ws_neg.append([
+        "Declaração ID", "Status", "Meio", "Data de entrega",
+        "Recebido por (nome)", "Recebido em",
+        "Militar (nome completo)", "Matrícula", "Posto/Grad.",
+        "Observações", "Arquivo (URL/caminho)"
+    ])
+    for r in neg_rows:
+        ws_neg.append([
+            r.decl_id,
+            label(STATUS_PT, r.status),
+            label(MEIO_PT, r.meio_entrega),
+            fmt_dt(r.data_entrega),
+            r.recebido_por_nome or "",
+            fmt_dt(r.recebido_em),
+            r.nome_completo,
+            r.matricula,
+            (r.pg_sigla or ""),
+            r.observacoes or "",
+            r.arquivo_declaracao or "",
+        ])
+
+    # ---------------------------
+    # Retorno
+    # ---------------------------
     bio = BytesIO()
     wb.save(bio)
     bio.seek(0)
-    fname = f"declaracoes_{ano}_{status if status!='todos' else 'todos'}{f'_obm{obm_id}' if obm_id else ''}.xlsx"
-    return send_file(bio, as_attachment=True, download_name=fname,
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    bstatus = status if status != 'todos' else 'todos'
+    suffix_obm = f"_obm{obm_id}" if obm_id else ""
+    fname = f"declaracoes_{ano}_{bstatus}{suffix_obm}_com_vinculos_e_negativas.xlsx"
+
+    resp = send_file(
+        bio,
+        as_attachment=True,
+        download_name=fname,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    try:
+        resp.headers["Content-Length"] = str(bio.getbuffer().nbytes)
+    except Exception:
+        pass
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 @bp_acumulo.route("/detalhe/<int:decl_id>", methods=["GET"])
