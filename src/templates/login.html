@@ -2,90 +2,100 @@
 
 {% block head %}
 <style>
-  :root{
-    --overlay-alpha: .18; /* máscara escura */
+  :root {
+    --overlay-alpha: .18;
+    /* máscara escura */
     --card-alpha: .28;
     --border-alpha: .14;
     --glass-blur: 8px;
   }
 
   /* Hero como background responsivo */
-  .hero-bg{
+  .hero-bg {
     min-height: 100vh;
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-    background-color: #0b0e14; /* cor base enquanto carrega */
+    background-color: #0b0e14;
+    /* cor base enquanto carrega */
 
     /* Fallback opcional (caso mantenha um JPG/PNG) */
     /* background-image: url("{{ url_for('static', filename='img/bombeiros_5_1280.jpg') }}"); */
 
     /* Somente WebP (1x/2x) */
-    background-image: image-set(
-      url("{{ url_for('static', filename='img/bombeiros_5_1280.webp') }}") 1x,
-      url("{{ url_for('static', filename='img/bombeiros_5_1920.webp') }}") 2x
-    );
-    position: relative; /* necessário pro ::before */
+    background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_5_1280.webp') }}") 1x,
+      url("{{ url_for('static', filename='img/bombeiros_5_1920.webp') }}") 2x);
+    position: relative;
+    /* necessário pro ::before */
   }
 
   /* Overlay escuro por cima do background */
-  .hero-bg::before{
-    content:"";
-    position:absolute; inset:0;
-    background: rgba(0,0,0,var(--overlay-alpha));
+  .hero-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--overlay-alpha));
     pointer-events: none;
   }
 
   /* Mobile força a menor */
-  @media (max-width: 768px){
-    .hero-bg{
-      background-image: image-set(
-        url("{{ url_for('static', filename='img/bombeiros_5_768.webp') }}") 1x
-      );
+  @media (max-width: 768px) {
+    .hero-bg {
+      background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_5_768.webp') }}") 1x);
     }
   }
 
   /* Card vidro escuro */
-  .transparent-card{
-    background: rgba(15,15,20,var(--card-alpha));
+  .transparent-card {
+    background: rgba(15, 15, 20, var(--card-alpha));
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid rgba(255,255,255,var(--border-alpha));
-    box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    border: 1px solid rgba(255, 255, 255, var(--border-alpha));
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
     color: #e6edf3;
   }
+
   .transparent-card h2,
-  .transparent-card label{ color:#f1f5f9; }
+  .transparent-card label {
+    color: #f1f5f9;
+  }
 
   .transparent-card .form-control,
-  .transparent-card .form-select{
-    background: rgba(255,255,255,.08);
-    border-color: rgba(255,255,255,.14);
-    color:#f8fafc;
-  }
-  .transparent-card .form-control::placeholder{ color:rgba(255,255,255,.55); }
-  .transparent-card .form-control:focus{
-    background: rgba(255,255,255,.12);
-    border-color: rgba(99,102,241,.85);
-    box-shadow: 0 0 0 .25rem rgba(99,102,241,.25);
-    color:#fff;
+  .transparent-card .form-select {
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .14);
+    color: #f8fafc;
   }
 
-  .transparent-card .form-check-input{
-    background-color: rgba(255,255,255,.12);
-    border-color: rgba(255,255,255,.25);
-  }
-  .transparent-card .form-check-input:checked{
-    background-color:#6366f1; border-color:#6366f1;
+  .transparent-card .form-control::placeholder {
+    color: rgba(255, 255, 255, .55);
   }
 
-  .transparent-card .btn.btn-outline-primary{
-    border-color: rgba(99,102,241,.85);
-    color:#e2e8f0;
+  .transparent-card .form-control:focus {
+    background: rgba(255, 255, 255, .12);
+    border-color: rgba(99, 102, 241, .85);
+    box-shadow: 0 0 0 .25rem rgba(99, 102, 241, .25);
+    color: #fff;
   }
-  .transparent-card .btn.btn-outline-primary:hover{
-    background: rgba(99,102,241,.85);
-    color:#0b1020;
+
+  .transparent-card .form-check-input {
+    background-color: rgba(255, 255, 255, .12);
+    border-color: rgba(255, 255, 255, .25);
+  }
+
+  .transparent-card .form-check-input:checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+  }
+
+  .transparent-card .btn.btn-outline-primary {
+    border-color: rgba(99, 102, 241, .85);
+    color: #e2e8f0;
+  }
+
+  .transparent-card .btn.btn-outline-primary:hover {
+    background: rgba(99, 102, 241, .85);
+    color: #0b1020;
   }
 </style>
 {% endblock %}
@@ -111,12 +121,12 @@
                     <div class="form-group">
                       {{ form_login.cpf.label(class="form-control-label") }}
                       {% if form_login.cpf.errors %}
-                        {{ form_login.cpf(class="form-control is-invalid") }}
-                        <div class="invalid-feedback">
-                          {% for erro in form_login.cpf.errors %}{{ erro }}{% endfor %}
-                        </div>
+                      {{ form_login.cpf(class="form-control is-invalid") }}
+                      <div class="invalid-feedback">
+                        {% for erro in form_login.cpf.errors %}{{ erro }}{% endfor %}
+                      </div>
                       {% else %}
-                        {{ form_login.cpf(class="form-control") }}
+                      {{ form_login.cpf(class="form-control") }}
                       {% endif %}
                     </div>
                   </div>
@@ -126,12 +136,12 @@
                     <div class="form-group">
                       {{ form_login.senha.label(class="form-control-label") }}
                       {% if form_login.senha.errors %}
-                        {{ form_login.senha(class="form-control is-invalid") }}
-                        <div class="invalid-feedback">
-                          {% for erro in form_login.senha.errors %}{{ erro }}{% endfor %}
-                        </div>
+                      {{ form_login.senha(class="form-control is-invalid") }}
+                      <div class="invalid-feedback">
+                        {% for erro in form_login.senha.errors %}{{ erro }}{% endfor %}
+                      </div>
                       {% else %}
-                        {{ form_login.senha(class="form-control") }}
+                      {{ form_login.senha(class="form-control") }}
                       {% endif %}
                     </div>
                   </div>
