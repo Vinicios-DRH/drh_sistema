@@ -1,7 +1,55 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<style>
+    :root{
+        /* ↓ Ajuste aqui a transparência do card: 0 = totalmente transparente, 1 = opaco */
+        --card-alpha: .30; /* experimente .24 ou .20 se quiser ainda mais transparente */
+        --glass-blur: 6px;
+    }
+
+    .transparent-card{
+        background: rgba(17,17,17,var(--card-alpha)); /* vidro escuro */
+        backdrop-filter: blur(var(--glass-blur));
+        -webkit-backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 8px 32px rgba(0,0,0,.35);
+        color: #f1f5f9;
+    }
+
+    /* Inputs “glass” dentro do card */
+    .transparent-card .form-control,
+    .transparent-card .form-select{
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.15);
+        color: #f8fafc;
+    }
+    .transparent-card .form-control::placeholder{ color: rgba(255,255,255,.60); }
+    .transparent-card .form-control:focus{
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(99,102,241,.8);
+        box-shadow: 0 0 0 .25rem rgba(99,102,241,.25);
+        color: #fff;
+    }
+
+    .transparent-card h2,
+    .transparent-card label{ color: #f8fafc; }
+
+    /* Opcional: botão mais legível no fundo escuro */
+    .transparent-card .btn.btn-outline-primary{
+        border-color: rgba(99,102,241,.8);
+        color: #e2e8f0;
+    }
+    .transparent-card .btn.btn-outline-primary:hover{
+        background: rgba(99,102,241,.8);
+        color: #0b1020;
+    }
+</style>
+{% endblock %}
+
+
 {% block body %}
-<section class="py-3 py-md-4 p-xl-5" style="background-image: url('{{ url_for('static', filename='img/bombeiros.png') }}');
+<section class="py-3 py-md-4 p-xl-5" style="background-image: url('{{ url_for('static', filename='img/bombeiros_4.png') }}');
            background-size: cover;
            background-position: center;
            background-repeat: no-repeat;
@@ -14,7 +62,7 @@
                         <div class="text-center mb-3">
                             <img src="{{ url_for('static', filename='img/logobm.png') }}" width="100" height="100">
                         </div>
-                        <h2 class="fs-4 fw-bold text-center mb-4">Atualização Cadastral</h2>
+                        <h2 class="fs-4 fw-bold text-center mb-4">Acesso Militar</h2>
                         <form method="POST" id="loginForm">
                             {{ form_login.csrf_token }}
                             <div class="row gy-2 overflow-hidden">
