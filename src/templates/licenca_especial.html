@@ -1,62 +1,209 @@
 {% extends 'base.html' %}
+
 {% block head %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+<!-- Bootstrap Icons (só pros ícones dos botões) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<!-- DataTables + Bootstrap 5 + Buttons + Responsive -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
+    }
+
+    .dt-toolbar {
+        background: rgba(13, 110, 253, .06);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 12px;
+        padding: .5rem;
+        margin-bottom: .75rem;
+    }
+
+    table.dataTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #fff;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: .2rem .5rem;
+        border-radius: 999px;
+        font-size: .8rem;
+        border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    .status-vigente {
+        background: #d9f7df;
+    }
+
+    .status-termino {
+        background: #ffd9d9;
+    }
+
+    .status-outro {
+        background: #eee;
+    }
+</style>
 {% endblock %}
 
 {% block body %}
-<section class="bg-light py-3 py-md-5 mt-2">
-    <div class="container mt-3">
-        <h2>Militares de Licença Especial</h2>
-        <a class="btn btn-primary" aria-current="page"
-           href="#">Baixar Excel</a>
-        <div class="table-responsive">
-            <table id="example" class="table table-light table-bordered table-striped" style="width:100%">
-                <thead class="table-info">
-                <tr>
-                    <th>Posto/Graduação</th>
-                    <th>Quadro</th>
-                    <th class="col-nome_completo">Nome Completo</th>
-                    <th>Destino</th>
-                    <th>Situação</th>
-                    <th>A contar de</th>
-                    <th>Término</th>
-                    <th>Status da Licença</th>
-                    <th>Documento Autorizador</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for militar in militares_le %}
-                <tr class="table-active">
-                    <td>{{ militar.posto_grad.sigla }}</td>
-                    <td>{{ militar.quadro.quadro }}</td>
-                    <td>
-                        <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}">
-                            {{ militar.militar.nome_completo }}
-                        </a>
-                    </td>
-                    <td>{{ militar.destino.local }}</td>
-                    <td>{{ militar.situacao.condicao }}</td>
-                    <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') if militar.inicio_periodo_le else '-' }}</td>
-                    <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') if militar.fim_periodo_le else '-' }}</td>
-                    <td>
-                        <span style="background-color:
-                            {% if militar.status == 'Vigente' %}
-                                lightgreen
-                            {% elif militar.status == 'Término da Licença Especial' %}
-                                lightcoral
-                            {% else %}
-                                transparent
-                            {% endif %}; padding: 5px;">
-                            {{ militar.status }}
-                        </span>
-                    </td>
-                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+<section class="py-3 py-md-4">
+    <div class="container-xxl">
+
+        <!-- Cabeçalho vidro -->
+        <div class="brand-header p-3 p-md-4 mb-3 mt-2">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Militares de Licença Especial</h1>
+                        <div class="small text-light opacity-75">
+                            Em licença: <strong>{{ militares_le|length }}</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- ajuste o href se já tiver rota de export -->
+                    <a class="btn btn-outline-light" href="#">
+                        <i class="bi bi-download me-1"></i> Baixar Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-3 p-md-4">
+            <!-- Busca rápida client-side -->
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Busca rápida (nesta tabela)</label>
+                    <input id="searchTable" class="form-control" placeholder="Filtra imediatamente em todas as colunas">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tabela-le" class="table table-hover align-middle nowrap" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Posto/Graduação</th>
+                            <th>Quadro</th>
+                            <th>Nome Completo</th>
+                            <th>Destino</th>
+                            <th>Situação</th>
+                            <th>A contar de</th>
+                            <th>Término</th>
+                            <th>Status da Licença</th>
+                            <th>Documento Autorizador</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for militar in militares_le %}
+                        <tr>
+                            <td>{{ militar.posto_grad.sigla if militar.posto_grad else '—' }}</td>
+                            <td>{{ militar.quadro.quadro if militar.quadro else '—' }}</td>
+                            <td>
+                                <a class="text-decoration-none"
+                                    href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}">
+                                    {{ militar.militar.nome_completo if militar.militar else '—' }}
+                                </a>
+                            </td>
+                            <td>{{ militar.destino.local if militar.destino else '—' }}</td>
+                            <td>{{ militar.situacao.condicao if militar.situacao else '—' }}</td>
+                            <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') if militar.inicio_periodo_le else '-'
+                                }}</td>
+                            <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') if militar.fim_periodo_le else '-' }}
+                            </td>
+                            <td>
+                                {% set s = militar.status or '' %}
+                                <span class="status-pill
+                  {% if s == 'Vigente' %}status-vigente
+                  {% elif s == 'Término da Licença Especial' %}status-termino
+                  {% else %}status-outro{% endif %}">
+                                    {{ s }}
+                                </span>
+                            </td>
+                            <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </section>
+
+<!-- JS: jQuery + DataTables (ordem importa) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<!-- Buttons + JSZip (Excel) -->
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
+
+<script>
+    $(function () {
+        const dt = $('#tabela-le').DataTable({
+            responsive: true,
+            fixedHeader: true,
+            paging: true,
+            pageLength: 20,
+            lengthMenu: [10, 20, 30, 50, 100],
+            ordering: true,
+            info: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
+            dom: '<"dt-toolbar d-flex flex-wrap gap-2 align-items-center"Bf>rt<"d-flex justify-content-between align-items-center mt-2"lip>',
+            buttons: [
+                { extend: 'excelHtml5', title: 'militares_licenca_especial', text: '<i class="bi bi-file-earmark-excel"></i> Excel', className: 'btn btn-outline-success btn-sm' },
+                { extend: 'csvHtml5', title: 'militares_licenca_especial', text: '<i class="bi bi-filetype-csv"></i> CSV', className: 'btn btn-outline-secondary btn-sm' },
+                { extend: 'print', text: '<i class="bi bi-printer"></i> Imprimir', className: 'btn btn-outline-secondary btn-sm' },
+                { extend: 'colvis', text: '<i class="bi bi-view-list"></i> Colunas', className: 'btn btn-outline-primary btn-sm' }
+            ],
+            columnDefs: [
+                { targets: 2, responsivePriority: 1 },  // Nome completo
+                { targets: 0, responsivePriority: 2 },  // Posto/Grad
+                { targets: [5, 6, 7, 8], responsivePriority: 3 }
+            ]
+        });
+
+        // Busca rápida (client-side)
+        $('#searchTable').on('input', function () { dt.search(this.value).draw(); });
+    });
+</script>
 {% endblock %}
