@@ -44,6 +44,15 @@
         background: rgba(99,102,241,.8);
         color: #0b1020;
     }
+
+    /* opcional */
+    section[style*="background-image"]::before{
+        content:"";
+        position:absolute; inset:0;
+        background: rgba(0,0,0,.18); /* aumente/diminua a opacidade aqui */
+    }
+    section[style*="background-image"]{ position: relative; }
+
 </style>
 {% endblock %}
 
