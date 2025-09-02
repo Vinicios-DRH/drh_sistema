@@ -1270,7 +1270,14 @@ def militares():
             'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
         })
+    
+    per_page = 100
+    militares_paginados = query.paginate(page=page, per_page=per_page)
 
+    start = (page - 1) * per_page + 1 if militares_paginados.total > 0 else 0
+    end = min(page * per_page, militares_paginados.total)
+
+    has_novo_militar = 'novo_militar' in current_app.view_functions
     return render_template(
         'militares.html',
         militares=militares,
@@ -1281,7 +1288,10 @@ def militares():
         next_page=militares_paginados.next_num,
         prev_page=militares_paginados.prev_num,
         pages=militares_paginados.pages,
-        total=militares_paginados.total
+        total=militares_paginados.total,
+        start=start,
+        end=end,
+        has_novo_militar=has_novo_militar,
     )
 
 
