@@ -37,8 +37,8 @@
                     </td>
                     <td>{{ militar.destino.local }}</td>
                     <td>{{ militar.situacao.condicao }}</td>
-                    <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') if militar.inicio_periodo_le else '-' }}</td>
+                    <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') if militar.fim_periodo_le else '-' }}</td>
                     <td>
                         <span style="background-color:
                             {% if militar.status == 'Vigente' %}
@@ -51,7 +51,7 @@
                             {{ militar.status }}
                         </span>
                     </td>
-                    <td>{{ militar.publicacao_bg.boletim_geral }}</td>
+                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
