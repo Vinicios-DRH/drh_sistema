@@ -1403,11 +1403,13 @@ def recebimento():
         total_ano=total_ano, total_pendentes=total_pendentes,
         total_validados=total_validados, total_inconformes=total_inconformes,
         total_nao_enviaram=total_nao_enviaram,
+        total_filtrado=total_filtrado,   # <-- ADICIONE ISTO
         pagination=pagination_html,
         pode_editar_map=pode_editar_map,
         enviado_drh_map=enviado_drh_map,
         is_drh_like=IS_DRH_LIKE,
     )
+
 
 
 @bp_acumulo.route("/recebimento/<int:decl_id>/status", methods=["POST"])
