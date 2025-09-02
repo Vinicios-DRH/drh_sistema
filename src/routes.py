@@ -1,5 +1,3 @@
-import json
-import uuid
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify, make_response, current_app
@@ -10,7 +8,6 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
-import smtplib
 from src.formatar_cpf import formatar_cpf, get_militar_por_user
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -35,7 +32,7 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func, text, or_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -1217,10 +1214,23 @@ def militares():
         selectinload(Militar.quadro)
     )
     if search:
-        query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
+        like = f"%{search.strip()}%"
+        query = query.filter(or_(
+            Militar.nome_completo.ilike(like),
+            Militar.nome_guerra.ilike(like),
+            Militar.cpf.ilike(like),
+            Militar.rg.ilike(like),
+            Militar.matricula.ilike(like),
+    ))
+
 
     # Reduzir per_page melhora desempenho
     militares_paginados = query.paginate(page=page, per_page=100)
+
+    def fmt_cpf(cpf):
+        d = re.sub(r'\D', '', cpf or '')
+        return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:11]}" if len(d) == 11 else (cpf or '')
+
 
     # Preparar dados para renderização
     militares = []
@@ -1252,6 +1262,7 @@ def militares():
             'nome_completo': militar.nome_completo,
             'nome_guerra': militar.nome_guerra,
             'cpf': militar.cpf,
+            'cpf_fmt': fmt_cpf(militar.cpf),
             'rg': militar.rg,
             'obms': obms_recentes,  # Lista com as OBMs ativas
             'funcoes': funcoes_recentes,  # Lista com as funções ativas
@@ -1268,8 +1279,11 @@ def militares():
         has_next=militares_paginados.has_next,
         has_prev=militares_paginados.has_prev,
         next_page=militares_paginados.next_num,
-        prev_page=militares_paginados.prev_num
+        prev_page=militares_paginados.prev_num,
+        pages=militares_paginados.pages,
+        total=militares_paginados.total
     )
+
 
 
 @app.route("/militares-inativos", methods=['GET'])
