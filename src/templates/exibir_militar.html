@@ -5,100 +5,101 @@
   <script src="{{ url_for('static', filename='js/exibir_militar.js') }}"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <style>
-    /* ===== VISUAL GERAL ===== */
-    body {
-      background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;
-    }
-    .page-wrapper { position: relative; }
-    .brand-header{
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 16px;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color: #e8eef6;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    .brand-header .title{
-      letter-spacing: .4px;
-    }
+        :root{
+            /* ===== PALETA CBMAM (Vermelho/Âmbar) ===== */
+            --brand-red: #B5121B; /* vermelho CBMAM */
+            --brand-red-600:#a01017;
+            --brand-red-700:#7f0c12;
+            --brand-amber:#FFB703; /* âmbar */
+            --ink-100:#f6f8fb; --ink-200:#e8eef6; --ink-300:#cfe4ff; --ink-400:#c0cfda;
+            --glass-bg: rgba(255,255,255,0.04);
+            --glass-brd: rgba(255,255,255,0.12);
+            --glass-soft: rgba(0,0,0,.18);
+        }
 
-    /* ===== CARD VIDRADO ===== */
-    .glass-card{
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 18px;
-      color: #e8eef6;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
 
-    /* ===== NAV DE SEÇÕES (SCROLLSPY) ===== */
-    .section-nav {
-      position: sticky; top: 10px; z-index: 3;
-      background: rgba(0,0,0,.18);
-      border: 1px solid rgba(255,255,255,.12);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-radius: 12px;
-    }
-    .section-nav .nav-link{ color:#e8eef6; }
-    .section-nav .nav-link.active{ background:#0d6efd; color:white; }
+        /* Override Bootstrap primary para o vermelho CBMAM */
+        .btn-primary{ background: var(--brand-red); border-color: var(--brand-red); }
+        .btn-primary:hover{ background: var(--brand-red-600); border-color: var(--brand-red-600); }
+        .btn-outline-primary{ color: var(--brand-red); border-color: var(--brand-red); }
+        .btn-outline-primary:hover{ color:#fff; background: var(--brand-red); }
+        .form-check-input:checked{ background-color: var(--brand-red); border-color: var(--brand-red); }
 
-    /* ===== TÍTULO DE SEÇÃO ===== */
-    .section-header{
-      display:flex; align-items:center; gap:.6rem;
-      padding:.25rem 0 .75rem 0; color:#e8eef6;
-      border-bottom: 1px dashed rgba(255,255,255,.18);
-      margin-bottom: 1rem;
-    }
-    .section-header i{font-size:1.2rem; opacity:.9}
 
-    /* ===== GRUPOS E CAMPOS ===== */
-    .form-label{ color:#cfe4ff; font-weight:600; }
-    .form-control, .form-select{
-      background: rgba(255,255,255,.06) !important;
-      color:#e8eef6 !important;
-      border:1px solid rgba(255,255,255,.18) !important;
-    }
-    .form-control::placeholder{ color:#c0cfda; opacity:.75; }
-    .form-text{ color:#cfe4ff; opacity:.85; }
-    .invalid-feedback{ color:#ffb4b4; }
+        /* ===== VISUAL GERAL ===== */
+        body { background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed; }
+        .page-wrapper { position: relative; }
+        .brand-header{
+        background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px;
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        }
+        .brand-header .title{ letter-spacing: .4px; }
 
-    /* ===== BARRA DE AÇÃO (STICKY) ===== */
-    .action-bar{
-      position: sticky; bottom: 8px; z-index:4;
-      background: rgba(13,110,253,.12);
-      border: 1px solid rgba(255,255,255,.18);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-radius: 14px;
-      padding: .65rem;
-      display:flex; gap:.5rem; justify-content:flex-end;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
 
-    /* ===== BLOCOS LADO-A-LADO ===== */
-    .obm-funcao-group .form-group{ margin-bottom:0; }
+        /* ===== CARD VIDRADO ===== */
+        .glass-card{
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        border-radius: 18px;
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        }
 
-    /* ===== INPUT FILE CUSTOM ===== */
-    .botao-arquivo{
-      display:inline-flex; align-items:center; gap:.6rem; cursor:pointer;
-      padding:.6rem 1rem; border:1px dashed rgba(255,255,255,.25);
-      border-radius: 12px; color:#e8eef6;
-      background: rgba(255,255,255,.06);
-    }
-    #fileInput{ display:none; }
 
-    /* Melhor espaçamento entre super grupos */
-    .super-section{ padding: 1.25rem 1rem; }
+        /* ===== NAV DE SEÇÕES (SCROLLSPY) ===== */
+        .section-nav { position: sticky; top: 10px; z-index: 3; background: var(--glass-soft); border: 1px solid var(--glass-brd); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-radius: 12px; }
+        .section-nav .nav-link{ color:var(--ink-200); }
+        .section-nav .nav-link.active{ background:var(--brand-red); color:white; }
 
-    /* Corrige cores dos badges */
-    .badge.bg-soft{
-      background: rgba(255,255,255,.12); color:#e8eef6; border:1px solid rgba(255,255,255,.22)
-    }
-  </style>
+
+        /* ===== CARTÃO RESUMO ===== */
+        .summary-card{ background: var(--glass-bg); border:1px solid var(--glass-brd); border-radius:12px; padding: .9rem; color:var(--ink-200); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+        .summary-name{ font-weight:700; }
+        .summary-rank{ font-size:.9rem; opacity:.9; }
+        .summary-id{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.85rem; opacity:.9; }
+
+
+        /* ===== TÍTULO DE SEÇÃO ===== */
+        .section-header{ display:flex; align-items:center; gap:.6rem; padding:.25rem 0 .75rem 0; color:var(--ink-200); border-bottom: 1px dashed rgba(255,255,255,.18); margin-bottom: 1rem; }
+        .section-header i{font-size:1.2rem; opacity:.9}
+
+
+        /* ===== GRUPOS E CAMPOS ===== */
+        .form-label{ color:var(--ink-300); font-weight:600; }
+        .form-control, .form-select{ background: rgba(255,255,255,.06) !important; color:var(--ink-200) !important; border:1px solid rgba(255,255,255,.18) !important; }
+        .form-control::placeholder{ color:var(--ink-400); opacity:.75; }
+        .form-text{ color:var(--ink-300); opacity:.85; }
+        .invalid-feedback{ color:#ffb4b4; }
+
+
+        /* ===== BARRA DE AÇÃO (STICKY) ===== */
+        .action-bar{ position: sticky; bottom: 8px; z-index:4; background: rgba(181,18,27,.12); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 14px; padding: .65rem; display:flex; gap:.5rem; justify-content:flex-end; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+
+        /* ===== INPUT FILE CUSTOM ===== */
+        .botao-arquivo{ display:inline-flex; align-items:center; gap:.6rem; cursor:pointer; padding:.6rem 1rem; border:1px dashed rgba(255,255,255,.25); border-radius: 12px; color:var(--ink-200); background: rgba(255,255,255,.06); }
+        #fileInput{ display:none; }
+
+
+        /* Melhor espaçamento entre super grupos */
+        .super-section{ padding: 1.25rem 1rem; }
+
+
+        /* Corrige cores dos badges */
+        .badge.bg-soft{ background: rgba(255,255,255,.12); color:var(--ink-200); border:1px solid rgba(255,255,255,.22) }
+
+
+        /* ===== MODO ABAS ===== */
+        .nav-mode{ gap:.5rem; }
+        .nav-mode .btn{ padding:.35rem .6rem; }
+        .tabbed .super-section{ display:none; }
+        .tabbed .super-section.active{ display:block; }
+</style>
 {% endblock %}
 
 {% block body %}
@@ -480,6 +481,149 @@
     })
   })();
 </script>
+
+<!-- ===== SCRIPTS: Tabs x Rolagem + Resumo Lateral ===== -->
+<script>
+    (function(){
+        const root = document.getElementById('layoutRoot');
+        const sectionNav = document.getElementById('sectionNav');
+        const navLinks = sectionNav ? sectionNav.querySelectorAll('.nav-link') : [];
+        const sections = Array.from(document.querySelectorAll('.super-section'));
+        const modeScroll = document.getElementById('modeScroll');
+        const modeTabs = document.getElementById('modeTabs');
+
+        // ===== Scroll suave para âncoras (apenas em rolagem)
+        function enableSmoothAnchors(){
+            navLinks.forEach(a=>{
+            a.addEventListener('click', (e)=>{
+                if(modeTabs && modeTabs.checked) return; // em abas a gente intercepta abaixo
+                const href = a.getAttribute('href');
+                if(href && href.startsWith('#')){
+                e.preventDefault();
+                const el = document.querySelector(href);
+                if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+                }
+            });
+            });
+        }
+
+        // ===== Tabs: mostra/oculta seções
+        function showSectionById(id){
+            sections.forEach(s=>{
+            if(s.id === id){ s.classList.add('active'); }
+            else { s.classList.remove('active'); }
+            });
+            // ativa link correspondente
+            navLinks.forEach(a=>{
+            a.classList.toggle('active', (a.dataset.section === id));
+            });
+        }
+
+        function enterTabsMode(){
+            if(!root) return;
+            root.classList.add('tabbed');
+            // desliga ScrollSpy do Bootstrap (se ativo)
+            if(window.bootstrap){
+            const inst = bootstrap.ScrollSpy.getInstance(root);
+            if(inst) inst.dispose();
+            }
+            // mostra primeira seção
+            showSectionById(sections[0]?.id || 'identificacao');
+        }
+
+        function enterScrollMode(){
+            if(!root) return;
+            root.classList.remove('tabbed');
+            // exibe todas as seções
+            sections.forEach(s=>s.classList.add('active'));
+            // reativa ScrollSpy
+            if(window.bootstrap){
+            bootstrap.ScrollSpy.getInstance(root) || new bootstrap.ScrollSpy(root, { target: '#sectionNav', offset: 140 });
+            }
+        }
+
+        // Troca de modo
+        if(modeTabs)   modeTabs.addEventListener('change', ()=>{ if(modeTabs.checked)   enterTabsMode(); });
+        if(modeScroll) modeScroll.addEventListener('change', ()=>{ if(modeScroll.checked) enterScrollMode(); });
+
+        // Clique nos links quando em modo Abas
+        navLinks.forEach(a=>{
+            a.addEventListener('click', (e)=>{
+            if(!(modeTabs && modeTabs.checked)) return; // só intercepta no modo abas
+            e.preventDefault();
+            const id = a.dataset.section || a.getAttribute('href')?.replace('#','');
+            if(id) showSectionById(id);
+            });
+        });
+
+        // Inicializa (rolagem como padrão)
+        enableSmoothAnchors();
+        if(window.bootstrap){
+            bootstrap.ScrollSpy.getInstance(root) || new bootstrap.ScrollSpy(root, { target: '#sectionNav', offset: 140 });
+        }
+
+        // ===== Resumo lateral (atualiza em tempo real)
+        const $ = (id)=>document.getElementById(id);
+        const sNome  = $('s_nome');
+        const sPosto = $('s_posto');
+        const sMat   = $('s_matricula');
+        const sCpf   = $('s_cpf');
+
+        const iNomeCompleto = $('nome_completo');
+        const iNomeGuerra   = $('nome_guerra');
+        const iPosto        = $('posto_grad_id');
+        const iMatricula    = $('matricula');
+        const iCpf          = $('cpf');
+
+        function formatCpf(v){
+            const d = (v||'').replace(/\D/g,'').slice(0,11);
+            if(d.length<=3) return d;
+            if(d.length<=6) return d.replace(/(\d{3})(\d+)/,'$1.$2');
+            if(d.length<=9) return d.replace(/(\d{3})(\d{3})(\d+)/,'$1.$2.$3');
+            return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+        }
+
+        function updateSummary(){
+            const ng = iNomeGuerra?.value?.trim();
+            const nc = iNomeCompleto?.value?.trim();
+            if(sNome)  sNome.textContent = ng || nc || '—';
+
+            if(sPosto && iPosto){
+            const opt = iPosto.options[iPosto.selectedIndex];
+            sPosto.textContent = opt ? opt.text : '—';
+            }
+
+            if(sMat && iMatricula) sMat.textContent = iMatricula.value || '—';
+            if(sCpf && iCpf)       sCpf.textContent = formatCpf(iCpf.value) || '—';
+        }
+
+        [iNomeCompleto,iNomeGuerra,iPosto,iMatricula,iCpf].forEach(el=>{
+            if(!el) return;
+            el.addEventListener('input', updateSummary);
+            el.addEventListener('change', updateSummary);
+        });
+        updateSummary();
+
+        const badgeContainer = document.querySelector('.summary-card .badge:nth-child(2)');
+        const selSituacao = document.getElementById('situacao_id');
+
+        function updateBadge(){
+            if(!badgeContainer || !selSituacao) return;
+            const txt = (selSituacao.options[selSituacao.selectedIndex]?.text || '').toLowerCase();
+            // troque as palavras-chave conforme seu banco
+            let label = 'Ativo', bg = 'var(--brand-amber)', color = '#222';
+            if(txt.includes('afast')) { label = 'Afastado'; bg = 'rgba(255,255,255,.12)'; color = '#e8eef6'; }
+            if(txt.includes('reserva')) { label = 'Reserva'; bg = 'rgba(255,255,255,.12)'; color = '#e8eef6'; }
+            if(txt.includes('licença')) { label = 'Licença'; bg = 'rgba(255,255,255,.12)'; color = '#e8eef6'; }
+            badgeContainer.textContent = label;
+            badgeContainer.style.background = bg;
+            badgeContainer.style.color = color;
+        }
+        selSituacao && selSituacao.addEventListener('change', updateBadge);
+        updateBadge();
+    })();
+</script>
+
 
 <!-- Script original (se necessário após DOM) -->
 <script src="{{ url_for('static', filename='js/exibir_militar_down.js') }}"></script>
