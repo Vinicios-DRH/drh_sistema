@@ -934,6 +934,8 @@ class DeclaracaoAcumulo(database.Model):
                              name='status_declaracao'), nullable=False, default='pendente')
     recebido_por_user_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))  # quem conferiu/recebeu
+    
+    recebido_em = database.Column(database.DateTime, nullable=True)
     # caminho/URL no storage (PDF/JPG da declaração)
     arquivo_declaracao = database.Column(database.String(255))
     observacoes = database.Column(database.Text)

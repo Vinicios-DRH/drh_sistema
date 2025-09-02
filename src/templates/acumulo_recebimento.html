@@ -57,12 +57,14 @@
             <div class="subtle">{% if is_drh_like %}Conferência geral de declarações.{% else %}Somente militares da(s)
                 sua(s) OBM(s).{% endif %}</div>
         </div>
+        {% if is_drh_like %}
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary"
                 href="?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&export=1">
                 Exportar Excel
             </a>
         </div>
+        {% endif %}
     </div>
 
     <!-- Filtros -->

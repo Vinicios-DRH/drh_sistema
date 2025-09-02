@@ -1484,7 +1484,7 @@ def arquivo(decl_id):
 
 @bp_acumulo.route("/recebimento/export", methods=["GET"])
 @login_required
-# @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
+@checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
 def recebimento_export():
 
     ano = request.args.get("ano", type=int) or datetime.now().year
