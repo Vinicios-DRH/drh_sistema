@@ -99,6 +99,32 @@
         .nav-mode .btn{ padding:.35rem .6rem; }
         .tabbed .super-section{ display:none; }
         .tabbed .super-section.active{ display:block; }
+
+        /* Corrige legibilidade das listas dos <select> em tema escuro */
+        .form-select option,
+        .form-select optgroup {
+        background-color: #ffffff !important; /* fundo do popup */
+        color: #111111 !important;            /* texto das opções */
+        }
+
+        /* Hover/selecionado dentro do popup */
+        .form-select option:hover,
+        .form-select option:checked {
+        background-color: #eef2f7 !important;
+        color: #111111 !important;
+        }
+
+        /* Opcões desabilitadas (tipo "Selecione…") mais apagadas */
+        .form-select option[disabled] {
+        color: #94a3b8 !important;
+        }
+
+        /* Mantém boa visibilidade do campo fechado */
+        .form-select {
+        color: var(--ink-200) !important;
+        background: rgba(255,255,255,.06) !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
+        }
 </style>
 {% endblock %}
 
