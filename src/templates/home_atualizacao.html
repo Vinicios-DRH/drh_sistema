@@ -1,25 +1,61 @@
 {% extends "base.html" %}
+
 {% block head %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-    .page-header {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 20px;
-        padding: 18px 18px;
-        background: linear-gradient(180deg, rgba(0, 0, 0, .02), transparent);
+    :root {
+        /* Paleta padrão que usamos no app */
+        --brand-red: #B5121B;
+        --brand-red-600: #9e1119;
+        --glass-bg: rgba(255, 255, 255, .06);
+        --glass-brd: rgba(255, 255, 255, .16);
+        --ink-200: #e8eef6;
+        --ink-400: #c0cfda;
     }
 
-    .avatar {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        display: inline-grid;
-        place-items: center;
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    /* Cabeçalho padrão "de vidro" */
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    /* Cartões/KPIs e painéis em vidro */
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .card-soft {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+    }
+
+    .kpi .title {
+        font-size: .85rem;
+        color: #475569;
+    }
+
+    .kpi .value {
+        font-size: 1.6rem;
         font-weight: 700;
-        background: var(--bs-secondary-bg);
-        color: var(--bs-body-color);
-        border: 1px solid var(--bs-border-color);
     }
 
+    /* Chip/etiquetas */
     .chip {
         display: inline-flex;
         align-items: center;
@@ -27,332 +63,293 @@
         padding: .2rem .55rem;
         font-size: .78rem;
         border-radius: 999px;
-        border: 1px solid var(--bs-border-color)
+        border: 1px solid var(--glass-brd);
     }
 
-    .card-soft {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 16px
-    }
-
+    /* Listas simples */
     .list-plain {
         margin: 0;
         padding: 0;
-        list-style: none
+        list-style: none;
     }
 
     .list-plain li {
         display: flex;
         justify-content: space-between;
         gap: 8px;
-        padding: .35rem 0;
-        border-bottom: 1px dashed var(--bs-border-color)
+        padding: .4rem 0;
+        border-bottom: 1px dashed #e5e7eb;
     }
 
     .list-plain li:last-child {
-        border-bottom: 0
+        border-bottom: 0;
     }
 
     .muted {
-        color: var(--bs-secondary-color)
+        color: #64748b;
+    }
+
+    /* Avatar com inicial */
+    .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+        border: 1px solid var(--glass-brd);
+    }
+
+    /* Botões primários no vermelho CBMAM */
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600);
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red);
+    }
+
+    /* Modal minimalista (quando usamos o modal custom) */
+    .modal-backdrop-home,
+    .modal-backdrop-home2 {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+    }
+
+    .modal-backdrop-home.show,
+    .modal-backdrop-home2.show {
+        display: flex;
+    }
+
+    .modal-card-home,
+    .modal-card-home2 {
+        background: #fff;
+        color: #0f172a;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 12px;
+        width: min(640px, 96vw);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
     }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container py-3 mt-5">
+<section class="py-3 py-md-4">
+    <div class="container py-2 py-md-3">
 
-    <!-- HEADER -->
-    <div class="page-header mb-4">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-            <div class="avatar">
-                {{ (nome_exibicao or 'U')[:1] }}
-            </div>
-            <div class="flex-grow-1">
+        <!-- Header do usuário -->
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar">{{ (nome_exibicao or 'U')[:1] }}</div>
+                    <div>
+                        <h1 class="h5 m-0">Olá, {{ nome_exibicao or 'Usuário' }}</h1>
+                        <div class="small opacity-75">Último acesso: {{ last_login_dt.strftime('%d/%m/%Y %H:%M') if
+                            last_login_dt else '—' }}</div>
+                    </div>
+                </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h1 class="h4 m-0">{{ nome_exibicao }}</h1>
-                    {% if user_pg %}
-                    <span class="chip">{{ user_pg }}</span>
-                    {% endif %}
-                    {% if user_obm_siglas %}
-                    <span class="chip">OBM: {{ ", ".join(user_obm_siglas) }}</span>
-                    {% endif %}
-                    {% if drh_like %}
-                    <span class="chip text-bg-light">Perfil DRH</span>
-                    {% endif %}
+                    {% if user_pg %}<span class="chip"><i class="bi bi-award me-1"></i>{{ user_pg }}</span>{% endif %}
+                    {% if user_obm_siglas %}<span class="chip"><i class="bi bi-building me-1"></i>OBM: {{ ",
+                        ".join(user_obm_siglas) }}</span>{% endif %}
+                    {% if drh_like %}<span class="chip"><i class="bi bi-shield-lock me-1"></i>Perfil DRH</span>{% endif
+                    %}
+                    <a class="btn btn-outline-light" href="{{ url_for('perfil', id_usuario=current_user.id) }}"><i
+                            class="bi bi-person-gear me-1"></i> Editar cadastro</a>
                 </div>
-                <div class="muted small mt-1">
-                    Último acesso: {{ last_login_dt.strftime("%d/%m/%Y %H:%M") if last_login_dt else "—" }}
-                    · Matrícula: {{ (militar.matricula if militar else None) or "—" }}
-                    {% set email_exibir = (militar.email if militar and militar.email else current_user.email) %}
-                    {% if email_exibir %} · {{ email_exibir }} {% endif %}
-                </div>
-            </div>
-            <div class="d-flex gap-2 ms-auto">
-                <a class="btn btn-outline-primary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
-                    Editar cadastro
-                </a>
-                <!-- <a class="btn btn-primary" href="{{ url_for('acumulo.recebimento') }}">Ir para Recebimento</a> -->
             </div>
         </div>
-    </div>
 
-    <!-- KPIs -->
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="muted">Declarações — ano {{ ano_atual }}</div>
-                <div class="h4 m-0">{{ kpi_decl_total }}</div>
-                <div class="small muted">enviadas por você</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="muted">Pendentes</div>
-                <div class="h4 m-0">{{ kpi_decl_pendentes }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="muted">Validadas</div>
-                <div class="h4 m-0">{{ kpi_decl_validadas }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card card-soft p-3">
-                <div class="muted">Inconformes</div>
-                <div class="h4 m-0">{{ kpi_decl_inconformes }}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3">
-        <!-- COL ESQUERDA -->
-        <div class="col-12 col-lg-7">
-            <!-- Dados pessoais -->
-            <div class="card card-soft p-3">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h2 class="h6 m-0">Seus dados</h2>
-                    <!-- <a class="btn btn-outline-primary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
-                        Editar cadastro
-                    </a> -->
+        <!-- KPIs do usuário -->
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+                <div class="card-soft p-3 kpi text-center">
+                    <div class="title">Declarações — {{ ano_atual }}</div>
+                    <div class="value">{{ kpi_decl_total }}</div>
+                    <div class="small text-muted">enviadas por você</div>
                 </div>
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                        <ul class="list-plain">
-                            <li>
-                                <span>Nome completo</span>
-                                <strong>{{ (militar.nome_completo if militar else None) or current_user.nome or
-                                    current_user.login or "—" }}</strong>
-                            </li>
-                            <li>
-                                <span>Matrícula</span>
-                                <strong>{{ (militar.matricula if militar else None) or "—" }}</strong>
-                            </li>
-                            <li>
-                                <span>CPF</span>
-                                <strong>{{ (militar.cpf if militar else current_user.cpf) or "—" }}</strong>
-                            </li>
-                            <li>
-                                <span>Posto/Graduação</span>
-                                <strong>{{ user_pg or "—" }}</strong>
-                            </li>
-                        </ul>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-soft p-3 kpi text-center">
+                    <div class="title">Pendentes</div>
+                    <div class="value">{{ kpi_decl_pendentes }}</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-soft p-3 kpi text-center">
+                    <div class="title">Validadas</div>
+                    <div class="value">{{ kpi_decl_validadas }}</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-soft p-3 kpi text-center">
+                    <div class="title">Inconformes</div>
+                    <div class="value">{{ kpi_decl_inconformes }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Coluna esquerda -->
+            <div class="col-12 col-lg-7">
+                <div class="glass-card p-3 p-md-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h2 class="h6 m-0"><i class="bi bi-person-badge me-1"></i> Seus dados</h2>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <ul class="list-plain">
-                            <li>
-                                <span>E-mail</span>
-                                <strong>{{ (militar.email if militar and militar.email else current_user.email) or "—"
-                                    }}</strong>
-                            </li>
-                            <li>
-                                <span>Telefone</span>
-                                <strong>{{ (militar.celular if militar and militar.celular else current_user.telefone)
-                                    or "—" }}</strong>
-                            </li>
-                            <li>
-                                <span>Função</span>
-                                <strong>{{ militar_funcoes |join(', ') if militar_funcoes else "—" }}</strong>
-                            </li>
-                            <li>
-                                <span>OBM(s)</span>
-                                <strong>{{ user_obm_siglas|join(', ') if user_obm_siglas else "—" }}</strong>
-                            </li>
-                        </ul>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <ul class="list-plain">
+                                <li><span>Nome completo</span><strong>{{ (militar.nome_completo if militar else None) or
+                                        current_user.nome or current_user.login or '—' }}</strong></li>
+                                <li><span>Matrícula</span><strong>{{ (militar.matricula if militar else None) or '—'
+                                        }}</strong></li>
+                                <li><span>CPF</span><strong>{{ (militar.cpf if militar else current_user.cpf) or '—'
+                                        }}</strong></li>
+                                <li><span>Posto/Graduação</span><strong>{{ user_pg or '—' }}</strong></li>
+                            </ul>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <ul class="list-plain">
+                                {% set email_exibir = (militar.email if militar and militar.email else
+                                current_user.email) %}
+                                <li><span>E-mail</span><strong>{{ email_exibir or '—' }}</strong></li>
+                                <li><span>Telefone</span><strong>{{ (militar.celular if militar and militar.celular else
+                                        current_user.telefone) or '—' }}</strong></li>
+                                <li><span>Função</span><strong>{{ militar_funcoes|join(', ') if militar_funcoes else '—'
+                                        }}</strong></li>
+                                <li><span>OBM(s)</span><strong>{{ user_obm_siglas|join(', ') if user_obm_siglas else '—'
+                                        }}</strong></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Últimas atividades -->
-            <div class="card card-soft p-3 mt-3">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h2 class="h6 m-0">Atividades recentes</h2>
-                    <a class="btn btn-sm btn-outline-secondary" href="#">Ver tudo</a>
-                </div>
-                {% if atividades %}
-                <ul class="list-plain">
-                    {% for a in atividades %}
-                    <li>
-                        <span class="muted">{{ a.quando.strftime("%d/%m/%Y %H:%M") }}</span>
-                        <span>{{ a.texto }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="muted small">Sem atividades recentes.</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- COL DIREITA -->
-        <div class="col-12 col-lg-5">
-            <!-- Próximos passos / Ações -->
-            <div class="card card-soft p-3">
-                <h2 class="h6">Ações rápidas</h2>
-                <div class="d-grid gap-2">
-                    {# botão que decide no clique se abre modal ou segue para /acumulo/novo #}
-                    <button id="btn-nova-declaracao" class="btn btn-primary" type="button">
-                        Nova declaração
-                    </button>
-                    <a class="btn btn-outline-primary" href="#">Minhas declarações</a>
-                    {% if drh_like %}
-                    <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}">Recebimento (DRH)</a>
+                <div class="glass-card p-3 p-md-4 mt-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h2 class="h6 m-0"><i class="bi bi-activity me-1"></i> Atividades recentes</h2>
+                        <a class="btn btn-sm btn-outline-light" href="#">Ver tudo</a>
+                    </div>
+                    {% if atividades %}
+                    <ul class="list-plain">
+                        {% for a in atividades %}
+                        <li><span class="muted">{{ a.quando.strftime('%d/%m/%Y %H:%M') }}</span><span>{{ a.texto
+                                }}</span></li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="muted small">Sem atividades recentes.</div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Status das declarações do ano -->
-            <div class="card card-soft p-3 mt-3">
-                <h2 class="h6">Minhas declarações ({{ ano_atual }})</h2>
-                {% if minhas_declaracoes %}
-                <ul class="list-plain">
-                    {% for d in minhas_declaracoes %}
-                    <li>
-                        {% if d.status == 'inconforme' %}
-                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
-                            {{ d.ano_referencia }} — {{ d.tipo or "—" }} — Editar
-                        </a>
-                        {% else %}
-                        <span>
-                            {{ d.ano_referencia }} — {{ d.tipo or "—" }}
-                        </span>
+            <!-- Coluna direita -->
+            <div class="col-12 col-lg-5">
+                <div class="glass-card p-3 p-md-4">
+                    <h2 class="h6"><i class="bi bi-lightning-charge me-1"></i> Ações rápidas</h2>
+                    <div class="d-grid gap-2">
+                        <button id="btn-nova-declaracao" class="btn btn-primary" type="button"><i
+                                class="bi bi-file-earmark-plus me-1"></i> Nova declaração</button>
+                        <a class="btn btn-outline-primary" href="#"><i class="bi bi-folder2-open me-1"></i> Minhas
+                            declarações</a>
+                        {% if drh_like %}
+                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}"><i
+                                class="bi bi-inboxes me-1"></i> Recebimento (DRH)</a>
                         {% endif %}
+                    </div>
+                </div>
 
-                        <span>
-                            {% if d.status == 'validado' %}
-                            <span class="chip"><span class="badge text-bg-success">validado</span></span>
-                            {% elif d.status == 'inconforme' %}
-                            <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
-                            <!-- 👉 Botão para abrir o modal com o motivo -->
-                            <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo"
-                                data-decl-id="{{ d.id }}">
-                                Ver motivo
-                            </button>
+                <div class="glass-card p-3 p-md-4 mt-3">
+                    <h2 class="h6"><i class="bi bi-clipboard-check me-1"></i> Minhas declarações ({{ ano_atual }})</h2>
+                    {% if minhas_declaracoes %}
+                    <ul class="list-plain">
+                        {% for d in minhas_declaracoes %}
+                        <li>
+                            {% if d.status == 'inconforme' %}
+                            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">{{
+                                d.ano_referencia }} — {{ d.tipo or '—' }} — Editar</a>
                             {% else %}
-                            <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
+                            <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
                             {% endif %}
-                        </span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="muted small">Nenhuma declaração sua para {{ ano_atual }}.</div>
-                {% endif %}
-            </div>
+                            <span>
+                                {% if d.status == 'validado' %}
+                                <span class="chip"><span class="badge text-bg-success">validado</span></span>
+                                {% elif d.status == 'inconforme' %}
+                                <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
+                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo"
+                                    data-decl-id="{{ d.id }}">Ver motivo</button>
+                                {% else %}
+                                <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="muted small">Nenhuma declaração sua para {{ ano_atual }}.</div>
+                    {% endif %}
+                </div>
 
-            <!-- Segurança -->
-            <div class="card card-soft p-3 mt-3">
-                <h2 class="h6">Segurança</h2>
-                <ul class="list-plain">
-                    <li><span>2FA</span><strong>{{ "Ativado" if twofa_enabled else "Desativado" }}</strong></li>
-                    <li><span>Último IP</span><strong>{{ last_ip or "—" }}</strong></li>
-                </ul>
-                <div class="mt-2">
-                    <a class="btn btn-sm btn-outline-secondary" href="#">Configurar segurança</a>
+                <div class="glass-card p-3 p-md-4 mt-3">
+                    <h2 class="h6"><i class="bi bi-shield-lock me-1"></i> Segurança</h2>
+                    <ul class="list-plain">
+                        <li><span>2FA</span><strong>{{ 'Ativado' if twofa_enabled else 'Desativado' }}</strong></li>
+                        <li><span>Último IP</span><strong>{{ last_ip or '—' }}</strong></li>
+                    </ul>
+                    <div class="mt-2"><a class="btn btn-sm btn-outline-light" href="#">Configurar segurança</a></div>
                 </div>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Modal básico para mostrar motivo do inconforme -->
-    <style>
-        .modal-backdrop-home {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1050;
-        }
-
-        .modal-backdrop-home.show {
-            display: flex;
-        }
-
-        .modal-card-home {
-            background: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            border: 1px solid var(--bs-border-color);
-            border-radius: 12px;
-            width: min(640px, 96vw);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
-        }
-    </style>
-
-    <div id="modal-motivo-inconforme" class="modal-backdrop-home" aria-hidden="true">
-        <div class="modal-card-home">
-            <div class="p-3 border-bottom">
-                <h5 class="m-0">Motivo da inconformidade</h5>
-                <div class="small muted mt-1" id="motivo-quando"></div>
-            </div>
-            <div class="p-3">
-                <div id="motivo-texto" style="white-space:pre-wrap;"></div>
-            </div>
-            <div class="p-3 border-top d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-outline-secondary" id="btn-fechar-motivo">Fechar</button>
-            </div>
+<!-- Modal custom: motivo inconformidade -->
+<div id="modal-motivo-inconforme" class="modal-backdrop-home" aria-hidden="true">
+    <div class="modal-card-home">
+        <div class="p-3 border-bottom">
+            <h5 class="m-0">Motivo da inconformidade</h5>
+            <div class="small text-muted mt-1" id="motivo-quando"></div>
+        </div>
+        <div class="p-3">
+            <div id="motivo-texto" style="white-space:pre-wrap;"></div>
+        </div>
+        <div class="p-3 border-top d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="btn-fechar-motivo">Fechar</button>
         </div>
     </div>
-    <style>
-        .modal-backdrop-home2 {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1050
-        }
+</div>
 
-        .modal-backdrop-home2.show {
-            display: flex
-        }
-
-        .modal-card-home2 {
-            background: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            border: 1px solid var(--bs-border-color);
-            border-radius: 12px;
-            width: min(640px, 96vw);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .25)
-        }
-    </style>
-
-    <div id="modal-alerta-envio" class="modal-backdrop-home2" aria-hidden="true">
-        <div class="modal-card-home2">
-            <div class="p-3 border-bottom">
-                <h5 class="m-0">Você já enviou uma declaração</h5>
-                <div class="small muted mt-1" id="alerta-subtitle"></div>
-            </div>
-            <div class="p-3" id="alerta-body"></div>
-            <div class="p-3 border-top d-flex justify-content-end gap-2">
-                <a id="btn-ver-ou-editar" class="btn btn-outline-primary d-none" href="#" target="_self">Abrir</a>
-                <a id="btn-continuar-novo" class="btn btn-warning d-none"
-                    href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">Continuar mesmo assim</a>
-                <button type="button" class="btn btn-outline-secondary" id="btn-fechar-alerta">Fechar</button>
-            </div>
+<!-- Modal custom: alerta ao criar nova declaração -->
+<div id="modal-alerta-envio" class="modal-backdrop-home2" aria-hidden="true">
+    <div class="modal-card-home2">
+        <div class="p-3 border-bottom">
+            <h5 class="m-0">Você já enviou uma declaração</h5>
+            <div class="small text-muted mt-1" id="alerta-subtitle"></div>
+        </div>
+        <div class="p-3" id="alerta-body"></div>
+        <div class="p-3 border-top d-flex justify-content-end gap-2">
+            <a id="btn-ver-ou-editar" class="btn btn-outline-primary d-none" href="#" target="_self">Abrir</a>
+            <a id="btn-continuar-novo" class="btn btn-warning d-none"
+                href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">Continuar mesmo assim</a>
+            <button type="button" class="btn btn-outline-secondary" id="btn-fechar-alerta">Fechar</button>
         </div>
     </div>
 </div>

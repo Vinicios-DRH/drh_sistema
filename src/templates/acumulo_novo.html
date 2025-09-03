@@ -115,15 +115,9 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">CNPJ/CPF</label>
-                        <input
-                            class="form-control"
-                            name="empregador_doc"
-                            inputmode="numeric"
-                            autocomplete="off"
-                            maxlength="18"
-                            placeholder="somente dígitos"
-                            required>
-                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                        <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
+                            maxlength="18" placeholder="somente dígitos" required>
+                        <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
 
                     </div>
                     <div class="col-md-3">
@@ -185,8 +179,8 @@
     function toggleVinculo() {
         const isPositiva = tipoSelect.value === 'positiva';
         vinculo.querySelectorAll('input,select').forEach(el => {
-        el.required = isPositiva;
-        el.disabled = !isPositiva;
+            el.required = isPositiva;
+            el.disabled = !isPositiva;
         });
         vinculo.style.opacity = isPositiva ? 1 : 0.6;
     }
@@ -196,63 +190,67 @@
     function valida() {
         if (!tipoSelect.value) return false;
         if (tipoSelect.value === 'positiva') {
-        const req = ['empregador_nome','empregador_tipo','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
-        for (const name of req) {
-            const el = form.querySelector(`[name="${name}"]`);
-            if (!el || !el.value) return false;
-        }
+            const req = [
+                'empregador_nome', 'empregador_tipo', 'empregador_doc', 'natureza_vinculo',
+                'jornada_trabalho',            // ← ADICIONE ESTA LINHA
+                'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'
+            ];
+            for (const name of req) {
+                const el = form.querySelector(`[name="${name}"]`);
+                if (!el || !el.value) return false;
+            }
         }
         return true;
     }
 
-    function digitsOnly(v){ return (v || '').replace(/\D+/g, ''); }
-    function isCpfCnpjValid(v){ const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
-    function setFieldError(el, msg){
-    el.setCustomValidity(msg || '');
-    // força Bootstrap a exibir feedback
-    el.classList.add('is-invalid');
-    el.reportValidity?.();
+    function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
+    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
+    function setFieldError(el, msg) {
+        el.setCustomValidity(msg || '');
+        // força Bootstrap a exibir feedback
+        el.classList.add('is-invalid');
+        el.reportValidity?.();
     }
-    function clearFieldError(el){
-    el.setCustomValidity('');
-    el.classList.remove('is-invalid');
+    function clearFieldError(el) {
+        el.setCustomValidity('');
+        el.classList.remove('is-invalid');
     }
 
     // valida live o campo único
     const docInput = form.querySelector('input[name="empregador_doc"]');
     if (docInput) {
-    // limpa caracteres não numéricos em tempo real
-    docInput.addEventListener('input', () => {
-        const cur = docInput.value;
-        const cleaned = digitsOnly(cur);
-        if (cur !== cleaned) docInput.value = cleaned;
-        if (cleaned.length === 0) { clearFieldError(docInput); return; }
-        if (isCpfCnpjValid(cleaned)) clearFieldError(docInput);
-        else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
-    });
+        // limpa caracteres não numéricos em tempo real
+        docInput.addEventListener('input', () => {
+            const cur = docInput.value;
+            const cleaned = digitsOnly(cur);
+            if (cur !== cleaned) docInput.value = cleaned;
+            if (cleaned.length === 0) { clearFieldError(docInput); return; }
+            if (isCpfCnpjValid(cleaned)) clearFieldError(docInput);
+            else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+        });
 
-    // garante validação ao sair do campo
-    docInput.addEventListener('blur', () => {
-        const d = digitsOnly(docInput.value);
-        if (!d || isCpfCnpjValid(d)) clearFieldError(docInput);
-        else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
-    });
+        // garante validação ao sair do campo
+        docInput.addEventListener('blur', () => {
+            const d = digitsOnly(docInput.value);
+            if (!d || isCpfCnpjValid(d)) clearFieldError(docInput);
+            else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+        });
     }
 
     // inclui a checagem na função valida()
     const _validaOriginal = valida;
-    valida = function(){
-    const ok = _validaOriginal();
-    if (!ok) return false;
-    if (tipoSelect.value === 'positiva') {
-        if (!isCpfCnpjValid(docInput.value)) {
-        setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
-        form.classList.add('was-validated');
-        docInput.focus();
-        return false;
+    valida = function () {
+        const ok = _validaOriginal();
+        if (!ok) return false;
+        if (tipoSelect.value === 'positiva') {
+            if (!isCpfCnpjValid(docInput.value)) {
+                setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+                form.classList.add('was-validated');
+                docInput.focus();
+                return false;
+            }
         }
-    }
-    return true;
+        return true;
     };
 
 
@@ -261,53 +259,53 @@
 
         const fd = new FormData(form);
 
-        // prepara no backend (atualiza user / guarda sessão)
         try {
-        const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
-        const data = await prep.json();
-        if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
+            const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
+            const data = await prep.json();
+            if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
 
-        const militarId = fd.get('militar_id');
+            const militarId = fd.get('militar_id');
 
-        // monta querystring p/ a página intermediária
-        const params = new URLSearchParams({
-            ano: fd.get('ano') || '',
-            tipo: fd.get('tipo') || '',
-            empregador_nome: fd.get('empregador_nome') || '',
-            empregador_doc: digitsOnly(fd.get('empregador_doc') || ''),
-            natureza_vinculo: fd.get('natureza_vinculo') || '',
-            cargo_funcao: fd.get('cargo_funcao') || '',
-            carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
-            horario_inicio: fd.get('horario_inicio') || '',
-            horario_fim: fd.get('horario_fim') || '',
-            data_inicio: fd.get('data_inicio') || '',
-        });
+            // pega a jornada escolhida
+            const jornada = (fd.get('jornada_trabalho') || '').toLowerCase();
 
-        if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
-            ['empregador_nome','empregador_doc','natureza_vinculo','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio']
-            .forEach(k => params.delete(k));
-        }
+            // monta querystring p/ a página intermediária
+            const params = new URLSearchParams({
+                ano: fd.get('ano') || '',
+                tipo: fd.get('tipo') || '',
+                empregador_nome: fd.get('empregador_nome') || '',
+                empregador_doc: digitsOnly(fd.get('empregador_doc') || ''),
+                natureza_vinculo: fd.get('natureza_vinculo') || '',
+                jornada_trabalho: jornada || '',                  // ← ADICIONE ESTA LINHA
+                cargo_funcao: fd.get('cargo_funcao') || '',
+                carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
+                horario_inicio: fd.get('horario_inicio') || '',
+                horario_fim: fd.get('horario_fim') || '',
+                data_inicio: fd.get('data_inicio') || '',
+            });
 
-        const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
-                            .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
-        params.set('return_to', urlUpload);
+            if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
+                [
+                    'empregador_nome', 'empregador_doc', 'natureza_vinculo',
+                    'jornada_trabalho',              // ← LIMPE TAMBÉM QUANDO FOR NEGATIVA
+                    'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'
+                ].forEach(k => params.delete(k));
+            }
 
-        const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
-                                    .replace('/0', `/${militarId}`) + '?' + params.toString();
+            const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
+                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+            params.set('return_to', urlUpload);
 
-        // abre popup da página intermediária (dispara download e se fecha)
-        const popup = window.open(urlIntermediaria, '_blank');
-        if (!popup) {
-            // popup bloqueada: usa a própria aba; a página intermediária volta via return_to
-            window.location.href = urlIntermediaria;
-            return;
-        }
+            // OBS: se o endpoint correto for 'acumulo.modelo_docx', ajuste aqui:
+            const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
+                .replace('/0', `/${militarId}`) + '?' + params.toString();
 
-        // redireciona esta aba para o upload (sem matar o download da popup)
-        setTimeout(() => { window.location.href = urlUpload; }, 500);
+            const popup = window.open(urlIntermediaria, '_blank');
+            if (!popup) { window.location.href = urlIntermediaria; return; }
+            setTimeout(() => { window.location.href = urlUpload; }, 500);
 
         } catch (e) {
-        alert('Erro: ' + e.message);
+            alert('Erro: ' + e.message);
         }
     });
 </script>

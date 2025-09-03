@@ -361,7 +361,7 @@ def home_atualizacao():
             .limit(6)
             .all()
         )
-    
+
     # -------- 3.1) Último motivo de INCONFORME por declaração (para o modal) --------
     inconforme_info_map = {}  # {decl_id: {"motivo": str, "quando": datetime}}
     if minhas_declaracoes:
@@ -1411,7 +1411,6 @@ def recebimento():
     )
 
 
-
 @bp_acumulo.route("/recebimento/<int:decl_id>/status", methods=["POST"])
 @login_required
 def recebimento_mudar_status(decl_id):
@@ -1500,9 +1499,11 @@ def recebimento_export():
         return t.strftime("%H:%M") if t else ""
 
     # mapeamentos legíveis
-    TIPO_PT   = {"positiva": "Positiva (com vínculo)", "negativa": "Negativa (sem vínculo)"}
-    STATUS_PT = {"pendente": "Pendente", "validado": "Validado", "inconforme": "Inconforme"}
-    MEIO_PT   = {"digital": "Digital", "presencial": "Presencial"}
+    TIPO_PT = {
+        "positiva": "Positiva (com vínculo)", "negativa": "Negativa (sem vínculo)"}
+    STATUS_PT = {"pendente": "Pendente",
+                 "validado": "Validado", "inconforme": "Inconforme"}
+    MEIO_PT = {"digital": "Digital", "presencial": "Presencial"}
     EMPREG_TIPO_PT = {
         "publico": "Público",
         "privado": "Privado",
@@ -1527,13 +1528,15 @@ def recebimento_export():
     q = (request.args.get("q") or "").strip()
     obm_id = request.args.get("obm_id", type=int)
 
-    D, M, PG, U = DeclaracaoAcumulo, Militar, PostoGrad, User  # User: ajusta import se necessário
+    # User: ajusta import se necessário
+    D, M, PG, U = DeclaracaoAcumulo, Militar, PostoGrad, User
 
     # ---------------------------
     # BASE: mesmas condições (ano/obm/status/q) + join em User
     # ---------------------------
     # tentar pegar User.nome; se o campo for 'name', troque abaixo
-    user_name_col = functions.coalesce(U.nome)  # <- ajuste caso seu modelo seja diferente
+    # <- ajuste caso seu modelo seja diferente
+    user_name_col = functions.coalesce(U.nome)
 
     base_qry = (
         db.session.query(
@@ -1804,7 +1807,8 @@ def modelo_docx(militar_id):
 
     MOF = MilitarObmFuncao
     row = (
-        db.session.query(Militar, PostoGrad.sigla.label("pg_sigla"), Obm.sigla.label("obm_sigla"))
+        db.session.query(Militar, PostoGrad.sigla.label(
+            "pg_sigla"), Obm.sigla.label("obm_sigla"))
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
         .outerjoin(MOF, and_(MOF.militar_id == Militar.id, MOF.data_fim.is_(None)))
         .outerjoin(Obm, Obm.id == MOF.obm_id)
@@ -1816,24 +1820,29 @@ def modelo_docx(militar_id):
     militar, pg_sigla, obm_sigla = row
 
     emp_nome = (request.args.get("empregador_nome") or "").strip()
-    emp_doc  = _digits(request.args.get("empregador_doc") or "")
-    natureza = (request.args.get("natureza_vinculo") or "").strip().replace("_", " ")
-    cargo    = (request.args.get("cargo_funcao") or "").strip()
-    carga    = (request.args.get("carga_horaria_semanal") or "").strip()
-    hi       = (request.args.get("horario_inicio") or "").strip()
-    hf       = (request.args.get("horario_fim") or "").strip()
+    emp_doc = _digits(request.args.get("empregador_doc") or "")
+    natureza = (request.args.get("natureza_vinculo")
+                or "").strip().replace("_", " ")
+    jornada = (request.args.get("jornada_trabalho")
+               or "").lower().replace("_", " ")
+    cargo = (request.args.get("cargo_funcao") or "").strip()
+    carga = (request.args.get("carga_horaria_semanal") or "").strip()
+    hi = (request.args.get("horario_inicio") or "").strip()
+    hf = (request.args.get("horario_fim") or "").strip()
     dinicio_raw = request.args.get("data_inicio") or ""
-    dinicio  = formatar_data_sem_zero(dinicio_raw) if dinicio_raw else ""
+    dinicio = formatar_data_sem_zero(dinicio_raw) if dinicio_raw else ""
 
     mapping = {
         "posto_grad": pg_sigla or "-",
         "nome":       militar.nome_completo,
         "obm":        obm_sigla or "-",
         "ano":        str(ano),
-        "x_sim": "X" if tipo == "positiva" else "",
-        "x_nao": "X" if tipo == "negativa" else "",
+        "x_vinculo_sim": "X" if tipo == "positiva" else "",
+        "x_vinculo_nao": "X" if tipo == "negativa" else "",
         "empregador_nome":       emp_nome if tipo == "positiva" else "",
         "empregador_doc":        emp_doc if tipo == "positiva" else "",
+        "x_escala": "X" if (tipo == "positiva" and jornada == "escala") else "",
+        "x_expediente": "X" if (tipo == "positiva" and jornada == "expediente") else "",
         "natureza_vinculo":      natureza if tipo == "positiva" else "",
         "cargo_funcao":          cargo if tipo == "positiva" else "",
         "carga_horaria_semanal": carga if tipo == "positiva" else "",
@@ -1842,7 +1851,8 @@ def modelo_docx(militar_id):
         "data_atual":            datetime.today().strftime("%d/%m/%Y"),
     }
 
-    buf = render_docx_from_template("src/template/declaracao_vinculo.docx", mapping)
+    buf = render_docx_from_template(
+        "src/template/declaracao_vinculo.docx", mapping)
     filename = f"Declaracao_{(militar.nome_guerra or militar.nome_completo).replace(' ', '_')}_{ano}.docx"
 
     # >>> cabeçalhos extras p/ iOS
@@ -1872,7 +1882,8 @@ def modelo_docx_page(militar_id):
         return redirect(url_for("acumulo.lista"))
 
     qs = request.query_string.decode("utf-8")
-    download_url = url_for("acumulo.modelo_docx", militar_id=militar_id, _external=False)
+    download_url = url_for("acumulo.modelo_docx",
+                           militar_id=militar_id, _external=False)
     if qs:
         download_url = f"{download_url}?{qs}"
 
