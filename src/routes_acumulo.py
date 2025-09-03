@@ -2,13 +2,13 @@ from src.formatar_cpf import get_militar_por_user
 from sqlalchemy import func, cast, String
 from src import app
 from io import BytesIO
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, session, url_for, request, jsonify
 from flask_login import login_required, current_user
 from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
-from src.models import AuditoriaDeclaracao, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno
+from src.models import AuditoriaDeclaracao, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo
 from src.decorators.control import checar_ocupacao
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
@@ -654,6 +654,15 @@ def novo(militar_id):
     militar, pg_sigla, obm_sigla = row
 
     if request.method == "GET":
+        # carrega rascunho (se existir)
+        draft_row = (
+            db.session.query(DraftDeclaracaoAcumulo)
+            .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
+                    DraftDeclaracaoAcumulo.ano_referencia == ano)
+            .first()
+        )
+        draft_payload = draft_row.payload if draft_row else None
+
         return render_template(
             "acumulo_novo.html",
             militar_id=militar.id,
@@ -661,6 +670,7 @@ def novo(militar_id):
             posto_grad_sigla=pg_sigla or "-",
             obm_sigla=obm_sigla or "-",
             ano=ano,
+            draft=draft_payload,
         )
 
     # ----------------- POST -----------------
@@ -669,8 +679,7 @@ def novo(militar_id):
         flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
         return redirect(request.url)
 
-    meio_entrega = (request.form.get("meio_entrega")
-                    or "digital").strip().lower()
+    meio_entrega = (request.form.get("meio_entrega") or "digital").strip().lower()
     if meio_entrega not in {"digital", "presencial"}:
         meio_entrega = "digital"
 
@@ -686,25 +695,27 @@ def novo(militar_id):
     vinculo_row = None
     if tipo == "positiva":
         emp_nome = (request.form.get("empregador_nome") or "").strip()
-        emp_tipo = (request.form.get("empregador_tipo") or "").strip().lower()
+
+        # AGORA: esfera do órgão público (municipal/estadual/federal)
+        emp_esfera = (request.form.get("empregador_tipo") or "").strip().lower()
         emp_doc = _digits(request.form.get("empregador_doc") or "")
-        natureza = (request.form.get("natureza_vinculo") or "").strip().lower()
+
+        # natureza é fixa = efetivo (não ler mais do form)
+        natureza = "efetivo"
+
         jornada = (request.form.get("jornada_trabalho") or "").strip().lower()
         cargo = (request.form.get("cargo_funcao") or "").strip()
         try:
-            carga = int(
-                (request.form.get("carga_horaria_semanal") or "0").strip() or "0")
+            carga = int((request.form.get("carga_horaria_semanal") or "0").strip() or "0")
         except Exception:
             carga = 0
         h_ini = _parse_time(request.form.get("horario_inicio"))
         h_fim = _parse_time(request.form.get("horario_fim"))
         d_ini = _parse_date(request.form.get("data_inicio"))
 
-        if emp_tipo not in {"publico", "privado", "cooperativa", "profissional_liberal"}:
-            flash("Tipo de empregador inválido.", "alert-danger")
-            return redirect(request.url)
-        if natureza not in {"efetivo", "contratado", "prestacao_servicos", "profissional_liberal"}:
-            flash("Natureza do vínculo inválida.", "alert-danger")
+        # validações atualizadas
+        if emp_esfera not in {"municipal", "estadual", "federal"}:
+            flash("Esfera do órgão inválida. Use Municipal, Estadual ou Federal.", "alert-danger")
             return redirect(request.url)
         if jornada not in {"escala", "expediente"}:
             flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
@@ -715,9 +726,9 @@ def novo(militar_id):
 
         vinculo_row = dict(
             empregador_nome=emp_nome,
-            empregador_tipo=emp_tipo,
+            empregador_tipo=emp_esfera,      # << agora guarda a ESFERA
             empregador_doc=emp_doc,
-            natureza_vinculo=natureza,
+            natureza_vinculo=natureza,       # << sempre 'efetivo'
             jornada_trabalho=jornada,
             cargo_funcao=cargo,
             carga_horaria_semanal=carga,
@@ -831,6 +842,93 @@ def novo(militar_id):
         flash(f"Erro ao salvar a declaração: {e}", "alert-danger")
         print(f"Erro ao salvar a declaração: {e}")
         return redirect(request.url)
+
+
+def _digits(s: str) -> str:
+    return ''.join(ch for ch in (s or '') if ch.isdigit())
+
+
+def _sanitize_vinculo(v: dict) -> dict:
+    """
+    Mantém somente os campos aceitos e aplica regras novas:
+    - empregador_tipo: municipal/estadual/federal
+    - natureza_vinculo: sempre 'efetivo'
+    """
+    v = v or {}
+    esfera = (v.get('empregador_tipo') or '').strip().lower()
+    if esfera not in {'municipal', 'estadual', 'federal', ''}:
+        esfera = ''  # não invalidamos rascunho — só normalizamos
+
+    return {
+        'empregador_nome': (v.get('empregador_nome') or '').strip(),
+        'empregador_tipo': esfera,                            # municipal | estadual | federal
+        'empregador_doc': _digits(v.get('empregador_doc') or ''),
+        'natureza_vinculo': 'efetivo',                        # fixo
+        'jornada_trabalho': (v.get('jornada_trabalho') or '').strip().lower(),
+        'cargo_funcao': (v.get('cargo_funcao') or '').strip(),
+        'carga_horaria_semanal': (v.get('carga_horaria_semanal') or '').strip(),
+        'horario_inicio': (v.get('horario_inicio') or '').strip(),
+        'horario_fim': (v.get('horario_fim') or '').strip(),
+        'data_inicio': (v.get('data_inicio') or '').strip(),
+    }
+
+
+@bp_acumulo.route("/salvar-rascunho/<int:militar_id>", methods=["POST"])
+@login_required
+def salvar_rascunho(militar_id):
+    try:
+        # segurança: usuário comum só salva do próprio militar
+        if current_user.funcao_user_id == 12:
+            mil_user = get_militar_por_user(current_user)
+            if not mil_user or mil_user.id != militar_id:
+                return jsonify(ok=False, error="Sem permissão para este militar."), 403
+
+        data = request.get_json(silent=True) or {}
+        ano = int(data.get("ano") or datetime.now().year)
+
+        # tipo pode estar vazio (rascunho!), mas se vier, normalize
+        tipo = (data.get("tipo") or '').strip().lower()
+        if tipo not in {'', 'positiva', 'negativa'}:
+            tipo = ''  # não invalidar rascunho
+
+        observacoes = (data.get("observacoes") or '').strip()
+
+        # vínculos: lista; mantemos só o 1º por enquanto (sua UI atual é 1)
+        vinculos_in = data.get("vinculos") or []
+        vinculos = []
+        for v in vinculos_in:
+            vinculos.append(_sanitize_vinculo(v))
+
+        payload = {
+            'ano': ano,
+            'tipo': tipo,
+            'observacoes': observacoes,
+            'vinculos': vinculos,
+        }
+
+        # upsert (1 rascunho por militar/ano)
+        draft = (db.session.query(DraftDeclaracaoAcumulo)
+                 .filter(DraftDeclaracaoAcumulo.militar_id == militar_id,
+                         DraftDeclaracaoAcumulo.ano_referencia == ano)
+                 .first())
+        if draft:
+            draft.payload = payload
+            draft.updated_at = datetime.utcnow()
+            db.session.add(draft)
+        else:
+            draft = DraftDeclaracaoAcumulo(
+                militar_id=militar_id,
+                ano_referencia=ano,
+                payload=payload,
+            )
+            db.session.add(draft)
+
+        db.session.commit()
+        return jsonify(ok=True), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(ok=False, error=str(e)), 500
 
 
 @bp_acumulo.route("/prepara-geracao", methods=["POST"])
@@ -1032,6 +1130,17 @@ def upload_assinado(militar_id):
         # limpa cache da sessão para esse militar/ano
         session.pop(f'pre_decl_{militar.id}_{ano}', None)
 
+        try:
+            draft = (db.session.query(DraftDeclaracaoAcumulo)
+                    .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
+                            DraftDeclaracaoAcumulo.ano_referencia == ano)
+                    .first())
+            if draft:
+                db.session.delete(draft)
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         flash("Declaração salva com sucesso!", "alert-success")
         return redirect(url_for("home_atualizacao", ano=ano))
 
@@ -1047,14 +1156,20 @@ def editar(decl_id):
     # carrega a declaração com militar e vínculos
     decl = (db.session.query(DeclaracaoAcumulo)
             .options(
-                joinedload(DeclaracaoAcumulo.militar).joinedload(
-                    Militar.posto_grad),
+                joinedload(DeclaracaoAcumulo.militar).joinedload(Militar.posto_grad),
                 selectinload(DeclaracaoAcumulo.vinculos)
-    ).get(decl_id))
+            ).get(decl_id))
     if not decl:
         abort(404)
 
-    # SIGLA da OBM ativa (só pra exibir)
+    # segurança: usuário comum só edita a sua
+    if current_user.funcao_user_id == 12:
+        mil_user = get_militar_por_user(current_user)
+        if not mil_user or mil_user.id != decl.militar_id:
+            flash("Sem permissão para editar esta declaração.", "alert-danger")
+            return redirect(url_for("home_atualizacao"))
+
+    # SIGLA da OBM ativa (só pra exibição)
     MOF = MilitarObmFuncao
     obm_sigla = (db.session.query(Obm.sigla)
                  .join(MOF, Obm.id == MOF.obm_id)
@@ -1065,8 +1180,7 @@ def editar(decl_id):
         # link temporário do arquivo atual (se houver)
         url_arquivo = None
         if decl.arquivo_declaracao:
-            url_arquivo = b2_presigned_get(
-                decl.arquivo_declaracao, expires_seconds=600)
+            url_arquivo = b2_presigned_get(decl.arquivo_declaracao, expires_seconds=600)
 
         return render_template(
             "acumulo_editar.html",
@@ -1078,6 +1192,7 @@ def editar(decl_id):
             url_arquivo=url_arquivo,
         )
 
+    # ----------------- POST -----------------
     ano = decl.ano_referencia
     militar = decl.militar
 
@@ -1086,14 +1201,12 @@ def editar(decl_id):
         flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
         return redirect(request.url)
 
-    _ = (request.form.get("meio_entrega") or "digital").strip().lower()
     observacoes = (request.form.get("observacoes") or "").strip()
 
-    # === Atualiza User (igual ao prepara_geracao) ===
+    # === Atualiza User (igual ao prepara_geracao) — não bloqueia fluxo ===
     try:
         email_sess = session.get('email_atualizacao')
 
-        # OBMs ativas
         rows = (db.session.query(MOF.obm_id)
                 .filter(and_(MOF.militar_id == militar.id, MOF.data_fim.is_(None)))
                 .order_by(MOF.id.asc()).all())
@@ -1104,27 +1217,21 @@ def editar(decl_id):
 
         changed = False
         if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
-            current_user.email = email_sess
-            changed = True
+            current_user.email = email_sess; changed = True
         if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
-            current_user.obm_id_1 = obm_id_1
-            changed = True
+            current_user.obm_id_1 = obm_id_1; changed = True
         if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
-            current_user.obm_id_2 = obm_id_2
-            changed = True
+            current_user.obm_id_2 = obm_id_2; changed = True
         if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
-            current_user.localidade_id = localidade_id
-            changed = True
+            current_user.localidade_id = localidade_id; changed = True
         if changed:
             db.session.add(current_user)
             db.session.commit()
     except Exception as e:
         db.session.rollback()
-        # Não bloqueia o fluxo — só avisa
-        flash(
-            f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
+        flash(f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
 
-    # === Monta o pacote de pré-declaração para a sessão (igual ao prepara_geracao) ===
+    # === Monta pacote pré-declaração p/ sessão (fluxo de geração DOCX) ===
     pre = {
         "ano": ano,
         "tipo": tipo,
@@ -1133,49 +1240,50 @@ def editar(decl_id):
 
     if tipo == "positiva":
         nomes = request.form.getlist("empregador_nome[]")
-        tipos = request.form.getlist("empregador_tipo[]")
-        docs = request.form.getlist("empregador_doc[]")
-        natur = request.form.getlist("natureza_vinculo[]")
+        tipos = request.form.getlist("empregador_tipo[]")          # municipal/estadual/federal
+        docs  = request.form.getlist("empregador_doc[]")
         jornada = request.form.getlist("jornada_trabalho[]")
-        cargos = request.form.getlist("cargo_funcao[]")
-        cargas = request.form.getlist("carga_horaria_semanal[]")
-        h_ini = request.form.getlist("horario_inicio[]")
-        h_fim = request.form.getlist("horario_fim[]")
-        d_ini = request.form.getlist("data_inicio[]")
+        cargos  = request.form.getlist("cargo_funcao[]")
+        cargas  = request.form.getlist("carga_horaria_semanal[]")
+        h_ini   = request.form.getlist("horario_inicio[]")
+        h_fim   = request.form.getlist("horario_fim[]")
+        d_ini   = request.form.getlist("data_inicio[]")
 
         def first_or_empty(lst, i):
             return (lst[i] if i < len(lst) else "").strip()
 
-        # acha o primeiro índice com nome preenchido
+        # pega o primeiro vínculo com nome preenchido
         idx = None
         for i, nome in enumerate(nomes or []):
             if (nome or "").strip():
                 idx = i
                 break
-
         if idx is None:
-            flash("Inclua ao menos um vínculo para declaração positiva.",
-                  "alert-danger")
+            flash("Inclua ao menos um vínculo público para declaração positiva.", "alert-danger")
             return redirect(request.url)
 
+        esfera = first_or_empty(tipos, idx).lower()
+        if esfera not in {"municipal", "estadual", "federal"}:
+            flash("Tipo do órgão inválido (use Municipal/Estadual/Federal).", "alert-danger")
+            return redirect(request.url)
+
+        # natureza = sempre efetivo
         pre.update({
             "empregador_nome": first_or_empty(nomes, idx),
-            "empregador_tipo": first_or_empty(tipos, idx).lower(),
+            "empregador_tipo": esfera,
             "empregador_doc": _digits(first_or_empty(docs, idx)),
-            "natureza_vinculo": first_or_empty(natur, idx).lower(),
+            "natureza_vinculo": "efetivo",
             "jornada_trabalho": first_or_empty(jornada, idx).lower(),
             "cargo_funcao": first_or_empty(cargos, idx),
             "carga_horaria_semanal": (first_or_empty(cargas, idx) or "0").strip(),
-
-            # 🔴 GARANTE FORMATO QUE A /upload-assinado ESPERA
-            "horario_inicio": first_or_empty(h_ini, idx)[:5],  # HH:MM
-            "horario_fim":    first_or_empty(h_fim, idx)[:5],  # HH:MM
-            "data_inicio":    first_or_empty(d_ini, idx)[:10],  # YYYY-MM-DD
+            "horario_inicio": first_or_empty(h_ini, idx)[:5],
+            "horario_fim":    first_or_empty(h_fim, idx)[:5],
+            "data_inicio":    first_or_empty(d_ini, idx)[:10],
         })
 
     session[f'pre_decl_{militar.id}_{ano}'] = pre
 
-    # Redireciona para a mesma tela já usada no fluxo de NOVO
+    # Redireciona pro mesmo upload do fluxo "novo"
     return redirect(url_for("acumulo.upload_assinado", militar_id=militar.id, ano=ano))
 
 
@@ -1974,3 +2082,89 @@ def modelo_docx_page(militar_id):
         </script>
         """
     return html
+
+
+# === ROTAS: Minhas Declarações ===
+@bp_acumulo.route("/minhas", methods=["GET"])
+@login_required
+def minhas_declaracoes():
+    # usuário comum -> pega o próprio militar
+    if current_user.funcao_user_id == 12:
+        militar = get_militar_por_user(current_user)
+        if not militar:
+            flash("Não foi possível localizar seus dados de militar.", "danger")
+            return redirect(url_for("home_atualizacao"))
+        militar_id = militar.id
+    else:
+        # perfis DRH etc podem ver a própria também
+        militar = get_militar_por_user(current_user) or None
+        militar_id = getattr(militar, "id", None)
+
+    ano = request.args.get("ano", type=int) or datetime.now().year
+
+    # KPIs rápidos
+    q_base = db.session.query(DeclaracaoAcumulo).filter(
+        DeclaracaoAcumulo.militar_id == militar_id,
+        DeclaracaoAcumulo.ano_referencia == ano
+    )
+    minhas = q_base.order_by(DeclaracaoAcumulo.created_at.desc()).all()
+
+    kpi_total = len(minhas)
+    kpi_pend = sum(1 for d in minhas if (d.status or "").lower() == "pendente")
+    kpi_val = sum(1 for d in minhas if (d.status or "").lower() == "validado")
+    kpi_inc = sum(1 for d in minhas if (d.status or "").lower() == "inconforme")
+
+    # Rascunho (único por militar/ano)
+    # Ajuste o modelo/campo conforme sua implementação de rascunhos
+    rasc = (db.session.query(DraftDeclaracaoAcumulo)
+            .filter(DraftDeclaracaoAcumulo.militar_id == militar_id,
+                    DraftDeclaracaoAcumulo.ano_referencia == ano)
+            .first())
+
+    # Para exibir OBM/PG no topo
+    MOF = MilitarObmFuncao
+    row = (
+        db.session.query(Militar, PostoGrad.sigla.label("pg_sigla"))
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .filter(Militar.id == militar_id)
+        .first()
+    )
+    pg_sigla = row[1] if row else "-"
+
+    return render_template(
+        "acumulo_minhas.html",
+        ano=ano,
+        militar=militar,
+        posto_grad_sigla=pg_sigla or "-",
+        rascunho=rasc,
+        declaracoes=minhas,
+        kpi_decl_total=kpi_total,
+        kpi_decl_pendentes=kpi_pend,
+        kpi_decl_validadas=kpi_val,
+        kpi_decl_inconformes=kpi_inc,
+    )
+
+
+@bp_acumulo.route("/rascunho/excluir/<int:militar_id>/<int:ano>", methods=["POST"])
+@login_required
+def excluir_rascunho(militar_id, ano):
+    # segurança: usuário comum só pode excluir o próprio
+    if current_user.funcao_user_id == 12:
+        mil_user = get_militar_por_user(current_user)
+        if not mil_user or mil_user.id != militar_id:
+            return {"ok": False, "error": "Sem permissão para excluir este rascunho."}, 403
+
+    try:
+        r = (db.session.query(DraftDeclaracaoAcumulo)
+             .filter(DraftDeclaracaoAcumulo.militar_id == militar_id,
+                     DraftDeclaracaoAcumulo.ano == ano)
+             .first())
+        if not r:
+            return {"ok": False, "error": "Rascunho não encontrado."}, 404
+
+        db.session.delete(r)
+        db.session.commit()
+        return {"ok": True}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"ok": False, "error": str(e)}, 500

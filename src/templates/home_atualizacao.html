@@ -268,8 +268,9 @@
                     <div class="d-grid gap-2">
                         <button id="btn-nova-declaracao" class="btn btn-primary" type="button"><i
                                 class="bi bi-file-earmark-plus me-1"></i> Nova declaração</button>
-                        <a class="btn btn-outline-primary" href="#"><i class="bi bi-folder2-open me-1"></i> Minhas
-                            declarações</a>
+                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.minhas_declaracoes') }}">
+                            <i class="bi bi-folder2-open me-1"></i> Minhas declarações
+                        </a>
                         {% if drh_like %}
                         <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}"><i
                                 class="bi bi-inboxes me-1"></i> Recebimento (DRH)</a>

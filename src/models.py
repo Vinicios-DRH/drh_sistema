@@ -953,35 +953,38 @@ class DeclaracaoAcumulo(database.Model):
 
 
 class VinculoExterno(database.Model):
-    """
-    Vínculo(es) declarado(s) quando tipo='positiva'. Uma declaração pode ter 1+ vínculos.
-    """
     __tablename__ = "vinculo_externo"
 
     id = database.Column(database.Integer, primary_key=True)
-    declaracao_id = database.Column(database.Integer, database.ForeignKey(
-        'declaracao_acumulo.id'), nullable=False)
+    declaracao_id = database.Column(
+        database.Integer, database.ForeignKey('declaracao_acumulo.id'), nullable=False)
 
     empregador_nome = database.Column(database.String(150), nullable=False)
+
+    # 🔁 mudou: agora é a ESFERA do órgão público
     empregador_tipo = database.Column(database.Enum(
-        'publico', 'privado', 'cooperativa', 'profissional_liberal', name='tipo_empregador'), nullable=False)
+        'municipal', 'estadual', 'federal', name='esfera_publica'
+    ), nullable=False)
+
     # CNPJ (14) ou CPF (11) - salvar limpo
     empregador_doc = database.Column(database.String(18), nullable=False)
+
+    # 🔁 mudou: natureza é sempre “efetivo”
     natureza_vinculo = database.Column(database.Enum(
-        'efetivo', 'contratado', 'prestacao_servicos', 'profissional_liberal', name='natureza_vinculo'), nullable=False)
+        'efetivo', name='natureza_vinculo_efetivo'
+    ), nullable=False, server_default='efetivo')
+
     cargo_funcao = database.Column(database.String(120), nullable=False)
-    jornada_trabalho = database.Column(
-        database.Enum('escala', 'expediente',  name='jornada_trabalho'), nullable=False)
-    carga_horaria_semanal = database.Column(
-        database.Integer, nullable=False)  # em horas
+    jornada_trabalho = database.Column(database.Enum(
+        'escala', 'expediente', name='jornada_trabalho'
+    ), nullable=False)
+    carga_horaria_semanal = database.Column(database.Integer, nullable=False)
     horario_inicio = database.Column(database.Time, nullable=False)
     horario_fim = database.Column(database.Time, nullable=False)
     data_inicio = database.Column(database.Date, nullable=False)
 
-    compatibilidade_horaria = database.Column(
-        database.Boolean, default=None)  # marcado após conferência
-    conflito_descricao = database.Column(
-        database.Text)  # se incompatível, justificar
+    compatibilidade_horaria = database.Column(database.Boolean, default=None)
+    conflito_descricao = database.Column(database.Text)
 
     created_at = database.Column(database.DateTime, default=datetime.utcnow)
     updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
@@ -1009,3 +1012,23 @@ class AuditoriaDeclaracao(database.Model):
     declaracao = database.relationship(
         'DeclaracaoAcumulo', backref='auditorias')
     alterado_por = database.relationship('User')
+
+
+class DraftDeclaracaoAcumulo(database.Model):
+    __tablename__ = "draft_declaracao_acumulo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id', ondelete="CASCADE"), nullable=False)
+    ano_referencia = database.Column(database.Integer, nullable=False)
+
+    # Armazenamos o formulário inteiro em JSON (inclusive vínculos)
+    payload = database.Column(database.JSON, nullable=False, default=dict)
+
+    created_at = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = database.Column(database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    militar = database.relationship('Militar')
+
+    __table_args__ = (
+        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
+    )
