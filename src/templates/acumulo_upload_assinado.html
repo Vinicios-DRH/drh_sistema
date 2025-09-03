@@ -1,21 +1,292 @@
 {% extends "base.html" %}
-{% block body %}
-<div class="container-xxl py-3 mt-5">
-    <h1 class="h4 mb-3">Enviar documentos assinados — {{ ano }}</h1>
-    <p class="text-muted mb-4">
-        Envie um <strong>único PDF</strong> contendo o modelo assinado
-        {% if tipo == 'positiva' %} e declaração emitida do segundo vínculo {% endif %}.
-    </p>
 
-    <form method="post" enctype="multipart/form-data" class="card p-3">
-        <div class="mb-3">
-            <label class="form-label">Arquivo (PDF)</label>
-            <input type="file" class="form-control" name="arquivo_declaracao" accept=".pdf" required>
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+    :root {
+        --brand-red: #B5121B;
+        --brand-red-600: #9f1119;
+        --ink-100: #f6f8fb;
+        --ink-200: #e8eef6;
+        --ink-300: #cfe4ff;
+        --ink-400: #c0cfda;
+        --glass-bg: rgba(255, 255, 255, .06);
+        --glass-brd: rgba(255, 255, 255, .18);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600);
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red);
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        color: var(--ink-200);
+        border: 1px solid var(--glass-brd);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .muted {
+        color: var(--ink-300)
+    }
+
+    /* zona de upload */
+    .upload-zone {
+        border: 2px dashed var(--glass-brd);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .04);
+        padding: 1.25rem;
+        text-align: center;
+        transition: .15s ease;
+    }
+
+    .upload-zone.dragover {
+        border-color: var(--brand-red);
+        background: rgba(181, 18, 27, .08);
+    }
+
+    .upload-zone .icon {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: .35rem;
+        opacity: .9
+    }
+
+    .upload-zone input[type="file"] {
+        display: none;
+    }
+
+    .file-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .35rem .6rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .12);
+        border: 1px solid var(--glass-brd);
+        color: var(--ink-200);
+        font-size: .9rem;
+    }
+
+    .requirements li {
+        margin: .2rem 0;
+    }
+
+    /* barra de ação fixa */
+    .action-bar {
+        position: sticky;
+        bottom: 8px;
+        z-index: 4;
+        background: rgba(181, 18, 27, .12);
+        border: 1px solid var(--glass-brd);
+        border-radius: 14px;
+        padding: .65rem;
+        display: flex;
+        gap: .5rem;
+        justify-content: flex-end;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+    <div class="container-xxl">
+
+        <!-- Cabeçalho -->
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Enviar documentos assinados — {{ ano }}</h1>
+                        <div class="small text-light opacity-75">
+                            Envie um <strong>único PDF</strong> contendo o modelo assinado
+                            {% if tipo == 'positiva' %} e a declaração emitida do segundo vínculo{% endif %}.
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('acumulo.novo', militar_id=militar.id) }}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+            </div>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('acumulo.novo', militar_id=militar.id) }}" class="btn btn-light">Voltar</a>
-            <button class="btn btn-success" type="submit">Enviar</button>
+
+        <!-- Card -->
+        <div class="glass-card p-3 p-md-4">
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="row g-3">
+                    <div class="col-lg-8">
+                        <label class="form-label">Arquivo (PDF)</label>
+
+                        <label class="upload-zone w-100" id="dropArea">
+                            <i class="bi bi-cloud-arrow-up icon"></i>
+                            <div class="mb-1">Arraste o arquivo aqui ou <span class="text-decoration-underline">clique
+                                    para selecionar</span></div>
+                            <div class="small muted">Apenas PDF • máx. <span id="maxMbLabel">20</span> MB</div>
+                            <input type="file" id="fileInput" name="arquivo_declaracao" accept="application/pdf,.pdf"
+                                required>
+                        </label>
+
+                        <!-- feedback do arquivo selecionado -->
+                        <div id="fileInfo" class="mt-2 d-none">
+                            <span class="file-pill">
+                                <i class="bi bi-file-earmark-pdf-fill"></i>
+                                <span id="fileName">arquivo.pdf</span>
+                                <span class="opacity-75">•</span>
+                                <span id="fileSize">0 MB</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" id="btnClear">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </span>
+                        </div>
+
+                        <div id="fileError" class="text-danger small mt-2 d-none"></div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="p-3 rounded-3"
+                            style="background:rgba(255,255,255,.06); border:1px solid var(--glass-brd)">
+                            <div class="fw-semibold mb-2">Requisitos</div>
+                            <ul class="requirements small muted mb-0">
+                                <li>Formato <strong>PDF</strong> (um único arquivo).</li>
+                                <li>Documento legível e assinado.</li>
+                                {% if tipo == 'positiva' %}
+                                <li>Incluir a <strong>declaração do segundo vínculo</strong>.</li>
+                                {% endif %}
+                                <li>Tamanho máximo: <strong><span id="maxMbLabel2">20</span> MB</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- barra de ação -->
+                <div class="action-bar mt-3">
+                    <a href="{{ url_for('acumulo.novo', militar_id=militar.id) }}"
+                        class="btn btn-outline-light">Cancelar</a>
+                    <button class="btn btn-primary" type="submit" id="btnSubmit" disabled>
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="upSpinner" role="status"
+                            aria-hidden="true"></span>
+                        Enviar
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
-</div>
+    </div>
+</section>
+
+<script>
+    (() => {
+        // ===== Configuráveis =====
+        const MAX_MB = 20;  // ajuste se quiser outro limite
+        const ACCEPT_MIME = 'application/pdf';
+
+        // ===== Elements =====
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileError = document.getElementById('fileError');
+        const btnClear = document.getElementById('btnClear');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const spinner = document.getElementById('upSpinner');
+        document.getElementById('maxMbLabel').textContent = MAX_MB;
+        document.getElementById('maxMbLabel2').textContent = MAX_MB;
+
+        // ===== Helpers =====
+        function bytesToMB(b) { return (b / (1024 * 1024)); }
+        function showError(msg) {
+            fileError.textContent = msg || '';
+            fileError.classList.toggle('d-none', !msg);
+        }
+        function preview(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = bytesToMB(file.size).toFixed(2) + ' MB';
+            fileInfo.classList.remove('d-none');
+            btnSubmit.disabled = false;
+        }
+        function clearFile() {
+            fileInput.value = '';
+            fileInfo.classList.add('d-none');
+            btnSubmit.disabled = true;
+            showError('');
+        }
+        function validate(file) {
+            if (!file) { return false; }
+            const isPdf = (file.type === ACCEPT_MIME) || /\.pdf$/i.test(file.name);
+            if (!isPdf) { showError('Apenas arquivos PDF são aceitos.'); return false; }
+            if (bytesToMB(file.size) > MAX_MB) { showError(`Arquivo excede ${MAX_MB} MB.`); return false; }
+            showError('');
+            return true;
+        }
+
+        // ===== Bind click no drop-area =====
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        // Drag & drop
+        ;['dragenter', 'dragover'].forEach(evt => {
+            dropArea.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragover'); });
+        });
+        ;['dragleave', 'drop'].forEach(evt => {
+            dropArea.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragover'); });
+        });
+        dropArea.addEventListener('drop', e => {
+            const f = e.dataTransfer.files?.[0];
+            if (!f) return;
+            if (validate(f)) { fileInput.files = e.dataTransfer.files; preview(f); } else { clearFile(); }
+        });
+
+        // Via seletor de arquivo
+        fileInput.addEventListener('change', () => {
+            const f = fileInput.files?.[0];
+            if (!f) { clearFile(); return; }
+            if (validate(f)) { preview(f); } else { clearFile(); }
+        });
+
+        btnClear?.addEventListener('click', (e) => { e.preventDefault(); clearFile(); });
+
+        // Submissão com feedback
+        const form = document.getElementById('uploadForm');
+        form.addEventListener('submit', () => {
+            btnSubmit.disabled = true;
+            spinner.classList.remove('d-none');
+        });
+    })();
+</script>
 {% endblock %}

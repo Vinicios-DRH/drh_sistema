@@ -1,174 +1,344 @@
 {% extends "base.html" %}
-{% block body %}
+
+{% block head %}
+<!-- Ícones Bootstrap -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
 <style>
-    .page-title {
-        font-weight: 600;
-        letter-spacing: .2px
+    :root {
+        /* Paleta CBMAM */
+        --brand-red: #B5121B;
+        --brand-red-600: #a01017;
+        --glass-bg: rgba(255, 255, 255, 0.06);
+        --glass-brd: rgba(255, 255, 255, 0.16);
     }
 
-    .subtle {
-        color: var(--bs-secondary-color)
+    /* Botões no tema */
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600);
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red);
+    }
+
+    /* Fundo e containers */
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 16px;
+        color: #e8eef6;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: #e8eef6;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
     }
 
     .card-soft {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 16px
+        border: 1px solid var(--glass-brd);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .04);
     }
 
-    .section-title {
+    /* Form styling no modo vidro */
+    .form-label {
+        color: #cfe4ff;
         font-weight: 600;
-        font-size: 1rem;
-        margin: 0
     }
 
+    .form-control,
+    .form-select,
+    textarea {
+        background: rgba(255, 255, 255, .08) !important;
+        color: #e8eef6 !important;
+        border: 1px solid rgba(255, 255, 255, .25) !important;
+    }
+
+    .form-control::placeholder {
+        color: #c0cfda;
+        opacity: .8
+    }
+
+    .invalid-feedback {
+        color: #ffb4b4
+    }
+
+    /* Chips e campos de leitura */
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .25rem .6rem;
+        border-radius: 999px;
+        border: 1px solid var(--glass-brd);
+        background: rgba(255, 255, 255, .08);
+        color: #e8eef6;
+        font-size: .78rem
+    }
+
+    /* Cartão de vínculo */
     .vinculo-card {
-        border: 1px dashed var(--bs-border-color);
+        border: 1px dashed var(--glass-brd);
         border-radius: 12px;
         padding: 1rem;
-        background: var(--bs-body-bg)
+        background: rgba(0, 0, 0, .08)
     }
+
+    .vinculo-card.disabled {
+        opacity: .55;
+        filter: saturate(.6)
+    }
+
+    /* Barra de ação fixa */
+    .action-bar {
+        position: sticky;
+        bottom: 10px;
+        z-index: 3;
+        background: rgba(0, 0, 0, .25);
+        border: 1px solid var(--glass-brd);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 14px;
+        padding: .6rem;
+        display: flex;
+        gap: .5rem;
+        justify-content: flex-end
+    }
+
+    /* Corrige legibilidade das listas dos <select> em tema escuro */
+    .form-select option,
+    .form-select optgroup {
+    background-color: #ffffff !important; /* fundo do popup */
+    color: #111111 !important;            /* texto das opções */
+    }
+
+    /* Hover/selecionado dentro do popup */
+    .form-select option:hover,
+    .form-select option:checked {
+    background-color: #eef2f7 !important;
+    color: #111111 !important;
+    }
+
+    /* Opcões desabilitadas (tipo "Selecione…") mais apagadas */
+    .form-select option[disabled] {
+    color: #94a3b8 !important;
+    }
+
+    /* Mantém boa visibilidade do campo fechado */
+    .form-select {
+    color: var(--ink-200) !important;
+    background: rgba(255,255,255,.06) !important;
+    border: 1px solid rgba(255,255,255,.18) !important;
+    }
+
 </style>
+{% endblock %}
 
-<div class="container-xxl py-3 mt-5">
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-        <div>
-            <h1 class="page-title h4 mb-1">Nova Declaração — {{ militar.nome_guerra or militar.nome_completo }}</h1>
-            <div class="subtle">Escolha o tipo, preencha (se positiva) e gere o modelo. O envio assinado será na próxima
-                tela.</div>
-        </div>
-        <a href="{{ url_for('acumulo.lista') }}" class="btn btn-light">← Voltar</a>
-    </div>
+{% block body %}
+<section class="py-3 py-md-4">
+    <div class="container-xxl">
 
-    <form id="form-declaracao" class="needs-validation" novalidate>
-        <input type="hidden" name="ano" value="{{ ano }}">
-        <input type="hidden" name="militar_id" value="{{ militar.id }}">
-
-        <div class="card card-soft p-3 mb-3">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Militar</label>
-                    <input class="form-control" value="{{ militar.nome_completo }}" readonly>
+        <!-- Cabeçalho -->
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 m-0">Nova Declaração</h1>
+                        <div class="small opacity-75">Preencha os dados, gere o modelo DOCX e assine na etapa seguinte.
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Posto/Graduação</label>
-                    <input class="form-control" value="{{ posto_grad_sigla or '-' }}" readonly>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">OBM</label>
-                    <input class="form-control" value="{{ obm_sigla or '-' }}" readonly>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Ano</label>
-                    <input class="form-control" value="{{ ano }}" readonly>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ url_for('acumulo.lista') }}" class="btn btn-outline-light"><i
+                            class="bi bi-arrow-left"></i> Voltar</a>
                 </div>
             </div>
         </div>
 
-        <div class="card card-soft p-3 mb-3">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Tipo de declaração</label>
-                    <select class="form-select" id="tipo-select" name="tipo" required>
-                        <option value="" selected disabled>Selecione…</option>
-                        <option value="positiva">Com vínculo</option>
-                        <option value="negativa">Sem vínculo</option>
-                    </select>
-                    <div class="invalid-feedback">Escolha o tipo de declaração.</div>
+        <!-- Resumo do Militar -->
+        <div class="glass-card p-3 p-md-4 mb-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-6">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-inline-grid place-items-center"
+                            style="width:56px;height:56px;background:rgba(255,255,255,.08);border:1px solid var(--glass-brd)">
+                            <i class="bi bi-person-fill" style="font-size:1.5rem;opacity:.9"></i>
+                        </div>
+                        <div>
+                            <div class="h6 m-0">{{ militar.nome_guerra or militar.nome_completo }}</div>
+                            <div class="small">Matrícula: <span class="chip">{{ militar.matricula or '—' }}</span></div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Meio de entrega</label>
-                    <select class="form-select" name="meio_entrega" disabled>
-                        <option value="digital" selected>Digital</option>
-                        <option value="presencial">Presencial</option>
-                    </select>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Observações</label>
-                    <textarea class="form-control" name="observacoes" rows="2" placeholder="(opcional)"></textarea>
-                </div>
+                <div class="col-12 col-md-2"><span class="chip">PG: {{ posto_grad_sigla or '—' }}</span></div>
+                <div class="col-12 col-md-2"><span class="chip">OBM: {{ obm_sigla or '—' }}</span></div>
+                <div class="col-12 col-md-2 text-md-end"><span class="chip">Ano: {{ ano }}</span></div>
             </div>
         </div>
 
-        <div class="card card-soft p-3 mb-3">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <h2 class="section-title">Vínculo externo</h2>
-                <div class="subtle">Preencha somente se a declaração for <strong>positiva</strong>.</div>
-            </div>
+        <!-- Formulário principal -->
+        <form id="form-declaracao" class="needs-validation" novalidate>
+            <input type="hidden" name="ano" value="{{ ano }}">
+            <input type="hidden" name="militar_id" value="{{ militar.id }}">
 
-            <div id="vinculo-unique" class="vinculo-card">
+            <!-- Bloco: Identificação simples -->
+            <div class="glass-card p-3 p-md-4 mb-3">
+                <h2 class="h6 mb-3">Identificação</h2>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Empregador</label>
-                        <input class="form-control" name="empregador_nome" maxlength="150">
+                        <label class="form-label">Militar</label>
+                        <input class="form-control" value="{{ militar.nome_completo }}" readonly>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Tipo</label>
-                        <select class="form-select" name="empregador_tipo">
-                            <option value="" selected disabled>Selecione…</option>
-                            <option value="publico">Público</option>
-                            <option value="privado">Privado</option>
-                            <option value="cooperativa">Cooperativa</option>
-                            <option value="profissional_liberal">Profissional Liberal</option>
-                        </select>
+                        <label class="form-label">Posto/Graduação</label>
+                        <input class="form-control" value="{{ posto_grad_sigla or '-' }}" readonly>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">CNPJ/CPF</label>
-                        <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
-                            maxlength="18" placeholder="somente dígitos" required>
-                        <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
-
+                        <label class="form-label">OBM</label>
+                        <input class="form-control" value="{{ obm_sigla or '-' }}" readonly>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Natureza do vínculo</label>
-                        <select class="form-select" name="natureza_vinculo">
-                            <option value="" selected disabled>Selecione…</option>
-                            <option value="efetivo">Efetivo</option>
-                            <option value="contratado">Contratado</option>
-                            <option value="prestacao_servicos">Prestação de serviços</option>
-                            <option value="profissional_liberal">Profissional Liberal</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Jornada de trabalho</label>
-                        <select class="form-select" name="jornada_trabalho">
-                            <option value="" selected disabled>Selecione…</option>
-                            <option value="escala">Escala</option>
-                            <option value="expediente">Expediente</option>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Cargo/Função</label>
-                        <input class="form-control" name="cargo_funcao" maxlength="120">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Carga horária semanal (h)</label>
-                        <input type="number" class="form-control" name="carga_horaria_semanal" min="1" max="80">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Horário de entrada</label>
-                        <input type="time" class="form-control" name="horario_inicio">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Horário de saída</label>
-                        <input type="time" class="form-control" name="horario_fim">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Data de início no segundo vínculo</label>
-                        <input type="date" class="form-control" name="data_inicio">
+                    <div class="col-md-2">
+                        <label class="form-label">Ano</label>
+                        <input class="form-control" value="{{ ano }}" readonly>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('home_atualizacao') }}" class="btn btn-light">Voltar</a>
-            <button class="btn btn-outline-secondary" type="button" id="btn-gerar-modelo">Gerar modelo preenchido
-                (DOCX)</button>
-        </div>
-    </form>
-</div>
+            <!-- Bloco: Declaração -->
+            <div class="glass-card p-3 p-md-4 mb-3">
+                <h2 class="h6 mb-3">Declaração</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de declaração</label>
+                        <select class="form-select" id="tipo-select" name="tipo" required>
+                            <option value="" selected disabled>Selecione…</option>
+                            <option value="positiva">Com vínculo</option>
+                            <option value="negativa">Sem vínculo</option>
+                        </select>
+                        <div class="invalid-feedback">Escolha o tipo de declaração.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Meio de entrega</label>
+                        <select class="form-select" name="meio_entrega" disabled>
+                            <option value="digital" selected>Digital</option>
+                            <option value="presencial">Presencial</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" name="observacoes" rows="2" placeholder="(opcional)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloco: Vínculo externo -->
+            <div class="glass-card p-3 p-md-4 mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h2 class="h6 m-0">Vínculo externo</h2>
+                    <div class="small opacity-75">Preencha somente se a declaração for <strong>positiva</strong>.</div>
+                </div>
+
+                <div id="vinculo-unique" class="vinculo-card">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Empregador</label>
+                            <input class="form-control" name="empregador_nome" maxlength="150">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="empregador_tipo">
+                                <option value="" selected disabled>Selecione…</option>
+                                <option value="publico">Público</option>
+                                <option value="privado">Privado</option>
+                                <option value="cooperativa">Cooperativa</option>
+                                <option value="profissional_liberal">Profissional Liberal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CNPJ/CPF</label>
+                            <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
+                                maxlength="18" placeholder="somente dígitos" required>
+                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Natureza do vínculo</label>
+                            <select class="form-select" name="natureza_vinculo">
+                                <option value="" selected disabled>Selecione…</option>
+                                <option value="efetivo">Efetivo</option>
+                                <option value="contratado">Contratado</option>
+                                <option value="prestacao_servicos">Prestação de serviços</option>
+                                <option value="profissional_liberal">Profissional Liberal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Jornada de trabalho</label>
+                            <select class="form-select" name="jornada_trabalho">
+                                <option value="" selected disabled>Selecione…</option>
+                                <option value="escala">Escala</option>
+                                <option value="expediente">Expediente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cargo/Função</label>
+                            <input class="form-control" name="cargo_funcao" maxlength="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Carga horária semanal (h)</label>
+                            <input type="number" class="form-control" name="carga_horaria_semanal" min="1" max="80">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário de entrada</label>
+                            <input type="time" class="form-control" name="horario_inicio">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Horário de saída</label>
+                            <input type="time" class="form-control" name="horario_fim">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data de início no segundo vínculo</label>
+                            <input type="date" class="form-control" name="data_inicio">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de ação -->
+            <div class="action-bar">
+                <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">Voltar</a>
+                <button class="btn btn-outline-primary" type="button" id="btn-gerar-modelo">
+                    <i class="bi bi-file-earmark-word me-1"></i> Gerar modelo preenchido (DOCX)
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
 
 <script>
     const form = document.getElementById('form-declaracao');
@@ -178,23 +348,24 @@
 
     function toggleVinculo() {
         const isPositiva = tipoSelect.value === 'positiva';
-        vinculo.querySelectorAll('input,select').forEach(el => {
+        vinculo.querySelectorAll('input,select,textarea').forEach(el => {
             el.required = isPositiva;
             el.disabled = !isPositiva;
         });
-        vinculo.style.opacity = isPositiva ? 1 : 0.6;
+        vinculo.classList.toggle('disabled', !isPositiva);
     }
     tipoSelect.addEventListener('change', toggleVinculo);
     toggleVinculo();
 
+    function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
+    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
+    function setFieldError(el, msg) { el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
+    function clearFieldError(el) { el.setCustomValidity(''); el.classList.remove('is-invalid'); }
+
     function valida() {
         if (!tipoSelect.value) return false;
         if (tipoSelect.value === 'positiva') {
-            const req = [
-                'empregador_nome', 'empregador_tipo', 'empregador_doc', 'natureza_vinculo',
-                'jornada_trabalho',            // ← ADICIONE ESTA LINHA
-                'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'
-            ];
+            const req = ['empregador_nome', 'empregador_tipo', 'empregador_doc', 'natureza_vinculo', 'jornada_trabalho', 'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'];
             for (const name of req) {
                 const el = form.querySelector(`[name="${name}"]`);
                 if (!el || !el.value) return false;
@@ -203,33 +374,15 @@
         return true;
     }
 
-    function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
-    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
-    function setFieldError(el, msg) {
-        el.setCustomValidity(msg || '');
-        // força Bootstrap a exibir feedback
-        el.classList.add('is-invalid');
-        el.reportValidity?.();
-    }
-    function clearFieldError(el) {
-        el.setCustomValidity('');
-        el.classList.remove('is-invalid');
-    }
-
-    // valida live o campo único
     const docInput = form.querySelector('input[name="empregador_doc"]');
     if (docInput) {
-        // limpa caracteres não numéricos em tempo real
         docInput.addEventListener('input', () => {
-            const cur = docInput.value;
-            const cleaned = digitsOnly(cur);
+            const cur = docInput.value; const cleaned = digitsOnly(cur);
             if (cur !== cleaned) docInput.value = cleaned;
-            if (cleaned.length === 0) { clearFieldError(docInput); return; }
+            if (!cleaned) { clearFieldError(docInput); return; }
             if (isCpfCnpjValid(cleaned)) clearFieldError(docInput);
             else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
         });
-
-        // garante validação ao sair do campo
         docInput.addEventListener('blur', () => {
             const d = digitsOnly(docInput.value);
             if (!d || isCpfCnpjValid(d)) clearFieldError(docInput);
@@ -237,7 +390,7 @@
         });
     }
 
-    // inclui a checagem na função valida()
+    // Reforça a regra de validação do CPF/CNPJ
     const _validaOriginal = valida;
     valida = function () {
         const ok = _validaOriginal();
@@ -251,8 +404,7 @@
             }
         }
         return true;
-    };
-
+    }
 
     btnModelo.addEventListener('click', async () => {
         if (!valida()) { form.classList.add('was-validated'); return; }
@@ -265,18 +417,15 @@
             if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
 
             const militarId = fd.get('militar_id');
-
-            // pega a jornada escolhida
             const jornada = (fd.get('jornada_trabalho') || '').toLowerCase();
 
-            // monta querystring p/ a página intermediária
             const params = new URLSearchParams({
                 ano: fd.get('ano') || '',
                 tipo: fd.get('tipo') || '',
                 empregador_nome: fd.get('empregador_nome') || '',
                 empregador_doc: digitsOnly(fd.get('empregador_doc') || ''),
                 natureza_vinculo: fd.get('natureza_vinculo') || '',
-                jornada_trabalho: jornada || '',                  // ← ADICIONE ESTA LINHA
+                jornada_trabalho: jornada || '',
                 cargo_funcao: fd.get('cargo_funcao') || '',
                 carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
                 horario_inicio: fd.get('horario_inicio') || '',
@@ -285,20 +434,13 @@
             });
 
             if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
-                [
-                    'empregador_nome', 'empregador_doc', 'natureza_vinculo',
-                    'jornada_trabalho',              // ← LIMPE TAMBÉM QUANDO FOR NEGATIVA
-                    'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'
-                ].forEach(k => params.delete(k));
+                ['empregador_nome', 'empregador_doc', 'natureza_vinculo', 'jornada_trabalho', 'cargo_funcao', 'carga_horaria_semanal', 'horario_inicio', 'horario_fim', 'data_inicio'].forEach(k => params.delete(k));
             }
 
-            const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
-                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+            const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
             params.set('return_to', urlUpload);
 
-            // OBS: se o endpoint correto for 'acumulo.modelo_docx', ajuste aqui:
-            const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
-                .replace('/0', `/${militarId}`) + '?' + params.toString();
+            const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'.replace('/0', `/${militarId}`) + '?' + params.toString();
 
             const popup = window.open(urlIntermediaria, '_blank');
             if (!popup) { window.location.href = urlIntermediaria; return; }
@@ -309,5 +451,4 @@
         }
     });
 </script>
-
 {% endblock %}
