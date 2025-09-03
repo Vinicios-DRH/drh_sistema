@@ -1,434 +1,663 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<!-- DataTables + Bootstrap 5 + Responsive (para as tabelas dos slides) -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+        --brand-red: #B5121B;
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    /* Hero com imagem de fundo e overlay sutil */
+    .hero {
+        position: relative;
+        min-height: 100vh;
+        isolation: isolate;
+        background-image: url('{{ url_for('static', filename=' img/bombeiros_2.jpeg') }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(180deg, rgba(0, 0, 0, .45), rgba(0, 0, 0, .55));
+        backdrop-filter: blur(1px);
+    }
+
+    /* Cabeçalho de vidro padrão */
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    /* Painel "frosted" para conter o carrossel */
+    .glass-panel {
+        background: rgba(255, 255, 255, .92);
+        color: #111;
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    /* Cartões KPI no 1º slide */
+    .kpi-card {
+        background: rgba(255, 255, 255, .9);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+        transition: transform .15s ease, box-shadow .2s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, .12);
+    }
+
+    .kpi-title {
+        font-size: .85rem;
+        color: #475569
+    }
+
+    /* Tabelas dentro do carrossel */
+    table.dataTable thead th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 2
+    }
+
+    /* Deixa os indicadores abaixo do conteúdo do carrossel */
+    #homeCarousel .carousel-indicators {
+        position: static;
+        /* sai do absoluto no fundo */
+        margin-top: .75rem;
+        /* espaço depois do conteúdo */
+        display: flex;
+        justify-content: center;
+        gap: .5rem;
+    }
+
+    /* De quadradinhos/retângulos para bolinhas */
+    #homeCarousel .carousel-indicators [data-bs-target] {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #bbb;
+        /* inativo */
+        opacity: 1;
+        /* deixa a cor plena */
+        border: 0;
+    }
+
+    #homeCarousel .carousel-indicators .active {
+        background: var(--brand-red);
+        /* usa o vermelho da marca */
+    }
+
+    /* ===== tabelas “pro” dentro do carrossel ===== */
+    .table-pro {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+    }
+
+    .table-pro table {
+        margin: 0;
+    }
+
+    .table-pro thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fafc;
+        /* cabeçalho clarinho */
+        color: #334155;
+        /* cinza-ardósia */
+        text-transform: uppercase;
+        font-size: .75rem;
+        letter-spacing: .02em;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+
+    .table-pro tbody td {
+        vertical-align: middle;
+    }
+
+    /* 1ª coluna (nome) colada à esquerda pra facilitar leitura grande */
+    .table-pro .sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background: #fff;
+        box-shadow: 1px 0 0 rgba(0, 0, 0, .06);
+    }
+
+    /* chips de status */
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .25rem .55rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: .78rem;
+    }
+
+    .chip-ok {
+        background: #e8f7ee;
+        color: #137a36;
+        border: 1px solid #bde5c9;
+    }
+
+    .chip-warn {
+        background: #fff7e6;
+        color: #8a5a00;
+        border: 1px solid #ffe0a3;
+    }
+
+    .chip-bad {
+        background: #fdecec;
+        color: #a11a1f;
+        border: 1px solid #f6b3b5;
+    }
+
+    .chip-neutral {
+        background: #eef2f7;
+        color: #475569;
+        border: 1px solid #d8e0ea;
+    }
+
+    /* colunas centrais centralizadas sem perder o nome alinhado à esquerda */
+    .td-center {
+        text-align: center;
+    }
+
+    /* link do BG “sem barulho” */
+    .link-bg {
+        text-decoration: none;
+    }
+
+    .link-bg:hover {
+        text-decoration: underline;
+    }
+    abbr[title] { text-decoration: underline dotted; cursor: help; }
+</style>
 {% endblock %}
 
 {% block body %}
-<section class="py-3 py-md-5" style="background-image: url('{{ url_for('static', filename='img/bombeiros_2.jpeg') }}');
-           background-size: cover;
-           background-position: center;
-           background-repeat: no-repeat;
-           min-height: 100vh;
-           opacity: 0.9;">
-    <div class="container py-3 py-md-5">
-        <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel" data-bs-interval="15000">
+<section class="py-3 py-md-4 hero">
+    <div class="container py-2 py-md-4">
 
-            <!-- Slides -->
-            <div class="carousel-inner transparent-card">
-                <!-- Slide 1 with all cards -->
-                <div class="carousel-item active">
-                    <div class="card-group text-center">
-                        <div class="card text-center text-bg-info">
-                            <a href="#" class="nav-link active" data-bs-toggle="modal" data-bs-target="#dynamicModal"
-                               data-card="QOABM">
-                                <div class="card-header">
-                                    <strong class="card-title">Efetivo Total</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ efetivo_total }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QOBM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qobm }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QOABM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qoabm }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCOBM Médico</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_medico }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCOBM Enfermeiro</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_enfermeiro }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCOBM Dentista</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_dentista }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCOBM Assistente Social</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_assistente_social }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCOBM Farmacêutico</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_farmaceutico }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-group text-center">
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Praças Especiais QCOBM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcobm_al_01 }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Praças Especiais</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qobm_al_01 }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QPBM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qpbm }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QPEBM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qpebm }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">QCPBM</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ qcpbm }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card border-success" style="max-width: 18rem;">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header bg-transparent border-success">
-                                    <strong class="card-title">Militares de LM</strong>
-                                </div>
-                                <div class="card-body text-success">
-                                    <h2>{{ maternidade }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card border-success" style="max-width: 18rem;">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header bg-transparent border-success">
-                                    <strong class="card-title">Militares de LE</strong>
-                                </div>
-                                <div class="card-body text-success">
-                                    <h2>{{ licenca_especial }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card border-success" style="max-width: 18rem;">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header bg-transparent border-success">
-                                    <strong class="card-title">Militares de LTS</strong>
-                                </div>
-                                <div class="card-body text-success">
-                                    <h2>{{ lts }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-group text-center">
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Militares Combatentes</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ militares_combatentes }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Militares da Saúde</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ militares_saude }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">CBC</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ cbc }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">CBI</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ cbi }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">OFC. Superiores</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ oficiais_superiores }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">OFC. Intermediários</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ oficiais_intermediarios }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">OFC. Subalternos</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ oficiais_subalternos }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Praças</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ pracas }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-group text-center">
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">À Disposição</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ a_disposicao }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card text-center">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Agregados Total</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ agregados_total }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Agregados/LTS</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ agregados_lts }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Agregados/RR</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ agregados_rr }}</h2>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="card">
-                            <a class="nav-link active" aria-current="page" href="#">
-                                <div class="card-header">
-                                    <strong class="card-title">Agregados</strong>
-                                </div>
-                                <div class="card-body">
-                                    <h2>{{ agregados }}</h2>
-                                </div>
-                            </a>
-                        </div>
+        <!-- Cabeçalho padrão -->
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Painel — CBMAM / DRH</h1>
+                        <div class="small text-light opacity-75">Resumo do efetivo, licenças e agregações</div>
                     </div>
                 </div>
-
-                <!-- Slide 2 (Placeholder) -->
-                <div class="carousel-item">
-                    <div class="mt-3">
-                        <h3>Militares de Licença Especial</h3>
-                        <div class="table-responsive">
-                            <table id="example" class="table table-light table-bordered table-striped"
-                                   style="width:100%">
-                                <thead class="table-info">
-                                <tr>
-                                    <th>Posto/Graduação</th>
-                                    <th>Quadro</th>
-                                    <th class="col-nome_completo">Nome Completo</th>
-                                    <th>Destino</th>
-                                    <th>Situação</th>
-                                    <th>A contar de</th>
-                                    <th>Término</th>
-                                    <th>Status da Licença</th>
-                                    <th>Documento Autorizador</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for militar in militares_le %}
-                                <tr class="table-active">
-                                    <td>{{ militar.posto_grad.sigla }}</td>
-                                    <td>{{ militar.quadro.quadro }}</td>
-                                    <td>
-                                        <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}">
-                                            {{ militar.militar.nome_completo }}
-                                        </a>
-                                    </td>
-                                    <td>{{ militar.destino.local }}</td>
-                                    <td>{{ militar.situacao.condicao }}</td>
-                                    <td>{{ militar.inicio_periodo_le.strftime('%d/%m/%Y') if militar.inicio_periodo_le else '-' }}</td>
-                                    <td>{{ militar.fim_periodo_le.strftime('%d/%m/%Y') if militar.fim_periodo_le else '-' }}</td>
-                                    <td>
-                                        <span class="badge"
-                                            style="background-color:
-                                                {% if militar.status == 'Vigente' %}lightgreen
-                                                {% elif militar.status == 'A iniciar' %}khaki
-                                                {% else %}lightcoral{% endif %};">
-                                        {{ militar.status }}
-                                        </span>
-                                    </td>
-                                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Slide 3 (Placeholder) -->
-                <div class="carousel-item">
-                    <div class="mt-3">
-                        <h3>Militares de Licença para Tratamento de Saúde</h3>
-                        <div class="table-responsive">
-                            <table id="example" class="table table-light table-bordered table-striped"
-                                   style="width:100%">
-                                <thead class="table-info">
-                                <tr>
-                                    <th>Posto/Graduação</th>
-                                    <th>Quadro</th>
-                                    <th class="col-nome_completo">Nome Completo</th>
-                                    <th>Destino</th>
-                                    <th>Situação</th>
-                                    <th>A contar de</th>
-                                    <th>Término</th>
-                                    <th>Status da Licença</th>
-                                    <th>Documento Autorizador</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for militar in militares_lts %}
-                                <tr class="table-active">
-                                    <td>{{ militar.posto_grad.sigla }}</td>
-                                    <td>{{ militar.quadro.quadro }}</td>
-                                    <td>
-                                        <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}">
-                                            {{ militar.militar.nome_completo }}
-                                        </a>
-                                    </td>
-                                    <td>{{ militar.destino.local }}</td>
-                                    <td>{{ militar.situacao.condicao }}</td>
-                                    <td>{{ militar.inicio_periodo_lts.strftime('%d/%m/%Y') if militar.inicio_periodo_lts else '-' }}</td>
-                                    <td>{{ militar.fim_periodo_lts.strftime('%d/%m/%Y') if militar.fim_periodo_lts else '-' }}</td>
-                                    <td>
-                                    <span style="background-color:
-                                        {% if militar.status == 'Vigente' %}
-                                            lightgreen
-                                        {% elif militar.status == 'Término da Licença para Tratamento de Saúde' %}
-                                            lightcoral
-                                        {% else %}
-                                            transparent
-                                        {% endif %}; padding: 5px;">
-                                        {{ militar.status }}
-                                    </span>
-                                    </td>
-                                    <td>{{ militar.publicacao_bg.boletim_geral if militar.publicacao_bg else '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a class="btn btn-outline-light" href="#identificadores"><i class="bi bi-info-circle me-1"></i>
+                        Sobre os indicadores</a>
                 </div>
             </div>
         </div>
+
+        <!-- Carrossel dentro de um painel "frosted" -->
+        <div class="glass-panel p-3 p-md-4">
+            <div id="homeCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="20000">
+                {% macro badge_le(status) -%}
+                {% if status == 'Vigente' %}
+                <span class="chip chip-ok">Vigente</span>
+                {% elif status == 'A iniciar' %}
+                <span class="chip chip-warn">A iniciar</span>
+                {% else %}
+                <span class="chip chip-bad">{{ status or '—' }}</span>
+                {% endif %}
+                {%- endmacro %}
+
+                {% macro badge_lts(status) -%}
+                {% if status == 'Vigente' %}
+                <span class="chip chip-ok">Vigente</span>
+                {% elif status == 'Término da Licença para Tratamento de Saúde' %}
+                <span class="chip chip-bad">Término</span>
+                {% else %}
+                <span class="chip chip-neutral">{{ status or '—' }}</span>
+                {% endif %}
+                {%- endmacro %}
+
+                <div class="carousel-inner">
+                    <!-- ============ SLIDE 1: KPIs ============ -->
+                    <div class="carousel-item active">
+                        <div class="container-fluid">
+                            <div class="row g-3 row-cols-2 row-cols-md-4 row-cols-xl-6">
+                                <!-- cada card: título pequeno + número grande -->
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Efetivo Total</div>
+                                        <div class="display-6 fw-semibold">{{ efetivo_total }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QOBM</div>
+                                        <div class="h2 m-0">{{ qobm }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QOABM</div>
+                                        <div class="h2 m-0">{{ qoabm }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCOBM Médico</div>
+                                        <div class="h2 m-0">{{ qcobm_medico }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCOBM Enf.</div>
+                                        <div class="h2 m-0">{{ qcobm_enfermeiro }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCOBM Dentista</div>
+                                        <div class="h2 m-0">{{ qcobm_dentista }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCOBM Assist. Social</div>
+                                        <div class="h2 m-0">{{ qcobm_assistente_social }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCOBM Farm.</div>
+                                        <div class="h2 m-0">{{ qcobm_farmaceutico }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Praças Esp. QCOBM</div>
+                                        <div class="h2 m-0">{{ qcobm_al_01 }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Praças Especiais</div>
+                                        <div class="h2 m-0">{{ qobm_al_01 }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QPBM</div>
+                                        <div class="h2 m-0">{{ qpbm }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QPEBM</div>
+                                        <div class="h2 m-0">{{ qpebm }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">QCPBM</div>
+                                        <div class="h2 m-0">{{ qcpbm }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-success">
+                                        <div class="kpi-title">Militares de LM</div>
+                                        <div class="h2 m-0">{{ maternidade }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-success">
+                                        <div class="kpi-title">Militares de LE</div>
+                                        <div class="h2 m-0">{{ licenca_especial }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-success">
+                                        <div class="kpi-title">Militares de LTS</div>
+                                        <div class="h2 m-0">{{ lts }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Combatentes</div>
+                                        <div class="h2 m-0">{{ militares_combatentes }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Saúde</div>
+                                        <div class="h2 m-0">{{ militares_saude }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">CBC</div>
+                                        <div class="h2 m-0">{{ cbc }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">CBI</div>
+                                        <div class="h2 m-0">{{ cbi }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Oficiais Sup.</div>
+                                        <div class="h2 m-0">{{ oficiais_superiores }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Oficiais Interm.</div>
+                                        <div class="h2 m-0">{{ oficiais_intermediarios }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Oficiais Subalt.</div>
+                                        <div class="h2 m-0">{{ oficiais_subalternos }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center">
+                                        <div class="kpi-title">Praças</div>
+                                        <div class="h2 m-0">{{ pracas }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-info">
+                                        <div class="kpi-title">À Disposição</div>
+                                        <div class="h2 m-0">{{ a_disposicao }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-danger">
+                                        <div class="kpi-title">Agregados Total</div>
+                                        <div class="h2 m-0">{{ agregados_total }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-danger">
+                                        <div class="kpi-title">Agregados/LTS</div>
+                                        <div class="h2 m-0">{{ agregados_lts }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-danger">
+                                        <div class="kpi-title">Agregados/RR</div>
+                                        <div class="h2 m-0">{{ agregados_rr }}</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="kpi-card p-3 h-100 text-center text-danger">
+                                        <div class="kpi-title">Agregados</div>
+                                        <div class="h2 m-0">{{ agregados }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============ SLIDE 2: LE ============ -->
+                    <div class="carousel-item">
+                        <div class="mt-1">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h3 class="h6 m-0">Militares de Licença Especial</h3>
+                                <small class="text-muted">Total: {{ militares_le|length }}</small>
+                            </div>
+
+                            <div class="table-pro">
+                                <div class="table-responsive">
+                                    <table id="tbl-le" class="table table-striped table-hover align-middle nowrap"
+                                        style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th class="td-center">Posto/Grad.</th>
+                                                <th class="td-center">Quadro</th>
+                                                <th class="sticky-col">Nome Completo</th>
+                                                <th class="td-center">Destino</th>
+                                                <th class="td-center">Situação</th>
+                                                <th class="td-center">A contar de</th>
+                                                <th class="td-center">Término</th>
+                                                <th class="td-center">Status</th>
+                                                <th class="td-center">BG</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for militar in militares_le %}
+                                            <tr>
+                                                <td class="td-center">{{ militar.posto_grad.sigla if militar.posto_grad
+                                                    else '-' }}</td>
+                                                <td class="td-center">{{ militar.quadro.quadro if militar.quadro else
+                                                    '-' }}</td>
+                                                <td class="sticky-col">
+                                                    <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}"
+                                                        class="text-decoration-none">
+                                                        {{ militar.militar.nome_completo }}
+                                                    </a>
+                                                    {% if militar.militar and militar.militar.matricula %}
+                                                    <div class="small text-muted">Matrícula {{ militar.militar.matricula
+                                                        }}</div>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="td-center">{{ militar.destino.local if militar.destino else
+                                                    '-' }}</td>
+                                                <td class="td-center">{{ militar.situacao.condicao if militar.situacao
+                                                    else '-' }}</td>
+                                                <td class="td-center">
+                                                    {{ militar.inicio_periodo_le.strftime('%d/%m/%Y') if
+                                                    militar.inicio_periodo_le else '-' }}
+                                                </td>
+                                                <td class="td-center">
+                                                    {{ militar.fim_periodo_le.strftime('%d/%m/%Y') if
+                                                    militar.fim_periodo_le else '-' }}
+                                                </td>
+                                                <td class="td-center">{{ badge_le(militar.status) }}</td>
+                                                <td class="td-center">
+                                                    {% if militar.publicacao_bg and militar.publicacao_bg.boletim_geral
+                                                    %}
+                                                    <a class="link-bg" href="#" title="Boletim Geral">{{
+                                                        militar.publicacao_bg.boletim_geral }}</a>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============ SLIDE 3: LTS ============ -->
+                    <div class="carousel-item">
+                        <div class="mt-1">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h3 class="h6 m-0">Militares de Licença para Tratamento de Saúde</h3>
+                                <small class="text-muted">Total: {{ militares_lts|length }}</small>
+                            </div>
+
+                            <div class="table-pro">
+                                <div class="table-responsive">
+                                    <table id="tbl-lts" class="table table-striped table-hover align-middle nowrap"
+                                        style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th class="td-center">Posto/Grad.</th>
+                                                <th class="td-center">Quadro</th>
+                                                <th class="sticky-col">Nome Completo</th>
+                                                <th class="td-center">Destino</th>
+                                                <th class="td-center">Situação</th>
+                                                <th class="td-center">A contar de</th>
+                                                <th class="td-center">Término</th>
+                                                <th class="td-center">Status</th>
+                                                <th class="td-center">BG</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for militar in militares_lts %}
+                                            <tr>
+                                                <td class="td-center">{{ militar.posto_grad.sigla if militar.posto_grad
+                                                    else '-' }}</td>
+                                                <td class="td-center">{{ militar.quadro.quadro if militar.quadro else
+                                                    '-' }}</td>
+                                                <td class="sticky-col">
+                                                    <a href="{{ url_for('exibir_militar', militar_id=militar.militar_id) }}"
+                                                        class="text-decoration-none">
+                                                        {{ militar.militar.nome_completo }}
+                                                    </a>
+                                                    {% if militar.militar and militar.militar.matricula %}
+                                                    <div class="small text-muted">Matrícula {{ militar.militar.matricula
+                                                        }}</div>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="td-center">{{ militar.destino.local if militar.destino else
+                                                    '-' }}</td>
+                                                <td class="td-center">{{ militar.situacao.condicao if militar.situacao
+                                                    else '-' }}</td>
+                                                <td class="td-center">
+                                                    {{ militar.inicio_periodo_lts.strftime('%d/%m/%Y') if
+                                                    militar.inicio_periodo_lts else '-' }}
+                                                </td>
+                                                <td class="td-center">
+                                                    {{ militar.fim_periodo_lts.strftime('%d/%m/%Y') if
+                                                    militar.fim_periodo_lts else '-' }}
+                                                </td>
+                                                <td class="td-center">{{ badge_lts(militar.status) }}</td>
+                                                <td class="td-center">
+                                                    {% if militar.publicacao_bg and militar.publicacao_bg.boletim_geral
+                                                    %}
+                                                    <a class="link-bg" href="#" title="Boletim Geral">{{
+                                                        militar.publicacao_bg.boletim_geral }}</a>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Indicadores -->
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="0" class="active"
+                        aria-current="true" aria-label="Resumo"></button>
+                    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="1"
+                        aria-label="Licença Especial"></button>
+                    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="2" aria-label="LTS"></button>
+                </div>
+
+                <!-- Controles -->
+                <!-- <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Próximo</span>
+                </button> -->
+            </div>
+        </div>
+
+        <!-- Rodapé pequeno com legenda -->
+        <div id="identificadores" class="text-light opacity-75 small mt-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Indicadores consolidados do
+            <abbr title="Sistema Integrado de Gestão de Recursos Humanos do CBMAM">SIGDRH</abbr>.
+            Alguns valores podem ter defasagem de atualização.
+        </div>
     </div>
 </section>
+
+<!-- Scripts DataTables (carregados no final para não travar o carrossel) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+    (function () {
+        let leInit = false, ltsInit = false;
+
+        function makeOptions(defaultOrderIndex) {
+            return {
+                responsive: { details: false },
+                pageLength: 10,
+                lengthMenu: [10, 20, 30, 50, 100],
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
+                // centraliza algumas colunas (mesmo sem usar classes)
+                columnDefs: [
+                    { targets: [0, 1, 3, 4, 5, 6, 7, 8], className: 'dt-center' }
+                ],
+                // evita ordenar por data brasileira errada (aqui deixo por nome por padrão; se quiser, troque o índice)
+                order: [[defaultOrderIndex ?? 2, 'asc']],
+                autoWidth: false,
+                deferRender: true
+            };
+        }
+
+        function initLE() { if (leInit) return; leInit = true; $('#tbl-le').DataTable(makeOptions(2)); }
+        function initLTS() { if (ltsInit) return; ltsInit = true; $('#tbl-lts').DataTable(makeOptions(2)); }
+
+        const el = document.getElementById('homeCarousel');
+        if (el) {
+            el.addEventListener('slid.bs.carousel', (e) => {
+                const items = [...e.target.querySelectorAll('.carousel-item')];
+                const idx = items.indexOf(e.relatedTarget);
+                if (idx === 1) initLE();
+                if (idx === 2) initLTS();
+            });
+        }
+        // caso o slide já esteja ativo ao abrir
+        const activeIdx = [...document.querySelectorAll('#homeCarousel .carousel-item')]
+            .findIndex(i => i.classList.contains('active'));
+        if (activeIdx === 1) initLE();
+        if (activeIdx === 2) initLTS();
+    })();
+</script>
 
 {% endblock %}
