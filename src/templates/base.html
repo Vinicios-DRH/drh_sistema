@@ -107,6 +107,31 @@
     }
   </style>
 
+  <style>
+    /* altura da navbar (atualizada por JS) */
+    :root {
+      --nav-h: 64px;
+    }
+
+    /* empurra o conteúdo para baixo da navbar */
+    body {
+      padding-top: calc(var(--nav-h) + 8px);
+    }
+
+    /* quando usar âncoras/ScrollSpy, desconta a navbar */
+    html {
+      scroll-padding-top: calc(var(--nav-h) + 12px);
+    }
+
+    /* iOS notch */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      body {
+        padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
+      }
+    }
+  </style>
+
+
   {% block head %}
   {% endblock %}
 </head>
@@ -147,6 +172,23 @@
       });
     }, 6000); // 6 segundos
   </script>
+
+  <script>
+    (function () {
+      function setNavHeight() {
+        const nav = document.querySelector('.navbar.fixed-top');
+        if (!nav) return;
+        const h = Math.round(nav.getBoundingClientRect().height || 64);
+        document.documentElement.style.setProperty('--nav-h', h + 'px');
+      }
+      window.addEventListener('load', setNavHeight);
+      window.addEventListener('resize', setNavHeight);
+      // Se algo mudar o tamanho da navbar (ex: trocar texto, badges, etc)
+      const obs = new MutationObserver(setNavHeight);
+      obs.observe(document.body, { attributes: true, childList: true, subtree: true });
+    })();
+  </script>
+
 </body>
 
 </html>
