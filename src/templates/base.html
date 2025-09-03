@@ -113,9 +113,9 @@
       --nav-h: 64px;
     }
 
-    /* empurra o conteúdo para baixo da navbar */
-    body {
-      padding-top: calc(var(--nav-h) + 8px);
+    /* valor padrão */
+    body.has-navbar {
+      padding-top: var(--nav-h);
     }
 
     /* quando usar âncoras/ScrollSpy, desconta a navbar */
@@ -136,7 +136,8 @@
   {% endblock %}
 </head>
 
-<body>
+<body class="{% if current_user.is_authenticated %}has-navbar{% endif %}">
+
   {% if current_user.is_authenticated %}
   {% include 'navbar.html' %}
   {% endif %}
@@ -188,6 +189,24 @@
       obs.observe(document.body, { attributes: true, childList: true, subtree: true });
     })();
   </script>
+
+  <script>
+    (function () {
+      const nav = document.querySelector('.navbar.fixed-top');
+      function setSpacer() {
+        const h = nav ? nav.offsetHeight : 0;
+        document.documentElement.style.setProperty('--nav-h', h + 'px');
+      }
+      setSpacer();
+      window.addEventListener('resize', setSpacer);
+
+      // opcional: recalcula ao abrir/fechar o offcanvas
+      const oc = document.getElementById('offcanvasNavbar');
+      oc?.addEventListener('shown.bs.offcanvas', setSpacer);
+      oc?.addEventListener('hidden.bs.offcanvas', setSpacer);
+    })();
+  </script>
+
 
 </body>
 
