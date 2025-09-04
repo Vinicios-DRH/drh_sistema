@@ -156,7 +156,7 @@
           </div>
 
           {% if rascunho %}
-          {% set pj = rascunho.payload_json if rascunho.payload_json is mapping else {} %}
+          {% set pj = rascunho.payload if rascunho.payload is mapping else {} %}
           <div class="mb-2 small-muted">Atualizado em {{ (rascunho.updated_at or rascunho.created_at).strftime('%d/%m/%Y
             %H:%M') if rascunho.updated_at or rascunho.created_at else '—' }}</div>
 

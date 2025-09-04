@@ -256,7 +256,7 @@
                             <th>OBM</th>
                             <th>Ano</th>
                             <th>Tipo</th>
-                            <th>Arquivo</th>
+                            <th>Arquivos</th>
                             <th>Status</th>
                             <th class="text-end" style="width:210px;">Ações</th>
                         </tr>
@@ -294,8 +294,17 @@
                             </td>
                             <td>
                                 {% if row.decl_id %}
-                                <a class="btn btn-link btn-sm p-0" target="_blank"
-                                    href="{{ url_map.get(row.decl_id, '#') }}">Ver arquivo</a>
+                                {% set urls = url_map.get(row.decl_id) or {} %}
+                                {% if urls.get('modelo') %}
+                                <a class="btn btn-link btn-sm p-0 me-2" target="_blank"
+                                    href="{{ urls['modelo'] }}">Modelo</a>
+                                {% endif %}
+                                {% if urls.get('orgao') %}
+                                <a class="btn btn-link btn-sm p-0" target="_blank" href="{{ urls['orgao'] }}">Órgão</a>
+                                {% endif %}
+                                {% if not urls.get('modelo') and not urls.get('orgao') %}
+                                <span class="subtle">—</span>
+                                {% endif %}
                                 {% else %}
                                 <span class="subtle">Não enviado</span>
                                 {% endif %}
@@ -362,8 +371,8 @@
                 </table>
             </div>
             {# --- Paginador compacto (1 … janela … last) --- #}
-            {% set _page  = request.args.get('page', 1)|int %}
-            {% set _pp    = request.args.get('per_page', 20)|int %}
+            {% set _page = request.args.get('page', 1)|int %}
+            {% set _pp = request.args.get('per_page', 20)|int %}
             {% set _total = (total_filtrado|default(total_ano)|int) %}
             {% set _pages = (_total and _pp) and ((_total + _pp - 1) // _pp) or 1 %}
             {% set _has_prev = _page > 1 %}

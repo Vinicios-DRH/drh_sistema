@@ -62,7 +62,6 @@
         color: var(--ink-300)
     }
 
-    /* zona de upload */
     .upload-zone {
         border: 2px dashed var(--glass-brd);
         border-radius: 14px;
@@ -104,7 +103,6 @@
         margin: .2rem 0;
     }
 
-    /* barra de ação fixa */
     .action-bar {
         position: sticky;
         bottom: 8px;
@@ -136,8 +134,12 @@
                     <div>
                         <h1 class="h5 mb-1">Enviar documentos assinados — {{ ano }}</h1>
                         <div class="small text-light opacity-75">
-                            Envie um <strong>único PDF</strong> contendo o modelo assinado
-                            {% if tipo == 'positiva' %} e a declaração emitida do segundo vínculo{% endif %}.
+                            {% if tipo == 'positiva' %}
+                            Envie <strong>dois PDFs</strong>: (1) o <strong>modelo assinado por você</strong> e (2) a
+                            <strong>declaração do órgão público</strong>.
+                            {% else %}
+                            Envie o <strong>modelo assinado por você</strong> (PDF).
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -151,45 +153,73 @@
         <div class="glass-card p-3 p-md-4">
             <form method="post" enctype="multipart/form-data" id="uploadForm">
                 <div class="row g-3">
-                    <div class="col-lg-8">
-                        <label class="form-label">Arquivo (PDF)</label>
 
-                        <label class="upload-zone w-100" id="dropArea">
+                    <!-- Coluna uploads -->
+                    <div class="col-lg-8">
+
+                        <!-- Upload 1: Modelo assinado pelo militar -->
+                        <label class="form-label">1) Modelo assinado pelo militar (PDF)</label>
+                        <label class="upload-zone w-100" id="dropArea1">
                             <i class="bi bi-cloud-arrow-up icon"></i>
                             <div class="mb-1">Arraste o arquivo aqui ou <span class="text-decoration-underline">clique
                                     para selecionar</span></div>
-                            <div class="small muted">Apenas PDF • máx. <span id="maxMbLabel">20</span> MB</div>
-                            <input type="file" id="fileInput" name="arquivo_declaracao" accept="application/pdf,.pdf"
-                                required>
+                            <div class="small muted">Apenas PDF • máx. <span id="maxMbLabel1">20</span> MB</div>
+                            <input type="file" id="fileInput1" name="arquivo_modelo_assinado"
+                                accept="application/pdf,.pdf" required>
                         </label>
-
-                        <!-- feedback do arquivo selecionado -->
-                        <div id="fileInfo" class="mt-2 d-none">
+                        <div id="fileInfo1" class="mt-2 d-none">
                             <span class="file-pill">
                                 <i class="bi bi-file-earmark-pdf-fill"></i>
-                                <span id="fileName">arquivo.pdf</span>
+                                <span id="fileName1">arquivo.pdf</span>
                                 <span class="opacity-75">•</span>
-                                <span id="fileSize">0 MB</span>
-                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" id="btnClear">
+                                <span id="fileSize1">0 MB</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" id="btnClear1">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </span>
                         </div>
+                        <div id="fileError1" class="text-danger small mt-2 d-none"></div>
 
-                        <div id="fileError" class="text-danger small mt-2 d-none"></div>
+                        <!-- Upload 2: Declaração do órgão público (obrigatório só quando positiva) -->
+                        <div id="orgaoBlock" class="mt-4 {% if tipo != 'positiva' %}d-none{% endif %}">
+                            <label class="form-label">2) Declaração do órgão público (PDF)</label>
+                            <label class="upload-zone w-100" id="dropArea2">
+                                <i class="bi bi-cloud-arrow-up icon"></i>
+                                <div class="mb-1">Arraste o arquivo aqui ou <span
+                                        class="text-decoration-underline">clique para selecionar</span></div>
+                                <div class="small muted">Apenas PDF • máx. <span id="maxMbLabel2">20</span> MB</div>
+                                <input type="file" id="fileInput2" name="arquivo_declaracao_orgao"
+                                    accept="application/pdf,.pdf" {% if tipo=='positiva' %}required{% endif %}>
+                            </label>
+                            <div id="fileInfo2" class="mt-2 d-none">
+                                <span class="file-pill">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i>
+                                    <span id="fileName2">arquivo.pdf</span>
+                                    <span class="opacity-75">•</span>
+                                    <span id="fileSize2">0 MB</span>
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1"
+                                        id="btnClear2">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </span>
+                            </div>
+                            <div id="fileError2" class="text-danger small mt-2 d-none"></div>
+                        </div>
                     </div>
 
+                    <!-- Coluna requisitos -->
                     <div class="col-lg-4">
                         <div class="p-3 rounded-3"
                             style="background:rgba(255,255,255,.06); border:1px solid var(--glass-brd)">
                             <div class="fw-semibold mb-2">Requisitos</div>
                             <ul class="requirements small muted mb-0">
-                                <li>Formato <strong>PDF</strong> (um único arquivo).</li>
-                                <li>Documento legível e assinado.</li>
+                                <li>Formato <strong>PDF</strong>.</li>
+                                <li>Documentos legíveis e assinados.</li>
                                 {% if tipo == 'positiva' %}
-                                <li>Incluir a <strong>declaração do segundo vínculo</strong>.</li>
+                                <li>Enviar <strong>ambos</strong> os arquivos.</li>
                                 {% endif %}
-                                <li>Tamanho máximo: <strong><span id="maxMbLabel2">20</span> MB</strong>.</li>
+                                <li>Tamanho máximo: <strong><span class="maxMbLabel">20</span> MB</strong> por arquivo.
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -212,43 +242,49 @@
 
 <script>
     (() => {
-        // ===== Configuráveis =====
-        const MAX_MB = 20;  // ajuste se quiser outro limite
+        // ===== Config =====
+        const MAX_MB = 20;
         const ACCEPT_MIME = 'application/pdf';
+        const isPositiva = {{ (tipo == 'positiva') | tojson
+    }};
 
-        // ===== Elements =====
-        const dropArea = document.getElementById('dropArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const fileError = document.getElementById('fileError');
-        const btnClear = document.getElementById('btnClear');
-        const btnSubmit = document.getElementById('btnSubmit');
-        const spinner = document.getElementById('upSpinner');
-        document.getElementById('maxMbLabel').textContent = MAX_MB;
-        document.getElementById('maxMbLabel2').textContent = MAX_MB;
+    // ===== Helpers =====
+    const bytesToMB = b => (b / (1024 * 1024));
+    const setTxt = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; }
 
-        // ===== Helpers =====
-        function bytesToMB(b) { return (b / (1024 * 1024)); }
+    // Set labels
+    setTxt('#maxMbLabel1', MAX_MB);
+    setTxt('#maxMbLabel2', MAX_MB);
+    document.querySelectorAll('.maxMbLabel').forEach(el => el.textContent = MAX_MB);
+
+    function initUpload(zoneId, inputId, infoId, nameId, sizeId, clearId, errorId) {
+        const zone = document.getElementById(zoneId);
+        const input = document.getElementById(inputId);
+        const info = document.getElementById(infoId);
+        const name = document.getElementById(nameId);
+        const size = document.getElementById(sizeId);
+        const clear = document.getElementById(clearId);
+        const err = document.getElementById(errorId);
+
         function showError(msg) {
-            fileError.textContent = msg || '';
-            fileError.classList.toggle('d-none', !msg);
+            if (!err) return;
+            err.textContent = msg || '';
+            err.classList.toggle('d-none', !msg);
         }
         function preview(file) {
-            fileName.textContent = file.name;
-            fileSize.textContent = bytesToMB(file.size).toFixed(2) + ' MB';
-            fileInfo.classList.remove('d-none');
-            btnSubmit.disabled = false;
+            if (!info || !name || !size) return;
+            name.textContent = file.name;
+            size.textContent = bytesToMB(file.size).toFixed(2) + ' MB';
+            info.classList.remove('d-none');
         }
         function clearFile() {
-            fileInput.value = '';
-            fileInfo.classList.add('d-none');
-            btnSubmit.disabled = true;
+            if (input) input.value = '';
+            if (info) info.classList.add('d-none');
             showError('');
+            updateSubmitState();
         }
         function validate(file) {
-            if (!file) { return false; }
+            if (!file) return false;
             const isPdf = (file.type === ACCEPT_MIME) || /\.pdf$/i.test(file.name);
             if (!isPdf) { showError('Apenas arquivos PDF são aceitos.'); return false; }
             if (bytesToMB(file.size) > MAX_MB) { showError(`Arquivo excede ${MAX_MB} MB.`); return false; }
@@ -256,37 +292,52 @@
             return true;
         }
 
-        // ===== Bind click no drop-area =====
-        dropArea.addEventListener('click', () => fileInput.click());
-
-        // Drag & drop
-        ;['dragenter', 'dragover'].forEach(evt => {
-            dropArea.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragover'); });
+        ['dragenter', 'dragover'].forEach(evt => {
+            zone?.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
         });
-        ;['dragleave', 'drop'].forEach(evt => {
-            dropArea.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragover'); });
+        ['dragleave', 'drop'].forEach(evt => {
+            zone?.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); });
         });
-        dropArea.addEventListener('drop', e => {
+        zone?.addEventListener('drop', e => {
             const f = e.dataTransfer.files?.[0];
             if (!f) return;
-            if (validate(f)) { fileInput.files = e.dataTransfer.files; preview(f); } else { clearFile(); }
+            if (validate(f)) { input.files = e.dataTransfer.files; preview(f); }
+            updateSubmitState();
         });
 
-        // Via seletor de arquivo
-        fileInput.addEventListener('change', () => {
-            const f = fileInput.files?.[0];
+        input?.addEventListener('change', () => {
+            const f = input.files?.[0];
             if (!f) { clearFile(); return; }
-            if (validate(f)) { preview(f); } else { clearFile(); }
+            if (validate(f)) { preview(f); }
+            updateSubmitState();
         });
 
-        btnClear?.addEventListener('click', (e) => { e.preventDefault(); clearFile(); });
+        clear?.addEventListener('click', e => { e.preventDefault(); clearFile(); });
 
-        // Submissão com feedback
-        const form = document.getElementById('uploadForm');
-        form.addEventListener('submit', () => {
-            btnSubmit.disabled = true;
-            spinner.classList.remove('d-none');
-        });
-    })();
+        return { input };
+    }
+
+    // Instâncias
+    const up1 = initUpload('dropArea1', 'fileInput1', 'fileInfo1', 'fileName1', 'fileSize1', 'btnClear1', 'fileError1');
+    const up2 = initUpload('dropArea2', 'fileInput2', 'fileInfo2', 'fileName2', 'fileSize2', 'btnClear2', 'fileError2');
+
+    const btnSubmit = document.getElementById('btnSubmit');
+    const spinner = document.getElementById('upSpinner');
+
+    function updateSubmitState() {
+        const has1 = !!(up1?.input?.files && up1.input.files.length);
+        const has2 = !!(up2?.input?.files && up2.input.files.length);
+        const ok = isPositiva ? (has1 && has2) : has1;
+        if (btnSubmit) btnSubmit.disabled = !ok;
+    }
+    updateSubmitState();
+
+    // Submissão com feedback
+    const form = document.getElementById('uploadForm');
+    form?.addEventListener('submit', () => {
+        btnSubmit.disabled = true;
+        spinner?.classList.remove('d-none');
+    });
+}) ();
 </script>
 {% endblock %}

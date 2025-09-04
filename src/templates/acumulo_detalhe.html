@@ -39,10 +39,19 @@
                 <div class="form-control-plaintext">{{ decl.meio_entrega }}</div>
             </div>
             <div class="col-md-3"><label class="form-label">Arquivo</label>
-                {% if url_arquivo %}
-                <a class="btn btn-outline-secondary btn-sm" href="{{ url_arquivo }}" target="_blank">Ver arquivo</a>
-                {% else %}
-                <div class="form-control-plaintext">—</div>
+                {% if url_arquivo_modelo or url_arquivo_orgao %}
+                <div class="d-flex flex-wrap gap-2 my-2">
+                    {% if url_arquivo_modelo %}
+                    <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_arquivo_modelo }}">
+                        <i class="bi bi-file-earmark-text me-1"></i> Baixar modelo assinado
+                    </a>
+                    {% endif %}
+                    {% if url_arquivo_orgao %}
+                    <a class="btn btn-outline-primary btn-sm" target="_blank" href="{{ url_arquivo_orgao }}">
+                        <i class="bi bi-building me-1"></i> Baixar declaração do órgão
+                    </a>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
             <div class="col-12"><label class="form-label">Observações</label>

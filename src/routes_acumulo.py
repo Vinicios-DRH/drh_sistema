@@ -679,7 +679,8 @@ def novo(militar_id):
         flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
         return redirect(request.url)
 
-    meio_entrega = (request.form.get("meio_entrega") or "digital").strip().lower()
+    meio_entrega = (request.form.get("meio_entrega")
+                    or "digital").strip().lower()
     if meio_entrega not in {"digital", "presencial"}:
         meio_entrega = "digital"
 
@@ -697,7 +698,8 @@ def novo(militar_id):
         emp_nome = (request.form.get("empregador_nome") or "").strip()
 
         # AGORA: esfera do órgão público (municipal/estadual/federal)
-        emp_esfera = (request.form.get("empregador_tipo") or "").strip().lower()
+        emp_esfera = (request.form.get("empregador_tipo")
+                      or "").strip().lower()
         emp_doc = _digits(request.form.get("empregador_doc") or "")
 
         # natureza é fixa = efetivo (não ler mais do form)
@@ -706,7 +708,8 @@ def novo(militar_id):
         jornada = (request.form.get("jornada_trabalho") or "").strip().lower()
         cargo = (request.form.get("cargo_funcao") or "").strip()
         try:
-            carga = int((request.form.get("carga_horaria_semanal") or "0").strip() or "0")
+            carga = int(
+                (request.form.get("carga_horaria_semanal") or "0").strip() or "0")
         except Exception:
             carga = 0
         h_ini = _parse_time(request.form.get("horario_inicio"))
@@ -715,7 +718,8 @@ def novo(militar_id):
 
         # validações atualizadas
         if emp_esfera not in {"municipal", "estadual", "federal"}:
-            flash("Esfera do órgão inválida. Use Municipal, Estadual ou Federal.", "alert-danger")
+            flash(
+                "Esfera do órgão inválida. Use Municipal, Estadual ou Federal.", "alert-danger")
             return redirect(request.url)
         if jornada not in {"escala", "expediente"}:
             flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
@@ -861,7 +865,8 @@ def _sanitize_vinculo(v: dict) -> dict:
 
     return {
         'empregador_nome': (v.get('empregador_nome') or '').strip(),
-        'empregador_tipo': esfera,                            # municipal | estadual | federal
+        # municipal | estadual | federal
+        'empregador_tipo': esfera,
         'empregador_doc': _digits(v.get('empregador_doc') or ''),
         'natureza_vinculo': 'efetivo',                        # fixo
         'jornada_trabalho': (v.get('jornada_trabalho') or '').strip().lower(),
@@ -1031,15 +1036,31 @@ def upload_assinado(militar_id):
     observacoes = pre.get("observacoes")
 
     if request.method == "GET":
-        return render_template("acumulo_upload_assinado.html", militar=militar, ano=ano, tipo=tipo)
+        return render_template(
+            "acumulo_upload_assinado.html",
+            militar=militar, ano=ano, tipo=tipo
+        )
 
-    # arquivo obrigatório (igual ao seu código)
-    arquivo_fs = request.files.get("arquivo_declaracao")
-    if not arquivo_fs or not (arquivo_fs.filename or "").strip():
-        flash("Anexe o arquivo da declaração (PDF).", "alert-danger")
+    # ===== 2 ARQUIVOS =====
+    # 1) Modelo DOCX gerado por vocês + assinado pelo militar (sempre obrigatório)
+    arquivo_modelo_fs = request.files.get("arquivo_modelo_assinado")
+    if not arquivo_modelo_fs or not (arquivo_modelo_fs.filename or "").strip():
+        flash("Anexe o modelo assinado pelo militar (PDF).", "alert-danger")
         return redirect(request.url)
 
-    # se positiva, montar vinculo_row a partir do que guardamos na sessão (sem validar de novo)
+    # 2) Declaração do órgão público (exigida apenas para tipo 'positiva')
+    arquivo_orgao_fs = request.files.get("arquivo_declaracao_orgao")
+    if tipo == "positiva":
+        if not arquivo_orgao_fs or not (arquivo_orgao_fs.filename or "").strip():
+            flash("Anexe a declaração emitida pelo órgão público (PDF).",
+                  "alert-danger")
+            return redirect(request.url)
+    else:
+        # tipo 'negativa' ignora segundo arquivo se vier vazio
+        if arquivo_orgao_fs and not (arquivo_orgao_fs.filename or "").strip():
+            arquivo_orgao_fs = None
+
+    # se positiva, montar vinculo_row como você já faz (reaproveitando seu código)
     vinculo_row = None
     if tipo == "positiva":
         from datetime import datetime as _dt, time as _time
@@ -1068,16 +1089,18 @@ def upload_assinado(militar_id):
             data_inicio=_p_date(pre["data_inicio"]),
         )
 
-    # upload Backblaze (igual ao seu)
+    # ===== Upload Backblaze (mesma pasta) =====
     try:
-        object_key = b2_upload_fileobj(
-            arquivo_fs, key_prefix=f"acumulo/{ano}/{militar.id}")
+        prefix = build_prefix(ano, militar.id)  # "acumulo/{ano}/{militar_id}"
+        key_modelo = b2_upload_fileobj(arquivo_modelo_fs, key_prefix=prefix)
+        key_orgao = b2_upload_fileobj(
+            arquivo_orgao_fs, key_prefix=prefix) if arquivo_orgao_fs else None
     except Exception as e:
         db.session.rollback()
         flash(f"Falha no upload do arquivo: {e}", "alert-danger")
         return redirect(request.url)
 
-    # UPSERT (igual ao seu, só que usando tipo/observacoes vindos da sessão)
+    # ===== UPSERT =====
     try:
         decl = (db.session.query(DeclaracaoAcumulo)
                 .filter(DeclaracaoAcumulo.militar_id == militar.id,
@@ -1089,7 +1112,12 @@ def upload_assinado(militar_id):
             decl.tipo = tipo
             decl.meio_entrega = "digital"
             decl.observacoes = observacoes or None
-            decl.arquivo_declaracao = object_key
+
+            # grava os 2 arquivos (modelo sempre; órgão só se existir)
+            decl.arquivo_declaracao = key_modelo
+            if key_orgao:
+                decl.arquivo_declaracao_orgao = key_orgao
+
             decl.status = "pendente"
             decl.updated_at = datetime.utcnow()
         else:
@@ -1099,7 +1127,8 @@ def upload_assinado(militar_id):
                 ano_referencia=ano,
                 tipo=tipo,
                 meio_entrega="digital",
-                arquivo_declaracao=object_key,
+                arquivo_declaracao=key_modelo,
+                arquivo_declaracao_orgao=key_orgao,
                 observacoes=observacoes or None,
                 status="pendente",
                 created_at=datetime.utcnow(),
@@ -1107,29 +1136,43 @@ def upload_assinado(militar_id):
             db.session.add(decl)
             db.session.flush()
 
-        # zera vínculos antigos e insere 1 (se positiva) — igual ao seu
+        # vínculos: limpa e regrava (1) quando positiva
         for v in list(getattr(decl, "vinculos", [])):
             db.session.delete(v)
         if tipo == "positiva" and vinculo_row:
-            db.session.add(VinculoExterno(
-                declaracao_id=decl.id, **vinculo_row))
+            db.session.add(VinculoExterno(declaracao_id=decl.id, **vinculo_row))
 
-        # auditoria opcional — igual ao seu
+        # auditoria de mudança de status (se houve)
         if de_status and de_status != decl.status:
             db.session.add(AuditoriaDeclaracao(
                 declaracao_id=decl.id,
                 de_status=de_status,
                 para_status=decl.status,
-                motivo="Envio de documentos assinados.",
+                motivo="Envio de documentos assinados (modelo e órgão).",
                 alterado_por_user_id=getattr(current_user, "id", None),
                 data_alteracao=datetime.utcnow()
             ))
 
+        # negativas: marcar "enviado_drh" (uma única vez)
+        if tipo == "negativa":
+            ja = (db.session.query(AuditoriaDeclaracao.id)
+                .filter(AuditoriaDeclaracao.declaracao_id == decl.id,
+                        AuditoriaDeclaracao.motivo == "enviado_drh")
+                .first())
+            if not ja:
+                db.session.add(AuditoriaDeclaracao(
+                    declaracao_id=decl.id,
+                    de_status=decl.status,
+                    para_status=decl.status,  # permanece 'pendente'
+                    motivo="enviado_drh",
+                    alterado_por_user_id=getattr(current_user, "id", None),
+                    data_alteracao=datetime.utcnow()
+                ))
+
         db.session.commit()
 
-        # limpa cache da sessão para esse militar/ano
+        # limpa cache da sessão + apaga rascunho do ano
         session.pop(f'pre_decl_{militar.id}_{ano}', None)
-
         try:
             draft = (db.session.query(DraftDeclaracaoAcumulo)
                     .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
@@ -1141,7 +1184,7 @@ def upload_assinado(militar_id):
         except Exception:
             db.session.rollback()
 
-        flash("Declaração salva com sucesso!", "alert-success")
+        flash("Declaração enviada com sucesso!", "alert-success")
         return redirect(url_for("home_atualizacao", ano=ano))
 
     except Exception as e:
@@ -1150,15 +1193,17 @@ def upload_assinado(militar_id):
         return redirect(request.url)
 
 
+
 @bp_acumulo.route("/editar/<int:decl_id>", methods=["GET", "POST"])
 @login_required
 def editar(decl_id):
     # carrega a declaração com militar e vínculos
     decl = (db.session.query(DeclaracaoAcumulo)
             .options(
-                joinedload(DeclaracaoAcumulo.militar).joinedload(Militar.posto_grad),
+                joinedload(DeclaracaoAcumulo.militar).joinedload(
+                    Militar.posto_grad),
                 selectinload(DeclaracaoAcumulo.vinculos)
-            ).get(decl_id))
+    ).get(decl_id))
     if not decl:
         abort(404)
 
@@ -1180,7 +1225,8 @@ def editar(decl_id):
         # link temporário do arquivo atual (se houver)
         url_arquivo = None
         if decl.arquivo_declaracao:
-            url_arquivo = b2_presigned_get(decl.arquivo_declaracao, expires_seconds=600)
+            url_arquivo = b2_presigned_get(
+                decl.arquivo_declaracao, expires_seconds=600)
 
         return render_template(
             "acumulo_editar.html",
@@ -1217,19 +1263,24 @@ def editar(decl_id):
 
         changed = False
         if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
-            current_user.email = email_sess; changed = True
+            current_user.email = email_sess
+            changed = True
         if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
-            current_user.obm_id_1 = obm_id_1; changed = True
+            current_user.obm_id_1 = obm_id_1
+            changed = True
         if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
-            current_user.obm_id_2 = obm_id_2; changed = True
+            current_user.obm_id_2 = obm_id_2
+            changed = True
         if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
-            current_user.localidade_id = localidade_id; changed = True
+            current_user.localidade_id = localidade_id
+            changed = True
         if changed:
             db.session.add(current_user)
             db.session.commit()
     except Exception as e:
         db.session.rollback()
-        flash(f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
+        flash(
+            f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
 
     # === Monta pacote pré-declaração p/ sessão (fluxo de geração DOCX) ===
     pre = {
@@ -1240,14 +1291,15 @@ def editar(decl_id):
 
     if tipo == "positiva":
         nomes = request.form.getlist("empregador_nome[]")
-        tipos = request.form.getlist("empregador_tipo[]")          # municipal/estadual/federal
-        docs  = request.form.getlist("empregador_doc[]")
+        # municipal/estadual/federal
+        tipos = request.form.getlist("empregador_tipo[]")
+        docs = request.form.getlist("empregador_doc[]")
         jornada = request.form.getlist("jornada_trabalho[]")
-        cargos  = request.form.getlist("cargo_funcao[]")
-        cargas  = request.form.getlist("carga_horaria_semanal[]")
-        h_ini   = request.form.getlist("horario_inicio[]")
-        h_fim   = request.form.getlist("horario_fim[]")
-        d_ini   = request.form.getlist("data_inicio[]")
+        cargos = request.form.getlist("cargo_funcao[]")
+        cargas = request.form.getlist("carga_horaria_semanal[]")
+        h_ini = request.form.getlist("horario_inicio[]")
+        h_fim = request.form.getlist("horario_fim[]")
+        d_ini = request.form.getlist("data_inicio[]")
 
         def first_or_empty(lst, i):
             return (lst[i] if i < len(lst) else "").strip()
@@ -1259,12 +1311,14 @@ def editar(decl_id):
                 idx = i
                 break
         if idx is None:
-            flash("Inclua ao menos um vínculo público para declaração positiva.", "alert-danger")
+            flash(
+                "Inclua ao menos um vínculo público para declaração positiva.", "alert-danger")
             return redirect(request.url)
 
         esfera = first_or_empty(tipos, idx).lower()
         if esfera not in {"municipal", "estadual", "federal"}:
-            flash("Tipo do órgão inválido (use Municipal/Estadual/Federal).", "alert-danger")
+            flash(
+                "Tipo do órgão inválido (use Municipal/Estadual/Federal).", "alert-danger")
             return redirect(request.url)
 
         # natureza = sempre efetivo
@@ -1305,6 +1359,7 @@ def recebimento():
         partition_by=D.militar_id,
         order_by=(D.updated_at.desc().nullslast(), D.id.desc())
     ).label("rn")
+
     ultimo_subq = (
         db.session.query(
             D.militar_id.label("m_id"),
@@ -1312,7 +1367,8 @@ def recebimento():
             D.status.label("decl_status"),
             D.tipo.label("decl_tipo"),
             D.meio_entrega.label("decl_meio"),
-            D.arquivo_declaracao.label("decl_arquivo"),
+            D.arquivo_declaracao.label("decl_arquivo_modelo"),
+            D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),   # << NOVO
             rn
         )
         .filter(D.ano_referencia == ano)
@@ -1375,6 +1431,13 @@ def recebimento():
     base_page_q = base_page_q.outerjoin(ultimo_subq, and_(
         ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
 
+    if not IS_DRH_LIKE:
+        # chefia não vê NEGATIVAS (nem contam como enviadas)
+        base_page_q = base_page_q.filter(
+            or_(ultimo_subq.c.decl_id.is_(None),
+                ultimo_subq.c.decl_tipo != "negativa")
+        )
+
     if status == "pendente":
         base_page_q = base_page_q.filter(
             ultimo_subq.c.decl_status == "pendente")
@@ -1418,7 +1481,8 @@ def recebimento():
         db.session.query(
             M, PG.sigla.label("pg_sigla"), O.sigla.label("obm_sigla"),
             ultimo_subq.c.decl_id, ultimo_subq.c.decl_status, ultimo_subq.c.decl_tipo,
-            ultimo_subq.c.decl_meio, ultimo_subq.c.decl_arquivo,
+            ultimo_subq.c.decl_meio,
+            ultimo_subq.c.decl_arquivo_modelo, ultimo_subq.c.decl_arquivo_orgao,   # << NOVO
             U.nome.label("encaminhado_por"),
             enc_subq.c.enc_quando.label("encaminhado_quando")
         )
@@ -1445,7 +1509,7 @@ def recebimento():
         enviado_drh_map = {did: (did in enviado_drh_set) for did in decl_ids}
 
     elegiveis_cte = base_q.subquery()
-    kpi_rows = (
+    kpi_q = (
         db.session.query(
             func.count().label("total"),
             func.sum(case((ultimo_subq.c.decl_id.isnot(None), 1), else_=0)).label(
@@ -1459,8 +1523,14 @@ def recebimento():
         )
         .select_from(elegiveis_cte)
         .outerjoin(ultimo_subq, and_(ultimo_subq.c.m_id == elegiveis_cte.c.m_id, ultimo_subq.c.rn == 1))
-        .one()
     )
+
+    if not IS_DRH_LIKE:
+        kpi_q = kpi_q.filter(or_(ultimo_subq.c.decl_id.is_(
+            None), ultimo_subq.c.decl_tipo != "negativa"))
+
+    kpi_rows = kpi_q.one()
+
     total_ano = kpi_rows.total or 0
     enviados = kpi_rows.enviaram or 0
     total_pendentes = kpi_rows.pendentes or 0
@@ -1469,9 +1539,15 @@ def recebimento():
     total_nao_enviaram = max(total_ano - enviados, 0)
 
     url_map, linhas = {}, []
-    for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq, enc_por, enc_quando) in rows:
-        if arq:
-            url_map[decl_id] = b2_presigned_get(arq, 600)
+    for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao, enc_por, enc_quando) in rows:
+        if decl_id:
+            urls = {}
+            if arq_modelo:
+                urls["modelo"] = b2_presigned_get(arq_modelo, 600)
+            if arq_orgao:
+                urls["orgao"] = b2_presigned_get(arq_orgao, 600)
+            url_map[decl_id] = urls
+
         linhas.append(dict(
             militar=militar,
             posto_grad_sigla=pg_sigla or "-",
@@ -1528,8 +1604,12 @@ def recebimento_mudar_status(decl_id):
         return redirect(url_for("acumulo.recebimento"))
 
     decl = db.session.get(DeclaracaoAcumulo, decl_id) or abort(404)
-
     IS_DRH_LIKE = _is_drh_like()
+
+    # chefia NÃO mexe em negativas (nem encaminhar)
+    if decl.tipo == "negativa" and not IS_DRH_LIKE:
+        flash("Declarações negativas seguem direto para a DRH.", "alert-warning")
+        return redirect(url_for("acumulo.recebimento"))
 
     # chefia comum só pode agir sobre seus militares
     if not IS_DRH_LIKE and not _militar_permitido(decl.militar_id):
@@ -1687,8 +1767,10 @@ def recebimento_export():
         "Ano", "Status", "Tipo", "Meio", "Data de entrega",
         "Recebido por (nome)", "Recebido em",
         "Militar (nome completo)", "Matrícula", "Posto/Grad.", "Qtd vínculos", "Observações",
-        "Arquivo (URL/caminho)"
+        # << NOVO
+        "Arquivo modelo (URL/caminho)", "Arquivo órgão (URL/caminho)"
     ])
+
     for d, m, pg_sigla, recebido_por_nome in resumo_rows:
         ws_resumo.append([
             d.ano_referencia,
@@ -1703,7 +1785,8 @@ def recebimento_export():
             pg_sigla or "",
             len(d.vinculos),
             d.observacoes or "",
-            d.arquivo_declaracao or "",
+            d.arquivo_declaracao or "",          # modelo
+            getattr(d, "arquivo_declaracao_orgao", "") or "",  # órgão
         ])
 
     # ---------------------------
@@ -1757,6 +1840,7 @@ def recebimento_export():
         "Empregador", "Tipo do empregador", "CPF/CNPJ",
         "Natureza do vínculo", "Cargo/Função", "Jornada",
         "Carga semanal (h)", "Entrada", "Saída", "Início do vínculo",
+        "Arquivo modelo (URL/caminho)", "Arquivo órgão (URL/caminho)"
     ])
     for r in vinc_rows:
         ws_vinc.append([
@@ -1779,6 +1863,8 @@ def recebimento_export():
             fmt_t(r.horario_inicio),
             fmt_t(r.horario_fim),
             fmt_d(r.data_inicio),
+            (db.session.get(DeclaracaoAcumulo, r.decl_id).arquivo_declaracao or ""),
+            (db.session.get(DeclaracaoAcumulo, r.decl_id).arquivo_declaracao_orgao or ""),
         ])
 
     # ---------------------------
@@ -1822,7 +1908,8 @@ def recebimento_export():
         "Declaração ID", "Status", "Meio", "Data de entrega",
         "Recebido por (nome)", "Recebido em",
         "Militar (nome completo)", "Matrícula", "Posto/Grad.",
-        "Observações", "Arquivo (URL/caminho)"
+        "Observações",
+        "Arquivo modelo (URL/caminho)"
     ])
     for r in neg_rows:
         ws_neg.append([
@@ -1886,8 +1973,11 @@ def detalhe(decl_id):
               .all())
     obm_siglas = ", ".join(s for (s,) in siglas) or "-"
 
-    url_arquivo = b2_presigned_get(
+    url_arquivo_modelo = b2_presigned_get(
         decl.arquivo_declaracao, 600) if decl.arquivo_declaracao else None
+    url_arquivo_orgao = b2_presigned_get(decl.arquivo_declaracao_orgao, 600) if getattr(
+        decl, "arquivo_declaracao_orgao", None) else None
+
     pode_editar = _can_editar_declaracao(decl.militar_id)
 
     return render_template(
@@ -1897,7 +1987,8 @@ def detalhe(decl_id):
         posto_grad_sigla=getattr(decl.militar.posto_grad, "sigla", "-"),
         obm_siglas=obm_siglas,
         ano=decl.ano_referencia,
-        url_arquivo=url_arquivo,
+        url_arquivo_modelo=url_arquivo_modelo,
+        url_arquivo_orgao=url_arquivo_orgao,
         pode_editar=pode_editar,
     )
 
@@ -2112,7 +2203,8 @@ def minhas_declaracoes():
     kpi_total = len(minhas)
     kpi_pend = sum(1 for d in minhas if (d.status or "").lower() == "pendente")
     kpi_val = sum(1 for d in minhas if (d.status or "").lower() == "validado")
-    kpi_inc = sum(1 for d in minhas if (d.status or "").lower() == "inconforme")
+    kpi_inc = sum(1 for d in minhas if (
+        d.status or "").lower() == "inconforme")
 
     # Rascunho (único por militar/ano)
     # Ajuste o modelo/campo conforme sua implementação de rascunhos

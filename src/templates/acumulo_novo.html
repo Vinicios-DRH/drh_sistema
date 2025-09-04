@@ -15,13 +15,31 @@
     }
 
     /* Botões no tema */
-    .btn-primary { background: var(--brand-red); border-color: var(--brand-red); }
-    .btn-primary:hover { background: var(--brand-red-600); border-color: var(--brand-red-600); }
-    .btn-outline-primary { color: var(--brand-red); border-color: var(--brand-red); }
-    .btn-outline-primary:hover { color: #fff; background: var(--brand-red); }
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600);
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red);
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red);
+    }
 
     /* Fundo e containers */
-    body { background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed; }
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
     .brand-header {
         background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
         border: 1px solid rgba(255, 255, 255, .12);
@@ -31,6 +49,7 @@
         -webkit-backdrop-filter: blur(6px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
     }
+
     .glass-card {
         background: var(--glass-bg);
         border: 1px solid var(--glass-brd);
@@ -40,51 +59,99 @@
         -webkit-backdrop-filter: blur(6px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
     }
-    .card-soft { border: 1px solid var(--glass-brd); border-radius: 14px; background: rgba(255, 255, 255, .04); }
+
+    .card-soft {
+        border: 1px solid var(--glass-brd);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .04);
+    }
 
     /* Form styling no modo vidro */
-    .form-label { color: #cfe4ff; font-weight: 600; }
-    .form-control, .form-select, textarea {
+    .form-label {
+        color: #cfe4ff;
+        font-weight: 600;
+    }
+
+    .form-control,
+    .form-select,
+    textarea {
         background: rgba(255, 255, 255, .08) !important;
         color: #e8eef6 !important;
         border: 1px solid rgba(255, 255, 255, .25) !important;
     }
-    .form-control::placeholder { color: #c0cfda; opacity: .8 }
-    .invalid-feedback { color: #ffb4b4 }
+
+    .form-control::placeholder {
+        color: #c0cfda;
+        opacity: .8
+    }
+
+    .invalid-feedback {
+        color: #ffb4b4
+    }
 
     /* Chips e campos de leitura */
     .chip {
-        display: inline-flex; align-items: center; gap: .4rem;
-        padding: .25rem .6rem; border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .25rem .6rem;
+        border-radius: 999px;
         border: 1px solid var(--glass-brd);
         background: rgba(255, 255, 255, .08);
-        color: #e8eef6; font-size: .78rem
+        color: #e8eef6;
+        font-size: .78rem
     }
 
     /* Cartão de vínculo */
-    .vinculo-card { border: 1px dashed var(--glass-brd); border-radius: 12px; padding: 1rem; background: rgba(0, 0, 0, .08) }
-    .vinculo-card.disabled { opacity: .55; filter: saturate(.6) }
+    .vinculo-card {
+        border: 1px dashed var(--glass-brd);
+        border-radius: 12px;
+        padding: 1rem;
+        background: rgba(0, 0, 0, .08)
+    }
+
+    .vinculo-card.disabled {
+        opacity: .55;
+        filter: saturate(.6)
+    }
 
     /* Barra de ação fixa */
     .action-bar {
-        position: sticky; bottom: 10px; z-index: 3;
-        background: rgba(0, 0, 0, .25); border: 1px solid var(--glass-brd);
-        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-        border-radius: 14px; padding: .6rem; display: flex; gap: .5rem; justify-content: flex-end
+        position: sticky;
+        bottom: 10px;
+        z-index: 3;
+        background: rgba(0, 0, 0, .25);
+        border: 1px solid var(--glass-brd);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 14px;
+        padding: .6rem;
+        display: flex;
+        gap: .5rem;
+        justify-content: flex-end
     }
 
     /* Corrige legibilidade das listas dos <select> em tema escuro */
-    .form-select option, .form-select optgroup {
-        background-color: #ffffff !important; color: #111111 !important;
+    .form-select option,
+    .form-select optgroup {
+        background-color: #ffffff !important;
+        color: #111111 !important;
     }
-    .form-select option:hover, .form-select option:checked {
-        background-color: #eef2f7 !important; color: #111111 !important;
+
+    .form-select option:hover,
+    .form-select option:checked {
+        background-color: #eef2f7 !important;
+        color: #111111 !important;
     }
-    .form-select option[disabled] { color: #94a3b8 !important; }
+
+    .form-select option[disabled] {
+        color: #94a3b8 !important;
+    }
+
     .form-select {
         color: var(--ink-200) !important;
-        background: rgba(255,255,255,.06) !important;
-        border: 1px solid rgba(255,255,255,.18) !important;
+        background: rgba(255, 255, 255, .06) !important;
+        border: 1px solid rgba(255, 255, 255, .18) !important;
     }
 </style>
 {% endblock %}
@@ -97,10 +164,12 @@
         <div class="brand-header p-3 p-md-4 mb-3">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
                     <div>
                         <h1 class="h5 m-0">Nova Declaração</h1>
-                        <div class="small opacity-75">Preencha os dados, gere o modelo DOCX e assine na etapa seguinte.</div>
+                        <div class="small opacity-75">Preencha os dados, gere o modelo DOCX e assine na etapa seguinte.
+                        </div>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
@@ -117,7 +186,7 @@
                 <div class="col-12 col-md-6">
                     <div class="d-flex align-items-center gap-3">
                         <div class="rounded-circle d-inline-grid place-items-center"
-                             style="width:56px;height:56px;background:rgba(255,255,255,.08);border:1px solid var(--glass-brd)">
+                            style="width:56px;height:56px;background:rgba(255,255,255,.08);border:1px solid var(--glass-brd)">
                             <i class="bi bi-person-fill" style="font-size:1.5rem;opacity:.9"></i>
                         </div>
                         <div>
@@ -213,9 +282,8 @@
 
                         <div class="col-md-3">
                             <label class="form-label">CNPJ/CPF</label>
-                            <input class="form-control" name="empregador_doc"
-                                   inputmode="numeric" autocomplete="off" maxlength="18"
-                                   placeholder="somente dígitos" required>
+                            <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
+                                maxlength="18" placeholder="somente dígitos" required>
                             <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
                         </div>
 
@@ -262,7 +330,8 @@
                 <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">Voltar</a>
 
                 <!-- novo: salvar rascunho -->
-                <button class="btn btn-outline-light" type="button" id="btn-salvar-rascunho" title="Salvar e continuar depois">
+                <button class="btn btn-outline-light" type="button" id="btn-salvar-rascunho"
+                    title="Salvar e continuar depois">
                     <i class="bi bi-cloud-check me-1"></i> Salvar rascunho
                 </button>
 
@@ -276,7 +345,7 @@
 
 <script>
     // Se o backend passar um rascunho, hidrate (ex.: dict com {ano,tipo,observacoes,vinculos:[...]})
-    const DRAFT = {{ draft|tojson|safe if draft else 'null' }};
+    const DRAFT = {{ draft| tojson | safe if draft else 'null' }};
 
     const form = document.getElementById('form-declaracao');
     const tipoSelect = document.getElementById('tipo-select');
@@ -345,7 +414,7 @@
                 return false;
             }
             const esfera = (form.querySelector('[name="empregador_tipo"]')?.value || '').toLowerCase();
-            if (!['municipal','estadual','federal'].includes(esfera)) {
+            if (!['municipal', 'estadual', 'federal'].includes(esfera)) {
                 const sel = form.querySelector('[name="empregador_tipo"]');
                 setFieldError(sel, 'Selecione Municipal, Estadual ou Federal.');
                 sel.focus();
@@ -445,38 +514,31 @@
 
             const params = new URLSearchParams({
                 ano: fd.get('ano') || '',
-                tipo: fd.get('tipo') || '',
-                empregador_nome: fd.get('empregador_nome') || '',
-                empregador_doc: digitsOnly(fd.get('empregador_doc') || ''),
-                natureza_vinculo: 'efetivo', // fixo
-                jornada_trabalho: jornada || '',
-                cargo_funcao: fd.get('cargo_funcao') || '',
-                carga_horaria_semanal: fd.get('carga_horaria_semanal') || '',
-                horario_inicio: fd.get('horario_inicio') || '',
-                horario_fim: fd.get('horario_fim') || '',
-                data_inicio: fd.get('data_inicio') || '',
-                empregador_tipo: (fd.get('empregador_tipo') || '').toLowerCase()
+                tipo: fd.get('tipo') || ''
             });
 
-            if ((fd.get('tipo') || '').toLowerCase() !== 'positiva') {
-                [
-                    'empregador_nome','empregador_doc','natureza_vinculo','jornada_trabalho',
-                    'cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim',
-                    'data_inicio','empregador_tipo'
-                ].forEach(k => params.delete(k));
+            if ((fd.get('tipo') || '').toLowerCase() === 'positiva') {
+                params.set('empregador_nome', fd.get('empregador_nome') || '');
+                params.set('empregador_doc', (fd.get('empregador_doc') || '').replace(/\D+/g, ''));
+                params.set('natureza_vinculo', 'efetivo');
+                params.set('jornada_trabalho', jornada || '');
+                params.set('cargo_funcao', fd.get('cargo_funcao') || '');
+                params.set('carga_horaria_semanal', fd.get('carga_horaria_semanal') || '');
+                params.set('horario_inicio', fd.get('horario_inicio') || '');
+                params.set('horario_fim', fd.get('horario_fim') || '');
+                params.set('data_inicio', fd.get('data_inicio') || '');
+                params.set('empregador_tipo', (fd.get('empregador_tipo') || '').toLowerCase());
             }
 
             const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
-                                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
             params.set('return_to', urlUpload);
 
+            // navegação única para a intermediária (sem popup, sem setTimeout)
             const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
-                                        .replace('/0', `/${militarId}`) + '?' + params.toString();
+                .replace('/0', `/${militarId}`) + '?' + params.toString();
 
-            const popup = window.open(urlIntermediaria, '_blank');
-            if (!popup) { window.location.href = urlIntermediaria; return; }
-            setTimeout(() => { window.location.href = urlUpload; }, 500);
-
+            window.location.assign(urlIntermediaria);
         } catch (e) {
             alert('Erro: ' + e.message);
         }

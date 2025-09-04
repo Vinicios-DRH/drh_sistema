@@ -922,7 +922,6 @@ class DeclaracaoAcumulo(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(
         database.Integer, database.ForeignKey('militar.id'), nullable=False)
-    # p/ ciclo anual (envio até 31/10)
     ano_referencia = database.Column(database.Integer, nullable=False)
     tipo = database.Column(database.Enum(
         'positiva', 'negativa', name='tipo_declaracao'), nullable=False)
@@ -933,13 +932,16 @@ class DeclaracaoAcumulo(database.Model):
     status = database.Column(database.Enum('pendente', 'validado', 'inconforme',
                              name='status_declaracao'), nullable=False, default='pendente')
     recebido_por_user_id = database.Column(
-        database.Integer, database.ForeignKey('user.id'))  # quem conferiu/recebeu
-    
+        database.Integer, database.ForeignKey('user.id'))
     recebido_em = database.Column(database.DateTime, nullable=True)
-    # caminho/URL no storage (PDF/JPG da declaração)
-    arquivo_declaracao = database.Column(database.String(255))
-    observacoes = database.Column(database.Text)
 
+    # Mantemos: passa a representar o MODELO assinado pelo militar
+    arquivo_declaracao = database.Column(database.String(255))
+
+    # NOVO: arquivo do órgão público (obrigatório quando tipo='positiva')
+    arquivo_declaracao_orgao = database.Column(database.String(255))
+
+    observacoes = database.Column(database.Text)
     created_at = database.Column(database.DateTime, default=datetime.utcnow)
     updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
 
@@ -1018,17 +1020,21 @@ class DraftDeclaracaoAcumulo(database.Model):
     __tablename__ = "draft_declaracao_acumulo"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id', ondelete="CASCADE"), nullable=False)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        'militar.id', ondelete="CASCADE"), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
 
     # Armazenamos o formulário inteiro em JSON (inclusive vínculos)
     payload = database.Column(database.JSON, nullable=False, default=dict)
 
-    created_at = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = database.Column(database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = database.Column(
+        database.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = database.Column(
+        database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     militar = database.relationship('Militar')
 
     __table_args__ = (
-        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
+        database.UniqueConstraint(
+            'militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
     )
