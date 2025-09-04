@@ -1193,7 +1193,6 @@ def upload_assinado(militar_id):
         return redirect(request.url)
 
 
-
 @bp_acumulo.route("/editar/<int:decl_id>", methods=["GET", "POST"])
 @login_required
 def editar(decl_id):
@@ -1337,8 +1336,19 @@ def editar(decl_id):
 
     session[f'pre_decl_{militar.id}_{ano}'] = pre
 
-    # Redireciona pro mesmo upload do fluxo "novo"
-    return redirect(url_for("acumulo.upload_assinado", militar_id=militar.id, ano=ano))
+    url_arquivo_modelo = b2_presigned_get(decl.arquivo_declaracao, 600) if decl.arquivo_declaracao else None
+    url_arquivo_orgao  = b2_presigned_get(decl.arquivo_declaracao_orgao, 600) if getattr(decl, "arquivo_declaracao_orgao", None) else None
+
+    return render_template(
+        "acumulo_editar.html",
+        decl=decl,
+        militar=decl.militar,
+        posto_grad_sigla=getattr(decl.militar.posto_grad, "sigla", "-"),
+        obm_sigla=obm_sigla,
+        ano=decl.ano_referencia,
+        url_arquivo_modelo=url_arquivo_modelo,
+        url_arquivo_orgao=url_arquivo_orgao,
+    )
 
 
 @bp_acumulo.route("/recebimento", methods=["GET"])

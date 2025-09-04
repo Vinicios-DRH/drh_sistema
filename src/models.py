@@ -3,8 +3,9 @@ from sqlalchemy.orm import backref, foreign
 
 from src import database, login_manager
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
+from sqlalchemy import func
 
 
 class PostoGrad(database.Model):
@@ -772,6 +773,10 @@ def now_manaus():
     return datetime.now(pytz.timezone('America/Manaus'))
 
 
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
 class LtsAlunos(database.Model):
     __tablename__ = 'lts_alunos'
 
@@ -920,37 +925,46 @@ class DeclaracaoAcumulo(database.Model):
     __tablename__ = "declaracao_acumulo"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(
-        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
-    tipo = database.Column(database.Enum(
-        'positiva', 'negativa', name='tipo_declaracao'), nullable=False)
-    meio_entrega = database.Column(database.Enum(
-        'digital', 'presencial', name='meio_entrega'), nullable=False, default='digital')
-    data_entrega = database.Column(
-        database.DateTime, default=datetime.utcnow, nullable=False)
-    status = database.Column(database.Enum('pendente', 'validado', 'inconforme',
-                             name='status_declaracao'), nullable=False, default='pendente')
-    recebido_por_user_id = database.Column(
-        database.Integer, database.ForeignKey('user.id'))
-    recebido_em = database.Column(database.DateTime, nullable=True)
 
-    # Mantemos: passa a representar o MODELO assinado pelo militar
+    tipo = database.Column(database.Enum('positiva', 'negativa', name='tipo_declaracao'), nullable=False)
+
+    meio_entrega = database.Column(
+        database.Enum('digital', 'presencial', name='meio_entrega'),
+        nullable=False, default='digital'
+    )
+
+    # tz-aware + default no banco
+    data_entrega = database.Column(database.DateTime(timezone=True),
+                                   nullable=False, server_default=func.now())
+
+    status = database.Column(
+        database.Enum('pendente', 'validado', 'inconforme', name='status_declaracao'),
+        nullable=False, default='pendente'
+    )
+
+    recebido_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    recebido_em = database.Column(database.DateTime(timezone=True), nullable=True)
+
+    # MODELO assinado pelo militar
     arquivo_declaracao = database.Column(database.String(255))
 
-    # NOVO: arquivo do órgão público (obrigatório quando tipo='positiva')
+    # Arquivo do órgão (quando tipo='positiva')
     arquivo_declaracao_orgao = database.Column(database.String(255))
 
     observacoes = database.Column(database.Text)
-    created_at = database.Column(database.DateTime, default=datetime.utcnow)
-    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+
+    created_at = database.Column(database.DateTime(timezone=True),
+                                 nullable=False, server_default=func.now())
+    updated_at = database.Column(database.DateTime(timezone=True),
+                                 onupdate=func.now())
 
     militar = database.relationship('Militar', backref='declaracoes_acumulo')
     recebido_por = database.relationship('User')
 
     __table_args__ = (
-        database.UniqueConstraint(
-            'militar_id', 'ano_referencia', name='uq_declaracao_militar_ano'),
+        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_declaracao_militar_ano'),
     )
 
 
@@ -963,56 +977,60 @@ class VinculoExterno(database.Model):
 
     empregador_nome = database.Column(database.String(150), nullable=False)
 
-    # 🔁 mudou: agora é a ESFERA do órgão público
-    empregador_tipo = database.Column(database.Enum(
-        'municipal', 'estadual', 'federal', name='esfera_publica'
-    ), nullable=False)
+    # ESFERA do órgão público
+    empregador_tipo = database.Column(
+        database.Enum('municipal', 'estadual', 'federal', name='esfera_publica'),
+        nullable=False
+    )
 
-    # CNPJ (14) ou CPF (11) - salvar limpo
+    # CNPJ (14) ou CPF (11) — salvo limpo
     empregador_doc = database.Column(database.String(18), nullable=False)
 
-    # 🔁 mudou: natureza é sempre “efetivo”
-    natureza_vinculo = database.Column(database.Enum(
-        'efetivo', name='natureza_vinculo_efetivo'
-    ), nullable=False, server_default='efetivo')
+    # natureza sempre efetivo
+    natureza_vinculo = database.Column(
+        database.Enum('efetivo', name='natureza_vinculo_efetivo'),
+        nullable=False, server_default='efetivo'
+    )
 
     cargo_funcao = database.Column(database.String(120), nullable=False)
-    jornada_trabalho = database.Column(database.Enum(
-        'escala', 'expediente', name='jornada_trabalho'
-    ), nullable=False)
+    jornada_trabalho = database.Column(
+        database.Enum('escala', 'expediente', name='jornada_trabalho'),
+        nullable=False
+    )
     carga_horaria_semanal = database.Column(database.Integer, nullable=False)
-    horario_inicio = database.Column(database.Time, nullable=False)
-    horario_fim = database.Column(database.Time, nullable=False)
-    data_inicio = database.Column(database.Date, nullable=False)
+    horario_inicio = database.Column(database.Time, nullable=False)  # horário local, sem tz
+    horario_fim = database.Column(database.Time, nullable=False)     # idem
+    data_inicio = database.Column(database.Date, nullable=False)     # data local
 
     compatibilidade_horaria = database.Column(database.Boolean, default=None)
     conflito_descricao = database.Column(database.Text)
 
-    created_at = database.Column(database.DateTime, default=datetime.utcnow)
-    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+    # corrigido: eram variáveis, agora são colunas
+    created_at = database.Column(database.DateTime(timezone=True),
+                                 nullable=False, server_default=func.now())
+    updated_at = database.Column(database.DateTime(timezone=True),
+                                 onupdate=func.now())
 
     declaracao = database.relationship('DeclaracaoAcumulo', backref='vinculos')
 
 
 class AuditoriaDeclaracao(database.Model):
-    """
-    Histórico de mudanças de status para rastreabilidade/auditoria.
-    """
     __tablename__ = "auditoria_declaracao"
 
     id = database.Column(database.Integer, primary_key=True)
-    declaracao_id = database.Column(database.Integer, database.ForeignKey(
-        'declaracao_acumulo.id'), nullable=False)
+    declaracao_id = database.Column(
+        database.Integer, database.ForeignKey('declaracao_acumulo.id'), nullable=False)
+
     de_status = database.Column(database.String(20))
     para_status = database.Column(database.String(20), nullable=False)
     motivo = database.Column(database.Text)
-    alterado_por_user_id = database.Column(
-        database.Integer, database.ForeignKey('user.id'))
-    data_alteracao = database.Column(
-        database.DateTime, default=datetime.utcnow)
 
-    declaracao = database.relationship(
-        'DeclaracaoAcumulo', backref='auditorias')
+    alterado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+
+    data_alteracao = database.Column(database.DateTime(timezone=True),
+                                     nullable=False, server_default=func.now())
+
+    declaracao = database.relationship('DeclaracaoAcumulo', backref='auditorias')
     alterado_por = database.relationship('User')
 
 
@@ -1020,21 +1038,19 @@ class DraftDeclaracaoAcumulo(database.Model):
     __tablename__ = "draft_declaracao_acumulo"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey(
-        'militar.id', ondelete="CASCADE"), nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id', ondelete="CASCADE"), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
 
-    # Armazenamos o formulário inteiro em JSON (inclusive vínculos)
     payload = database.Column(database.JSON, nullable=False, default=dict)
 
-    created_at = database.Column(
-        database.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = database.Column(
-        database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = database.Column(database.DateTime(timezone=True),
+                                 nullable=False, server_default=func.now())
+    updated_at = database.Column(database.DateTime(timezone=True),
+                                 nullable=False, server_default=func.now(), onupdate=func.now())
 
     militar = database.relationship('Militar')
 
     __table_args__ = (
-        database.UniqueConstraint(
-            'militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
+        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
     )

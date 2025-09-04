@@ -79,6 +79,20 @@
             </div>
         </div>
 
+        {% if url_arquivo_modelo or url_arquivo_orgao %}
+        <div class="glass-card p-3 p-md-4 mb-3">
+            <div class="section-title mb-2">Arquivos já enviados</div>
+            <ul class="m-0">
+                {% if url_arquivo_modelo %}
+                <li><a class="btn btn-link p-0" href="{{ url_arquivo_modelo }}" target="_blank">Modelo assinado do militar</a></li>
+                {% endif %}
+                {% if url_arquivo_orgao %}
+                <li><a class="btn btn-link p-0" href="{{ url_arquivo_orgao }}" target="_blank">Declaração do órgão público</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+
         <!-- FORM -->
         <form id="form-editar" class="needs-validation" novalidate>
             <input type="hidden" name="ano" value="{{ ano }}">
@@ -298,12 +312,14 @@
     function toggleVinculos() {
         const isPositiva = tipoSelect.value === 'positiva';
         addBtn.disabled = !isPositiva;
+        container.style.opacity = isPositiva ? 1 : .65;
+        container.style.display = isPositiva ? '' : 'none'; // <- opcional
         container.querySelectorAll('input,select,button.remove-btn').forEach(el => {
             if (el.classList.contains('remove-btn')) el.disabled = !isPositiva;
             else { el.required = isPositiva; el.disabled = !isPositiva; }
         });
-        container.style.opacity = isPositiva ? 1 : .65;
     }
+
 
     function addVinculo() {
         const node = tpl.content.cloneNode(true);
@@ -317,7 +333,11 @@
 
     addBtn.addEventListener('click', addVinculo);
     tipoSelect.addEventListener('change', () => {
-        if (tipoSelect.value === 'positiva' && container.children.length === 0) addVinculo();
+        // se virar "positiva" e não houver cartão, cria um
+        if (tipoSelect.value === 'positiva' && container.children.length === 0) {
+            addVinculo();
+        }
+        // habilita/desabilita o bloco
         toggleVinculos();
     });
 
