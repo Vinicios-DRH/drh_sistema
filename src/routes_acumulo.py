@@ -608,10 +608,6 @@ def lista():
         tem_permissao=True,
     )
 
-# 2) Form para nova declaração (chefe seleciona um militar e entra aqui)
-
-# ----------------- /acumulo/novo -----------------
-
 
 def _obms_ativas_do_militar(militar_id: int):
     MOF = MilitarObmFuncao
