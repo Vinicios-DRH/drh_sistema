@@ -246,7 +246,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">CNPJ/CPF</label>
                                 <input class="form-control" name="empregador_doc[]" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="somente dígitos">
-                                <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                                <div class="invalid-feedback">Informe 14 dígitos.</div>
                             </div>
 
                             <div class="col-md-3">
@@ -348,7 +348,7 @@
 
     // Helpers
     const digitsOnly = v => (v || '').replace(/\D+/g, '');
-    const isCpfCnpjValid = v => { const d = digitsOnly(v); return d.length === 11 || d.length === 14; };
+    const isCpfCnpjValid = v => { const d = digitsOnly(v); return d.length === 14; };
     function setFieldError(el, msg) { el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
     function clearFieldError(el) { el.setCustomValidity(''); el.classList.remove('is-invalid'); }
 
@@ -358,11 +358,11 @@
                 const cur = inp.value, cleaned = digitsOnly(cur);
                 if (cur !== cleaned) inp.value = cleaned;
                 if (!cleaned.length) { clearFieldError(inp); return; }
-                isCpfCnpjValid(cleaned) ? clearFieldError(inp) : setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+                isCpfCnpjValid(cleaned) ? clearFieldError(inp) : setFieldError(inp, 'Informe 14 dígitos.');
             });
             inp.addEventListener('blur', () => {
                 const d = digitsOnly(inp.value);
-                (!d || isCpfCnpjValid(d)) ? clearFieldError(inp) : setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+                (!d || isCpfCnpjValid(d)) ? clearFieldError(inp) : setFieldError(inp, 'Informe 14 dígitos.');
             });
         });
     }

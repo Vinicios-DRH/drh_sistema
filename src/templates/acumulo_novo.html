@@ -281,10 +281,10 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">CNPJ/CPF</label>
+                            <label class="form-label">CNPJ do Órgão</label>
                             <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
                                 maxlength="18" placeholder="somente dígitos" required>
-                            <div class="invalid-feedback">Informe 11 (CPF) ou 14 (CNPJ) dígitos.</div>
+                            <div class="invalid-feedback">Informe 14 dígitos.</div>
                         </div>
 
                         <!-- natureza fixa -->
@@ -365,7 +365,7 @@
     tipoSelect.addEventListener('change', toggleVinculo);
 
     function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
-    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 11 || d.length === 14; }
+    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 14; }
     function setFieldError(el, msg) { el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
     function clearFieldError(el) { el.setCustomValidity(''); el.classList.remove('is-invalid'); }
 
@@ -392,12 +392,12 @@
             if (cur !== cleaned) docInput.value = cleaned;
             if (!cleaned) { clearFieldError(docInput); return; }
             if (isCpfCnpjValid(cleaned)) clearFieldError(docInput);
-            else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+            else setFieldError(docInput, 'Informe 14 dígitos.');
         });
         docInput.addEventListener('blur', () => {
             const d = digitsOnly(docInput.value);
             if (!d || isCpfCnpjValid(d)) clearFieldError(docInput);
-            else setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+            else setFieldError(docInput, 'Informe 14 dígitos.');
         });
     }
 
@@ -408,7 +408,7 @@
         if (!ok) return false;
         if (tipoSelect.value === 'positiva') {
             if (!isCpfCnpjValid(docInput.value)) {
-                setFieldError(docInput, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
+                setFieldError(docInput, 'Informe 14 dígitos.');
                 form.classList.add('was-validated');
                 docInput.focus();
                 return false;
