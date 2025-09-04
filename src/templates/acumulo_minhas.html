@@ -106,9 +106,9 @@
           <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i>
             Voltar</a>
           {% if militar %}
-          <a href="{{ url_for('acumulo.novo', militar_id=militar.id, ano=ano) }}" class="btn btn-primary">
+          <button type="button" id="btn-nova-declaracao" class="btn btn-primary">
             <i class="bi bi-file-earmark-plus me-1"></i> Nova declaração
-          </a>
+          </button>
           {% endif %}
         </div>
       </div>
@@ -232,6 +232,33 @@
   </div>
 </section>
 
+<style>
+  .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1050}
+  .modal-backdrop-custom.show{display:flex}
+  .modal-card{background:#fff;color:#111;border-radius:12px;max-width:560px;width:96vw;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.08)}
+</style>
+
+<div id="modal-bloqueio" class="modal-backdrop-custom" aria-hidden="true">
+  <div class="modal-card">
+    <div class="p-3 border-bottom">
+      <h5 class="m-0">Declaração já enviada</h5>
+      <div class="small text-muted mt-1">
+        Você já enviou uma declaração para {{ ano }} e ela está <strong>aguardando análise</strong>.
+        Aguarde o processamento para enviar outra.
+      </div>
+    </div>
+    <div class="p-3 d-flex justify-content-end gap-2">
+      {% if decl_pendente_id %}
+      <a class="btn btn-outline-primary" href="{{ url_for('acumulo.detalhe', decl_id=decl_pendente_id) }}">
+        Abrir minha declaração
+      </a>
+      {% endif %}
+      <button type="button" class="btn btn-secondary" id="fechar-bloqueio">Fechar</button>
+    </div>
+  </div>
+</div>
+
+
 {% if militar %}
 <script>
   (() => {
@@ -258,5 +285,29 @@
   });
 }) ();
 </script>
+
+<script>
+(() => {
+  const temPendente = {{ (tem_pendente or False) | tojson }};
+  const novaUrl = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
+
+  const btnNova = document.getElementById('btn-nova-declaracao');
+  const modal   = document.getElementById('modal-bloqueio');
+  const fechar  = document.getElementById('fechar-bloqueio');
+
+  function abrirModal(){ modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false'); }
+  function fecharModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
+
+  fechar?.addEventListener('click', fecharModal);
+  modal?.addEventListener('click', (e) => { if (e.target === modal) fecharModal(); });
+
+  btnNova?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (temPendente) { abrirModal(); return; }
+    window.location.href = novaUrl;
+  });
+})();
+</script>
+
 {% endif %}
 {% endblock %}

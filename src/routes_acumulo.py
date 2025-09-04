@@ -639,6 +639,13 @@ def novo(militar_id):
 
     ano = request.values.get("ano", type=int) or datetime.now().year
 
+    pendente = db.session.query(DeclaracaoAcumulo.id).filter_by(
+        militar_id=militar_id, ano_referencia=ano, status='pendente'
+    ).first()
+    if pendente:
+        flash("Você já possui uma declaração enviada e pendente de análise para este ano.", "warning")
+        return redirect(url_for("acumulo.lista", ano=ano))
+
     MOF = MilitarObmFuncao
     row = (
         db.session.query(Militar, PostoGrad.sigla.label(
@@ -2185,7 +2192,6 @@ def modelo_docx_page(militar_id):
     return html
 
 
-# === ROTAS: Minhas Declarações ===
 @bp_acumulo.route("/minhas", methods=["GET"])
 @login_required
 def minhas_declaracoes():
@@ -2203,7 +2209,6 @@ def minhas_declaracoes():
 
     ano = request.args.get("ano", type=int) or datetime.now().year
 
-    # KPIs rápidos
     q_base = db.session.query(DeclaracaoAcumulo).filter(
         DeclaracaoAcumulo.militar_id == militar_id,
         DeclaracaoAcumulo.ano_referencia == ano
@@ -2212,9 +2217,22 @@ def minhas_declaracoes():
 
     kpi_total = len(minhas)
     kpi_pend = sum(1 for d in minhas if (d.status or "").lower() == "pendente")
-    kpi_val = sum(1 for d in minhas if (d.status or "").lower() == "validado")
-    kpi_inc = sum(1 for d in minhas if (
-        d.status or "").lower() == "inconforme")
+    kpi_val  = sum(1 for d in minhas if (d.status or "").lower() == "validado")
+    kpi_inc  = sum(1 for d in minhas if (d.status or "").lower() == "inconforme")
+
+    # 🔴 NOVO: existe pendente no ano?
+    decl_pendente = (
+        db.session.query(DeclaracaoAcumulo.id)
+        .filter(
+            DeclaracaoAcumulo.militar_id == militar_id,
+            DeclaracaoAcumulo.ano_referencia == ano,
+            DeclaracaoAcumulo.status == 'pendente',
+        )
+        .order_by(DeclaracaoAcumulo.id.desc())
+        .first()
+    )
+    tem_pendente = bool(decl_pendente)
+    decl_pendente_id = decl_pendente[0] if decl_pendente else None
 
     # Rascunho (único por militar/ano)
     # Ajuste o modelo/campo conforme sua implementação de rascunhos
@@ -2244,6 +2262,8 @@ def minhas_declaracoes():
         kpi_decl_pendentes=kpi_pend,
         kpi_decl_validadas=kpi_val,
         kpi_decl_inconformes=kpi_inc,
+        tem_pendente=tem_pendente,
+        decl_pendente_id=decl_pendente_id,
     )
 
 
