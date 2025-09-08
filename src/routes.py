@@ -4577,3 +4577,19 @@ def gerar_certidao_obito():
 def gerar_declaracao():
     if request.method == 'POST':
         nome = request.form['nome']
+
+
+@app.route('/gerar-certidao-tempo-servico', methods=['GET', 'POST'])
+@login_required
+def certidao_tempo_servico():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        dados = {
+            'POSTO/GRADUACAO': request.form['posto_grad'],
+            'cpf': request.form['cpf'],
+            'dia_ingresso': request.form['dia_ingresso'],
+            'mes_ingresso': request.form['mes_ingresso'],
+            'ano_ingresso': request.form['ano_ingresso'],
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+    
