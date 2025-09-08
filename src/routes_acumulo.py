@@ -1444,10 +1444,17 @@ def recebimento():
     base_page_q = base_page_q.outerjoin(ultimo_subq, and_(
         ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
     
-    enc_exists = db.session.query(AuditoriaDeclaracao.id).filter(
-        AuditoriaDeclaracao.declaracao_id == ultimo_subq.c.decl_id,
-        AuditoriaDeclaracao.motivo == "enviado_drh"
-    ).exists()
+    enc_exists = exists().where(
+        and_(
+            AuditoriaDeclaracao.declaracao_id == ultimo_subq.c.decl_id,
+            AuditoriaDeclaracao.motivo == "enviado_drh"
+        )
+    )
+
+    if IS_DRH_LIKE:
+        base_page_q = base_page_q.filter(
+            or_(ultimo_subq.c.decl_tipo == "negativa", enc_exists)
+        )
 
     if not IS_DRH_LIKE:
         base_page_q = base_page_q.filter(
@@ -1462,6 +1469,12 @@ def recebimento():
                 enc_exists
             )
         )
+
+    enc_only = (request.args.get("enc") == "1")
+    if IS_DRH_LIKE and enc_only:
+        # Somente declarações com registro de 'enviado_drh'
+        # OBS: Negativas não têm esse registro e ficarão de fora (comportamento esperado para “Somente encaminhados”).
+        base_page_q = base_page_q.filter(enc_exists)
 
     if status == "pendente":
         base_page_q = base_page_q.filter(
