@@ -1,5 +1,4 @@
 from src.formatar_cpf import get_militar_por_user
-from sqlalchemy import func, cast, String
 from src import app
 from io import BytesIO
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, session, url_for, request, jsonify
@@ -19,6 +18,7 @@ from docx.shared import Pt
 from docx.oxml.ns import qn
 from src.decorators.helpers_docx import render_docx_from_template
 from sqlalchemy.sql import functions
+from sqlalchemy.orm import aliased
 
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
@@ -1443,12 +1443,24 @@ def recebimento():
 
     base_page_q = base_page_q.outerjoin(ultimo_subq, and_(
         ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
+    
+    enc_exists = db.session.query(AuditoriaDeclaracao.id).filter(
+        AuditoriaDeclaracao.declaracao_id == ultimo_subq.c.decl_id,
+        AuditoriaDeclaracao.motivo == "enviado_drh"
+    ).exists()
 
     if not IS_DRH_LIKE:
-        # chefia não vê NEGATIVAS (nem contam como enviadas)
         base_page_q = base_page_q.filter(
             or_(ultimo_subq.c.decl_id.is_(None),
                 ultimo_subq.c.decl_tipo != "negativa")
+        )
+    else:
+        base_page_q = base_page_q.filter(
+            or_(
+                ultimo_subq.c.decl_id.is_(None),
+                ultimo_subq.c.decl_tipo == "negativa",
+                enc_exists
+            )
         )
 
     if status == "pendente":
@@ -1478,6 +1490,7 @@ def recebimento():
         partition_by=AuditoriaDeclaracao.declaracao_id,
         order_by=AuditoriaDeclaracao.data_alteracao.desc()
     ).label("rn")
+
     enc_subq = (
         db.session.query(
             AuditoriaDeclaracao.declaracao_id.label("decl_id"),
@@ -1489,15 +1502,39 @@ def recebimento():
         .subquery()
     )
 
+    rn_val = func.row_number().over(
+        partition_by=AuditoriaDeclaracao.declaracao_id,
+        order_by=AuditoriaDeclaracao.data_alteracao.desc()
+    ).label("rn")
+
+    val_subq = (
+        db.session.query(
+            AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+            AuditoriaDeclaracao.alterado_por_user_id.label("val_uid"),
+            AuditoriaDeclaracao.data_alteracao.label("val_quando"),
+            rn_val
+        )
+        .filter(AuditoriaDeclaracao.para_status == "validado")
+        .subquery()
+    )
+
     U = User
+    U2 = aliased(User)
+
     rows = (
         db.session.query(
             M, PG.sigla.label("pg_sigla"), O.sigla.label("obm_sigla"),
             ultimo_subq.c.decl_id, ultimo_subq.c.decl_status, ultimo_subq.c.decl_tipo,
             ultimo_subq.c.decl_meio,
-            ultimo_subq.c.decl_arquivo_modelo, ultimo_subq.c.decl_arquivo_orgao,   # << NOVO
+            ultimo_subq.c.decl_arquivo_modelo, ultimo_subq.c.decl_arquivo_orgao,
+
+            # quem encaminhou
             U.nome.label("encaminhado_por"),
-            enc_subq.c.enc_quando.label("encaminhado_quando")
+            enc_subq.c.enc_quando.label("encaminhado_quando"),
+
+            # quem validou
+            U2.nome.label("validado_por"),
+            val_subq.c.val_quando.label("validado_quando"),
         )
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(O, O.id == MOF.obm_id)
@@ -1505,10 +1542,16 @@ def recebimento():
         .outerjoin(ultimo_subq, and_(ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
         .outerjoin(enc_subq, and_(enc_subq.c.decl_id == ultimo_subq.c.decl_id, enc_subq.c.rn == 1))
         .outerjoin(U, U.id == enc_subq.c.enc_uid)
+
+        # joins da validação
+        .outerjoin(val_subq, and_(val_subq.c.decl_id == ultimo_subq.c.decl_id, val_subq.c.rn == 1))
+        .outerjoin(U2, U2.id == val_subq.c.val_uid)
+
         .filter(M.id.in_(page_ids))
         .order_by(M.nome_completo.asc())
         .all()
     )
+    
     decl_ids = [r.decl_id for r in rows if r.decl_id]
     enviado_drh_map = {}
     if decl_ids:
@@ -1552,7 +1595,8 @@ def recebimento():
     total_nao_enviaram = max(total_ano - enviados, 0)
 
     url_map, linhas = {}, []
-    for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao, enc_por, enc_quando) in rows:
+    for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao,
+     enc_por, enc_quando, val_por, val_quando) in rows:
         if decl_id:
             urls = {}
             if arq_modelo:
@@ -1569,9 +1613,14 @@ def recebimento():
             decl_status=st,
             decl_tipo=tp,
             decl_meio=me,
+
             encaminhado_por=enc_por or "",
             encaminhado_quando=enc_quando,
             encaminhado_flag=bool(enc_quando),
+
+            validado_por=val_por or "",
+            validado_quando=val_quando,
+            validado_flag=bool(val_quando),
         ))
 
     def render_pagination(total, page, per_page):
@@ -1600,7 +1649,7 @@ def recebimento():
         total_ano=total_ano, total_pendentes=total_pendentes,
         total_validados=total_validados, total_inconformes=total_inconformes,
         total_nao_enviaram=total_nao_enviaram,
-        total_filtrado=total_filtrado,   # <-- ADICIONE ISTO
+        total_filtrado=total_filtrado,
         pagination=pagination_html,
         pode_editar_map=pode_editar_map,
         enviado_drh_map=enviado_drh_map,

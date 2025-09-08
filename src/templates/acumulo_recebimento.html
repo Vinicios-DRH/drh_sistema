@@ -321,6 +321,13 @@
                                 <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
                                 {% endif %}
 
+                                {% if row.decl_status == 'validado' and row.validado_quando %}
+                                <div class="small subtle mt-1">
+                                    Validado por <strong>{{ row.validado_por or '—' }}</strong>
+                                    em {{ row.validado_quando.strftime("%d/%m/%Y %H:%M") }}
+                                </div>
+                                {% endif %}
+
                                 {% if is_drh_like and row.encaminhado_flag %}
                                 <div class="small subtle mt-1">
                                     Encaminhado por <strong>{{ row.encaminhado_por or '—' }}</strong>
