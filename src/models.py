@@ -5,7 +5,7 @@ from src import database, login_manager
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
-from sqlalchemy import func
+from sqlalchemy import func, CheckConstraint
 
 
 class PostoGrad(database.Model):
@@ -1012,6 +1012,14 @@ class VinculoExterno(database.Model):
                                  onupdate=func.now())
 
     declaracao = database.relationship('DeclaracaoAcumulo', backref='vinculos')
+
+    __table_args__ = (
+        CheckConstraint(
+            "(horario_fim > horario_inicio) OR "
+            "(jornada_trabalho = 'escala' AND horario_fim <= horario_inicio)",
+            name='chk_horario_intervalo'
+        ),
+    )
 
 
 class AuditoriaDeclaracao(database.Model):
