@@ -448,7 +448,7 @@ class FormMilitarInativo(FlaskForm):
 
 class IdentificacaoForm(FlaskForm):
     cpf = StringField("CPF", validators=[DataRequired()])
-    email = StringField("E-mail para envio do token",
+    email = StringField("E-mail",
                         validators=[DataRequired(), Email()])
     submit = SubmitField("Prosseguir")
 
