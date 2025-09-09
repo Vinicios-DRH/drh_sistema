@@ -3604,7 +3604,8 @@ def ficha_aluno():
             categoria_cnh=form.categoria_cnh.data,
             comportamento=form.comportamento.data,
             caso_aluno_nao_resida_em_manaus=form.hospedagem_aluno_de_fora.data,
-            foto=foto_filename
+            foto=foto_filename,
+            matricula=form.matricula.data
         )
         database.session.add(novo_aluno)
         database.session.commit()

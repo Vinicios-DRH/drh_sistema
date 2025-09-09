@@ -724,7 +724,7 @@ class FichaAlunos(database.Model):
     idade_atual = database.Column(database.Integer)
     cpf = database.Column(database.String(14))
     rg = database.Column(database.String(14))
-    matricula = database.Column(database.String(10), unique=True)
+    matricula = database.Column(database.String(11), unique=True)
     estado_civil = database.Column(database.String(20))
     nome_pai = database.Column(database.String(100))
     nome_mae = database.Column(database.String(100))
