@@ -4669,7 +4669,7 @@ def certidao_exercicio_atv_atipica():
 
         ITALICO = ['data_atual']
 
-        doc = Document('src/template/declaracao_tempo_de_servico.docx')
+        doc = Document('src/template/exercicio_atividade_atipica.docx')
 
         for p in doc.paragraphs:
             texto = p.text
