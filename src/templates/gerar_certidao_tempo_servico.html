@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+    .card-custom {
+        background: #fff;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    h3,
+    h4 {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        font-weight: bold;
+    }
+
+    .btn-success {
+        font-weight: bold;
+    }
+
+    hr {
+        border-top: 2px dashed #ccc;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="container mt-5">
+
+    <div class="card-custom">
+        <h3>Gerar Certidão de Tempo de Serviço</h3>
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Nome Completo</label>
+                    <input type="text" name="nome_completo" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Posto/Graduação</label>
+                    <select name="posto_grad" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="CEL">CEL</option>
+                        <option value="TC">TC</option>
+                        <option value="MAJ">MAJ</option>
+                        <option value="CAP">CAP</option>
+                        <option value="1º TEN">1º TEN</option>
+                        <option value="2º TEN">2º TEN</option>
+                        <option value="ASP OF">ASP OF</option>
+                        <option value="ST">ST</option>
+                        <option value="1º SGT">1º SGT</option>
+                        <option value="2º SGT">2º SGT</option>
+                        <option value="3º SGT">3º SGT</option>
+                        <option value="CB">CB</option>
+                        <option value="SD">SD</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">CPF</label>
+                    <input class="form-control" name="cpf" inputmode="numeric" autocomplete="off" maxlength="18"
+                        placeholder="somente dígitos" required>
+                    <div class="invalid-feedback">Informe o CPF</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label>Dia do Ingresso na Corporação</label>
+                    <input type="text" name="dia_ingresso" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Mês do Ingresso na Corporação</label>
+                    <select class="form-select" id="mes_ingresso" name="mes_ingresso">
+                        <option>Selecione</option>
+                        <option value="Janeiro">Janeiro</option>
+                        <option value="Fevereiro">Fevereiro</option>
+                        <option value="Março">Março</option>
+                        <option value="Abril">Abril</option>
+                        <option value="Maio">Maio</option>
+                        <option value="Junho">Junho</option>
+                        <option value="Julho">Julho</option>
+                        <option value="Agosto">Agosto</option>
+                        <option value="Setembro">Setembro</option>
+                        <option value="Outubro">Outubro</option>
+                        <option value="Novembro">Novembro</option>
+                        <option value="Dezembro">Dezembro</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label>Ano do Ingresso na Corporação</label>
+                    <input type="text" name="ano_ingresso" class="form-control" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Gerar Documento</button>
+        </form>
+    </div>
+</div>
+
+<!-- Máscara de CPF -->
+<script src="https://unpkg.com/vanilla-masker/build/vanilla-masker.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const cpfInput = document.querySelector('input[name="cpf"]');
+        if (cpfInput) {
+            VMasker(cpfInput).maskPattern("999.999.999-99");
+        }
+    });
+</script>
+{% endblock %}

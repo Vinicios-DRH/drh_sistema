@@ -17,8 +17,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo, 
-                       IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm, 
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo,
+                       IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
@@ -48,22 +48,23 @@ import re
 import plotly.graph_objs as go
 import plotly.io as pio
 from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
-import time, statistics
+import time
+import statistics
 
 
 @app.route("/db-ping-10")
 def db_ping_10():
-    times=[]
+    times = []
     for _ in range(10):
-        t0=time.perf_counter()
+        t0 = time.perf_counter()
         database.session.execute(text("SELECT 1"))
         times.append((time.perf_counter()-t0)*1000)
     return {
-        "avg_ms": round(statistics.mean(times),1),
-        "p50_ms": round(statistics.median(times),1),
-        "min_ms": round(min(times),1),
-        "max_ms": round(max(times),1),
-        "samples": [round(x,1) for x in times]
+        "avg_ms": round(statistics.mean(times), 1),
+        "p50_ms": round(statistics.median(times), 1),
+        "min_ms": round(min(times), 1),
+        "max_ms": round(max(times), 1),
+        "samples": [round(x, 1) for x in times]
     }
 
 
@@ -76,30 +77,30 @@ def db_ping_conn():
             conn.execute(text("SELECT 1")).fetchone()
             times.append((time.perf_counter()-t0)*1000)
     return {
-        "avg_ms": round(statistics.mean(times),1),
-        "p50_ms": round(statistics.median(times),1),
-        "min_ms": round(min(times),1),
-        "max_ms": round(max(times),1),
-        "samples": [round(x,1) for x in times]
+        "avg_ms": round(statistics.mean(times), 1),
+        "p50_ms": round(statistics.median(times), 1),
+        "min_ms": round(min(times), 1),
+        "max_ms": round(max(times), 1),
+        "samples": [round(x, 1) for x in times]
     }
-
 
 
 @app.route("/db-ping-pool")
 def db_ping_pool():
-    times=[]
+    times = []
     for _ in range(20):
-        t0=time.perf_counter()
-        database.session.execute(text("SELECT 1"))  # pega/devolve conexão sempre
+        t0 = time.perf_counter()
+        # pega/devolve conexão sempre
+        database.session.execute(text("SELECT 1"))
         times.append((time.perf_counter()-t0)*1000)
     return {
-        "avg_ms": round(statistics.mean(times),1),
-        "p50_ms": round(statistics.median(times),1),
-        "min_ms": round(min(times),1),
-        "max_ms": round(max(times),1),
-        "samples": [round(x,1) for x in times]
+        "avg_ms": round(statistics.mean(times), 1),
+        "p50_ms": round(statistics.median(times), 1),
+        "min_ms": round(min(times), 1),
+        "max_ms": round(max(times), 1),
+        "samples": [round(x, 1) for x in times]
     }
-    
+
 
 @app.context_processor
 def inject_militar_atual():
@@ -878,7 +879,6 @@ def exibir_militar(militar_id):
                 # Se o boletim_geral existir, utiliza o valor; caso contrário, mantém como vazio
                 getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
 
-
     def parse_date(d):
         """Aceita date, string 'YYYY-MM-DD' ou 'DD/MM/YYYY'. Retorna date ou None."""
         if not d:
@@ -895,12 +895,11 @@ def exibir_militar(militar_id):
                 pass
         return None  # não converteu
 
-
     def safe_bg_id(militar_id):
         """Tenta pegar BG de situacao_militar; se não achar, retorna None (não bloqueia criação)."""
-        bg = PublicacaoBg.query.filter_by(militar_id=militar_id, tipo_bg='situacao_militar').first()
+        bg = PublicacaoBg.query.filter_by(
+            militar_id=militar_id, tipo_bg='situacao_militar').first()
         return bg.id if bg else None
-
 
     if form_militar.validate_on_submit():
         form_militar.process(request.form)
@@ -1091,7 +1090,8 @@ def exibir_militar(militar_id):
             form_militar.situacao_id.data)
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
             bg_id = safe_bg_id(militar.id)  # pode ser None
-            militar_agregado = MilitaresAgregados.query.filter_by(militar_id=militar.id).first()
+            militar_agregado = MilitaresAgregados.query.filter_by(
+                militar_id=militar.id).first()
             if not militar_agregado:
                 militar_agregado = MilitaresAgregados(militar_id=militar.id)
                 database.session.add(militar_agregado)
@@ -1100,32 +1100,39 @@ def exibir_militar(militar_id):
             militar_agregado.quadro_id = form_militar.quadro_id.data
             militar_agregado.destino_id = form_militar.destino_id.data
             militar_agregado.situacao_id = situacao_selecionada.id
-            militar_agregado.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
-            militar_agregado.fim_periodo_agregacao = parse_date(form_militar.fim_periodo.data)
+            militar_agregado.inicio_periodo = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_agregado.fim_periodo_agregacao = parse_date(
+                form_militar.fim_periodo.data)
             militar_agregado.publicacao_bg_id = bg_id
             militar_agregado.atualizar_status()
 
         # À DISPOSIÇÃO
         if situacao_selecionada and situacao_selecionada.condicao == 'À DISPOSIÇÃO':
             bg_id = safe_bg_id(militar.id)
-            militar_a_disposicao = MilitaresADisposicao.query.filter_by(militar_id=militar.id).first()
+            militar_a_disposicao = MilitaresADisposicao.query.filter_by(
+                militar_id=militar.id).first()
             if not militar_a_disposicao:
-                militar_a_disposicao = MilitaresADisposicao(militar_id=militar.id)
+                militar_a_disposicao = MilitaresADisposicao(
+                    militar_id=militar.id)
                 database.session.add(militar_a_disposicao)
 
             militar_a_disposicao.posto_grad_id = form_militar.posto_grad_id.data
             militar_a_disposicao.quadro_id = form_militar.quadro_id.data
             militar_a_disposicao.destino_id = form_militar.destino_id.data
             militar_a_disposicao.situacao_id = situacao_selecionada.id
-            militar_a_disposicao.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
-            militar_a_disposicao.fim_periodo_disposicao = parse_date(form_militar.fim_periodo.data)
+            militar_a_disposicao.inicio_periodo = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_a_disposicao.fim_periodo_disposicao = parse_date(
+                form_militar.fim_periodo.data)
             militar_a_disposicao.publicacao_bg_id = bg_id
             militar_a_disposicao.atualizar_status()
 
         # LICENÇA ESPECIAL
         if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
             bg_id = safe_bg_id(militar.id)
-            militar_le = LicencaEspecial.query.filter_by(militar_id=militar.id).first()
+            militar_le = LicencaEspecial.query.filter_by(
+                militar_id=militar.id).first()
             if not militar_le:
                 militar_le = LicencaEspecial(militar_id=militar.id)
                 database.session.add(militar_le)
@@ -1134,25 +1141,31 @@ def exibir_militar(militar_id):
             militar_le.quadro_id = form_militar.quadro_id.data
             militar_le.destino_id = form_militar.destino_id.data
             militar_le.situacao_id = situacao_selecionada.id
-            militar_le.inicio_periodo_le = parse_date(form_militar.inicio_periodo.data)
-            militar_le.fim_periodo_le = parse_date(form_militar.fim_periodo.data)
+            militar_le.inicio_periodo_le = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_le.fim_periodo_le = parse_date(
+                form_militar.fim_periodo.data)
             militar_le.publicacao_bg_id = bg_id
             militar_le.atualizar_status()
 
         # LTS
         if situacao_selecionada and situacao_selecionada.condicao == 'LTS':
             bg_id = safe_bg_id(militar.id)
-            militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(militar_id=militar.id).first()
+            militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(
+                militar_id=militar.id).first()
             if not militar_lts:
-                militar_lts = LicencaParaTratamentoDeSaude(militar_id=militar.id)
+                militar_lts = LicencaParaTratamentoDeSaude(
+                    militar_id=militar.id)
                 database.session.add(militar_lts)
 
             militar_lts.posto_grad_id = form_militar.posto_grad_id.data
             militar_lts.quadro_id = form_militar.quadro_id.data
             militar_lts.destino_id = form_militar.destino_id.data
             militar_lts.situacao_id = situacao_selecionada.id
-            militar_lts.inicio_periodo_lts = parse_date(form_militar.inicio_periodo.data)
-            militar_lts.fim_periodo_lts = parse_date(form_militar.fim_periodo.data)
+            militar_lts.inicio_periodo_lts = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_lts.fim_periodo_lts = parse_date(
+                form_militar.fim_periodo.data)
             militar_lts.publicacao_bg_id = bg_id
             militar_lts.atualizar_status()
 
@@ -1221,8 +1234,7 @@ def militares():
             Militar.cpf.ilike(like),
             Militar.rg.ilike(like),
             Militar.matricula.ilike(like),
-    ))
-
+        ))
 
     # Reduzir per_page melhora desempenho
     militares_paginados = query.paginate(page=page, per_page=100)
@@ -1230,7 +1242,6 @@ def militares():
     def fmt_cpf(cpf):
         d = re.sub(r'\D', '', cpf or '')
         return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:11]}" if len(d) == 11 else (cpf or '')
-
 
     # Preparar dados para renderização
     militares = []
@@ -1270,7 +1281,7 @@ def militares():
             'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
         })
-    
+
     per_page = 100
     militares_paginados = query.paginate(page=page, per_page=per_page)
 
@@ -1293,7 +1304,6 @@ def militares():
         end=end,
         has_novo_militar=has_novo_militar,
     )
-
 
 
 @app.route("/militares-inativos", methods=['GET'])
@@ -3944,7 +3954,8 @@ def atualizacao_cadastral():
         # Checa se já existe User com esse CPF (com máscara, como você usa no login)
         user = User.query.filter_by(cpf=cpf_formatado).first()
         if user:
-            flash("⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar.", "warning")
+            flash(
+                "⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar.", "warning")
             return redirect(url_for('login_atualizacao'))
 
         # 👉 Novo fluxo: pede confirmação da matrícula completa
@@ -3995,7 +4006,7 @@ def confirmar_matricula():
         return redirect(url_for('criar_senha', cpf=cpf))
 
     return render_template('atualizacao/confirmar_matricula.html', form=form, cpf=cpf, militar_nome=militar.nome_completo, matricula=militar.matricula
-    )
+                           )
 
 
 @app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
@@ -4023,10 +4034,12 @@ def criar_senha(cpf):
         return redirect(url_for('atualizacao_cadastral'))
 
     if form.validate_on_submit():
-        senha_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        senha_hash = bcrypt.generate_password_hash(
+            form.senha.data).decode('utf-8')
 
         novo_usuario = User(
-            nome=getattr(militar, 'nome_completo', getattr(militar, 'nome', '')),
+            nome=getattr(militar, 'nome_completo',
+                         getattr(militar, 'nome', '')),
             cpf=cpf,  # mantendo com máscara
             email=session.get('email_atualizacao'),
             senha=senha_hash,
@@ -4040,7 +4053,8 @@ def criar_senha(cpf):
         if hasattr(novo_usuario, 'obm_id_2'):
             novo_usuario.obm_id_2 = obm_id_2
         if hasattr(novo_usuario, 'localidade_id'):
-            novo_usuario.localidade_id = getattr(militar, 'localidade_id', None)
+            novo_usuario.localidade_id = getattr(
+                militar, 'localidade_id', None)
 
         database.session.add(novo_usuario)
         database.session.commit()
@@ -4055,7 +4069,6 @@ def criar_senha(cpf):
 def _limpa_sessao_validacao():
     for k in ['matricula_validada', 'cpf_em_validacao', 'militar_id_validado', 'email_atualizacao']:
         session.pop(k, None)
-
 
 
 @app.route('/formulario-atualizacao-cadastral', methods=['GET', 'POST'])
@@ -4583,13 +4596,58 @@ def gerar_declaracao():
 @login_required
 def certidao_tempo_servico():
     if request.method == 'POST':
-        nome = request.form['nome']
+        nome = request.form['nome_completo'].replace(" ", "_")
         dados = {
-            'POSTO/GRADUACAO': request.form['posto_grad'],
+            'nome_completo': request.form['nome_completo'],
+            'posto_grad': request.form['posto_grad'],
             'cpf': request.form['cpf'],
             'dia_ingresso': request.form['dia_ingresso'],
             'mes_ingresso': request.form['mes_ingresso'],
             'ano_ingresso': request.form['ano_ingresso'],
             'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
         }
-    
+
+        NEGRITO = ['nome_completo', 'posto_grad', 'cpf',
+                   'dia_ingresso', 'mes_ingresso', 'ano_ingresso', 'data_atual']
+
+        doc = Document('src/template/declaracao_tempo_de_servico.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name=f'declaracao_tempo_de_servico{nome}.docx')
+
+    return render_template('gerar_certidao_tempo_servico.html')
