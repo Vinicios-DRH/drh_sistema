@@ -4651,3 +4651,65 @@ def certidao_tempo_servico():
         return send_file(output, as_attachment=True, download_name=f'declaracao_tempo_de_servico{nome}.docx')
 
     return render_template('gerar_certidao_tempo_servico.html')
+
+
+@app.route('/gerar-certidao-exerc-atp', methods=['GET', 'POST'])
+@login_required
+def certidao_exercicio_atv_atipica():
+    if request.method == 'POST':
+        nome = request.form['nome_completo'].replace(" ", "_")
+        dados = {
+            'nome_completo': request.form['nome_completo'],
+            'posto_grad': request.form['posto_grad'],
+            'cpf': request.form['cpf'],
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+
+        NEGRITO = ['nome_completo', 'posto_grad', 'cpf']
+
+        ITALICO = ['data_atual']
+
+        doc = Document('src/template/declaracao_tempo_de_servico.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+
+                    if chave in ITALICO:
+                        novo_run.italic = True
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name=f'declaracao_exercicio_atividade_{nome}.docx')
+
+    return render_template('gerar_exc_atv.html')
