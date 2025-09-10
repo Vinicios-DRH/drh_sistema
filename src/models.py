@@ -1062,3 +1062,25 @@ class DraftDeclaracaoAcumulo(database.Model):
     __table_args__ = (
         database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
     )
+
+
+# models.py
+class DocumentoMilitar(database.Model):
+    __tablename__ = "documento_militar"
+    id = database.Column(database.Integer, primary_key=True)
+
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    destinatario_cpf = database.Column(database.String(40), index=True, nullable=False)
+
+    nome_original = database.Column(database.String(255), nullable=False)
+    content_type = database.Column(database.String(100), nullable=False)
+    tamanho_bytes = database.Column(database.Integer)
+
+    object_key = database.Column(database.String(500), nullable=False)  # key no B2 (não é URL)
+    criado_em = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
+    baixado_em = database.Column(database.DateTime)  # setado quando for baixado (one-shot)
+
+    criado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+
+    militar = database.relationship('Militar', backref='documentos_enviados')
+    criado_por = database.relationship('User', foreign_keys=[criado_por_user_id])

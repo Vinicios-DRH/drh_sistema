@@ -454,6 +454,37 @@
               </div>
             </div>
 
+            <!-- ... NÃO abra um novo <form> aqui ... -->
+            <div id="doc-para-militar" class="super-section">
+              <div class="section-header">
+                <i class="bi bi-send"></i><h2 class="h6 m-0">Enviar documento ao Militar</h2>
+              </div>
+
+              <!-- só os campos; continuam dentro do form externo -->
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Arquivo (PDF, DOCX, etc.)</label>
+                  <input type="file" name="doc_para_militar" class="form-control" required>
+                  <div class="form-text">Este arquivo ficará disponível para o militar (via CPF) baixar uma única vez.</div>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                  <button type="submit"
+                          class="btn btn-primary">
+                    <i class="bi bi-save"></i> Salvar ficha
+                  </button>
+
+                  <!-- ESTE é o botão de enviar pro militar -->
+                  <button type="submit"
+                          class="btn btn-outline-light ms-2"
+                          formaction="{{ url_for('enviar_documento_militar', militar_id=militar.id) }}"
+                          formmethod="post"
+                          formenctype="multipart/form-data">
+                    <i class="bi bi-cloud-upload"></i> Enviar ao militar
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             <!-- ========== AÇÕES ========== -->
             <div class="action-bar mt-2">
               {{ form_militar.botao_submit(class="btn btn-primary") }}

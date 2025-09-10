@@ -130,3 +130,9 @@ def b2_put_test():
         ContentType="text/plain",
     )
     print("OK:", key)
+
+
+# utils_acumulo.py
+def b2_delete(object_key: str):
+    s3 = b2_client()
+    s3.delete_object(Bucket=b2_bucket_name(), Key=object_key)

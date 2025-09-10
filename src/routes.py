@@ -8,12 +8,13 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
+from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete, b2_upload_fileobj
 from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
 from src.formatar_cpf import formatar_cpf, get_militar_por_user
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
-    Response
+    Response, stream_with_context
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
@@ -21,7 +22,7 @@ from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -51,6 +52,17 @@ import plotly.io as pio
 from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
 import time
 import statistics
+
+
+def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
+    # Só o dono (CPF) ou alguém com poder (se quiser permitir admins):
+    if current_user.cpf == doc.destinatario_cpf:
+        return True
+    # Exemplo: permitir DRH baixar em nome do usuário (opcional)
+    try:
+        return checar_ocupacao('DRH', 'SUPER USER')(lambda: True)() is True  # gambizinha pra reutilizar
+    except Exception:
+        return False
 
 
 @app.route("/db-ping-10")
@@ -1185,9 +1197,122 @@ def exibir_militar(militar_id):
             database.session.rollback()
             flash(
                 f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
-
+    documentos_militar = DocumentoMilitar.query.filter_by(militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
     return render_template('exibir_militar.html', form_militar=form_militar,
-                           militar=militar)
+                            militar=militar,
+                            documentos_militar=documentos_militar)
+
+
+@app.post("/exibir-militar/<int:militar_id>/enviar-doc")
+@login_required
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
+def enviar_documento_militar(militar_id):
+    militar = Militar.query.get_or_404(militar_id)
+    file = request.files.get("doc_para_militar")
+
+    if not file or not (file.filename or "").strip():
+        flash("Selecione um arquivo.", "alert-warning")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    # sobe para o B2 (guarda só a key)
+    try:
+        key = b2_upload_fileobj(file, key_prefix=f"docs/{militar.cpf}")
+    except Exception as e:
+        current_app.logger.exception("Falha ao subir doc no B2")
+        flash(f"Erro ao enviar arquivo: {e}", "alert-danger")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    doc = DocumentoMilitar(
+        militar_id=militar.id,
+        destinatario_cpf=militar.cpf,
+        nome_original=file.filename,
+        content_type=file.mimetype or "application/octet-stream",
+        tamanho_bytes=getattr(file, "content_length", None),
+        object_key=key,
+        criado_por_user_id=current_user.id
+    )
+    database.session.add(doc)
+    database.session.commit()
+
+    flash("Documento disponibilizado para o militar.", "alert-success")
+    return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+
+@app.post("/documentos/<int:doc_id>/revogar")
+@login_required
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
+def revogar_documento_militar(doc_id):
+    doc = DocumentoMilitar.query.get_or_404(doc_id)
+    if doc.baixado_em:
+        flash("Documento já foi baixado; não é possível revogar.", "alert-warning")
+        return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
+
+    try:
+        b2_delete(doc.object_key)
+    except Exception:
+        current_app.logger.exception("Falha ao remover do B2 (revogar)")
+
+    database.session.delete(doc)
+    database.session.commit()
+    flash("Documento revogado e removido do Backblaze.", "alert-success")
+    return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
+
+
+@app.get("/meus-documentos")
+@login_required
+def meus_documentos():
+    docs = DocumentoMilitar.query\
+        .filter_by(destinatario_cpf=current_user.cpf)\
+        .order_by(DocumentoMilitar.criado_em.desc()).all()
+    return render_template("meus_documentos.html", docs=docs)
+
+
+@app.get("/documentos/<int:doc_id>/download")
+@login_required
+def download_documento(doc_id):
+    doc = DocumentoMilitar.query.get_or_404(doc_id)
+
+    if not _pode_pegar_doc(doc):
+        abort(403)
+
+    if doc.baixado_em:
+        # Já foi baixado: retorna 410 ou mostra msg user-friendly
+        flash("Este documento já foi baixado e não está mais disponível.", "alert-warning")
+        return redirect(url_for('meus_documentos'))
+
+    s3 = b2_client()
+    try:
+        obj = s3.get_object(Bucket=b2_bucket_name(), Key=doc.object_key)
+    except Exception:
+        current_app.logger.exception("Falha ao abrir objeto no B2")
+        abort(404)
+
+    @stream_with_context
+    def gerar():
+        try:
+            stream = obj["Body"]
+            while True:
+                chunk = stream.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            # terminou de enviar: remover do B2 e marcar como baixado
+            try:
+                b2_delete(doc.object_key)
+            except Exception:
+                current_app.logger.exception("Falha ao deletar objeto no B2 após download")
+            try:
+                doc.baixado_em = datetime.utcnow()
+                database.session.commit()
+            except Exception:
+                database.session.rollback()
+                current_app.logger.exception("Falha ao marcar doc como baixado")
+
+    # monta resposta HTTP de download
+    resp = Response(gerar(), mimetype=doc.content_type or "application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{doc.nome_original}"'
+    return resp
 
 
 @app.route("/militares", methods=['GET'])

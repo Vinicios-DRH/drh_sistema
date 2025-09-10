@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container py-4">
+  <h1 class="h5 mb-3">Meus Documentos</h1>
+  {% if docs %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead><tr><th>Nome</th><th>Disponibilizado em</th><th>Status</th><th class="text-end">Ação</th></tr></thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td>{{ d.nome_original }}</td>
+          <td>{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            {% if d.baixado_em %}
+              <span class="badge bg-secondary">Já baixado</span>
+            {% else %}
+              <span class="badge bg-success">Disponível</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if not d.baixado_em %}
+              <a class="btn btn-sm btn-primary" href="{{ url_for('download_documento', doc_id=d.id) }}">
+                <i class="bi bi-download"></i> Baixar
+              </a>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-info">Você não possui documentos pendentes.</div>
+  {% endif %}
+</div>
+{% endblock %}
