@@ -8,6 +8,7 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
+from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
 from src.formatar_cpf import formatar_cpf, get_militar_por_user
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -849,12 +850,19 @@ def exibir_militar(militar_id):
     form_militar.sexo.data = militar.sexo if militar.sexo else None
     form_militar.raca.data = militar.raca if militar.raca else None
 
-    # Calculando a idade do militar
-    hoje = datetime.today().date()
-    idade = hoje.year - militar.data_nascimento.year - (
-        (hoje.month, hoje.day) < (militar.data_nascimento.month, militar.data_nascimento.day))
-    form_militar.idade_atual.data = idade
+    hoje = date.today()
 
+    dn = militar.data_nascimento
+    # se vier datetime, vira date; se None, fica None
+    if isinstance(dn, datetime):
+        dn = dn.date()
+
+    if dn:
+        idade = hoje.year - dn.year - ((hoje.month, hoje.day) < (dn.month, dn.day))
+    else:
+        idade = None  # ou 0, se preferir
+
+    form_militar.idade_atual.data = idade
     campos_bg = [
         'transferencia', 'situacao_militar', 'cfsd', 'cfc', 'cfs', 'cas',
         'choa', 'cfo', 'cbo', 'cao', 'csbm', 'soldado_tres',
@@ -2732,6 +2740,16 @@ def salvar_motoristas_viatura(viatura_id):
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def excluir_usuario(usuario_id):
     usuario = User.query.get(usuario_id)
+    if not usuario:
+        flash('Usuário não encontrado', 'alert-warning')
+        return redirect(url_for('usuarios'))
+
+    # desvincula militares que apontam para esse usuário
+    militares = Militar.query.filter_by(usuario_id=usuario.id).all()
+    for m in militares:
+        m.usuario_id = None
+        database.session.add(m)
+
     database.session.delete(usuario)
     database.session.commit()
     flash('Usuário excluído permanentemente', 'alert-danger')
@@ -3942,82 +3960,103 @@ def atualizacao_cadastral():
         cpf_raw = form.cpf.data
         email_digitado = form.email.data.strip().lower()
 
-        # Se seu banco Militar guarda CPF com máscara, normalize ambos (ajuste conforme seu formatar_cpf)
+        # mantém seu formato padrão com máscara
         cpf_formatado = formatar_cpf(cpf_raw)
 
-        militar = Militar.query.filter_by(cpf=cpf_formatado).first()
-        if not militar:
-            flash("⚠️ CPF não encontrado no sistema. Verifique e tente novamente ou entre em contato com a DRH.", "danger")
+        # 👉 NOVO: procurar em Militar OU FichaAlunos
+        pessoa = buscar_pessoa_por_cpf(cpf_formatado)
+        if not pessoa:
+            flash("⚠️ CPF não encontrado no sistema (Militar/Aluno). Verifique e tente novamente ou contate a DRH.", "danger")
             return render_template("atualizacao/identificacao.html", form=form)
 
         session['email_atualizacao'] = email_digitado
 
-        # Checa se já existe User com esse CPF (com máscara, como você usa no login)
+        # Já existe User com esse CPF?
         user = User.query.filter_by(cpf=cpf_formatado).first()
         if user:
-            flash(
-                "⚠️ Já existe uma conta vinculada a esse CPF. Faça login para continuar.", "warning")
+            flash("⚠️ Já existe uma conta vinculada a este CPF. Faça login para continuar.", "warning")
             return redirect(url_for('login_atualizacao'))
 
-        # 👉 Novo fluxo: pede confirmação da matrícula completa
+        # 👉 Guarda no fluxo de validação de identidade
         session['cpf_em_validacao'] = cpf_formatado
+        session['pessoa_tipo'] = pessoa['tipo']           # 'militar' | 'aluno'
+        session['pessoa_id'] = pessoa['obj'].id           # id correspondente
+
         return redirect(url_for('confirmar_matricula'))
 
     return render_template("atualizacao/identificacao.html", form=form)
 
 
-def normaliza_matricula(valor: str) -> str:
-    if not valor:
-        return ""
-    # Remove espaços extras, mantém só números e letra final
-    # Ex: "123.456-7 A" → "1234567A"
-    return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
-
+# def normaliza_matricula(valor: str) -> str:
+#     if not valor:
+#         return ""
+#     # Remove espaços extras, mantém só números e letra final
+#     # Ex: "123.456-7 A" → "1234567A"
+#     return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
 
 @app.route('/confirmar-matricula', methods=['GET', 'POST'])
 def confirmar_matricula():
     cpf = session.get('cpf_em_validacao')
-    if not cpf:
+    pessoa_tipo = session.get('pessoa_tipo')  # 'militar' | 'aluno'
+    pessoa_id = session.get('pessoa_id')
+
+    if not cpf or not pessoa_tipo or not pessoa_id:
         flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
         return redirect(url_for('atualizacao_cadastral'))
 
     form = MatriculaConfirmForm()
-    militar = Militar.query.filter_by(cpf=cpf).first()
-    if not militar:
-        flash("Militar não encontrado para o CPF em validação.", "danger")
-        session.pop('cpf_em_validacao', None)
-        return redirect(url_for('atualizacao_cadastral'))
+
+    # Carrega a pessoa do tipo correto
+    if pessoa_tipo == 'militar':
+        pessoa = Militar.query.get(pessoa_id)
+        if not pessoa:
+            flash("Registro militar não encontrado para o CPF em validação.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+        nome_pessoa = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', ''))
+        matricula_oficial = pessoa.matricula
+
+    else:  # 'aluno'
+        pessoa = FichaAlunos.query.get(pessoa_id)
+        if not pessoa:
+            flash("Registro de aluno não encontrado para o CPF em validação.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+        nome_pessoa = getattr(pessoa, 'nome_completo', '')
+        matricula_oficial = pessoa.matricula
 
     if form.validate_on_submit():
-        matricula_informada = form.matricula_completa.data.strip()
+        matricula_informada = (form.matricula_completa.data or "").strip()
 
-        if normaliza_matricula(matricula_informada) != normaliza_matricula(militar.matricula):
+        if normaliza_matricula(matricula_informada) != normaliza_matricula(matricula_oficial or ""):
             flash("❌ Matrícula não confere com nossos registros para este CPF.", "danger")
-            return render_template(
-                'atualizacao/confirmar_matricula.html',
-                form=form,
-                cpf=cpf,
-                militar_nome=militar.nome_completo
-            )
+            return render_template('atualizacao/confirmar_matricula.html',
+                                   form=form, cpf=cpf, militar_nome=nome_pessoa)
 
         session['matricula_validada'] = True
-        session['militar_id_validado'] = militar.id
+        # mantém pessoa_tipo/pessoa_id já na sessão
 
         flash("✅ Identidade confirmada com sucesso. Crie sua senha.", "success")
         return redirect(url_for('criar_senha', cpf=cpf))
 
-    return render_template('atualizacao/confirmar_matricula.html', form=form, cpf=cpf, militar_nome=militar.nome_completo, matricula=militar.matricula
-                           )
+    return render_template('atualizacao/confirmar_matricula.html',
+                           form=form, cpf=cpf, militar_nome=nome_pessoa,
+                           matricula=matricula_oficial)
 
 
 @app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
 def criar_senha(cpf):
-    # Garante o mesmo padrão de CPF usado no sistema
     cpf = formatar_cpf(cpf)
 
-    # 🔒 Só prossegue se matrícula tiver sido validada há pouco
+    # 🔒 checagem de fluxo e correspondência
     if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
         flash("Valide sua identidade antes de criar a senha.", "warning")
+        return redirect(url_for('atualizacao_cadastral'))
+
+    pessoa_tipo = session.get('pessoa_tipo')
+    pessoa_id = session.get('pessoa_id')
+    if not pessoa_tipo or not pessoa_id:
+        flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
         return redirect(url_for('atualizacao_cadastral'))
 
     form = CriarSenhaForm()
@@ -4028,34 +4067,50 @@ def criar_senha(cpf):
         _limpa_sessao_validacao()
         return redirect(url_for('login'))
 
-    militar = Militar.query.filter_by(cpf=cpf).first()
-    if not militar:
-        flash("❌ Militar não encontrado para este CPF.", "danger")
-        _limpa_sessao_validacao()
-        return redirect(url_for('atualizacao_cadastral'))
+    # Carrega a pessoa do tipo correto
+    if pessoa_tipo == 'militar':
+        pessoa = Militar.query.get(pessoa_id)
+        if not pessoa:
+            flash("❌ Militar não encontrado para este CPF.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+        nome_user = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', ''))
+    else:
+        pessoa = FichaAlunos.query.get(pessoa_id)
+        if not pessoa:
+            flash("❌ Aluno não encontrado para este CPF.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+        nome_user = getattr(pessoa, 'nome_completo', '')
 
     if form.validate_on_submit():
-        senha_hash = bcrypt.generate_password_hash(
-            form.senha.data).decode('utf-8')
+        senha_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
 
         novo_usuario = User(
-            nome=getattr(militar, 'nome_completo',
-                         getattr(militar, 'nome', '')),
-            cpf=cpf,  # mantendo com máscara
+            nome=nome_user or '',
+            cpf=cpf,  # com máscara
             email=session.get('email_atualizacao'),
             senha=senha_hash,
             funcao_user_id=12  # USUÁRIO COMUM
         )
 
-        # Atribuições extras (se existirem as colunas no model User)
-        obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
-        if hasattr(novo_usuario, 'obm_id_1'):
-            novo_usuario.obm_id_1 = obm_id_1
-        if hasattr(novo_usuario, 'obm_id_2'):
-            novo_usuario.obm_id_2 = obm_id_2
-        if hasattr(novo_usuario, 'localidade_id'):
-            novo_usuario.localidade_id = getattr(
-                militar, 'localidade_id', None)
+        if pessoa_tipo == 'militar':
+            # Mantém suas atribuições extras para militar
+            obm_id_1, obm_id_2 = _obms_ativas_do_militar(pessoa.id)
+            if hasattr(novo_usuario, 'obm_id_1'):
+                novo_usuario.obm_id_1 = obm_id_1
+            if hasattr(novo_usuario, 'obm_id_2'):
+                novo_usuario.obm_id_2 = obm_id_2
+            if hasattr(novo_usuario, 'localidade_id'):
+                novo_usuario.localidade_id = getattr(pessoa, 'localidade_id', None)
+        else:
+            # 👉 Requisito: todos os alunos são da OBM 26
+            if hasattr(novo_usuario, 'obm_id_1'):
+                novo_usuario.obm_id_1 = 26
+            if hasattr(novo_usuario, 'obm_id_2'):
+                novo_usuario.obm_id_2 = None
+            if hasattr(novo_usuario, 'localidade_id'):
+                novo_usuario.localidade_id = None  # ajuste se necessário
 
         database.session.add(novo_usuario)
         database.session.commit()

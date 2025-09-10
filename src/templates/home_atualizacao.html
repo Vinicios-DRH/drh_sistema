@@ -348,8 +348,25 @@
         <div class="p-3" id="alerta-body"></div>
         <div class="p-3 border-top d-flex justify-content-end gap-2">
             <a id="btn-ver-ou-editar" class="btn btn-outline-primary d-none" href="#" target="_self">Abrir</a>
+            {# antes do <a>, compute um href seguro #}
+            {% set href_continuar = (
+                militar_id_atual
+                and url_for('acumulo.novo', militar_id=militar_id_atual)
+            ) or (
+                pessoa_id_atual
+                and url_for('acumulo.novo_generico',
+                            pessoa_tipo=pessoa_tipo_atual,
+                            pessoa_id=pessoa_id_atual)
+            ) or '' %}
+
+            {% if href_continuar %}
             <a id="btn-continuar-novo" class="btn btn-warning d-none"
-                href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">Continuar mesmo assim</a>
+                href="{{ href_continuar }}">Continuar mesmo assim</a>
+            {% else %}
+            {# fallback sem href para não quebrar #}
+            <a id="btn-continuar-novo" class="btn btn-warning d-none"
+                href="#" data-disabled="1">Continuar mesmo assim</a>
+            {% endif %}
             <button type="button" class="btn btn-outline-secondary" id="btn-fechar-alerta">Fechar</button>
         </div>
     </div>
@@ -365,16 +382,20 @@
 <script>
 (() => {
   // dados vindos do Jinja
-  const ctx = {
-    tem: {{ tem_decl | tojson }},
-    status: {{ ultima_status | tojson }},
-    declId: {{ ultima_id | tojson }},
-    tipo: {{ ultima_tipo | tojson }},
-    // urls auxiliares
-    urlNovo: {{ (url_for('acumulo.novo', militar_id=militar_id_atual) if militar_id_atual else '') | tojson }},
-    urlEditar: {{ url_for('acumulo.editar', decl_id=0) | tojson }},
-    urlDetalhe: {{ url_for('acumulo.detalhe', decl_id=0) | tojson }},
-  };
+    const ctx = {
+        tem: {{ tem_decl | tojson }},
+        status: {{ ultima_status | tojson }},
+        declId: {{ ultima_id | tojson }},
+        tipo: {{ ultima_tipo | tojson }},
+        // NOVO: dados da pessoa
+        pessoaTipo: {{ (pessoa_tipo_atual or '') | tojson }},
+        pessoaId: {{ (pessoa_id_atual or '') | tojson }},
+        // url base
+        urlNovoMil: {{ (url_for('acumulo.novo', militar_id=(militar_id_atual or 0)) if militar_id_atual else '') | tojson }},
+        urlNovoGen: {{ (url_for('acumulo.novo_generico', pessoa_tipo=(pessoa_tipo_atual or 'militar'), pessoa_id=(pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson }},
+        urlEditar: {{ url_for('acumulo.editar', decl_id=0) | tojson }},
+        urlDetalhe: {{ url_for('acumulo.detalhe', decl_id=0) | tojson }},
+    };
 
   const btnNova = document.getElementById('btn-nova-declaracao');
   const modal = document.getElementById('modal-alerta-envio');
@@ -411,14 +432,18 @@
   modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
 
   btnNova?.addEventListener('click', () => {
-    // se não tem nenhuma declaração do ano -> segue direto p/ nova
     if (!ctx.tem) {
-      if (ctx.urlNovo) {
-        window.location.href = ctx.urlNovo;
-      } else {
-        alert('Não foi possível abrir a tela de nova declaração (militar_id ausente).');
-      }
-      return;
+        // Se for militar, preferimos a rota antiga; se for aluno, vamos pela genérica
+        const href = (ctx.pessoaTipo === 'aluno')
+        ? ctx.urlNovoGen
+        : (ctx.urlNovoMil || ctx.urlNovoGen);
+
+        if (href) {
+        window.location.href = href;
+        } else {
+        alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
+        }
+        return;
     }
 
     // já tem declaração — decide mensagem conforme status

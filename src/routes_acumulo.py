@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
-from src.models import AuditoriaDeclaracao, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo
+from src.models import AuditoriaDeclaracao, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
 from src.decorators.control import checar_ocupacao
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
@@ -19,7 +19,7 @@ from docx.oxml.ns import qn
 from src.decorators.helpers_docx import render_docx_from_template
 from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased
-
+from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 
@@ -269,30 +269,36 @@ def home_atualizacao():
     # -------- 1) Resolver Militar do usuário --------
     militar = None
 
-    # a) se já tiver FK direta mapeada no User, tenta ela primeiro
     mid = getattr(U, "militar_id", None)
     if mid:
         militar = db.session.get(M, mid)
 
-    # b) se não achou OU se o perfil é "comum" (funcao_user_id == 12), usa o helper por CPF
     if not militar or getattr(U, "funcao_user_id", None) == 12:
         try:
             m_by_helper = get_militar_por_user(U)  # usa CPF do User
             if m_by_helper:
                 militar = m_by_helper
         except Exception:
-            # não deixa a página quebrar se der problema no helper
             pass
 
-    # c) se ainda não achou e o perfil for comum, avisa e volta pra home
-    if not militar and getattr(U, "funcao_user_id", None) == 12:
-        flash("Não foi possível localizar seus dados de militar.", "danger")
-        return redirect(url_for("home"))
+    # ⚠️ NÃO redireciona mais se não achar militar: aluno não tem Militar mesmo.
+    # if not militar and getattr(U, "funcao_user_id", None) == 12:
+    #     flash("Não foi possível localizar seus dados de militar.", "danger")
+    #     return redirect(url_for("home"))
 
     militar_id = militar.id if militar else None
 
+    aluno = None
+    if not militar:
+        try:
+            aluno = get_aluno_por_user(U)
+        except Exception:
+            pass
+
+    pessoa_tipo_atual = "militar" if militar else ("aluno" if aluno else None)
+    pessoa_id_atual = militar.id if militar else (aluno.id if aluno else None)
+
     # -------- 2) Dados do cabeçalho --------
-    # posto/grad (do Militar)
     user_pg = None
     try:
         if militar and getattr(militar, "posto_grad_id", None):
@@ -301,7 +307,6 @@ def home_atualizacao():
     except Exception:
         pass
 
-    # OBMs ativas do militar
     user_obm_siglas = []
     try:
         if militar_id:
@@ -314,6 +319,16 @@ def home_atualizacao():
             user_obm_siglas = [s for (s,) in rows] or []
     except Exception:
         pass
+
+    # 🔁 Fallback de OBM pela relação do User (cobre caso aluno sem Militar)
+    if not user_obm_siglas:
+        try:
+            if getattr(U, "obm1", None) and getattr(U.obm1, "sigla", None):
+                user_obm_siglas.append(U.obm1.sigla)
+            if getattr(U, "obm2", None) and getattr(U.obm2, "sigla", None):
+                user_obm_siglas.append(U.obm2.sigla)
+        except Exception:
+            pass
 
     militar_funcoes = []
     try:
@@ -330,16 +345,16 @@ def home_atualizacao():
     user_funcoes = []
     fun = getattr(U, "user_funcao", None)
     if isinstance(fun, (list, tuple)):
-        user_funcoes = [
-            f.ocupacao for f in fun if getattr(f, "ocupacao", None)]
+        user_funcoes = [f.ocupacao for f in fun if getattr(f, "ocupacao", None)]
     elif fun and getattr(fun, "ocupacao", None):
         user_funcoes = [fun.ocupacao]
 
     ano_atual = datetime.now().year
 
-    # -------- 3) KPIs / “Minhas declarações” (sempre via militar_id resolvido) --------
+    # -------- 3) KPIs (só se tiver militar_id) --------
     kpi_decl_total = kpi_decl_pendentes = kpi_decl_validadas = kpi_decl_inconformes = 0
     minhas_declaracoes = []
+    inconforme_info_map = {}
 
     if militar_id:
         kpi_q = (
@@ -362,30 +377,29 @@ def home_atualizacao():
             .all()
         )
 
-    # -------- 3.1) Último motivo de INCONFORME por declaração (para o modal) --------
-    inconforme_info_map = {}  # {decl_id: {"motivo": str, "quando": datetime}}
-    if minhas_declaracoes:
-        decl_ids = [d.id for d in minhas_declaracoes]
-        auds = (
-            db.session.query(AuditoriaDeclaracao)
-            .filter(
-                AuditoriaDeclaracao.declaracao_id.in_(decl_ids),
-                AuditoriaDeclaracao.para_status == "inconforme",
-                AuditoriaDeclaracao.motivo.isnot(None),
+        if minhas_declaracoes:
+            decl_ids = [d.id for d in minhas_declaracoes]
+            auds = (
+                db.session.query(AuditoriaDeclaracao)
+                .filter(
+                    AuditoriaDeclaracao.declaracao_id.in_(decl_ids),
+                    AuditoriaDeclaracao.para_status == "inconforme",
+                    AuditoriaDeclaracao.motivo.isnot(None),
+                )
+                .order_by(
+                    AuditoriaDeclaracao.declaracao_id.asc(),
+                    AuditoriaDeclaracao.data_alteracao.desc(),
+                )
+                .all()
             )
-            .order_by(AuditoriaDeclaracao.declaracao_id.asc(),
-                      AuditoriaDeclaracao.data_alteracao.desc())
-            .all()
-        )
-        # pega o mais recente por declaração
-        for a in auds:
-            if a.declaracao_id not in inconforme_info_map:
-                inconforme_info_map[a.declaracao_id] = {
-                    "motivo": a.motivo or "",
-                    "quando": a.data_alteracao,
-                }
+            for a in auds:
+                if a.declaracao_id not in inconforme_info_map:
+                    inconforme_info_map[a.declaracao_id] = {
+                        "motivo": a.motivo or "",
+                        "quando": a.data_alteracao,
+                    }
 
-    # -------- 4) Atividades recentes (por user_id mesmo) --------
+    # -------- 4) Atividades recentes (por user_id) --------
     atividades = []
     try:
         aud = (
@@ -414,6 +428,9 @@ def home_atualizacao():
         or "Usuário"
     )
 
+    # ⚠️ Define a variável usada no template/JS
+    militar_id_atual = militar_id
+
     return render_template(
         "home_atualizacao.html",
         ano_atual=ano_atual,
@@ -434,8 +451,10 @@ def home_atualizacao():
         nome_exibicao=nome_exibicao,
         militar_funcoes=militar_funcoes,
         inconforme_info_map=inconforme_info_map,
+        militar_id_atual=militar_id_atual,           # mantém (pode ser None)
+        pessoa_tipo_atual=pessoa_tipo_atual,
+        pessoa_id_atual=pessoa_id_atual,
     )
-
 
 @bp_acumulo.route("/lista", methods=["GET"])
 @login_required
@@ -2348,3 +2367,42 @@ def excluir_rascunho(militar_id, ano):
     except Exception as e:
         db.session.rollback()
         return {"ok": False, "error": str(e)}, 500
+
+
+
+@bp_acumulo.route("/novo/<pessoa_tipo>/<int:pessoa_id>", methods=["GET", "POST"])
+@login_required
+def novo_generico(pessoa_tipo, pessoa_id):
+    pessoa_tipo = (pessoa_tipo or "").lower().strip()
+    if pessoa_tipo not in {"militar", "aluno"}:
+        abort(404)
+
+    if pessoa_tipo == "militar":
+        m = Militar.query.get(pessoa_id)
+        if not m:
+            abort(404)
+        # Se for usuário comum, reforça que é o próprio
+        if current_user.funcao_user_id == 12:
+            m_user = get_militar_por_user(current_user)
+            if not m_user or m_user.id != m.id:
+                flash("Você não tem permissão para abrir declaração para outro militar.", "danger")
+                return redirect(url_for("home"))
+        return redirect(url_for("acumulo.novo", militar_id=m.id))
+
+    # aluno
+    a = FichaAlunos.query.get(pessoa_id)
+    if not a:
+        abort(404)
+
+    # garante um Militar correspondente (ou cria "shadow")
+    m = ensure_militar_from_aluno(a, user=current_user, obm_padrao=26)
+    if not m:
+        flash("Não foi possível preparar seu cadastro para a declaração.", "danger")
+        return redirect(url_for("home"))
+
+    # usuário comum só abre pra si mesmo
+    if current_user.funcao_user_id == 12:
+        # opcional: amarrar por CPF do user
+        pass
+
+    return redirect(url_for("acumulo.novo", militar_id=m.id))
