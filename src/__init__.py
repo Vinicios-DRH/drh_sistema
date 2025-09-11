@@ -60,6 +60,13 @@ with app.app_context():
         total_ms = (time.perf_counter() - getattr(context, "_query_start_time", time.perf_counter()))*1000
         logger.info(f"[DB] {total_ms:.1f} ms | rows={cursor.rowcount} | {statement[:120]} ...")
 
+    
+    @event.listens_for(database.engine, "connect")
+    def set_tz_manaus(dbapi_conn, _):
+        cur = dbapi_conn.cursor()
+        cur.execute("SET TIME ZONE 'America/Manaus'")
+        cur.close()
+
 @event.listens_for(Pool, "checkout")
 def on_checkout(dbapi_con, con_record, con_proxy):
     con_record.info["checkout_t0"] = time.perf_counter()

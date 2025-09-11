@@ -133,6 +133,12 @@ def b2_put_test():
 
 
 # utils_acumulo.py
-def b2_delete(object_key: str):
+def b2_delete_all_versions(key: str):
     s3 = b2_client()
-    s3.delete_object(Bucket=b2_bucket_name(), Key=object_key)
+    resp = s3.list_object_versions(Bucket=b2_bucket_name(), Prefix=key)
+    to_delete = []
+    for v in resp.get("Versions", []) + resp.get("DeleteMarkers", []):
+        if v.get("Key") == key:
+            to_delete.append({"Key": key, "VersionId": v["VersionId"]})
+    if to_delete:
+        s3.delete_objects(Bucket=b2_bucket_name(), Delete={"Objects": to_delete})

@@ -1,39 +1,379 @@
 {% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #a01017;
+    --brand-red-700: #7f0c12;
+    --brand-amber: #FFB703;
+    --ink-100: #f6f8fb;
+    --ink-200: #e8eef6;
+    --ink-300: #cfe4ff;
+    --ink-400: #c0cfda;
+    --glass-bg: rgba(255, 255, 255, .04);
+    --glass-brd: rgba(255, 255, 255, .12);
+    --glass-soft: rgba(0, 0, 0, .18);
+  }
+
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
+
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 16px;
+    color: var(--ink-200);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: 18px;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .btn-primary {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
+
+  .btn-outline-light:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+  }
+
+  /* tabela “glass” */
+  .table-glass {
+    color: var(--ink-200);
+    margin: 0;
+  }
+
+  .table-glass thead th {
+    color: var(--ink-200);
+    border-bottom: 1px dashed rgba(255, 255, 255, .18);
+  }
+
+  .table-glass tbody tr {
+    transition: background .2s ease;
+  }
+
+  .table-glass tbody tr:hover {
+    background: rgba(255, 255, 255, .05);
+  }
+
+  .table-glass td,
+  .table-glass th {
+    border-color: rgba(255, 255, 255, .08);
+  }
+
+  .badge-soft {
+    background: rgba(255, 255, 255, .12);
+    color: var(--ink-200);
+    border: 1px solid rgba(255, 255, 255, .22);
+  }
+
+  .badge-available {
+    background: var(--brand-amber);
+    color: #222;
+  }
+
+  .badge-downloaded {
+    background: #8892a6;
+  }
+
+  .badge-new {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .22);
+    font-weight: 600;
+  }
+
+
+  .action-bar {
+    position: sticky;
+    bottom: 8px;
+    z-index: 4;
+    background: rgba(181, 18, 27, .12);
+    border: 1px solid rgba(255, 255, 255, .18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 14px;
+    padding: .65rem;
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  /* Observação da DRH: fundo sutil + texto branco */
+  .table-glass tr.table-active td {
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+    /* força branco no TD */
+  }
+
+  /* garante branco também nos elementos internos */
+  .table-glass tr.table-active td .small,
+  .table-glass tr.table-active td .small *,
+  .table-glass tr.table-active td strong,
+  .table-glass tr.table-active td .mt-1 {
+    color: #fff !important;
+    opacity: .95;
+    /* um toque de contraste */
+  }
+
+  /* ícone ligeiramente visível */
+  .table-glass tr.table-active td i {
+    opacity: .9;
+  }
+
+  /* (opcional) um detalhe visual à esquerda da observação */
+  .table-glass tr.table-active td .mt-1 {
+    border-left: 3px solid var(--brand-amber);
+    padding-left: .6rem;
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="container py-4">
-  <h1 class="h5 mb-3">Meus Documentos</h1>
-  {% if docs %}
-  <div class="table-responsive">
-    <table class="table table-striped align-middle">
-      <thead><tr><th>Nome</th><th>Disponibilizado em</th><th>Status</th><th class="text-end">Ação</th></tr></thead>
-      <tbody>
-        {% for d in docs %}
-        <tr>
-          <td>{{ d.nome_original }}</td>
-          <td>{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-          <td>
-            {% if d.baixado_em %}
-              <span class="badge bg-secondary">Já baixado</span>
-            {% else %}
-              <span class="badge bg-success">Disponível</span>
+<section class="py-3 py-md-4">
+  <div class="container">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+            alt="CBMAM">
+          <div>
+            <h1 class="h5 mb-1">Meus Documentos</h1>
+            <div class="small opacity-75">DRH • Sistema CBMAM</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </a>
+          <span class="badge badge-soft"><i class="bi bi-shield-lock me-1"></i> Acesso restrito</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="glass-card p-3 p-md-4">
+      {% if docs and docs|length %}
+      <div class="table-responsive">
+        <table class="table table-glass align-middle">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th class="text-nowrap">Disponibilizado em</th>
+              <th>Status</th>
+              <th class="text-end">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in docs %}
+            <tr>
+              <td class="fw-semibold">
+                {{ d.nome_original }}
+                {% if d.is_new %}
+                <span class="badge badge-new ms-2"
+                  title="Documento adicionado há pouco (até {{ novo_limite_dias }} dias)">
+                  Novo
+                </span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+              <td>
+                {% if d.baixado_em %}
+                <span class="badge badge-downloaded">Já baixado</span>
+                {% else %}
+                <span class="badge badge-available">Disponível</span>
+                {% if d.is_new %}<span class="badge badge-new ms-1">Novo</span>{% endif %}
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if not d.baixado_em %}
+                <a href="#" class="btn btn-sm btn-primary"
+                  onclick="baixarDoc({{ d.id }}, '{{ url_for('download_documento', doc_id=d.id) }}'); return false;">
+                  <i class="bi bi-download me-1"></i> Baixar
+                </a>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+
+            {# bloco da observação (se existir) permanece igual #}
+            {% if d.observacao %}
+            <tr class="table-active">
+              <td colspan="4">
+                <div class="small">
+                  <i class="bi bi-chat-left-quote me-1"></i>
+                  <strong>Observação da DRH:</strong>
+                  <div class="mt-1" style="white-space: pre-wrap;">{{ d.observacao }}</div>
+                </div>
+              </td>
+            </tr>
             {% endif %}
-          </td>
-          <td class="text-end">
-            {% if not d.baixado_em %}
-              <a class="btn btn-sm btn-primary" href="{{ url_for('download_documento', doc_id=d.id) }}">
-                <i class="bi bi-download"></i> Baixar
-              </a>
-            {% else %}
-              <span class="text-muted small">—</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- barra de ação opcional -->
+      <div class="action-bar mt-3">
+        <button class="btn btn-outline-light" onclick="location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Atualizar
+        </button>
+      </div>
+      {% else %}
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-inbox text-warning fs-4"></i>
+          <div>
+            <div class="fw-semibold">Você não possui documentos pendentes.</div>
+            <div class="small opacity-75">Assim que houver um novo documento, ele aparecerá aqui para download único.
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline-light" onclick="location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Recarregar
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- único iframe para disparar downloads -->
+    <iframe id="dlframe" style="display:none"></iframe>
   </div>
-  {% else %}
-    <div class="alert alert-info">Você não possui documentos pendentes.</div>
-  {% endif %}
+</section>
+
+
+<!-- Modal primeira visita -->
+<div class="modal fade" id="modal-first-visit" tabindex="-1" aria-labelledby="modalFirstVisitLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-6" id="modalFirstVisitLabel">
+          <i class="bi bi-info-circle-fill text-primary me-2"></i>Bem-vindo(a) à seção “Meus Documentos”
+        </h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Aqui você recebe documentos enviados pela DRH para <strong>download único</strong>.</p>
+        <ul class="mb-2">
+          <li>Quando você baixar, o arquivo é removido do servidor.</li>
+          <li>Os documentos aparecem aqui vinculados ao seu CPF.</li>
+          <li>Fique atento às datas e prazos informados pela DRH.</li>
+        </ul>
+        <div class="form-check mt-3">
+          <input class="form-check-input" type="checkbox" value="" id="firstVisitDontShow">
+          <label class="form-check-label" for="firstVisitDontShow">
+            Não mostrar novamente
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="first-visit-ok" type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          Entendi
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+
+
+<script>
+  async function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function aguardarBaixado(docId, timeoutMs = 120000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+      try {
+        const r = await fetch(`/documentos/${docId}/status`, { cache: 'no-store' });
+        if (!r.ok) break;
+        const j = await r.json();
+        if (j.baixado) return true;
+      } catch (e) { /* ignora e tenta de novo */ }
+      await esperar(1000);
+    }
+    return false;
+  }
+
+  async function baixarDoc(docId, url) {
+    // dispara o download sem sair da página
+    const f = document.getElementById('dlframe');
+    f.src = url;
+
+    // espera o backend marcar 'baixado_em' e então recarrega
+    await aguardarBaixado(docId);
+    location.reload();
+  }
+</script>
+
+<script>
+  (function () {
+    const shouldShow = {{ (show_intro or False) | tojson
+  }};
+  if (!shouldShow) return;
+  const modalEl = document.getElementById('modal-first-visit');
+  if (!modalEl) return;
+  new bootstrap.Modal(modalEl).show();
+  }) ();
+</script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const shouldShow = {{ (show_intro | default (false)) | tojson }};
+  if (!shouldShow) return;
+
+  const el = document.getElementById('modal-first-visit');
+  if (!el) return;
+
+  // Tenta com Bootstrap (preferido)
+  try {
+    if (window.bootstrap && bootstrap.Modal) {
+      const m = new bootstrap.Modal(el, { backdrop: 'static' });
+      m.show();
+      return;
+    }
+  } catch (_) { }
+
+  // Fallback sem Bootstrap: mostra "na mão"
+  el.classList.add('show');
+  el.style.display = 'block';
+  el.removeAttribute('aria-hidden');
+  el.setAttribute('aria-modal', 'true');
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop fade show';
+  document.body.appendChild(backdrop);
+
+  const closeEls = el.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
+  closeEls.forEach(btn => btn.addEventListener('click', () => {
+    el.classList.remove('show');
+    el.style.display = 'none';
+    backdrop.remove();
+  }));
+  });
+</script>
+
 {% endblock %}

@@ -8,7 +8,7 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
-from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete, b2_upload_fileobj
+from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete_all_versions, b2_upload_fileobj
 from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
 from src.formatar_cpf import formatar_cpf, get_militar_por_user
 from email.mime.text import MIMEText
@@ -31,7 +31,7 @@ from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatist
 from src.decorators.control import checar_ocupacao
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import case, func, text, or_
@@ -60,7 +60,8 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
         return True
     # Exemplo: permitir DRH baixar em nome do usuário (opcional)
     try:
-        return checar_ocupacao('DRH', 'SUPER USER')(lambda: True)() is True  # gambizinha pra reutilizar
+        # gambizinha pra reutilizar
+        return checar_ocupacao('DRH', 'SUPER USER')(lambda: True)() is True
     except Exception:
         return False
 
@@ -127,13 +128,6 @@ def inject_militar_atual():
         "militar_atual": mil,
         "militar_id_atual": (mil.id if mil else None),
     }
-
-
-# Config SMTP
-SMTP_SERVER = 'smtp.gmail.com'
-SMTP_PORT = 587
-SMTP_LOGIN = 'drh3cbmam@gmail.com'
-SMTP_PASSWORD = 'tazjuiuytakwycir'
 
 
 @app.route('/acesso-negado')
@@ -870,7 +864,8 @@ def exibir_militar(militar_id):
         dn = dn.date()
 
     if dn:
-        idade = hoje.year - dn.year - ((hoje.month, hoje.day) < (dn.month, dn.day))
+        idade = hoje.year - dn.year - \
+            ((hoje.month, hoje.day) < (dn.month, dn.day))
     else:
         idade = None  # ou 0, se preferir
 
@@ -1197,16 +1192,20 @@ def exibir_militar(militar_id):
             database.session.rollback()
             flash(
                 f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
-    documentos_militar = DocumentoMilitar.query.filter_by(militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
+    documentos_militar = DocumentoMilitar.query.filter_by(
+        militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
     return render_template('exibir_militar.html', form_militar=form_militar,
-                            militar=militar,
-                            documentos_militar=documentos_militar)
+                           militar=militar,
+                           documentos_militar=documentos_militar)
 
 
 @app.post("/exibir-militar/<int:militar_id>/enviar-doc")
 @login_required
 @checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def enviar_documento_militar(militar_id):
+    current_app.logger.info(
+        ">>> POST enviar_documento_militar para id=%s", militar_id)
+
     militar = Militar.query.get_or_404(militar_id)
     file = request.files.get("doc_para_militar")
 
@@ -1214,25 +1213,48 @@ def enviar_documento_militar(militar_id):
         flash("Selecione um arquivo.", "alert-warning")
         return redirect(url_for('exibir_militar', militar_id=militar_id))
 
+    # calcula tamanho em bytes sem consumir o stream
+    try:
+        pos = file.stream.tell()
+    except Exception:
+        pos = 0
+    try:
+        file.stream.seek(0, 2)  # fim
+        tamanho_bytes = file.stream.tell()
+    finally:
+        file.stream.seek(pos, 0)  # volta
+
     # sobe para o B2 (guarda só a key)
     try:
-        key = b2_upload_fileobj(file, key_prefix=f"docs/{militar.cpf}")
+        # fica dentro de 'acumulo/'
+        prefix = f"acumulo/{datetime.utcnow().year}/{militar.id}/docs"
+        key = b2_upload_fileobj(file, key_prefix=prefix)
     except Exception as e:
         current_app.logger.exception("Falha ao subir doc no B2")
         flash(f"Erro ao enviar arquivo: {e}", "alert-danger")
         return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    obs = (request.form.get("obs_para_militar") or "").strip() or None
 
     doc = DocumentoMilitar(
         militar_id=militar.id,
         destinatario_cpf=militar.cpf,
         nome_original=file.filename,
         content_type=file.mimetype or "application/octet-stream",
-        tamanho_bytes=getattr(file, "content_length", None),
+        tamanho_bytes=tamanho_bytes,
         object_key=key,
-        criado_por_user_id=current_user.id
+        criado_por_user_id=current_user.id,
+        observacao=obs
     )
-    database.session.add(doc)
-    database.session.commit()
+
+    try:
+        database.session.add(doc)
+        database.session.commit()
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Falha ao gravar DocumentoMilitar")
+        flash(f"Erro ao salvar no banco: {e}", "alert-danger")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
 
     flash("Documento disponibilizado para o militar.", "alert-success")
     return redirect(url_for('exibir_militar', militar_id=militar_id))
@@ -1248,7 +1270,7 @@ def revogar_documento_militar(doc_id):
         return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
 
     try:
-        b2_delete(doc.object_key)
+        b2_delete_all_versions(doc.object_key)
     except Exception:
         current_app.logger.exception("Falha ao remover do B2 (revogar)")
 
@@ -1258,61 +1280,111 @@ def revogar_documento_militar(doc_id):
     return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
 
 
+def _as_utc_aware(dt):
+    if dt is None:
+        return None
+    # se vier naive, assumimos que é UTC (se seu default foi utcnow)
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
 @app.get("/meus-documentos")
 @login_required
 def meus_documentos():
-    docs = DocumentoMilitar.query\
-        .filter_by(destinatario_cpf=current_user.cpf)\
-        .order_by(DocumentoMilitar.criado_em.desc()).all()
-    return render_template("meus_documentos.html", docs=docs)
+    docs = (DocumentoMilitar.query
+            .filter_by(destinatario_cpf=current_user.cpf)
+            .filter(DocumentoMilitar.baixado_em.is_(None))
+            .order_by(DocumentoMilitar.criado_em.desc())
+            .all())
+
+    show_intro = (request.cookies.get("meus_docs_intro_seen") != "1")
+
+    NOVO_LIMITE_DIAS = 3
+    novo_limite_utc = datetime.now(
+        timezone.utc) - timedelta(days=NOVO_LIMITE_DIAS)
+
+    # anexa um booleano seguro em cada doc
+    for d in docs:
+        criado_utc = _as_utc_aware(d.criado_em)
+        d.is_new = (criado_utc is not None) and (criado_utc >= novo_limite_utc)
+
+    resp = make_response(render_template(
+        "meus_documentos.html",
+        docs=docs,
+        show_intro=show_intro,
+        novo_limite_dias=NOVO_LIMITE_DIAS,
+    ))
+    if show_intro:
+        resp.set_cookie("meus_docs_intro_seen", "1", max_age=60 *
+                        60*24*365, httponly=False, samesite="Lax")
+    return resp
 
 
 @app.get("/documentos/<int:doc_id>/download")
 @login_required
 def download_documento(doc_id):
     doc = DocumentoMilitar.query.get_or_404(doc_id)
-
     if not _pode_pegar_doc(doc):
         abort(403)
-
     if doc.baixado_em:
-        # Já foi baixado: retorna 410 ou mostra msg user-friendly
-        flash("Este documento já foi baixado e não está mais disponível.", "alert-warning")
+        flash("Este documento já foi baixado e não está mais disponível.",
+              "alert-warning")
         return redirect(url_for('meus_documentos'))
 
     s3 = b2_client()
     try:
         obj = s3.get_object(Bucket=b2_bucket_name(), Key=doc.object_key)
+        body = obj["Body"]
     except Exception:
         current_app.logger.exception("Falha ao abrir objeto no B2")
         abort(404)
 
-    @stream_with_context
-    def gerar():
+    def stream():
         try:
-            stream = obj["Body"]
-            while True:
-                chunk = stream.read(8192)
-                if not chunk:
-                    break
+            for chunk in iter(lambda: body.read(8192), b""):
                 yield chunk
         finally:
-            # terminou de enviar: remover do B2 e marcar como baixado
             try:
-                b2_delete(doc.object_key)
+                body.close()
             except Exception:
-                current_app.logger.exception("Falha ao deletar objeto no B2 após download")
+                pass
+
+    resp = Response(stream_with_context(stream()),
+                    mimetype=doc.content_type or "application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{doc.nome_original}"'
+
+    # >>> pegue o app e dados que você precisa ANTES de fechar o contexto
+    app = current_app._get_current_object()
+    key = doc.object_key
+    doc_id = doc.id
+
+    @resp.call_on_close
+    def _cleanup(_app=app, _key=key, _doc_id=doc_id):
+        # reabre contexto da aplicação
+        with _app.app_context():
             try:
-                doc.baixado_em = datetime.utcnow()
+                b2_delete_all_versions(_key)  # precisa permissão de delete
+            except Exception:
+                _app.logger.exception(
+                    "Falha ao deletar objeto no B2 após download")
+            try:
+                # atualiza sem manter a instância anexada
+                DocumentoMilitar.query.filter_by(id=_doc_id)\
+                    .update({"baixado_em": datetime.utcnow()})
                 database.session.commit()
             except Exception:
                 database.session.rollback()
-                current_app.logger.exception("Falha ao marcar doc como baixado")
+                _app.logger.exception("Falha ao marcar doc como baixado")
 
-    # monta resposta HTTP de download
-    resp = Response(gerar(), mimetype=doc.content_type or "application/octet-stream")
-    resp.headers["Content-Disposition"] = f'attachment; filename="{doc.nome_original}"'
     return resp
+
+
+@app.get("/documentos/<int:doc_id>/status")
+@login_required
+def status_documento(doc_id):
+    doc = DocumentoMilitar.query.get_or_404(doc_id)
+    if not _pode_pegar_doc(doc):
+        abort(403)
+    return {"baixado": bool(doc.baixado_em)}
 
 
 @app.route("/militares", methods=['GET'])
@@ -4099,7 +4171,8 @@ def atualizacao_cadastral():
         # Já existe User com esse CPF?
         user = User.query.filter_by(cpf=cpf_formatado).first()
         if user:
-            flash("⚠️ Já existe uma conta vinculada a este CPF. Faça login para continuar.", "warning")
+            flash(
+                "⚠️ Já existe uma conta vinculada a este CPF. Faça login para continuar.", "warning")
             return redirect(url_for('login_atualizacao'))
 
         # 👉 Guarda no fluxo de validação de identidade
@@ -4138,7 +4211,8 @@ def confirmar_matricula():
             flash("Registro militar não encontrado para o CPF em validação.", "danger")
             _limpa_sessao_validacao()
             return redirect(url_for('atualizacao_cadastral'))
-        nome_pessoa = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', ''))
+        nome_pessoa = getattr(pessoa, 'nome_completo',
+                              getattr(pessoa, 'nome', ''))
         matricula_oficial = pessoa.matricula
 
     else:  # 'aluno'
@@ -4199,7 +4273,8 @@ def criar_senha(cpf):
             flash("❌ Militar não encontrado para este CPF.", "danger")
             _limpa_sessao_validacao()
             return redirect(url_for('atualizacao_cadastral'))
-        nome_user = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', ''))
+        nome_user = getattr(pessoa, 'nome_completo',
+                            getattr(pessoa, 'nome', ''))
     else:
         pessoa = FichaAlunos.query.get(pessoa_id)
         if not pessoa:
@@ -4209,7 +4284,8 @@ def criar_senha(cpf):
         nome_user = getattr(pessoa, 'nome_completo', '')
 
     if form.validate_on_submit():
-        senha_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        senha_hash = bcrypt.generate_password_hash(
+            form.senha.data).decode('utf-8')
 
         novo_usuario = User(
             nome=nome_user or '',
@@ -4227,7 +4303,8 @@ def criar_senha(cpf):
             if hasattr(novo_usuario, 'obm_id_2'):
                 novo_usuario.obm_id_2 = obm_id_2
             if hasattr(novo_usuario, 'localidade_id'):
-                novo_usuario.localidade_id = getattr(pessoa, 'localidade_id', None)
+                novo_usuario.localidade_id = getattr(
+                    pessoa, 'localidade_id', None)
         else:
             # 👉 Requisito: todos os alunos são da OBM 26
             if hasattr(novo_usuario, 'obm_id_1'):

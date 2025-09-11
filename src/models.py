@@ -925,10 +925,12 @@ class DeclaracaoAcumulo(database.Model):
     __tablename__ = "declaracao_acumulo"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
 
-    tipo = database.Column(database.Enum('positiva', 'negativa', name='tipo_declaracao'), nullable=False)
+    tipo = database.Column(database.Enum(
+        'positiva', 'negativa', name='tipo_declaracao'), nullable=False)
 
     meio_entrega = database.Column(
         database.Enum('digital', 'presencial', name='meio_entrega'),
@@ -940,12 +942,15 @@ class DeclaracaoAcumulo(database.Model):
                                    nullable=False, server_default=func.now())
 
     status = database.Column(
-        database.Enum('pendente', 'validado', 'inconforme', name='status_declaracao'),
+        database.Enum('pendente', 'validado', 'inconforme',
+                      name='status_declaracao'),
         nullable=False, default='pendente'
     )
 
-    recebido_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
-    recebido_em = database.Column(database.DateTime(timezone=True), nullable=True)
+    recebido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    recebido_em = database.Column(
+        database.DateTime(timezone=True), nullable=True)
 
     # MODELO assinado pelo militar
     arquivo_declaracao = database.Column(database.String(255))
@@ -964,7 +969,8 @@ class DeclaracaoAcumulo(database.Model):
     recebido_por = database.relationship('User')
 
     __table_args__ = (
-        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_declaracao_militar_ano'),
+        database.UniqueConstraint(
+            'militar_id', 'ano_referencia', name='uq_declaracao_militar_ano'),
     )
 
 
@@ -979,7 +985,8 @@ class VinculoExterno(database.Model):
 
     # ESFERA do órgão público
     empregador_tipo = database.Column(
-        database.Enum('municipal', 'estadual', 'federal', name='esfera_publica'),
+        database.Enum('municipal', 'estadual',
+                      'federal', name='esfera_publica'),
         nullable=False
     )
 
@@ -998,9 +1005,11 @@ class VinculoExterno(database.Model):
         nullable=False
     )
     carga_horaria_semanal = database.Column(database.Integer, nullable=False)
-    horario_inicio = database.Column(database.Time, nullable=False)  # horário local, sem tz
+    horario_inicio = database.Column(
+        database.Time, nullable=False)  # horário local, sem tz
     horario_fim = database.Column(database.Time, nullable=False)     # idem
-    data_inicio = database.Column(database.Date, nullable=False)     # data local
+    data_inicio = database.Column(
+        database.Date, nullable=False)     # data local
 
     compatibilidade_horaria = database.Column(database.Boolean, default=None)
     conflito_descricao = database.Column(database.Text)
@@ -1033,12 +1042,14 @@ class AuditoriaDeclaracao(database.Model):
     para_status = database.Column(database.String(20), nullable=False)
     motivo = database.Column(database.Text)
 
-    alterado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    alterado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
 
     data_alteracao = database.Column(database.DateTime(timezone=True),
                                      nullable=False, server_default=func.now())
 
-    declaracao = database.relationship('DeclaracaoAcumulo', backref='auditorias')
+    declaracao = database.relationship(
+        'DeclaracaoAcumulo', backref='auditorias')
     alterado_por = database.relationship('User')
 
 
@@ -1060,27 +1071,38 @@ class DraftDeclaracaoAcumulo(database.Model):
     militar = database.relationship('Militar')
 
     __table_args__ = (
-        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
+        database.UniqueConstraint(
+            'militar_id', 'ano_referencia', name='uq_draft_militar_ano'),
     )
 
 
-# models.py
 class DocumentoMilitar(database.Model):
     __tablename__ = "documento_militar"
     id = database.Column(database.Integer, primary_key=True)
 
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
-    destinatario_cpf = database.Column(database.String(40), index=True, nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    destinatario_cpf = database.Column(
+        database.String(40), index=True, nullable=False)
 
     nome_original = database.Column(database.String(255), nullable=False)
     content_type = database.Column(database.String(100), nullable=False)
     tamanho_bytes = database.Column(database.Integer)
 
-    object_key = database.Column(database.String(500), nullable=False)  # key no B2 (não é URL)
-    criado_em = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
-    baixado_em = database.Column(database.DateTime)  # setado quando for baixado (one-shot)
+    object_key = database.Column(database.String(
+        500), nullable=False)  # key no B2 (não é URL)
+    criado_em  = database.Column(
+        database.DateTime(timezone=True),
+        server_default=func.now(),   # agora do Postgres (respeita TZ da sessão)
+        nullable=False
+    )
+    baixado_em = database.Column(database.DateTime(timezone=True))
 
-    criado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    criado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    observacao = database.Column(database.Text)
 
     militar = database.relationship('Militar', backref='documentos_enviados')
-    criado_por = database.relationship('User', foreign_keys=[criado_por_user_id])
+    criado_por = database.relationship(
+        'User', foreign_keys=[criado_por_user_id])

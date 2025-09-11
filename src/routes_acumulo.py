@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
-from src.models import AuditoriaDeclaracao, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
+from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
 from src.decorators.control import checar_ocupacao
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
@@ -264,6 +264,8 @@ def _ymd(s: str) -> str:
 def home_atualizacao():
     M, PG, O, MOF = Militar, PostoGrad, Obm, MilitarObmFuncao
     D = DeclaracaoAcumulo
+    DM = DocumentoMilitar
+
     U = current_user
 
     # -------- 1) Resolver Militar do usuário --------
@@ -345,7 +347,8 @@ def home_atualizacao():
     user_funcoes = []
     fun = getattr(U, "user_funcao", None)
     if isinstance(fun, (list, tuple)):
-        user_funcoes = [f.ocupacao for f in fun if getattr(f, "ocupacao", None)]
+        user_funcoes = [
+            f.ocupacao for f in fun if getattr(f, "ocupacao", None)]
     elif fun and getattr(fun, "ocupacao", None):
         user_funcoes = [fun.ocupacao]
 
@@ -428,6 +431,28 @@ def home_atualizacao():
         or "Usuário"
     )
 
+    # -------- 5) Documentos pendentes para o usuário --------
+    docs_pendentes = []
+    docs_pendentes_qtd = 0
+    try:
+        if getattr(current_user, "cpf", None):
+            docs_pendentes = (
+                db.session.query(DM)
+                .filter(DM.destinatario_cpf == current_user.cpf)
+                .filter(DM.baixado_em.is_(None))
+                .order_by(DM.criado_em.desc())
+                .limit(5)
+                .all()
+            )
+            docs_pendentes_qtd = (
+                db.session.query(func.count(DM.id))
+                .filter(DM.destinatario_cpf == current_user.cpf)
+                .filter(DM.baixado_em.is_(None))
+                .scalar() or 0
+            )
+    except Exception:
+        pass
+
     # ⚠️ Define a variável usada no template/JS
     militar_id_atual = militar_id
 
@@ -454,7 +479,10 @@ def home_atualizacao():
         militar_id_atual=militar_id_atual,           # mantém (pode ser None)
         pessoa_tipo_atual=pessoa_tipo_atual,
         pessoa_id_atual=pessoa_id_atual,
+        docs_pendentes=docs_pendentes,
+        docs_pendentes_qtd=docs_pendentes_qtd,
     )
+
 
 @bp_acumulo.route("/lista", methods=["GET"])
 @login_required
@@ -1162,7 +1190,8 @@ def upload_assinado(militar_id):
         for v in list(getattr(decl, "vinculos", [])):
             db.session.delete(v)
         if tipo == "positiva" and vinculo_row:
-            db.session.add(VinculoExterno(declaracao_id=decl.id, **vinculo_row))
+            db.session.add(VinculoExterno(
+                declaracao_id=decl.id, **vinculo_row))
 
         # auditoria de mudança de status (se houve)
         if de_status and de_status != decl.status:
@@ -1178,9 +1207,9 @@ def upload_assinado(militar_id):
         # negativas: marcar "enviado_drh" (uma única vez)
         if tipo == "negativa":
             ja = (db.session.query(AuditoriaDeclaracao.id)
-                .filter(AuditoriaDeclaracao.declaracao_id == decl.id,
-                        AuditoriaDeclaracao.motivo == "enviado_drh")
-                .first())
+                  .filter(AuditoriaDeclaracao.declaracao_id == decl.id,
+                          AuditoriaDeclaracao.motivo == "enviado_drh")
+                  .first())
             if not ja:
                 db.session.add(AuditoriaDeclaracao(
                     declaracao_id=decl.id,
@@ -1197,9 +1226,9 @@ def upload_assinado(militar_id):
         session.pop(f'pre_decl_{militar.id}_{ano}', None)
         try:
             draft = (db.session.query(DraftDeclaracaoAcumulo)
-                    .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
-                            DraftDeclaracaoAcumulo.ano_referencia == ano)
-                    .first())
+                     .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
+                             DraftDeclaracaoAcumulo.ano_referencia == ano)
+                     .first())
             if draft:
                 db.session.delete(draft)
                 db.session.commit()
@@ -1358,8 +1387,10 @@ def editar(decl_id):
 
     session[f'pre_decl_{militar.id}_{ano}'] = pre
 
-    url_arquivo_modelo = b2_presigned_get(decl.arquivo_declaracao, 600) if decl.arquivo_declaracao else None
-    url_arquivo_orgao  = b2_presigned_get(decl.arquivo_declaracao_orgao, 600) if getattr(decl, "arquivo_declaracao_orgao", None) else None
+    url_arquivo_modelo = b2_presigned_get(
+        decl.arquivo_declaracao, 600) if decl.arquivo_declaracao else None
+    url_arquivo_orgao = b2_presigned_get(decl.arquivo_declaracao_orgao, 600) if getattr(
+        decl, "arquivo_declaracao_orgao", None) else None
 
     return render_template(
         "acumulo_editar.html",
@@ -1462,7 +1493,7 @@ def recebimento():
 
     base_page_q = base_page_q.outerjoin(ultimo_subq, and_(
         ultimo_subq.c.m_id == M.id, ultimo_subq.c.rn == 1))
-    
+
     enc_exists = exists().where(
         and_(
             AuditoriaDeclaracao.declaracao_id == ultimo_subq.c.decl_id,
@@ -1583,7 +1614,7 @@ def recebimento():
         .order_by(M.nome_completo.asc())
         .all()
     )
-    
+
     decl_ids = [r.decl_id for r in rows if r.decl_id]
     enviado_drh_map = {}
     if decl_ids:
@@ -1628,7 +1659,7 @@ def recebimento():
 
     url_map, linhas = {}, []
     for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao,
-     enc_por, enc_quando, val_por, val_quando) in rows:
+         enc_por, enc_quando, val_por, val_quando) in rows:
         if decl_id:
             urls = {}
             if arq_modelo:
@@ -2294,8 +2325,9 @@ def minhas_declaracoes():
 
     kpi_total = len(minhas)
     kpi_pend = sum(1 for d in minhas if (d.status or "").lower() == "pendente")
-    kpi_val  = sum(1 for d in minhas if (d.status or "").lower() == "validado")
-    kpi_inc  = sum(1 for d in minhas if (d.status or "").lower() == "inconforme")
+    kpi_val = sum(1 for d in minhas if (d.status or "").lower() == "validado")
+    kpi_inc = sum(1 for d in minhas if (
+        d.status or "").lower() == "inconforme")
 
     # 🔴 NOVO: existe pendente no ano?
     decl_pendente = (
@@ -2369,7 +2401,6 @@ def excluir_rascunho(militar_id, ano):
         return {"ok": False, "error": str(e)}, 500
 
 
-
 @bp_acumulo.route("/novo/<pessoa_tipo>/<int:pessoa_id>", methods=["GET", "POST"])
 @login_required
 def novo_generico(pessoa_tipo, pessoa_id):
@@ -2385,7 +2416,8 @@ def novo_generico(pessoa_tipo, pessoa_id):
         if current_user.funcao_user_id == 12:
             m_user = get_militar_por_user(current_user)
             if not m_user or m_user.id != m.id:
-                flash("Você não tem permissão para abrir declaração para outro militar.", "danger")
+                flash(
+                    "Você não tem permissão para abrir declaração para outro militar.", "danger")
                 return redirect(url_for("home"))
         return redirect(url_for("acumulo.novo", militar_id=m.id))
 
