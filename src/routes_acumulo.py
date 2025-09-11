@@ -258,6 +258,7 @@ def _ymd(s: str) -> str:
     except Exception:
         return s
 
+
 def _is_privilegiado() -> bool:
     # SUPER USER sempre é privilegiado
     if _is_super_user():
@@ -1475,12 +1476,14 @@ def recebimento():
     )
     if obm_id:
         base_q = base_q.filter(MOF.obm_id == obm_id)
-    if not IS_DRH_LIKE:
+
+    if not (IS_DRH_LIKE or IS_PRIV):
         obms_user = [getattr(current_user, "obm_id_1", None),
                      getattr(current_user, "obm_id_2", None)]
         obms_user = [x for x in obms_user if x]
         base_q = base_q.filter(MOF.obm_id.in_(
             obms_user)) if obms_user else base_q.filter(literal(False))
+
     if q:
         ilike = f"%{q}%"
         base_q = (base_q.join(PG, PG.id == M.posto_grad_id, isouter=True)
@@ -1488,6 +1491,19 @@ def recebimento():
                                     M.matricula.ilike(ilike),
                                     PG.sigla.ilike(ilike))))
     base_q = base_q.distinct()
+
+    if IS_DRH_LIKE or IS_PRIV:
+        # SUPER USER / DIRETOR DRH / CHEFE DRH: veem todas as OBMs no combo
+        obms = db.session.query(O).order_by(O.sigla.asc()).all()
+    else:
+        # Chefia/Diretor "comum": só as OBMs dele
+        obms_user_ids = [getattr(current_user, "obm_id_1", None),
+                         getattr(current_user, "obm_id_2", None)]
+        obms_user_ids = [x for x in obms_user_ids if x]
+        obms = (
+            db.session.query(O).filter(O.id.in_(obms_user_ids))
+            if obms_user_ids else db.session.query(O).filter(literal(False))
+        ).order_by(O.sigla.asc()).all()
 
     total_militares = base_q.order_by(None).count()
     if total_militares == 0:
@@ -1561,6 +1577,22 @@ def recebimento():
                 and_(ultimo_subq.c.decl_tipo == "positiva", enc_exists)
             )
         )
+
+    # --- OBMs visíveis no filtro do combo ---
+    if not IS_DRH_LIKE:
+        obms_user_ids = [getattr(current_user, "obm_id_1", None),
+                         getattr(current_user, "obm_id_2", None)]
+        obms_user_ids = [x for x in obms_user_ids if x]
+
+        if obm_id and obm_id not in obms_user_ids:
+            obm_id = obms_user_ids[0] if obms_user_ids else None
+
+        obms = (db.session.query(O)
+                .filter(O.id.in_(obms_user_ids)) if obms_user_ids else db.session.query(O).filter(literal(False))
+                ).order_by(O.sigla.asc()).all()
+    else:
+        # DRH-like continua vendo todas
+        obms = db.session.query(O).order_by(O.sigla.asc()).all()
 
     if status == "pendente":
         base_page_q = base_page_q.filter(
@@ -1680,10 +1712,6 @@ def recebimento():
         .outerjoin(ultimo_subq, and_(ultimo_subq.c.m_id == elegiveis_cte.c.m_id, ultimo_subq.c.rn == 1))
     )
 
-    if not IS_DRH_LIKE:
-        kpi_q = kpi_q.filter(or_(ultimo_subq.c.decl_id.is_(
-            None), ultimo_subq.c.decl_tipo != "negativa"))
-
     kpi_rows = kpi_q.one()
 
     total_ano = kpi_rows.total or 0
@@ -1739,10 +1767,6 @@ def recebimento():
     pode_editar_map = {decl_id: (IS_DRH_LIKE or _can_editar_declaracao(m.id))
                        for (m, _, _, decl_id, *_rest) in rows if decl_id}
 
-    obms = db.session.query(O).order_by(O.sigla.asc()).all()
-    print('IS_DRH_LIKE=', IS_DRH_LIKE, 'IS_PRIV=', IS_PRIV, 'enc_only=', request.args.get("enc"))
-
-
     return render_template(
         "acumulo_recebimento.html",
         ano=ano, status=status, q=q, obm_id=obm_id, obms=obms,
@@ -1786,12 +1810,13 @@ def recebimento_mudar_status(decl_id):
             AuditoriaDeclaracao.motivo == "enviado_drh"
         ).first()
         if decl.tipo == "positiva" and not enc_reg:
-            flash("Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
+            flash(
+                "Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
             return redirect(url_for("acumulo.recebimento",
-                ano=request.args.get("ano"), status=request.args.get("status"),
-                q=request.args.get("q"), obm_id=request.args.get("obm_id"),
-                page=request.args.get("page"), per_page=request.args.get("per_page"),
-            ))
+                                    ano=request.args.get("ano"), status=request.args.get("status"),
+                                    q=request.args.get("q"), obm_id=request.args.get("obm_id"),
+                                    page=request.args.get("page"), per_page=request.args.get("per_page"),
+                                    ))
 
     de = decl.status
     if novo == "enviar_drh":
