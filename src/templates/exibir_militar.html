@@ -971,7 +971,7 @@
                   <!-- ESTE é o botão de enviar pro militar -->
                   <button type="submit" class="btn btn-outline-light ms-2"
                     formaction="{{ url_for('enviar_documento_militar', militar_id=militar.id) }}" formmethod="post"
-                    formenctype="multipart/form-data">
+                    formenctype="multipart/form-data" optional>
                     <i class="bi bi-cloud-upload"></i> Enviar ao militar
                   </button>
                 </div>
