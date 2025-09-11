@@ -155,8 +155,8 @@
                         {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
                         {% set eh_positiva = (row.decl_tipo == 'positiva') %}
                         {% set pode_selecionar =
-                              (not is_drh_like and not ja_enviado)
-                              or (is_drh_like and (not eh_positiva or ja_enviado))
+                            (not is_drh_like and eh_positiva and not ja_enviado)
+                            or (is_drh_like and (not eh_positiva or ja_enviado))
                         %}
                         {% set pode_acionar = pode_selecionar %}
 

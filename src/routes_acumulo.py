@@ -1533,25 +1533,22 @@ def recebimento():
 
     # VISIBILIDADE (apenas uma vez)
     if not IS_DRH_LIKE:
-        # Chefia/OBM: NÃO veem negativas; positivas sempre
-        base_page_q = base_page_q.filter(
-            or_(ultimo_subq.c.decl_id.is_(None), ultimo_subq.c.decl_tipo != "negativa")
-        )
+        # Chefia/OBM: vê tudo (não-enviou, negativas e positivas) dentro das suas OBMs
+        pass
     else:
         if IS_PRIV:
             # SUPER USER / CHEFE DRH: vê TUDO
             pass
         else:
-            # DRH normal: vê "não enviou", TODAS as negativas e
-            # positivas SOMENTE se encaminhadas
+            # DRH "normal": não-enviou, TODAS as negativas e
+            # POSITIVAS somente se encaminhadas
             base_page_q = base_page_q.filter(
                 or_(
-                    ultimo_subq.c.decl_id.is_(None),   # <<< reintroduz "não enviou"
+                    ultimo_subq.c.decl_id.is_(None),
                     ultimo_subq.c.decl_tipo == "negativa",
-                    enc_exists                         # positiva encaminhada
+                    enc_exists
                 )
             )
-
 
     # Chegada à DRH = Somente encaminhadas
     enc_only = (request.args.get("enc") == "1")
