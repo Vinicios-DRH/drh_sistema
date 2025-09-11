@@ -174,89 +174,138 @@
     </div>
 
     <!-- Lista -->
+    <!-- Lista (abas) -->
     <div class="glass-card p-3 p-md-4">
-      {% if docs and docs|length %}
-      <div class="table-responsive">
-        <table class="table table-glass align-middle">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th class="text-nowrap">Disponibilizado em</th>
-              <th>Status</th>
-              <th class="text-end">Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for d in docs %}
-            <tr>
-              <td class="fw-semibold">
-                {{ d.nome_original }}
-                {% if d.is_new %}
-                <span class="badge badge-new ms-2"
-                  title="Documento adicionado há pouco (até {{ novo_limite_dias }} dias)">
-                  Novo
-                </span>
-                {% endif %}
-              </td>
-              <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-              <td>
-                {% if d.baixado_em %}
-                <span class="badge badge-downloaded">Já baixado</span>
-                {% else %}
-                <span class="badge badge-available">Disponível</span>
-                {% if d.is_new %}<span class="badge badge-new ms-1">Novo</span>{% endif %}
-                {% endif %}
-              </td>
-              <td class="text-end">
-                {% if not d.baixado_em %}
-                <a href="#" class="btn btn-sm btn-primary"
-                  onclick="baixarDoc({{ d.id }}, '{{ url_for('download_documento', doc_id=d.id) }}'); return false;">
-                  <i class="bi bi-download me-1"></i> Baixar
-                </a>
-                {% else %}
-                <span class="text-muted small">—</span>
-                {% endif %}
-              </td>
-            </tr>
 
-            {# bloco da observação (se existir) permanece igual #}
-            {% if d.observacao %}
-            <tr class="table-active">
-              <td colspan="4">
-                <div class="small">
-                  <i class="bi bi-chat-left-quote me-1"></i>
-                  <strong>Observação da DRH:</strong>
-                  <div class="mt-1" style="white-space: pre-wrap;">{{ d.observacao }}</div>
-                </div>
-              </td>
-            </tr>
+      <!-- Nav das abas -->
+      <ul class="nav nav-pills mb-3" id="docsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="tab-pendentes" data-bs-toggle="tab" data-bs-target="#pane-pendentes"
+            type="button" role="tab">
+            Pendentes
+            {% if pendentes and pendentes|length %}
+            <span class="badge bg-warning text-dark ms-1">{{ pendentes|length }}</span>
             {% endif %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-historico" data-bs-toggle="tab" data-bs-target="#pane-historico"
+            type="button" role="tab">
+            Histórico
+          </button>
+        </li>
+      </ul>
 
-      <!-- barra de ação opcional -->
-      <div class="action-bar mt-3">
-        <button class="btn btn-outline-light" onclick="location.reload()">
-          <i class="bi bi-arrow-clockwise"></i> Atualizar
-        </button>
-      </div>
-      {% else %}
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <i class="bi bi-inbox text-warning fs-4"></i>
-          <div>
-            <div class="fw-semibold">Você não possui documentos pendentes.</div>
-            <div class="small opacity-75">Assim que houver um novo documento, ele aparecerá aqui para download único.
+      <div class="tab-content">
+
+        <!-- PENDENTES -->
+        <div class="tab-pane fade show active" id="pane-pendentes" role="tabpanel">
+          {% if pendentes and pendentes|length %}
+          <div class="table-responsive">
+            <table class="table table-glass align-middle">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th class="text-nowrap">Disponibilizado em</th>
+                  <th>Status</th>
+                  <th class="text-end">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in pendentes %}
+                <tr>
+                  <td class="fw-semibold">
+                    {{ d.nome_original }}
+                    {% if d.is_new %}
+                    <span class="badge badge-new ms-2">Novo</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td>
+                    <span class="badge badge-available">Disponível</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="#" class="btn btn-sm btn-primary"
+                      onclick="baixarDoc({{ d.id }}, '{{ url_for('download_documento', doc_id=d.id) }}'); return false;">
+                      <i class="bi bi-download me-1"></i> Baixar
+                    </a>
+                  </td>
+                </tr>
+
+                {% if d.observacao %}
+                <tr class="table-active">
+                  <td colspan="4">
+                    <div class="small">
+                      <i class="bi bi-chat-left-quote me-1"></i>
+                      <strong>Observação da DRH:</strong>
+                      <div class="mt-1" style="white-space: pre-wrap;">{{ d.observacao }}</div>
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
+
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="action-bar mt-3">
+            <button class="btn btn-outline-light" onclick="location.reload()">
+              <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+          </div>
+          {% else %}
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-inbox text-warning fs-4"></i>
+            <div>
+              <div class="fw-semibold">Você não possui documentos pendentes.</div>
+              <div class="small opacity-75">Assim que houver um novo documento, ele aparecerá aqui para download único.
+              </div>
             </div>
           </div>
+          {% endif %}
         </div>
-        <button class="btn btn-outline-light" onclick="location.reload()">
-          <i class="bi bi-arrow-clockwise"></i> Recarregar
-        </button>
+
+        <!-- HISTÓRICO -->
+        <div class="tab-pane fade" id="pane-historico" role="tabpanel">
+          {% if baixados and baixados|length %}
+          <div class="table-responsive">
+            <table class="table table-glass align-middle">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th class="text-nowrap">Disponibilizado em</th>
+                  <th class="text-nowrap">Baixado em</th>
+                  <th>Obs.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in baixados %}
+                <tr>
+                  <td class="fw-semibold">{{ d.nome_original }}</td>
+                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td class="text-nowrap">{{ d.baixado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td class="small text-truncate" style="max-width: 420px;">
+                    {{ d.observacao or '—' }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="small opacity-75 mt-2">Mostrando os 50 downloads mais recentes.</div>
+          {% else %}
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-clock-history text-info fs-4"></i>
+            <div>
+              <div class="fw-semibold">Nenhum download registrado ainda.</div>
+              <div class="small opacity-75">Quando você baixar documentos, eles aparecerão aqui.</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
       </div>
-      {% endif %}
     </div>
 
     <!-- único iframe para disparar downloads -->

@@ -1280,42 +1280,57 @@ def revogar_documento_militar(doc_id):
     return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
 
 
-def _as_utc_aware(dt):
+TZ_MANAUS = pytz.timezone('America/Manaus')
+
+
+def _to_manaus(dt):
+    """Converte dt (naive/aware/None) para aware em America/Manaus."""
     if dt is None:
         return None
-    # se vier naive, assumimos que é UTC (se seu default foi utcnow)
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    if dt.tzinfo is None:
+        # tratamos como horário local salvo sem tz
+        return TZ_MANAUS.localize(dt)
+    return dt.astimezone(TZ_MANAUS)            # converte para Manaus
 
 
 @app.get("/meus-documentos")
 @login_required
 def meus_documentos():
-    docs = (DocumentoMilitar.query
-            .filter_by(destinatario_cpf=current_user.cpf)
-            .filter(DocumentoMilitar.baixado_em.is_(None))
-            .order_by(DocumentoMilitar.criado_em.desc())
-            .all())
+    pendentes = (DocumentoMilitar.query
+                 .filter_by(destinatario_cpf=current_user.cpf)
+                 .filter(DocumentoMilitar.baixado_em.is_(None))
+                 .order_by(DocumentoMilitar.criado_em.desc())
+                 .all())
 
+    baixados = (DocumentoMilitar.query
+                .filter_by(destinatario_cpf=current_user.cpf)
+                .filter(DocumentoMilitar.baixado_em.isnot(None))
+                .order_by(DocumentoMilitar.baixado_em.desc())
+                .limit(50)
+                .all())
+
+    # primeira visita
     show_intro = (request.cookies.get("meus_docs_intro_seen") != "1")
 
     NOVO_LIMITE_DIAS = 3
-    novo_limite_utc = datetime.now(
-        timezone.utc) - timedelta(days=NOVO_LIMITE_DIAS)
+    now_mao = datetime.now(TZ_MANAUS)
+    novo_limite = now_mao - timedelta(days=NOVO_LIMITE_DIAS)
 
-    # anexa um booleano seguro em cada doc
-    for d in docs:
-        criado_utc = _as_utc_aware(d.criado_em)
-        d.is_new = (criado_utc is not None) and (criado_utc >= novo_limite_utc)
+    # marca cada doc como "novo" (conversão robusta para Manaus)
+    for d in [*pendentes, *baixados]:
+        criado_local = _to_manaus(d.criado_em)
+        d.is_new = bool(criado_local and criado_local >= novo_limite)
 
     resp = make_response(render_template(
         "meus_documentos.html",
-        docs=docs,
+        pendentes=pendentes,
+        baixados=baixados,
         show_intro=show_intro,
-        novo_limite_dias=NOVO_LIMITE_DIAS,
+        novo_limite_dias=NOVO_LIMITE_DIAS,  # só para tooltip/texto, se quiser
     ))
     if show_intro:
-        resp.set_cookie("meus_docs_intro_seen", "1", max_age=60 *
-                        60*24*365, httponly=False, samesite="Lax")
+        resp.set_cookie("meus_docs_intro_seen", "1",
+                        max_age=60*60*24*365, httponly=False, samesite="Lax")
     return resp
 
 
