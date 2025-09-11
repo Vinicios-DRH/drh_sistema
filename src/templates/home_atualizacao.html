@@ -421,106 +421,77 @@
 {% set ultima_tipo = (ultima.tipo if ultima else '') %}
 
 <script>
-    (() => {
-        // dados vindos do Jinja
-        const ctx = {
-            tem: {{ tem_decl | tojson
-    }},
-    status: { { ultima_status | tojson } },
-    declId: { { ultima_id | tojson } },
-    tipo: { { ultima_tipo | tojson } },
+(() => {
+  // dados vindos do Jinja
+  const ctx = {
+    tem: {{ tem_decl | tojson }},
+    status: {{ ultima_status | tojson }},
+    declId: {{ ultima_id | tojson }},
+    tipo: {{ ultima_tipo | tojson }},
     // NOVO: dados da pessoa
-    pessoaTipo: { { (pessoa_tipo_atual or '') | tojson } },
-    pessoaId: { { (pessoa_id_atual or '') | tojson } },
+    pessoaTipo: {{ (pessoa_tipo_atual or '') | tojson }},
+    pessoaId: {{ (pessoa_id_atual or '') | tojson }},
     // url base
-    urlNovoMil: { { (url_for('acumulo.novo', militar_id = (militar_id_atual or 0)) if militar_id_atual else '') | tojson } },
-    urlNovoGen: { { (url_for('acumulo.novo_generico', pessoa_tipo = (pessoa_tipo_atual or 'militar'), pessoa_id = (pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson } },
-    urlEditar: { { url_for('acumulo.editar', decl_id = 0) | tojson } },
-    urlDetalhe: { { url_for('acumulo.detalhe', decl_id = 0) | tojson } },
-    };
+    urlNovoMil: {{ (url_for('acumulo.novo', militar_id=(militar_id_atual or 0)) if militar_id_atual else '') | tojson }},
+    urlNovoGen: {{ (url_for('acumulo.novo_generico',
+                            pessoa_tipo=(pessoa_tipo_atual or 'militar'),
+                            pessoa_id=(pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson }},
+    urlEditar: {{ url_for('acumulo.editar', decl_id=0) | tojson }},
+    urlDetalhe: {{ url_for('acumulo.detalhe', decl_id=0) | tojson }},
+  };
 
-    const btnNova = document.getElementById('btn-nova-declaracao');
-    const modal = document.getElementById('modal-alerta-envio');
-    const sub = document.getElementById('alerta-subtitle');
-    const body = document.getElementById('alerta-body');
-    const btnAbrir = document.getElementById('btn-ver-ou-editar');
-    const btnContinuar = document.getElementById('btn-continuar-novo');
-    const btnFechar = document.getElementById('btn-fechar-alerta');
+  const btnNova = document.getElementById('btn-nova-declaracao');
+  const modal = document.getElementById('modal-alerta-envio');
+  const sub = document.getElementById('alerta-subtitle');
+  const body = document.getElementById('alerta-body');
+  const btnAbrir = document.getElementById('btn-ver-ou-editar');
+  const btnContinuar = document.getElementById('btn-continuar-novo');
+  const btnFechar = document.getElementById('btn-fechar-alerta');
 
-    function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
-        if (sub) sub.textContent = subtitle || '';
-        if (body) body.innerHTML = htmlBody || '';
-        if (btnAbrir) {
-            if (abrirHref) {
-                btnAbrir.href = abrirHref;
-                btnAbrir.textContent = abrirLabel || 'Abrir';
-                btnAbrir.classList.remove('d-none');
-            } else {
-                btnAbrir.classList.add('d-none');
-            }
-        }
-        if (btnContinuar) {
-            if (mostrarContinuar) btnContinuar.classList.remove('d-none');
-            else btnContinuar.classList.add('d-none');
-        }
-        modal?.classList.add('show');
-        modal?.setAttribute('aria-hidden', 'false');
+  function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
+    if (sub) sub.textContent = subtitle || '';
+    if (body) body.innerHTML = htmlBody || '';
+    if (btnAbrir) {
+      if (abrirHref) { btnAbrir.href = abrirHref; btnAbrir.textContent = abrirLabel || 'Abrir'; btnAbrir.classList.remove('d-none'); }
+      else { btnAbrir.classList.add('d-none'); }
     }
-    function hideModal() {
-        modal?.classList.remove('show');
-        modal?.setAttribute('aria-hidden', 'true');
+    if (btnContinuar) {
+      if (mostrarContinuar) btnContinuar.classList.remove('d-none');
+      else btnContinuar.classList.add('d-none');
     }
-    btnFechar?.addEventListener('click', hideModal);
-    modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+    modal?.classList.add('show');
+    modal?.setAttribute('aria-hidden', 'false');
+  }
+  function hideModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
+  btnFechar?.addEventListener('click', hideModal);
+  modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
 
-    btnNova?.addEventListener('click', () => {
-        if (!ctx.tem) {
-            // Se for militar, preferimos a rota antiga; se for aluno, vamos pela genérica
-            const href = (ctx.pessoaTipo === 'aluno')
-                ? ctx.urlNovoGen
-                : (ctx.urlNovoMil || ctx.urlNovoGen);
-
-            if (href) {
-                window.location.href = href;
-            } else {
-                alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
-            }
-            return;
-        }
-
-        // já tem declaração — decide mensagem conforme status
-        const st = (ctx.status || '').toLowerCase();
-        if (st === 'inconforme') {
-            const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
-            showModal(
-                `<p>Sua declaração <strong>já foi enviada</strong> e está com status <strong>INCONFORME</strong>.</p>
-         <p>Por favor, <strong>edite a declaração</strong> para corrigir as pendências antes de enviar outra.</p>`,
-                'Status atual: inconforme',
-                hrefEditar,
-                'Editar declaração',
-                false
-            );
-        } else if (st === 'validado') {
-            const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-            showModal(
-                `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
-                'Status atual: validado',
-                hrefDet,
-                'Ver declaração',
-                false
-            );
-        } else {
-            const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-            showModal(
-                `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
-                'Status atual: pendente',
-                hrefDet,
-                'Ver envio',
-                false
-            );
-        }
-    });
-}) ();
+  btnNova?.addEventListener('click', () => {
+    if (!ctx.tem) {
+      // aluno: vai pra rota genérica; militar: tenta a de militar e cai pra genérica se vazio
+      const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
+      if (href) window.location.href = href;
+      else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
+      return;
+    }
+    // já existe declaração no ano
+    const st = (ctx.status || '').toLowerCase();
+    if (st === 'inconforme') {
+      const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
+      showModal(`<p>Sua declaração <strong>já foi enviada</strong> e está com status <strong>INCONFORME</strong>.</p>
+                 <p>Edite a declaração para corrigir as pendências.</p>`,
+                 'Status atual: inconforme', hrefEditar, 'Editar declaração', false);
+    } else if (st === 'validado') {
+      const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+      showModal(`<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
+                 'Status atual: validado', hrefDet, 'Ver declaração', false);
+    } else {
+      const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+      showModal(`<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
+                 'Status atual: pendente', hrefDet, 'Ver envio', false);
+    }
+  });
+})();
 </script>
 
 <script>
