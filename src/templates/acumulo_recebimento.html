@@ -2,122 +2,36 @@
 
 {% block head %}
 <style>
-    :root {
-        --ink-200: #e8eef6;
-        --glass-brd: rgba(255, 255, 255, .12);
+    :root { --ink-200:#e8eef6; --glass-brd:rgba(255,255,255,.12); }
+    body { background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed; }
+    .page-wrapper{position:relative}
+    .brand-header{
+        background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+        border:1px solid var(--glass-brd); border-radius:16px;color:var(--ink-200);
+        backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+        box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
-
-    /* BG da ficha */
-    body {
-        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    .glass-panel{
+        background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.5);
+        border-radius:18px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        box-shadow:0 10px 30px rgba(0,0,0,.35); color:#111;
     }
-
-    .page-wrapper {
-        position: relative;
+    .page-title{font-weight:600; letter-spacing:.2px}
+    .subtle{color:var(--bs-secondary-color)}
+    .card-soft{border:1px solid var(--bs-border-color); border-radius:16px}
+    .chip{display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .55rem;
+          font-size:.78rem; border-radius:999px; border:1px solid var(--bs-border-color)}
+    .table{background:transparent}
+    .table thead th{position:sticky; top:0; background:#fff; z-index:2}
+    .sticky-col{position:sticky; left:0; z-index:3; background:#fff}
+    .empty{text-align:center; padding:48px 20px; border:2px dashed var(--bs-border-color); border-radius:16px}
+    .action-bar{
+        position:sticky; top:-1px; z-index:4; background:rgba(13,110,253,.08);
+        border:1px solid rgba(0,0,0,.06); border-radius:12px; padding:.5rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
     }
-
-    /* Cabeçalho de vidro (igual aos outros) */
-    .brand-header {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-        border: 1px solid var(--glass-brd);
-        border-radius: 16px;
-        color: var(--ink-200);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-    }
-
-    /* Painel de conteúdo claro (“frosted”) */
-    .glass-panel {
-        background: rgba(255, 255, 255, .92);
-        border: 1px solid rgba(255, 255, 255, .5);
-        border-radius: 18px;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-        color: #111;
-    }
-
-    .page-title {
-        font-weight: 600;
-        letter-spacing: .2px
-    }
-
-    .subtle {
-        color: var(--bs-secondary-color)
-    }
-
-    .card-soft {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 16px
-    }
-
-    .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        padding: .2rem .55rem;
-        font-size: .78rem;
-        border-radius: 999px;
-        border: 1px solid var(--bs-border-color)
-    }
-
-    .table {
-        background: transparent;
-    }
-
-    .table thead th {
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 2
-    }
-
-    .sticky-col {
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        background: #fff
-    }
-
-    .empty {
-        text-align: center;
-        padding: 48px 20px;
-        border: 2px dashed var(--bs-border-color);
-        border-radius: 16px
-    }
-
-    .action-bar {
-        position: sticky;
-        top: -1px;
-        z-index: 4;
-        background: rgba(13, 110, 253, .08);
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 12px;
-        padding: .5rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: .5rem;
-        align-items: center;
-    }
-
-    .pager-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .5rem;
-        align-items: center;
-        justify-content: space-between
-    }
-
-    .pager-compact .pagination {
-        margin: 0
-    }
-
-    .pager-compact .form-control,
-    .pager-compact .form-select {
-        height: calc(1.5em + .5rem + 2px);
-        padding: .25rem .5rem
-    }
+    .pager-bar{display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; justify-content:space-between}
+    .pager-compact .pagination{margin:0}
+    .pager-compact .form-control,.pager-compact .form-select{height:calc(1.5em + .5rem + 2px); padding:.25rem .5rem}
 </style>
 {% endblock %}
 
@@ -129,13 +43,11 @@
     <div class="brand-header p-3 p-md-4 mb-3 mt-4">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded"
-                    alt="CBMAM">
+                <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded" alt="CBMAM">
                 <div>
                     <h1 class="h5 mb-1">Recebimento — {{ 'DRH' if is_drh_like else 'Chefia/OBM' }}</h1>
                     <div class="small text-light opacity-75">
-                        {% if is_drh_like %}Conferência geral de declarações.{% else %}Somente militares da(s) sua(s)
-                        OBM(s).{% endif %}
+                        {% if is_drh_like %}Conferência geral de declarações.{% else %}Somente militares da(s) sua(s) OBM(s).{% endif %}
                         • Ano <strong>{{ ano or '—' }}</strong>
                         • Total <strong>{{ total_ano }}</strong>
                         • Pendentes <strong>{{ total_pendentes }}</strong>
@@ -145,8 +57,7 @@
 
             {% if is_drh_like %}
             <div class="d-flex gap-2">
-                <a class="btn btn-outline-light"
-                    href="{{ url_for('acumulo.recebimento_export', ano=ano, status=status, q=q, obm_id=obm_id) }}">
+                <a class="btn btn-outline-light" href="{{ url_for('acumulo.recebimento_export', ano=ano, status=status, q=q, obm_id=obm_id) }}">
                     <i class="bi bi-download me-1"></i> Exportar Excel
                 </a>
             </div>
@@ -187,8 +98,7 @@
                     <label class="form-label">Chegada à DRH</label>
                     <select class="form-select" name="enc">
                         <option value="">Todos</option>
-                        <option value="1" {{ 'selected' if request.args.get('enc')=='1' else '' }}>Somente encaminhados
-                        </option>
+                        <option value="1" {{ 'selected' if request.args.get('enc')=='1' else '' }}>Somente encaminhados</option>
                     </select>
                 </div>
                 {% endif %}
@@ -205,36 +115,15 @@
 
         <!-- KPIs -->
         <div class="row g-3 mb-3">
-            <div class="col-6 col-md-3">
-                <div class="card card-soft p-3">
-                    <div class="subtle">Total militares</div>
-                    <div class="h4 m-0">{{ total_ano }}</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card card-soft p-3">
-                    <div class="subtle">Enviaram (qualquer status)</div>
-                    <div class="h4 m-0">{{ total_ano - total_nao_enviaram }}</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card card-soft p-3">
-                    <div class="subtle">Não enviaram</div>
-                    <div class="h4 m-0">{{ total_nao_enviaram }}</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card card-soft p-3">
-                    <div class="subtle">Pendentes</div>
-                    <div class="h4 m-0">{{ total_pendentes }}</div>
-                </div>
-            </div>
+            <div class="col-6 col-md-3"><div class="card card-soft p-3"><div class="subtle">Total militares</div><div class="h4 m-0">{{ total_ano }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="card card-soft p-3"><div class="subtle">Enviaram (qualquer status)</div><div class="h4 m-0">{{ total_ano - total_nao_enviaram }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="card card-soft p-3"><div class="subtle">Não enviaram</div><div class="h4 m-0">{{ total_nao_enviaram }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="card card-soft p-3"><div class="subtle">Pendentes</div><div class="h4 m-0">{{ total_pendentes }}</div></div></div>
         </div>
 
         <!-- Ações em massa -->
         <div class="action-bar mb-2">
-            <button class="btn btn-outline-secondary btn-sm" id="selecionar-todos" type="button">Selecionar
-                todos</button>
+            <button class="btn btn-outline-secondary btn-sm" id="selecionar-todos" type="button">Selecionar todos</button>
             <button class="btn btn-outline-secondary btn-sm" id="limpar-selecao" type="button">Limpar seleção</button>
             <div class="vr"></div>
             <button class="btn btn-outline-success btn-sm" id="mass-validar" type="button">
@@ -263,13 +152,18 @@
                     </thead>
                     <tbody>
                         {% for row in linhas or [] %}
+                        {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
+                        {% set eh_positiva = (row.decl_tipo == 'positiva') %}
+                        {% set pode_selecionar =
+                              (not is_drh_like and not ja_enviado)
+                              or (is_drh_like and (not eh_positiva or ja_enviado))
+                        %}
+                        {% set pode_acionar = pode_selecionar %}
+
                         <tr data-id="{{ row.decl_id or '' }}">
                             <td>
-                                {% if row.decl_id %}
-                                {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
-                                {% if is_drh_like or (not ja_enviado) %}
-                                <input class="form-check-input row-check" type="checkbox">
-                                {% endif %}
+                                {% if row.decl_id and pode_selecionar %}
+                                  <input class="form-check-input row-check" type="checkbox">
                                 {% endif %}
                             </td>
                             <td class="sticky-col">
@@ -283,92 +177,91 @@
                             <td>{{ ano }}</td>
                             <td>
                                 {% if row.decl_id %}
-                                {% if row.decl_tipo == 'positiva' %}
-                                <span class="badge text-bg-primary">positiva</span>
+                                    {% if row.decl_tipo == 'positiva' %}
+                                        <span class="badge text-bg-primary">positiva</span>
+                                    {% else %}
+                                        <span class="badge text-bg-secondary">negativa</span>
+                                    {% endif %}
                                 {% else %}
-                                <span class="badge text-bg-secondary">negativa</span>
-                                {% endif %}
-                                {% else %}
-                                <span class="badge text-bg-light text-dark">—</span>
+                                    <span class="badge text-bg-light text-dark">—</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if row.decl_id %}
-                                {% set urls = url_map.get(row.decl_id) or {} %}
-                                {% if urls.get('modelo') %}
-                                <a class="btn btn-link btn-sm p-0 me-2" target="_blank"
-                                    href="{{ urls['modelo'] }}">Modelo</a>
-                                {% endif %}
-                                {% if urls.get('orgao') %}
-                                <a class="btn btn-link btn-sm p-0" target="_blank" href="{{ urls['orgao'] }}">Órgão</a>
-                                {% endif %}
-                                {% if not urls.get('modelo') and not urls.get('orgao') %}
-                                <span class="subtle">—</span>
-                                {% endif %}
+                                    {% set urls = url_map.get(row.decl_id) or {} %}
+                                    {% if urls.get('modelo') %}
+                                        <a class="btn btn-link btn-sm p-0 me-2" target="_blank" href="{{ urls['modelo'] }}">Modelo</a>
+                                    {% endif %}
+                                    {% if urls.get('orgao') %}
+                                        <a class="btn btn-link btn-sm p-0" target="_blank" href="{{ urls['orgao'] }}">Órgão</a>
+                                    {% endif %}
+                                    {% if not urls.get('modelo') and not urls.get('orgao') %}
+                                        <span class="subtle">—</span>
+                                    {% endif %}
                                 {% else %}
-                                <span class="subtle">Não enviado</span>
+                                    <span class="subtle">Não enviado</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if not row.decl_id %}
-                                <span class="chip"><span class="badge text-bg-light text-dark">não enviado</span></span>
+                                    <span class="chip"><span class="badge text-bg-light text-dark">não enviado</span></span>
                                 {% else %}
-                                {% if row.decl_status == 'pendente' %}
-                                <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
-                                {% elif row.decl_status == 'validado' %}
-                                <span class="chip"><span class="badge text-bg-success">validado</span></span>
-                                {% else %}
-                                <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
-                                {% endif %}
+                                    {% if row.decl_status == 'pendente' %}
+                                        <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
+                                    {% elif row.decl_status == 'validado' %}
+                                        <span class="chip"><span class="badge text-bg-success">validado</span></span>
+                                    {% else %}
+                                        <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
+                                    {% endif %}
 
-                                {% if row.decl_status == 'validado' and row.validado_quando %}
-                                <div class="small subtle mt-1">
-                                    Validado por <strong>{{ row.validado_por or '—' }}</strong>
-                                    em {{ row.validado_quando.strftime("%d/%m/%Y %H:%M") }}
-                                </div>
-                                {% endif %}
+                                    {% if row.decl_status == 'validado' and row.validado_quando %}
+                                        <div class="small subtle mt-1">
+                                            Validado por <strong>{{ row.validado_por or '—' }}</strong>
+                                            em {{ row.validado_quando.strftime("%d/%m/%Y %H:%M") }}
+                                        </div>
+                                    {% endif %}
 
-                                {% if is_drh_like and row.encaminhado_flag %}
-                                <div class="small subtle mt-1">
-                                    Encaminhado por <strong>{{ row.encaminhado_por or '—' }}</strong>
-                                    em {{ row.encaminhado_quando.strftime("%d/%m/%Y %H:%M") if row.encaminhado_quando
-                                    else '-' }}
-                                </div>
-                                {% endif %}
+                                    {% if is_drh_like and row.encaminhado_flag %}
+                                        <div class="small subtle mt-1">
+                                            Encaminhado por <strong>{{ row.encaminhado_por or '—' }}</strong>
+                                            em {{ row.encaminhado_quando.strftime("%d/%m/%Y %H:%M") if row.encaminhado_quando else '-' }}
+                                        </div>
+                                    {% endif %}
+
+                                    {% if is_drh_like and eh_positiva and not row.encaminhado_flag %}
+                                        <div class="small subtle mt-1">Aguardando encaminhamento da chefia/diretor.</div>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td class="text-end">
                                 <div class="btn-group">
                                     {% if row.decl_id %}
-                                    <a class="btn btn-outline-primary btn-sm"
-                                        href="{{ url_for('acumulo.detalhe', decl_id=row.decl_id) }}">Detalhe</a>
+                                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('acumulo.detalhe', decl_id=row.decl_id) }}">Detalhe</a>
 
-                                    {% if pode_editar_map and pode_editar_map.get(row.decl_id) %}
-                                    <a class="btn btn-outline-warning btn-sm"
-                                        href="{{ url_for('acumulo.editar', decl_id=row.decl_id) }}">Editar</a>
-                                    {% endif %}
+                                        {% if pode_editar_map and pode_editar_map.get(row.decl_id) %}
+                                            <a class="btn btn-outline-warning btn-sm" href="{{ url_for('acumulo.editar', decl_id=row.decl_id) }}">Editar</a>
+                                        {% endif %}
 
-                                    {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
-                                    {% if is_drh_like or (not ja_enviado) %}
-                                    <form method="post"
-                                        action="{{ url_for('acumulo.recebimento_mudar_status', decl_id=row.decl_id) }}?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&page={{ request.args.get('page', 1) }}&per_page={{ request.args.get('per_page', 20) }}"
-                                        class="d-inline">
-                                        <button type="submit" name="status"
-                                            value="{{ 'validado' if is_drh_like else 'enviar_drh' }}"
-                                            class="btn btn-outline-success btn-sm">
-                                            {{ 'Validar (DRH)' if is_drh_like else 'Encaminhar à DRH' }}
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm btn-inconforme"
-                                            data-decl-id="{{ row.decl_id }}">
-                                            Inconforme
-                                        </button>
-                                    </form>
+                                        {% if pode_acionar %}
+                                            <form method="post"
+                                                  action="{{ url_for('acumulo.recebimento_mudar_status', decl_id=row.decl_id) }}?ano={{ano}}&status={{status}}&q={{q}}&obm_id={{obm_id or ''}}&page={{ request.args.get('page', 1) }}&per_page={{ request.args.get('per_page', 20) }}"
+                                                  class="d-inline">
+                                                <button type="submit" name="status" value="{{ 'validado' if is_drh_like else 'enviar_drh' }}" class="btn btn-outline-success btn-sm">
+                                                    {{ 'Validar (DRH)' if is_drh_like else 'Encaminhar à DRH' }}
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm btn-inconforme" data-decl-id="{{ row.decl_id }}">
+                                                    Inconforme
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            {% if is_drh_like and eh_positiva and not row.encaminhado_flag %}
+                                                <span class="subtle small text-bg-info">Aguardando encaminhamento — sem ações</span>
+                                            {% else %}
+                                                <span class="subtle small">Sem ações</span>
+                                            {% endif %}
+                                        {% endif %}
                                     {% else %}
-                                    <span class="subtle small text-bg-info">Encaminhado à DRH — aguardando
-                                        análise</span>
-                                    {% endif %}
-                                    {% else %}
-                                    <span class="subtle small">Sem ações (não enviado)</span>
+                                        <span class="subtle small">Sem ações (não enviado)</span>
                                     {% endif %}
                                 </div>
                             </td>
@@ -377,334 +270,212 @@
                     </tbody>
                 </table>
             </div>
-            {# --- Paginador compacto (1 … janela … last) --- #}
             {% set _page = request.args.get('page', 1)|int %}
             {% set _pp = request.args.get('per_page', 20)|int %}
             {% set _total = (total_filtrado|default(total_ano)|int) %}
             {% set _pages = (_total and _pp) and ((_total + _pp - 1) // _pp) or 1 %}
             {% set _has_prev = _page > 1 %}
-            {% set _has_next = _page < _pages %} {% set _prev=_has_prev and (_page - 1) or 1 %} {% set _next=_has_next
-                and (_page + 1) or _pages %} {# índices mostrados (ex.: “41–60 de 1341”) #} {% set _start=(_total and
-                ((_page - 1) * _pp + 1)) or 0 %} {% set _end=(_total and ([_total, _page * _pp] | min)) or 0 %} <style>
-                /* evita barra gigante; quebra em linha quando necessário */
-                .pager-compact .pagination{ margin:0; flex-wrap: wrap; gap:.25rem; }
-                .pager-compact .page-link{ min-width: 2.2rem; text-align:center; }
-                </style>
+            {% set _has_next = _page < _pages %}
+            {% set _prev = _has_prev and (_page - 1) or 1 %}
+            {% set _next = _has_next and (_page + 1) or _pages %}
+            <style>.pager-compact .pagination{margin:0;flex-wrap:wrap;gap:.25rem}.pager-compact .page-link{min-width:2.2rem;text-align:center}</style>
 
-                <div class="card card-soft p-3 mt-2 pager-compact">
-                    <div class="pager-bar">
-                        <div class="small text-muted">
-                            {% if _total %}
-                            Mostrando <strong>{{ _start }}</strong>–<strong>{{ _end }}</strong> de <strong>{{ _total
-                                }}</strong>
-                            • Página <strong>{{ _page }}</strong>/<strong>{{ _pages }}</strong>
-                            {% else %}Nenhum resultado{% endif %}
-                        </div>
-
-                        <ul class="pagination">
-                            {# Primeira / Anterior #}
-                            <li class="page-item {{ '' if _has_prev else 'disabled' }}">
-                                <a class="page-link"
-                                    href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=1, per_page=_pp) }}"
-                                    aria-label="Primeira">«</a>
-                            </li>
-                            <li class="page-item {{ '' if _has_prev else 'disabled' }}">
-                                <a class="page-link"
-                                    href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_prev, per_page=_pp) }}"
-                                    aria-label="Anterior">‹</a>
-                            </li>
-
-                            {# Página 1 #}
-                            <li class="page-item {{ 'active' if _page == 1 }}">
-                                <a class="page-link"
-                                    href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=1, per_page=_pp) }}">1</a>
-                            </li>
-
-                            {# “…” antes da janela #}
-                            {% set window = 2 %}
-                            {% set start = [2, _page - window] | max %}
-                            {% set end = [_pages - 1, _page + window] | min %}
-                            {% if start > 2 %}
-                            <li class="page-item disabled"><span class="page-link">…</span></li>
-                            {% endif %}
-
-                            {# Janela central #}
-                            {% for p in range(start, end + 1) %}
-                            {% if 1 < p < _pages %} <li class="page-item {{ 'active' if p == _page }}">
-                                <a class="page-link"
-                                    href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=p, per_page=_pp) }}">{{
-                                    p }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-
-                                {# “…” depois da janela #}
-                                {% if end < _pages - 1 %} <li class="page-item disabled"><span
-                                        class="page-link">…</span></li>
-                                    {% endif %}
-
-                                    {# Última página (se houver mais de 1) #}
-                                    {% if _pages > 1 %}
-                                    <li class="page-item {{ 'active' if _page == _pages }}">
-                                        <a class="page-link"
-                                            href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_pages, per_page=_pp) }}">{{
-                                            _pages }}</a>
-                                    </li>
-                                    {% endif %}
-
-                                    {# Próxima / Última #}
-                                    <li class="page-item {{ '' if _has_next else 'disabled' }}">
-                                        <a class="page-link"
-                                            href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_next, per_page=_pp) }}"
-                                            aria-label="Próxima">›</a>
-                                    </li>
-                                    <li class="page-item {{ '' if _has_next else 'disabled' }}">
-                                        <a class="page-link"
-                                            href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_pages, per_page=_pp) }}"
-                                            aria-label="Última">»</a>
-                                    </li>
-                        </ul>
-
-                        <form method="get" class="d-flex align-items-center gap-2">
-                            {# preserva filtros #}
-                            <input type="hidden" name="ano" value="{{ ano }}">
-                            <input type="hidden" name="status" value="{{ status }}">
-                            <input type="hidden" name="q" value="{{ q }}">
-                            <input type="hidden" name="obm_id" value="{{ obm_id or '' }}">
-                            {% if request.args.get('enc') %}<input type="hidden" name="enc"
-                                value="{{ request.args.get('enc') }}">{% endif %}
-
-                            <div class="d-flex align-items-center gap-1">
-                                <label class="small text-muted">Ir para</label>
-                                <input type="number" class="form-control form-control-sm" name="page" min="1"
-                                    max="{{ _pages }}" value="{{ _page }}" style="width:84px">
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <label class="small text-muted">por pág.</label>
-                                <select name="per_page" class="form-select form-select-sm"
-                                    onchange="this.form.submit()">
-                                    {% for opt in [10,20,30,50,100] %}
-                                    <option value="{{ opt }}" {{ 'selected' if opt==_pp else '' }}>{{ opt }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <button class="btn btn-outline-secondary btn-sm">Ir</button>
-                        </form>
+            <div class="card card-soft p-3 mt-2 pager-compact">
+                <div class="pager-bar">
+                    <div class="small text-muted">
+                        {% if _total %}
+                        Mostrando <strong>{{ _start }}</strong>–<strong>{{ _end }}</strong> de <strong>{{ _total }}</strong>
+                        • Página <strong>{{ _page }}</strong>/<strong>{{ _pages }}</strong>
+                        {% else %}Nenhum resultado{% endif %}
                     </div>
+
+                    <ul class="pagination">
+                        <li class="page-item {{ '' if _has_prev else 'disabled' }}">
+                            <a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=1, per_page=_pp) }}" aria-label="Primeira">«</a>
+                        </li>
+                        <li class="page-item {{ '' if _has_prev else 'disabled' }}">
+                            <a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_prev, per_page=_pp) }}" aria-label="Anterior">‹</a>
+                        </li>
+
+                        <li class="page-item {{ 'active' if _page == 1 }}">
+                            <a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=1, per_page=_pp) }}">1</a>
+                        </li>
+
+                        {% set window = 2 %}
+                        {% set start = [2, _page - window] | max %}
+                        {% set end = [_pages - 1, _page + window] | min %}
+                        {% if start > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+
+                        {% for p in range(start, end + 1) %}
+                          {% if 1 < p < _pages %}
+                          <li class="page-item {{ 'active' if p == _page }}"><a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=p, per_page=_pp) }}">{{ p }}</a></li>
+                          {% endif %}
+                        {% endfor %}
+
+                        {% if end < _pages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+
+                        {% if _pages > 1 %}
+                        <li class="page-item {{ 'active' if _page == _pages }}"><a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_pages, per_page=_pp) }}">{{ _pages }}</a></li>
+                        {% endif %}
+
+                        <li class="page-item {{ '' if _has_next else 'disabled' }}">
+                            <a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_next, per_page=_pp) }}" aria-label="Próxima">›</a>
+                        </li>
+                        <li class="page-item {{ '' if _has_next else 'disabled' }}">
+                            <a class="page-link" href="{{ url_for(request.endpoint, ano=ano, status=status, q=q, obm_id=obm_id, enc=request.args.get('enc'), page=_pages, per_page=_pp) }}" aria-label="Última">»</a>
+                        </li>
+                    </ul>
+
+                    <form method="get" class="d-flex align-items-center gap-2">
+                        <input type="hidden" name="ano" value="{{ ano }}">
+                        <input type="hidden" name="status" value="{{ status }}">
+                        <input type="hidden" name="q" value="{{ q }}">
+                        <input type="hidden" name="obm_id" value="{{ obm_id or '' }}">
+                        {% if request.args.get('enc') %}<input type="hidden" name="enc" value="{{ request.args.get('enc') }}">{% endif %}
+
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="small text-muted">Ir para</label>
+                            <input type="number" class="form-control form-control-sm" name="page" min="1" max="{{ _pages }}" value="{{ _page }}" style="width:84px">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="small text-muted">por pág.</label>
+                            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                                {% for opt in [10,20,30,50,100] %}
+                                <option value="{{ opt }}" {{ 'selected' if opt==_pp else '' }}>{{ opt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm">Ir</button>
+                    </form>
                 </div>
-        </div>
+            </div>
 
         {% else %}
-        <div class="p-4">
-            <div class="empty">
-                <div style="font-size:42px; line-height:1;">📂</div>
-                <div class="mt-2 fw-semibold">Nenhum militar encontrado</div>
-                <div class="subtle">Ajuste os filtros acima.</div>
-            </div>
-        </div>
-        {% endif %}
-    </div> {# /.card card-soft da tabela #}
-
-    <style>
-        .modal-backdrop-custom {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1050;
-        }
-
-        .modal-backdrop-custom.show {
-            display: flex;
-        }
-
-        .modal-card {
-            background: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            border: 1px solid var(--bs-border-color);
-            border-radius: 12px;
-            width: min(640px, 96vw);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
-        }
-    </style>
-
-    <div id="modal-inconforme" class="modal-backdrop-custom" aria-hidden="true">
-        <div class="modal-card">
-            <form id="form-inconforme" method="post">
-                <div class="p-3 border-bottom">
-                    <h5 class="m-0">Marcar como inconforme</h5>
-                    <div class="small subtle mt-1">Informe o motivo. Esta observação ficará registrada para ciência do
-                        militar.</div>
+            <div class="p-4">
+                <div class="empty">
+                    <div style="font-size:42px; line-height:1;">📂</div>
+                    <div class="mt-2 fw-semibold">Nenhum militar encontrado</div>
+                    <div class="subtle">Ajuste os filtros acima.</div>
                 </div>
+            </div>
+        {% endif %}
+        </div> {# /.card card-soft da tabela #}
 
-                <div class="p-3">
-                    <input type="hidden" name="status" value="inconforme">
-                    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+        <style>
+            .modal-backdrop-custom{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1050;}
+            .modal-backdrop-custom.show{display:flex}
+            .modal-card{background:var(--bs-body-bg); color:var(--bs-body-color); border:1px solid var(--bs-border-color); border-radius:12px; width:min(640px,96vw); box-shadow:0 10px 30px rgba(0,0,0,.25);}
+        </style>
 
-                    <div class="mb-2">
-                        <label class="form-label">Observação (obrigatória)</label>
-                        <textarea class="form-control" name="motivo" id="motivo-inconforme" rows="4" required
-                            placeholder="Explique o motivo da inconformidade..."></textarea>
+        <div id="modal-inconforme" class="modal-backdrop-custom" aria-hidden="true">
+            <div class="modal-card">
+                <form id="form-inconforme" method="post">
+                    <div class="p-3 border-bottom">
+                        <h5 class="m-0">Marcar como inconforme</h5>
+                        <div class="small subtle mt-1">Informe o motivo. Esta observação ficará registrada para ciência do militar.</div>
                     </div>
 
-                    <div class="alert alert-warning d-none" id="bulk-info" role="alert"></div>
-                </div>
+                    <div class="p-3">
+                        <input type="hidden" name="status" value="inconforme">
+                        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
 
-                <div class="p-3 border-top d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-secondary"
-                        id="btn-cancelar-inconforme">Cancelar</button>
-                    <button type="submit" class="btn btn-danger" id="btn-confirmar-inconforme">Confirmar</button>
-                </div>
-            </form>
+                        <div class="mb-2">
+                            <label class="form-label">Observação (obrigatória)</label>
+                            <textarea class="form-control" name="motivo" id="motivo-inconforme" rows="4" required placeholder="Explique o motivo da inconformidade..."></textarea>
+                        </div>
+
+                        <div class="alert alert-warning d-none" id="bulk-info" role="alert"></div>
+                    </div>
+
+                    <div class="p-3 border-top d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="btn-cancelar-inconforme">Cancelar</button>
+                        <button type="submit" class="btn btn-danger" id="btn-confirmar-inconforme">Confirmar</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-</div> {# /.glass-panel #}
+    </div> {# /.glass-panel #}
 </div> {# /.container-xxl #}
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('[recebimento] script carregado');
+document.addEventListener('DOMContentLoaded', () => {
+    const chkAll = document.getElementById('chk-all');
+    const getRowChecks = () => Array.from(document.querySelectorAll('tbody .row-check'));
+    chkAll?.addEventListener('change', () => getRowChecks().forEach(c => c.checked = chkAll.checked));
+    document.getElementById('selecionar-todos')?.addEventListener('click', () => getRowChecks().forEach(c => c.checked = true));
+    document.getElementById('limpar-selecao')?.addEventListener('click', () => { getRowChecks().forEach(c => c.checked = false); if (chkAll) chkAll.checked = false; });
 
-        // ===== seleção em massa =====
-        const chkAll = document.getElementById('chk-all');
-        const getRowChecks = () => Array.from(document.querySelectorAll('tbody .row-check'));
-        chkAll?.addEventListener('change', () => getRowChecks().forEach(c => c.checked = chkAll.checked));
-        document.getElementById('selecionar-todos')?.addEventListener('click', () => getRowChecks().forEach(c => c.checked = true));
-        document.getElementById('limpar-selecao')?.addEventListener('click', () => {
-            getRowChecks().forEach(c => c.checked = false);
-            if (chkAll) chkAll.checked = false;
+    function selectedIds(){ return Array.from(document.querySelectorAll('tbody tr[data-id] .row-check:checked')).map(chk => chk.closest('tr').dataset.id); }
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    async function postStatus(id, novo, motivo){
+        const params = new URLSearchParams({
+            ano: {{ (ano|default(''))|tojson }},
+            status: {{ (status|default(''))|tojson }},
+            q: {{ (q|default(''))|tojson }},
+            obm_id: {{ (obm_id|default(''))|tojson }},
+            page: {{ request.args.get('page', 1)|tojson }},
+            per_page: {{ request.args.get('per_page', 20)|tojson }},
         });
+        const url = {{ url_for("acumulo.recebimento_mudar_status", decl_id=0)|tojson }}.replace('0', id) + '?' + params.toString();
+        const body = new URLSearchParams(); body.set('status', novo); if (motivo) body.set('motivo', motivo); if (csrf) body.set('csrf_token', csrf);
+        const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() });
+        if(!resp.ok){ const txt = await resp.text().catch(()=> ''); throw new Error(`Falha ao mudar status para ${novo} na declaração ${id}. HTTP ${resp.status}. ${txt}`); }
+    }
 
-        // ids selecionados
-        function selectedIds() {
-            return Array.from(document.querySelectorAll('tbody tr[data-id] .row-check:checked'))
-                .map(chk => chk.closest('tr').dataset.id);
-        }
-
-        // CSRF (via <meta>), se tiver
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-        // ===== envio com suporte a 'motivo' =====
-        async function postStatus(id, novo, motivo) {
-            const params = new URLSearchParams({
-                ano: {{ (ano |default('')) | tojson }},
-                status: {{ (status |default('')) | tojson }},
-                q: {{ (q |default('')) | tojson }},
-                obm_id: {{ (obm_id |default('')) | tojson }},
-                page: {{ request.args.get('page', 1) | tojson }},
-                per_page: {{ request.args.get('per_page', 20) | tojson }},
-            });
-
-            const url = {{ url_for("acumulo.recebimento_mudar_status", decl_id = 0) | tojson }}.replace('0', id) + '?' + params.toString();
-
-            const body = new URLSearchParams();
-            body.set('status', novo);
-            if (motivo) body.set('motivo', motivo);
-            if (csrf) body.set('csrf_token', csrf);
-
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString()
-            });
-            if (!resp.ok) {
-                const txt = await resp.text().catch(() => '');
-                throw new Error(`Falha ao mudar status para ${novo} na declaração ${id}. HTTP ${resp.status}. ${txt}`);
-            }
-        }
-
-        // ===== mass-validate =====
-        const statusForBulkValidate = {{ ('validado' if is_drh_like else 'enviar_drh')| tojson }};
-        async function runBulk(action) {
-            const btns = [document.getElementById('mass-validar'), document.getElementById('mass-inconforme')].filter(Boolean);
-            btns.forEach(b => b.disabled = true);
-            try {
-                const ids = selectedIds();
-                if (!ids.length) { alert('Selecione pelo menos uma declaração.'); return; }
-                await Promise.allSettled(ids.map(id => postStatus(id, action)));
-                location.reload();
-            } finally {
-                btns.forEach(b => b.disabled = false);
-            }
-        }
-        document.getElementById('mass-validar')?.addEventListener('click', () => runBulk(statusForBulkValidate));
-
-        // ===== MODAL INCONFORME =====
-        const modalEl = document.getElementById('modal-inconforme');
-        const formInconforme = document.getElementById('form-inconforme');
-        const motivoInput = document.getElementById('motivo-inconforme');
-        const bulkInfo = document.getElementById('bulk-info');
-        const btnCancelar = document.getElementById('btn-cancelar-inconforme');
-
-        let inconformeMode = 'single';   // 'single' | 'bulk'
-        let currentDeclId = null;
-        let currentBulkIds = [];
-
-        function showModal() {
-            if (!modalEl) return;
-            modalEl.classList.add('show');
-            modalEl.setAttribute('aria-hidden', 'false');
-            if (motivoInput) { motivoInput.value = ''; setTimeout(() => motivoInput.focus(), 0); }
-        }
-        function hideModal() {
-            if (!modalEl) return;
-            modalEl.classList.remove('show');
-            modalEl.setAttribute('aria-hidden', 'true');
-            currentDeclId = null; currentBulkIds = [];
-            if (bulkInfo) { bulkInfo.classList.add('d-none'); bulkInfo.textContent = ''; }
-        }
-
-        btnCancelar?.addEventListener('click', hideModal);
-        modalEl?.addEventListener('click', (e) => { if (e.target === modalEl) hideModal(); });
-
-        // Por linha
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-inconforme');
-            if (!btn) return;
-            e.preventDefault(); e.stopPropagation();
-            const tr = btn.closest('tr[data-id]');
-            const declId = btn.dataset.declId || tr?.dataset.id;
-            if (!declId) return;
-            inconformeMode = 'single';
-            currentDeclId = declId;
-            bulkInfo?.classList.add('d-none');
-            showModal();
-        });
-
-        // Em massa
-        document.getElementById('mass-inconforme')?.addEventListener('click', (e) => {
-            e.preventDefault();
+    const statusForBulkValidate = {{ ('validado' if is_drh_like else 'enviar_drh')|tojson }};
+    async function runBulk(action){
+        const btns = [document.getElementById('mass-validar'), document.getElementById('mass-inconforme')].filter(Boolean);
+        btns.forEach(b => b.disabled = true);
+        try{
             const ids = selectedIds();
-            if (!ids.length) { alert('Selecione pelo menos uma declaração.'); return; }
-            inconformeMode = 'bulk';
-            currentBulkIds = ids;
-            if (bulkInfo) { bulkInfo.textContent = `Você marcará ${ids.length} declaração(ões) como INCONFORME com o mesmo motivo.`; bulkInfo.classList.remove('d-none'); }
-            showModal();
-        });
+            if(!ids.length){ alert('Selecione pelo menos uma declaração.'); return; }
+            await Promise.allSettled(ids.map(id => postStatus(id, action)));
+            location.reload();
+        } finally { btns.forEach(b => b.disabled = false); }
+    }
+    document.getElementById('mass-validar')?.addEventListener('click', () => runBulk(statusForBulkValidate));
 
-        // Envio
-        formInconforme?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const motivo = (motivoInput?.value || '').trim();
-            if (!motivo) { motivoInput?.focus(); return; }
-            try {
-                if (inconformeMode === 'single' && currentDeclId) {
-                    await postStatus(currentDeclId, 'inconforme', motivo);
-                } else if (inconformeMode === 'bulk' && currentBulkIds.length) {
-                    await Promise.allSettled(currentBulkIds.map(id => postStatus(id, 'inconforme', motivo)));
-                }
-                hideModal();
-                location.reload();
-            } catch (err) {
-                console.error('[recebimento] erro ao marcar inconforme:', err);
-                alert('Não foi possível atualizar. Tente novamente.');
-            }
-        });
+    // Modal inconforme
+    const modalEl = document.getElementById('modal-inconforme');
+    const formInconforme = document.getElementById('form-inconforme');
+    const motivoInput = document.getElementById('motivo-inconforme');
+    const bulkInfo = document.getElementById('bulk-info');
+    const btnCancelar = document.getElementById('btn-cancelar-inconforme');
 
-        console.log('[recebimento] handlers prontos');
+    let inconformeMode = 'single', currentDeclId = null, currentBulkIds = [];
+
+    function showModal(){ modalEl?.classList.add('show'); modalEl?.setAttribute('aria-hidden','false'); if(motivoInput){ motivoInput.value=''; setTimeout(()=>motivoInput.focus(),0);} }
+    function hideModal(){ modalEl?.classList.remove('show'); modalEl?.setAttribute('aria-hidden','true'); currentDeclId=null; currentBulkIds=[]; if(bulkInfo){ bulkInfo.classList.add('d-none'); bulkInfo.textContent=''; } }
+
+    btnCancelar?.addEventListener('click', hideModal);
+    modalEl?.addEventListener('click', (e) => { if(e.target === modalEl) hideModal(); });
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-inconforme'); if(!btn) return;
+        e.preventDefault(); e.stopPropagation();
+        const tr = btn.closest('tr[data-id]'); const declId = btn.dataset.declId || tr?.dataset.id; if(!declId) return;
+        inconformeMode = 'single'; currentDeclId = declId; bulkInfo?.classList.add('d-none'); showModal();
     });
+
+    document.getElementById('mass-inconforme')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const ids = selectedIds(); if(!ids.length){ alert('Selecione pelo menos uma declaração.'); return; }
+        inconformeMode = 'bulk'; currentBulkIds = ids;
+        if(bulkInfo){ bulkInfo.textContent = `Você marcará ${ids.length} declaração(ões) como INCONFORME com o mesmo motivo.`; bulkInfo.classList.remove('d-none'); }
+        showModal();
+    });
+
+    formInconforme?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const motivo = (motivoInput?.value || '').trim(); if(!motivo){ motivoInput?.focus(); return; }
+        try{
+            if(inconformeMode === 'single' && currentDeclId){ await postStatus(currentDeclId, 'inconforme', motivo); }
+            else if(inconformeMode === 'bulk' && currentBulkIds.length){ await Promise.allSettled(currentBulkIds.map(id => postStatus(id, 'inconforme', motivo))); }
+            hideModal(); location.reload();
+        } catch(err){ console.error('[recebimento] erro ao marcar inconforme:', err); alert('Não foi possível atualizar. Tente novamente.'); }
+    });
+});
 </script>
 
 {% endblock %}

@@ -258,6 +258,34 @@ def _ymd(s: str) -> str:
     except Exception:
         return s
 
+def _is_privilegiado() -> bool:
+    # SUPER USER sempre é privilegiado
+    if _is_super_user():
+        return True
+
+    # Tenta ler via relação (pode ser lista ou objeto único)
+    ocup = None
+    try:
+        fu = getattr(current_user, "user_funcao", None)
+        if isinstance(fu, (list, tuple)):
+            for f in fu:
+                o = getattr(f, "ocupacao", None)
+                if o:
+                    ocup = o
+                    break
+        elif fu is not None:
+            ocup = getattr(fu, "ocupacao", None)
+    except Exception:
+        pass
+
+    # Fallback: campo simples no User
+    if not ocup:
+        ocup = getattr(current_user, "ocupacao", None)
+
+    up = (ocup or "").upper()
+    # marque aqui todos os cargos “VIP” que devem ver TUDO
+    return ("SUPER USER" in up) or ("DIRETOR DRH" in up)
+
 
 @app.route("/home-atualizacao", methods=["GET"])
 @login_required
@@ -1418,6 +1446,8 @@ def recebimento():
     M, D, PG, MOF, O, F = Militar, DeclaracaoAcumulo, PostoGrad, MilitarObmFuncao, Obm, Funcao
     IS_DRH_LIKE = _is_drh_like()
 
+    IS_PRIV = _is_privilegiado()
+
     rn = func.row_number().over(
         partition_by=D.militar_id,
         order_by=(D.updated_at.desc().nullslast(), D.id.desc())
@@ -1501,30 +1531,34 @@ def recebimento():
         )
     )
 
-    if IS_DRH_LIKE:
-        base_page_q = base_page_q.filter(
-            or_(ultimo_subq.c.decl_tipo == "negativa", enc_exists)
-        )
-
+    # VISIBILIDADE (apenas uma vez)
     if not IS_DRH_LIKE:
+        # Chefia/OBM: NÃO veem negativas; positivas sempre
         base_page_q = base_page_q.filter(
-            or_(ultimo_subq.c.decl_id.is_(None),
-                ultimo_subq.c.decl_tipo != "negativa")
+            or_(ultimo_subq.c.decl_id.is_(None), ultimo_subq.c.decl_tipo != "negativa")
         )
     else:
-        base_page_q = base_page_q.filter(
-            or_(
-                ultimo_subq.c.decl_id.is_(None),
-                ultimo_subq.c.decl_tipo == "negativa",
-                enc_exists
+        if IS_PRIV:
+            # SUPER USER / CHEFE DRH: vê TUDO
+            pass
+        else:
+            # DRH normal: vê "não enviou", TODAS as negativas e
+            # positivas SOMENTE se encaminhadas
+            base_page_q = base_page_q.filter(
+                or_(
+                    ultimo_subq.c.decl_id.is_(None),   # <<< reintroduz "não enviou"
+                    ultimo_subq.c.decl_tipo == "negativa",
+                    enc_exists                         # positiva encaminhada
+                )
             )
-        )
+
 
     enc_only = (request.args.get("enc") == "1")
     if IS_DRH_LIKE and enc_only:
-        # Somente declarações com registro de 'enviado_drh'
-        # OBS: Negativas não têm esse registro e ficarão de fora (comportamento esperado para “Somente encaminhados”).
-        base_page_q = base_page_q.filter(enc_exists)
+        # mostrar só POSITIVAS encaminhadas
+        base_page_q = base_page_q.filter(
+            and_(ultimo_subq.c.decl_tipo == "positiva", enc_exists)
+        )
 
     if status == "pendente":
         base_page_q = base_page_q.filter(
@@ -1704,6 +1738,8 @@ def recebimento():
                        for (m, _, _, decl_id, *_rest) in rows if decl_id}
 
     obms = db.session.query(O).order_by(O.sigla.asc()).all()
+    print('IS_DRH_LIKE=', IS_DRH_LIKE, 'IS_PRIV=', IS_PRIV, 'enc_only=', request.args.get("enc"))
+
 
     return render_template(
         "acumulo_recebimento.html",
@@ -1740,10 +1776,20 @@ def recebimento_mudar_status(decl_id):
     if not IS_DRH_LIKE and not _militar_permitido(decl.militar_id):
         abort(403)
 
-    # só DRH-like pode aplicar 'validado'
-    if novo == "validado" and not IS_DRH_LIKE:
-        flash("Apenas DRH pode validar.", "alert-danger")
-        return redirect(url_for("acumulo.recebimento"))
+    # depois de carregar decl e conferir 'validado'
+    if novo == "validado" and IS_DRH_LIKE:
+        # positivas só podem ser validadas se já foram encaminhadas
+        enc_reg = db.session.query(AuditoriaDeclaracao.id).filter(
+            AuditoriaDeclaracao.declaracao_id == decl.id,
+            AuditoriaDeclaracao.motivo == "enviado_drh"
+        ).first()
+        if decl.tipo == "positiva" and not enc_reg:
+            flash("Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
+            return redirect(url_for("acumulo.recebimento",
+                ano=request.args.get("ano"), status=request.args.get("status"),
+                q=request.args.get("q"), obm_id=request.args.get("obm_id"),
+                page=request.args.get("page"), per_page=request.args.get("per_page"),
+            ))
 
     de = decl.status
     if novo == "enviar_drh":
