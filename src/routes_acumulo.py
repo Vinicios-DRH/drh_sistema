@@ -1553,11 +1553,16 @@ def recebimento():
             )
 
 
+    # Chegada à DRH = Somente encaminhadas
     enc_only = (request.args.get("enc") == "1")
     if IS_DRH_LIKE and enc_only:
-        # mostrar só POSITIVAS encaminhadas
         base_page_q = base_page_q.filter(
-            and_(ultimo_subq.c.decl_tipo == "positiva", enc_exists)
+            or_(
+                # negativas contam como "encaminhadas"
+                ultimo_subq.c.decl_tipo == "negativa",
+                # positivas somente se houver registro "enviado_drh"
+                and_(ultimo_subq.c.decl_tipo == "positiva", enc_exists)
+            )
         )
 
     if status == "pendente":
