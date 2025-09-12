@@ -133,6 +133,25 @@
         return false;
     }
 
+    function desbloquearTerceiroSePode(row, mid, maxDias) {
+        const { total12 } = getTotais(row, mid);
+        const s3  = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
+        const i3  = row.querySelector(`[name="inicio_3_${mid}"]`);
+        const f3  = row.querySelector(`[name="fim_3_${mid}"]`);
+
+        // se ainda NÃO bateu o teto, libera os 3 campos do 3º período
+        if (total12 < maxDias) {
+            [s3, i3, f3].forEach(el => { if (el) el.disabled = false; });
+            // opcional: mínima = primeiro dia do mês que vem (evita passado)
+            if (i3 && i3.type === 'date') {
+            const base = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1); // mês que vem, dia 1
+            const pad = v => String(v).padStart(2, '0');
+            i3.min = `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}`;
+            i3.max = `${ANO_ATUAL}-12-31`;
+            }
+        }
+    }
+
     function bloquearPeriodo(row, mid, p, bloquear) {
         const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
         const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
@@ -143,6 +162,10 @@
     // habilita por DATA somente se futuro estrito; respeita teto 1º+2º
     function aplicarRegraPeriodo(row, mid, p, maxDias) {
         if (p === "3" && travarTerceiroSeBateu(row, mid, maxDias)) return true;
+
+        if (p === "3") {
+            desbloquearTerceiroSePode(row, mid, maxDias);
+        }
 
         const iniVal = row.querySelector(`[name="inicio_${p}_${mid}"]`)?.value || "";
         const dtIni = parseInputDate(iniVal);
@@ -161,6 +184,7 @@
             }
         }
         bloquearPeriodo(row, mid, p, !habilitar);
+        if (p === "3" && !habilitar) desbloquearTerceiroSePode(row, mid, maxDias);
         return !habilitar;
     }
 
@@ -253,6 +277,10 @@
                 validarSequencia(row, mid);
             });
         }
+
+        atualizarCampos();
+        desbloquearTerceiroSePode(row, mid, maxDias);
+        if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias);
     }
 
     function ligarListenerMesUsufruto(row, mid, maxDias, atualizarCampos) {
@@ -260,6 +288,7 @@
         if (!mes) return;
         mes.addEventListener('change', () => {
             ["1", "2", "3"].forEach(p => aplicarRegraPeriodo(row, mid, p, maxDias));
+            desbloquearTerceiroSePode(row, mid, maxDias);
             ["1", "2", "3"].forEach(p => calcularFim(row, mid, p));
             validarSequencia(row, mid);
         });
@@ -328,6 +357,7 @@
 
             // garantia
             atualizarCampos();
+            desbloquearTerceiroSePode(row, mid, maxDias);
             travarTerceiroSeBateu(row, mid, maxDias);
         });
 
