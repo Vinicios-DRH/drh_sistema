@@ -36,6 +36,7 @@
 
 {% block body %}
 <main>
+    {% set EDICAO = is_edicao if is_edicao is defined else (aluno is defined and aluno) %}
 
     <div class="container mt-5">
         <div class="card shadow-lg">
@@ -161,14 +162,16 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Nota do Comportamento</label>
+                            <!-- Nota do comportamento -->
                             <input type="number" step="0.01" min="0" max="10" name="nota_comportamento"
                                 id="notaComportamento" class="form-control"
-                                value="{{ aluno.nota_comportamento or 5.0 }}" oninput="atualizarComportamento()">
+                                value="{{ (aluno.nota_comportamento if EDICAO else 5.0) }}"
+                                oninput="atualizarComportamento()">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Comportamento Atual</label>
+                            <label class="form-label">Comportamento Atual</label><!-- Comportamento atual -->
                             <input type="text" class="form-control" id="comportamentoAtual"
-                                value="{{ aluno.comportamento or 'Bom' }}" readonly style="font-weight: bold;">
+                                value="{{ (aluno.comportamento if EDICAO else 'Bom') }}" readonly style="font-weight: bold;">
                         </div>
                     </div>
                     <div class="text-end mt-4">
@@ -180,6 +183,7 @@
         </div>
 
         <!-- AQUI COMEÇA O PAINEL PREMIUM -->
+         {% if EDICAO %}
         <div class="mt-5">
             <h4 class="text-center mb-4"><i class="bi bi-tools"></i> Ações Disponíveis</h4>
 
@@ -242,33 +246,40 @@
 
             </div>
         </div>
+        {% else %}
+        <div class="alert alert-info mt-4">
+            Salve a ficha para habilitar as ações (LTS, restrições, recompensas, sanções).
+        </div>
+        {% endif %}
 
     </div>
-    {% if aluno.licencas_lts %}
-    <hr>
-    <h5>Histórico de Licenças para Tratamento de Saúde (LTS)</h5>
-    <table class="table table-bordered table-hover">
-        <thead class="table-secondary">
-            <tr>
-                <th>BI</th>
-                <th>Início</th>
-                <th>Término</th>
-                <th>Responsável</th>
-                <th>Registrado em</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for lts in aluno.licencas_lts %}
-            <tr>
-                <td>{{ lts.boletim_interno }}</td>
-                <td>{{ lts.data_inicio.strftime('%d/%m/%Y') }}</td>
-                <td>{{ lts.data_fim.strftime('%d/%m/%Y') }}</td>
-                <td>{{ lts.usuario.nome }}</td>
-                <td>{{ lts.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if EDICAO and aluno.licencas_lts %}
+        {% if aluno.licencas_lts %}
+        <hr>
+        <h5>Histórico de Licenças para Tratamento de Saúde (LTS)</h5>
+        <table class="table table-bordered table-hover">
+            <thead class="table-secondary">
+                <tr>
+                    <th>BI</th>
+                    <th>Início</th>
+                    <th>Término</th>
+                    <th>Responsável</th>
+                    <th>Registrado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lts in aluno.licencas_lts %}
+                <tr>
+                    <td>{{ lts.boletim_interno }}</td>
+                    <td>{{ lts.data_inicio.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ lts.data_fim.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ lts.usuario.nome }}</td>
+                    <td>{{ lts.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
     {% endif %}
 
     {% if aluno.restricoes %}

@@ -3842,7 +3842,10 @@ def ficha_aluno():
         flash('Ficha do aluno salva com sucesso!', 'success')
         return redirect(url_for('ficha_aluno'))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year)
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year, 
+                            aluno=None,          # <- importante
+                            is_edicao=False      # <- flag
+                            )
 
 
 @app.route('/fichas')
@@ -3940,7 +3943,8 @@ def editar_ficha(aluno_id):
         flash("Ficha atualizada com sucesso!", "success")
         return redirect(url_for('listar_fichas', aluno_id=aluno.id))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno, ano_atual=datetime.now().year)
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno, ano_atual=datetime.now().year,
+                            is_edicao=True)
 
 
 @app.route('/fichas/<int:aluno_id>/inativar', methods=['GET', 'POST'])
