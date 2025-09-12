@@ -97,6 +97,26 @@
     background: rgba(99, 102, 241, .85);
     color: #0b1020;
   }
+
+  .transparent-card .footer-note{
+    border-top: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.06);
+    padding: .75rem 1rem;
+    border-bottom-left-radius: .5rem;
+    border-bottom-right-radius: .5rem;
+  }
+  .transparent-card .footer-note, 
+  .transparent-card .footer-note a{
+    color: #f8fafc;
+  }
+  .transparent-card .footer-note a{
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .transparent-card .footer-note a:hover{
+    opacity: .9;
+  }
+
 </style>
 {% endblock %}
 
@@ -160,6 +180,11 @@
                     {{ form_login.botao_submit_login(class="btn btn-outline-primary mt-2") }}
                   </div>
                 </div>
+                <div class="footer-note text-center mt-2">
+                <a href="{{ url_for('login_atualizacao') }}" class="small fw-semibold text-decoration-underline">
+                  Ir para a área do militar (atualizar dados)
+                </a>
+              </div>
             </form>
           </div>
         </div>
