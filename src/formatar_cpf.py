@@ -1,5 +1,5 @@
 from src.decorators.utils_cpf import so_digitos
-from src.models import Militar
+from src.models import Militar, TarefaAtualizacaoCadete
 from sqlalchemy import func, cast, String
 
 
@@ -24,3 +24,22 @@ def get_militar_por_user(user):
     return (Militar.query
             .filter(func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g') == cpf_num)
             .first())
+
+
+def is_cadete(user):
+    mil = get_militar_por_user(user)
+    return bool(mil and mil.posto_grad_id == 7)
+
+
+def cadete_pode_editar_militar(user, militar_id):
+    # Só se existir tarefa pendente/em edição para ele.
+    t = TarefaAtualizacaoCadete.query.filter_by(
+        cadete_user_id=user.id, militar_id=militar_id
+    ).filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"])).first()
+    return t is not None
+
+
+def cadete_restantes(user):
+    return TarefaAtualizacaoCadete.query.filter_by(
+        cadete_user_id=user.id, status="PENDENTE"
+    ).count()

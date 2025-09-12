@@ -1106,3 +1106,29 @@ class DocumentoMilitar(database.Model):
     militar = database.relationship('Militar', backref='documentos_enviados')
     criado_por = database.relationship(
         'User', foreign_keys=[criado_por_user_id])
+
+
+class TarefaAtualizacaoCadete(database.Model):
+    __tablename__ = "tarefa_atualizacao_cadete"
+
+    id = database.Column(database.Integer, primary_key=True)
+    cadete_user_id = database.Column(database.Integer, database.ForeignKey('user.id'), index=True, nullable=False)
+    cadete_militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), index=True, nullable=False)
+
+    # status: PENDENTE, EM_EDICAO, CONCLUIDO
+    status = database.Column(database.String(20), default="PENDENTE", index=True)
+    atualizado_em = database.Column(database.DateTime)
+    criado_em = database.Column(database.DateTime, default=datetime.utcnow)
+
+    # (opcional) trava simples anti-duplo acesso
+    locked_by_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    locked_at = database.Column(database.DateTime)
+
+    # relacionamentos (opc.)
+    cadete_user = database.relationship('User', foreign_keys=[cadete_user_id])
+    militar_atribuido = database.relationship('Militar', foreign_keys=[militar_id])
+
+    __table_args__ = (
+        database.UniqueConstraint('cadete_user_id', 'militar_id', name='uq_cadete_militar'),
+    )

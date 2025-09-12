@@ -604,3 +604,17 @@ class DeclaracaoAcumuloForm(FlaskForm):
                                 Optional(), Length(max=2000)])
 
     vinculos = FieldList(FormField(VinculoExternoSubForm), min_entries=1)
+
+
+class DistribuirAtualizacaoForm(FlaskForm):
+    limpeza = SelectField(
+        'Limpeza antes de distribuir',
+        choices=[
+            ('nenhuma', 'Nenhuma (apenas acrescenta faltantes)'),
+            ('pendentes', 'Remover pendentes/em edição e redistribuir'),
+            ('todas', 'Apagar todas as tarefas e redistribuir do zero')
+        ],
+        default='nenhuma'
+    )
+    submit = SubmitField('Distribuir agora')
+    

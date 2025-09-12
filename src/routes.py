@@ -1,3 +1,4 @@
+import math
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify, make_response, current_app
@@ -10,7 +11,7 @@ import base64
 import matplotlib.pyplot as plt
 from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete_all_versions, b2_upload_fileobj
 from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
-from src.formatar_cpf import formatar_cpf, get_militar_por_user
+from src.formatar_cpf import cadete_restantes, formatar_cpf, get_militar_por_user, is_cadete
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
@@ -19,10 +20,10 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormMilitarInativo,
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormMilitarInativo,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -4426,6 +4427,527 @@ def login_atualizacao():
 
     return render_template("atualizacao/login_atualizacao.html", form_login=form_login)
 
+# --------------------------------------------------------------- PARTE DOS CADETES -----------------------------------------------------------------#
+
+@app.route("/login-cadete", methods=['GET', 'POST'])
+def login_cadete():
+    if current_user.is_authenticated:
+        if is_cadete(current_user):
+            return redirect(url_for("home_cadete"))
+        flash("Seu perfil não é de cadete.", "warning")
+        return redirect(url_for("home"))
+
+    form = FormLogin()
+    if form.validate_on_submit() and 'botao_submit_login' in request.form:
+        cpf_formatado = form.cpf.data.strip()
+        usuario = User.query.filter_by(cpf=cpf_formatado).first()
+
+        if usuario and bcrypt.check_password_hash(usuario.senha, form.senha.data):
+            login_user(usuario, remember=form.lembrar_dados.data)
+            if not is_cadete(usuario):
+                logout_user()
+                flash("Acesso exclusivo para cadetes.", "danger")
+                return redirect(url_for("login_cadete"))
+            flash("Login de cadete realizado.", "success")
+            return redirect(url_for("home_cadete"))
+        else:
+            flash("CPF ou senha incorretos.", "danger")
+
+    return render_template("cadete/login_cadete.html", form_login=form)
+
+
+@app.route("/cadete", methods=['GET'])
+@login_required
+def home_cadete():
+    if not is_cadete(current_user):
+        flash("Acesso restrito aos cadetes.", "danger")
+        return redirect(url_for("home"))
+
+    # Fechamento automático: se zerou pendentes, mostra tela de conclusão.
+    pendentes = TarefaAtualizacaoCadete.query.filter_by(
+        cadete_user_id=current_user.id, status="PENDENTE"
+    ).count()
+
+    if pendentes == 0:
+        return render_template("cadete/finalizado.html")
+
+    # lista para a página (paginável, se quiser)
+    tarefas = (TarefaAtualizacaoCadete.query
+               .filter_by(cadete_user_id=current_user.id)
+               .order_by(TarefaAtualizacaoCadete.status.desc(), TarefaAtualizacaoCadete.id.asc())
+               .all())
+
+    return render_template("cadete/home.html", tarefas=tarefas, pendentes=pendentes)
+
+
+@app.route("/cadete/exibir-militar/<int:militar_id>", methods=['GET', 'POST'])
+@login_required
+def cadete_exibir_militar(militar_id):
+    if not is_cadete(current_user):
+        flash("Acesso restrito aos cadetes.", "danger")
+        return redirect(url_for("home"))
+
+    # Confere a tarefa
+    tarefa = TarefaAtualizacaoCadete.query.filter_by(
+        cadete_user_id=current_user.id, militar_id=militar_id
+    ).first()
+
+    if not tarefa:
+        flash("Este militar não está atribuído a você.", "danger")
+        return redirect(url_for("home_cadete"))
+
+    militar = Militar.query.get_or_404(militar_id)
+
+    # Regra: alunos não podem aparecer para o cadete
+    if militar.situacao_id == 9:
+        flash("Este registro não é permitido para atualização pelo cadete.", "warning")
+        return redirect(url_for("home_cadete"))
+
+    # (Opcional) trava simples
+    if tarefa.status == "PENDENTE":
+        tarefa.status = "EM_EDICAO"
+        tarefa.locked_by_user_id = current_user.id
+        tarefa.locked_at = datetime.utcnow()
+        database.session.commit()
+
+    obm_funcao_tipo_1 = MilitarObmFuncao.query.filter_by(militar_id=militar_id, tipo=1) \
+        .filter(MilitarObmFuncao.data_fim == None).first()
+
+    obm_funcao_tipo_2 = MilitarObmFuncao.query.filter_by(militar_id=militar_id, tipo=2) \
+        .filter(MilitarObmFuncao.data_fim == None).first()
+    
+    # --- AQUI você pode reaproveitar quase tudo da sua rota exibir_militar ---
+    # Reaproveite o setup do form e choices:
+    form_militar = FormMilitar(obj=militar)
+    if militar.completa_25_inclusao:
+        form_militar.completa_25_inclusao.data = militar.completa_25_inclusao.strftime(
+            '%d/%m/%Y')
+    if militar.completa_30_inclusao:
+        form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime(
+            '%d/%m/%Y')
+    if militar.completa_25_anos_sv:
+        form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime(
+            '%d/%m/%Y')
+    if militar.completa_30_anos_sv:
+        form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime(
+            '%d/%m/%Y')
+
+    form_militar.funcao_gratificada_id.choices = [
+        (funcao_gratificada.id, funcao_gratificada.gratificacao) for funcao_gratificada in FuncaoGratificada.query.all()
+    ]
+    form_militar.posto_grad_id.choices = [
+        (posto.id, posto.sigla) for posto in PostoGrad.query.all()
+    ]
+    form_militar.quadro_id.choices = [
+        (quadro.id, quadro.quadro) for quadro in Quadro.query.all()
+    ]
+    form_militar.localidade_id.choices = [
+        (localidade_id.id, localidade_id.sigla) for localidade_id in Localidade.query.all()
+    ]
+
+    form_militar.obm_ids_1.choices = ([('', '-- Selecione uma opção --')] +
+                                      [(obm.id, obm.sigla) for obm in Obm.query.all()])
+
+    form_militar.funcao_ids_1.choices = ([('', '-- Selecione uma opção --')] +
+                                         [(funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()])
+
+    form_militar.obm_ids_2.choices = ([('', '-- Selecione uma opção --')] +
+                                      [(obm.id, obm.sigla) for obm in Obm.query.all()])
+
+    form_militar.funcao_ids_2.choices = ([('', '-- Selecione uma opção --')] +
+                                         [(funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()])
+
+    form_militar.situacao_id.choices = [
+        (situacao.id, situacao.condicao) for situacao in Situacao.query.all()
+    ]
+    form_militar.estado_civil.choices = [
+        (estado.id, estado.estado) for estado in EstadoCivil.query.all()
+    ]
+    form_militar.especialidade_id.choices = [
+        (especialidade.id, especialidade.ocupacao) for especialidade in Especialidade.query.all()
+    ]
+    form_militar.destino_id.choices = [
+        (destino.id, destino.local) for destino in Destino.query.all()
+    ]
+    form_militar.agregacoes_id.choices = [
+        (agregacoes.id, agregacoes.tipo) for agregacoes in Agregacoes.query.all()
+    ]
+    form_militar.punicao_id.choices = [
+        (punicao.id, punicao.sancao) for punicao in Punicao.query.all()
+    ]
+    form_militar.comportamento_id.choices = ([('', '-- Selecione uma opção --')] +
+                                             [(comportamento.id, comportamento.conduta) for comportamento in
+                                              Comportamento.query.all()
+                                              ])
+
+    if obm_funcao_tipo_1:
+        form_militar.obm_ids_1.data = obm_funcao_tipo_1.obm_id
+        form_militar.funcao_ids_1.data = obm_funcao_tipo_1.funcao_id
+
+    if obm_funcao_tipo_2:
+        form_militar.obm_ids_2.data = obm_funcao_tipo_2.obm_id
+        form_militar.funcao_ids_2.data = obm_funcao_tipo_2.funcao_id
+
+    form_militar.sexo.data = militar.sexo if militar.sexo else None
+    form_militar.raca.data = militar.raca if militar.raca else None
+
+    hoje = date.today()
+
+    dn = militar.data_nascimento
+    # se vier datetime, vira date; se None, fica None
+    if isinstance(dn, datetime):
+        dn = dn.date()
+
+    if dn:
+        idade = hoje.year - dn.year - \
+            ((hoje.month, hoje.day) < (dn.month, dn.day))
+    else:
+        idade = None  # ou 0, se preferir
+
+    form_militar.idade_atual.data = idade
+    campos_bg = [
+        'transferencia', 'situacao_militar', 'cfsd', 'cfc', 'cfs', 'cas',
+        'choa', 'cfo', 'cbo', 'cao', 'csbm', 'soldado_tres',
+        'soldado_dois', 'soldado_um', 'cabo', 'terceiro_sgt',
+        'segundo_sgt', 'primeiro_sgt', 'subtenente',
+        'publicidade_segundo_tenente', 'publicidade_primeiro_tenente',
+        'pub_cap', 'pub_maj', 'pub_tc', 'pub_cel', 'pub_alteracao'
+    ]
+
+    # Recupera as publicações do BG e define campos para publicação do militar
+    publicacoes_bg = PublicacaoBg.query.filter_by(militar_id=militar.id).all()
+
+    # Inicializa todos os campos de publicações BG com valor vazio
+    for campo in campos_bg:
+        if hasattr(form_militar, campo):
+            getattr(form_militar, campo).data = ""
+
+    # Itera sobre as publicações do BG e verifica os campos
+    for pub in publicacoes_bg:
+        if pub.tipo_bg in campos_bg:
+            if hasattr(form_militar, pub.tipo_bg):
+                # Se o boletim_geral existir, utiliza o valor; caso contrário, mantém como vazio
+                getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
+
+    def parse_date(d):
+        """Aceita date, string 'YYYY-MM-DD' ou 'DD/MM/YYYY'. Retorna date ou None."""
+        if not d:
+            return None
+        if isinstance(d, datetime):
+            return d.date()
+        if hasattr(d, 'strftime'):  # já é date
+            return d
+        s = str(d).strip()
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                pass
+        return None  # não converteu
+
+    def safe_bg_id(militar_id):
+        """Tenta pegar BG de situacao_militar; se não achar, retorna None (não bloqueia criação)."""
+        bg = PublicacaoBg.query.filter_by(
+            militar_id=militar_id, tipo_bg='situacao_militar').first()
+
+    if form_militar.validate_on_submit():
+        form_militar.process(request.form)
+
+        militar.nome_completo = form_militar.nome_completo.data
+        militar.nome_guerra = form_militar.nome_guerra.data
+        militar.cpf = form_militar.cpf.data
+        militar.rg = form_militar.rg.data
+        militar.nome_pai = form_militar.nome_pai.data
+        militar.nome_mae = form_militar.nome_mae.data
+        militar.matricula = form_militar.matricula.data
+        militar.pis_pasep = form_militar.pis_pasep.data
+        militar.num_titulo_eleitor = form_militar.num_titulo_eleitor.data
+        militar.digito_titulo_eleitor = form_militar.digito_titulo_eleitor.data
+        militar.zona = form_militar.zona.data
+        militar.secao = form_militar.secao.data
+        militar.posto_grad_id = form_militar.posto_grad_id.data
+        militar.quadro_id = form_militar.quadro_id.data
+        militar.localidade_id = form_militar.localidade_id.data
+        militar.antiguidade = form_militar.antiguidade.data
+        militar.sexo = form_militar.sexo.data
+        militar.raca = form_militar.raca.data
+        militar.data_nascimento = form_militar.data_nascimento.data
+        militar.inclusao = form_militar.inclusao.data
+
+        militar.completa_25_inclusao = datetime.strptime(
+            str(form_militar.completa_25_inclusao.data), '%d/%m/%Y'
+        ).date() if form_militar.completa_25_inclusao.data else None
+
+        militar.completa_30_inclusao = datetime.strptime(
+            str(form_militar.completa_30_inclusao.data), '%d/%m/%Y'
+        ).date() if form_militar.completa_30_inclusao.data else None
+
+        militar.completa_25_anos_sv = datetime.strptime(
+            str(form_militar.completa_25_anos_sv.data), '%d/%m/%Y'
+        ).date() if form_militar.completa_25_anos_sv.data else None
+
+        militar.completa_30_anos_sv = datetime.strptime(
+            str(form_militar.completa_30_anos_sv.data), '%d/%m/%Y'
+        ).date() if form_militar.completa_30_anos_sv.data else None
+
+        militar.inicio_periodo = datetime.strptime(
+            str(form_militar.inicio_periodo.data), '%Y-%m-%d'
+        ).date() if form_militar.inicio_periodo.data else None
+
+        militar.fim_periodo = datetime.strptime(
+            str(form_militar.fim_periodo.data), '%Y-%m-%d'
+        ).date() if form_militar.fim_periodo.data else None
+
+        militar.punicao_id = form_militar.punicao_id.data
+        militar.comportamento_id = form_militar.comportamento_id.data
+        militar.efetivo_servico = form_militar.efetivo_servico.data
+        militar.anos = form_militar.anos.data
+        militar.meses = form_militar.meses.data
+        militar.dias = form_militar.dias.data
+        militar.total_dias = form_militar.total_dias.data
+        militar.idade_reserva_grad = 0
+        militar.estado_civil = form_militar.estado_civil.data
+        militar.especialidade_id = form_militar.especialidade_id.data
+        militar.pronto = form_militar.pronto.data
+        militar.situacao_id = form_militar.situacao_id.data
+        militar.agregacoes_id = form_militar.agregacoes_id.data
+        militar.destino_id = form_militar.destino_id.data
+        militar.inicio_periodo = parse_date(form_militar.inicio_periodo.data)
+        militar.fim_periodo = parse_date(form_militar.fim_periodo.data)
+        militar.ltip_afastamento_cargo_eletivo = form_militar.ltip_afastamento_cargo_eletivo.data
+        militar.periodo_ltip = form_militar.periodo_ltip.data
+        militar.total_ltip = form_militar.total_ltip.data
+        militar.completa_25_anos_ltip = form_militar.completa_25_anos_ltip.data
+        militar.completa_30_anos_ltip = form_militar.completa_30_anos_ltip.data
+        militar.cursos = form_militar.cursos.data
+        militar.grau_instrucao = form_militar.grau_instrucao.data
+        militar.graduacao = form_militar.graduacao.data
+        militar.pos_graduacao = form_militar.pos_graduacao.data
+        militar.mestrado = form_militar.mestrado.data
+        militar.doutorado = form_militar.doutorado.data
+        militar.cfsd = form_militar.cfsd.data
+        militar.cfc = form_militar.cfc.data
+        militar.cfs = form_militar.cfs.data
+        militar.cas = form_militar.cas.data
+        militar.choa = form_militar.choa.data
+        militar.cfo = form_militar.cfo.data
+        militar.cbo = form_militar.cbo.data
+        militar.cao = form_militar.cao.data
+        militar.csbm = form_militar.csbm.data
+        militar.cursos_civis = form_militar.cursos_civis.data
+        militar.endereco = form_militar.endereco.data
+        militar.complemento = form_militar.complemento.data
+        militar.cidade = form_militar.cidade.data
+        militar.estado = form_militar.estado.data
+        militar.cep = form_militar.cep.data
+        militar.celular = form_militar.celular.data
+        militar.email = form_militar.email.data
+        militar.inclusao_bg = form_militar.inclusao_bg.data
+        militar.soldado_tres = form_militar.soldado_tres.data
+        militar.soldado_dois = form_militar.soldado_dois.data
+        militar.soldado_um = form_militar.soldado_um.data
+        militar.cabo = form_militar.cabo.data
+        militar.terceiro_sgt = form_militar.terceiro_sgt.data
+        militar.segundo_sgt = form_militar.segundo_sgt.data
+        militar.primeiro_sgt = form_militar.primeiro_sgt.data
+        militar.subtenente = form_militar.subtenente.data
+        militar.segundo_tenente = form_militar.segundo_tenente.data
+        militar.primeiro_tenente = form_militar.primeiro_tenente.data
+        militar.cap = form_militar.cap.data
+        militar.maj = form_militar.maj.data
+        militar.tc = form_militar.tc.data
+        militar.cel = form_militar.cel.data
+        militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
+        militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
+
+        # Verifica se OBM 1 e Função 1 foram modificadas ou removidas (selecionada opção vazia)
+        if form_militar.obm_ids_1.data and form_militar.funcao_ids_1.data and form_militar.obm_ids_1.data != '' and form_militar.funcao_ids_1.data != '':
+            # Somente faz a alteração se houver diferença entre os dados do banco e os do formulário
+            obm_id_1 = int(form_militar.obm_ids_1.data)
+            funcao_id_1 = int(form_militar.funcao_ids_1.data)
+
+            if not obm_funcao_tipo_1 or (
+                    obm_id_1 != obm_funcao_tipo_1.obm_id or funcao_id_1 != obm_funcao_tipo_1.funcao_id):
+                # Feche o registro antigo se houver um
+                if obm_funcao_tipo_1:
+                    obm_funcao_tipo_1.data_fim = datetime.now()
+
+                nova_relacao_1 = MilitarObmFuncao(
+                    militar_id=militar_id,
+                    obm_id=obm_id_1,
+                    funcao_id=funcao_id_1,
+                    tipo=1,
+                    data_criacao=datetime.now(),
+                    data_fim=None
+                )
+                database.session.add(nova_relacao_1)
+        else:
+            # Se a opção 'Selecione uma opção' foi escolhida, finalize a relação atual
+            if obm_funcao_tipo_1:
+                obm_funcao_tipo_1.data_fim = datetime.now()
+
+        # Verifica se OBM 2 e Função 2 foram modificadas ou removidas
+        if form_militar.obm_ids_2.data and form_militar.funcao_ids_2.data and form_militar.obm_ids_2.data != '' and form_militar.funcao_ids_2.data != '':
+            # Somente faz a alteração se houver diferença entre os dados do banco e os do formulário
+            obm_id_2 = int(form_militar.obm_ids_2.data)
+            funcao_id_2 = int(form_militar.funcao_ids_2.data)
+
+            if not obm_funcao_tipo_2 or (
+                    obm_id_2 != obm_funcao_tipo_2.obm_id or funcao_id_2 != obm_funcao_tipo_2.funcao_id):
+                # Feche o registro antigo se houver um
+                if obm_funcao_tipo_2:
+                    obm_funcao_tipo_2.data_fim = datetime.now()
+
+                nova_relacao_2 = MilitarObmFuncao(
+                    militar_id=militar_id,
+                    obm_id=obm_id_2,
+                    funcao_id=funcao_id_2,
+                    tipo=2,
+                    data_criacao=datetime.now(),
+                    data_fim=None
+                )
+                database.session.add(nova_relacao_2)
+        else:
+            # Se a opção 'Selecione uma opção' foi escolhida, finalize a relação atual
+            if obm_funcao_tipo_2:
+                obm_funcao_tipo_2.data_fim = datetime.now()
+
+        for campo_bg in campos_bg:
+            if hasattr(form_militar, campo_bg):
+                boletim_geral_data = getattr(form_militar, campo_bg).data
+                if boletim_geral_data:
+                    publicacao_existente = PublicacaoBg.query.filter_by(
+                        militar_id=militar.id, tipo_bg=campo_bg).first()
+                    if publicacao_existente:
+                        if publicacao_existente.boletim_geral != boletim_geral_data:
+                            nova_publicacao = PublicacaoBg(
+                                militar_id=militar.id,
+                                tipo_bg=campo_bg,
+                                boletim_geral=boletim_geral_data
+                            )
+                            database.session.add(nova_publicacao)
+                    else:
+                        nova_publicacao = PublicacaoBg(
+                            militar_id=militar.id,
+                            tipo_bg=campo_bg,
+                            boletim_geral=boletim_geral_data
+                        )
+                        database.session.add(nova_publicacao)
+
+        # Verifica se a situação selecionada é "AGREGADO"
+        situacao_selecionada = Situacao.query.get(
+            form_militar.situacao_id.data)
+        if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
+            bg_id = safe_bg_id(militar.id)  # pode ser None
+            militar_agregado = MilitaresAgregados.query.filter_by(
+                militar_id=militar.id).first()
+            if not militar_agregado:
+                militar_agregado = MilitaresAgregados(militar_id=militar.id)
+                database.session.add(militar_agregado)
+
+            militar_agregado.posto_grad_id = form_militar.posto_grad_id.data
+            militar_agregado.quadro_id = form_militar.quadro_id.data
+            militar_agregado.destino_id = form_militar.destino_id.data
+            militar_agregado.situacao_id = situacao_selecionada.id
+            militar_agregado.inicio_periodo = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_agregado.fim_periodo_agregacao = parse_date(
+                form_militar.fim_periodo.data)
+            militar_agregado.publicacao_bg_id = bg_id
+            militar_agregado.atualizar_status()
+
+        # À DISPOSIÇÃO
+        if situacao_selecionada and situacao_selecionada.condicao == 'À DISPOSIÇÃO':
+            bg_id = safe_bg_id(militar.id)
+            militar_a_disposicao = MilitaresADisposicao.query.filter_by(
+                militar_id=militar.id).first()
+            if not militar_a_disposicao:
+                militar_a_disposicao = MilitaresADisposicao(
+                    militar_id=militar.id)
+                database.session.add(militar_a_disposicao)
+
+            militar_a_disposicao.posto_grad_id = form_militar.posto_grad_id.data
+            militar_a_disposicao.quadro_id = form_militar.quadro_id.data
+            militar_a_disposicao.destino_id = form_militar.destino_id.data
+            militar_a_disposicao.situacao_id = situacao_selecionada.id
+            militar_a_disposicao.inicio_periodo = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_a_disposicao.fim_periodo_disposicao = parse_date(
+                form_militar.fim_periodo.data)
+            militar_a_disposicao.publicacao_bg_id = bg_id
+            militar_a_disposicao.atualizar_status()
+
+        # LICENÇA ESPECIAL
+        if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
+            bg_id = safe_bg_id(militar.id)
+            militar_le = LicencaEspecial.query.filter_by(
+                militar_id=militar.id).first()
+            if not militar_le:
+                militar_le = LicencaEspecial(militar_id=militar.id)
+                database.session.add(militar_le)
+
+            militar_le.posto_grad_id = form_militar.posto_grad_id.data
+            militar_le.quadro_id = form_militar.quadro_id.data
+            militar_le.destino_id = form_militar.destino_id.data
+            militar_le.situacao_id = situacao_selecionada.id
+            militar_le.inicio_periodo_le = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_le.fim_periodo_le = parse_date(
+                form_militar.fim_periodo.data)
+            militar_le.publicacao_bg_id = bg_id
+            militar_le.atualizar_status()
+
+        # LTS
+        if situacao_selecionada and situacao_selecionada.condicao == 'LTS':
+            bg_id = safe_bg_id(militar.id)
+            militar_lts = LicencaParaTratamentoDeSaude.query.filter_by(
+                militar_id=militar.id).first()
+            if not militar_lts:
+                militar_lts = LicencaParaTratamentoDeSaude(
+                    militar_id=militar.id)
+                database.session.add(militar_lts)
+
+            militar_lts.posto_grad_id = form_militar.posto_grad_id.data
+            militar_lts.quadro_id = form_militar.quadro_id.data
+            militar_lts.destino_id = form_militar.destino_id.data
+            militar_lts.situacao_id = situacao_selecionada.id
+            militar_lts.inicio_periodo_lts = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_lts.fim_periodo_lts = parse_date(
+                form_militar.fim_periodo.data)
+            militar_lts.publicacao_bg_id = bg_id
+            militar_lts.atualizar_status()
+        try:
+            database.session.commit()
+            # Marca como concluído
+            tarefa.status = "CONCLUIDO"
+            tarefa.atualizado_em = datetime.utcnow()
+            tarefa.locked_by_user_id = None
+            tarefa.locked_at = None
+            database.session.commit()
+
+            # Se zerou pendentes, redireciona para tela de finalizado
+            if cadete_restantes(current_user) == 0:
+                flash("Você concluiu todas as suas atualizações!", "success")
+                return redirect(url_for("home_cadete"))
+
+            flash("Atualizado com sucesso.", "success")
+            return redirect(url_for("home_cadete"))
+        except Exception as e:
+            database.session.rollback()
+            flash(f"Erro ao atualizar. {e}", "danger")
+
+    # Carregue também documentos, se quiser, mas apenas leitura
+    documentos_militar = DocumentoMilitar.query.filter_by(
+        militar_id=militar.id
+    ).order_by(DocumentoMilitar.criado_em.desc()).all()
+
+    return render_template("cadete/exibir_militar.html",
+                           form_militar=form_militar,
+                           militar=militar,
+                           documentos_militar=documentos_militar,
+                           tarefa=tarefa)
+
 
 @app.route('/ficha-atualizada')
 @login_required
@@ -4440,6 +4962,123 @@ def ficha_atualizada():
         segundo_vinculo=segundo_vinculo
     )
 
+@app.route("/admin/distribuir-atualizacao", methods=["GET", "POST"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH', 'CHEFE DRH', 'DRH')
+def distribuir_atualizacao():
+    form = DistribuirAtualizacaoForm()
+
+    # Cadetes = usuários cujo Militar relacionado tem posto_grad_id = 7
+    cadetes_users = (database.session.query(User)
+        .join(Militar, Militar.usuario_id == User.id)
+        .filter(Militar.posto_grad_id == 7)
+        .all())
+
+    # Alvos = Militares elegíveis (exclui alunos e cadetes)
+    alvos = (Militar.query
+        .filter(Militar.situacao_id != 9)  # NÃO incluir alunos
+        .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))  # NÃO atribuir cadetes
+        .order_by(Militar.id.asc())
+        .all())
+
+    # Métricas atuais
+    tot_cadetes = len(cadetes_users)
+    tot_alvos   = len(alvos)
+    tot_tarefas = database.session.query(func.count(TarefaAtualizacaoCadete.id)).scalar() or 0
+    tarefas_pend = (TarefaAtualizacaoCadete.query
+                    .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
+                    .count())
+    estim_por_cadete = math.ceil(tot_alvos / tot_cadetes) if tot_cadetes else 0
+
+    # GET → prévia + formulário
+    if request.method == "GET":
+        return render_template(
+            "admin/distribuir_atualizacao.html",
+            form=form,
+            tot_cadetes=tot_cadetes,
+            tot_alvos=tot_alvos,
+            tot_tarefas=tot_tarefas,
+            tarefas_pend=tarefas_pend,
+            estim_por_cadete=estim_por_cadete,
+        )
+
+    # POST → executar
+    if form.validate_on_submit():
+        modo_limpeza = form.limpeza.data  # 'nenhuma' | 'pendentes' | 'todas'
+        try:
+            if modo_limpeza == "pendentes":
+                # Remove pendentes/em edição (mantém concluídos)
+                (TarefaAtualizacaoCadete.query
+                 .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
+                 .delete(synchronize_session=False))
+                database.session.commit()
+
+            elif modo_limpeza == "todas":
+                # Remove tudo (inclui concluídos)
+                TarefaAtualizacaoCadete.query.delete()
+                database.session.commit()
+
+            # Recarrega após limpeza
+            cadetes_users = (database.session.query(User)
+                .join(Militar, Militar.usuario_id == User.id)
+                .filter(Militar.posto_grad_id == 7)
+                .all())
+            alvos = (Militar.query
+                .filter(Militar.situacao_id != 9)
+                .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
+                .order_by(Militar.id.asc())
+                .all())
+
+            if not cadetes_users:
+                flash("Nenhum cadete encontrado (posto_grad_id = 7).", "warning")
+                return redirect(url_for("home"))
+
+            if not alvos:
+                flash("Não há militares elegíveis para distribuição.", "warning")
+                return redirect(url_for("home"))
+
+            created = 0
+            ccount = len(cadetes_users)
+
+            for i, m in enumerate(alvos):
+                cadete_user = cadetes_users[i % ccount]
+
+                # Evita duplicidade
+                existe = (TarefaAtualizacaoCadete.query
+                          .filter_by(cadete_user_id=cadete_user.id, militar_id=m.id)
+                          .first())
+                if existe:
+                    continue
+
+                cadete_mil = Militar.query.filter_by(usuario_id=cadete_user.id).first()
+                t = TarefaAtualizacaoCadete(
+                    cadete_user_id=cadete_user.id,
+                    cadete_militar_id=cadete_mil.id if cadete_mil else None,
+                    militar_id=m.id,
+                    status="PENDENTE",
+                )
+                database.session.add(t)
+                created += 1
+
+            database.session.commit()
+            flash(f"Distribuição concluída. Novas tarefas criadas: {created}.", "success")
+            return redirect(url_for("distribuir_atualizacao"))
+
+        except Exception as e:
+            database.session.rollback()
+            flash(f"Erro na distribuição: {e}", "danger")
+            return redirect(url_for("distribuir_atualizacao"))
+
+    # Se não validar, re-renderiza com erros
+    return render_template(
+        "admin/distribuir_atualizacao.html",
+        form=form,
+        tot_cadetes=tot_cadetes,
+        tot_alvos=tot_alvos,
+        tot_tarefas=tot_tarefas,
+        tarefas_pend=tarefas_pend,
+        estim_por_cadete=estim_por_cadete,
+    )
 
 @app.route('/fichas/<int:aluno_id>/recompensa', methods=['GET', 'POST'])
 @login_required
