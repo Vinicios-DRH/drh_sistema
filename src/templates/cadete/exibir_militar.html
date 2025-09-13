@@ -1,0 +1,786 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/exibir_militar.js') }}"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+    :root {
+        --brand-red: #B5121B;
+        --brand-red-600: #a01017;
+        --brand-red-700: #7f0c12;
+        --brand-amber: #FFB703;
+        --ink-100: #f6f8fb;
+        --ink-200: #e8eef6;
+        --ink-300: #cfe4ff;
+        --ink-400: #c0cfda;
+        --glass-bg: rgba(255, 255, 255, .04);
+        --glass-brd: rgba(255, 255, 255, .12);
+        --glass-soft: rgba(0, 0, 0, .18);
+    }
+
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red)
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600)
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red)
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red)
+    }
+
+    .form-check-input:checked {
+        background-color: var(--brand-red);
+        border-color: var(--brand-red)
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 16px;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        border-radius: 18px;
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        
+        overflow: hidden;
+    }
+
+    .section-nav {
+        position: sticky;
+        top: 10px;
+        z-index: 3;
+        background: var(--glass-soft);
+        border: 1px solid var(--glass-brd);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border-radius: 12px
+    }
+
+    .section-nav .nav-link {
+        color: var(--ink-200)
+    }
+
+    .section-nav .nav-link.active {
+        background: var(--brand-red);
+        color: #fff
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .25rem 0 .75rem 0;
+        color: var(--ink-200);
+        border-bottom: 1px dashed rgba(255, 255, 255, .18);
+        margin-bottom: 1rem
+    }
+
+    .form-label {
+        color: var(--ink-300);
+        font-weight: 600
+    }
+
+    .form-control,
+    .form-select {
+        background: rgba(255, 255, 255, .06) !important;
+        color: var(--ink-200) !important;
+        border: 1px solid rgba(255, 255, 255, .18) !important
+    }
+
+    .form-control::placeholder {
+        color: var(--ink-400);
+        opacity: .75
+    }
+
+    .form-text {
+        color: var(--ink-300);
+        opacity: .85
+    }
+
+    .invalid-feedback {
+        color: #ffb4b4
+    }
+
+    .action-bar {
+        position: sticky;
+        bottom: 8px;
+        z-index: 4;
+        background: rgba(181, 18, 27, .12);
+        border: 1px solid rgba(255, 255, 255, .18);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 14px;
+        padding: .65rem;
+        display: flex;
+        gap: .5rem;
+        justify-content: flex-end;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
+    }
+
+    .super-section {
+        padding: 1.25rem 1rem
+    }
+
+    .badge.bg-soft {
+        background: rgba(255, 255, 255, .12);
+        color: var(--ink-200);
+        border: 1px solid rgba(255, 255, 255, .22)
+    }
+
+    .form-select option,
+    .form-select optgroup {
+        background: #fff !important;
+        color: #111 !important
+    }
+
+    .form-select option:hover,
+    .form-select option:checked {
+        background: #eef2f7 !important;
+        color: #111 !important
+    }
+
+    .form-select option[disabled] {
+        color: #94a3b8 !important
+    }
+
+    /* Aparência “bloqueado” para campos readonly */
+    input[readonly],
+    textarea[readonly] {
+        cursor: not-allowed;
+        opacity: .9;
+        background: rgba(255, 255, 255, .08) !important;
+    }
+
+    /* Alerta “glass” combinando com o tema */
+    .glass-alert {
+        background: rgba(255, 255, 255, .08);
+        color: var(--ink-200);
+        border: 1px solid var(--glass-brd);
+        border-left: 4px solid var(--brand-red);
+        border-radius: 12px;
+        padding: .6rem .75rem;
+        box-sizing: border-box;
+        width: 100%;
+        margin-left: 2px;
+        margin-right: 2px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4 page-wrapper" id="layoutRoot">
+    <div class="container">
+
+        <!-- Cabeçalho -->
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Atualização Cadastral — Cadete</h1>
+                        <div class="small text-light opacity-75">
+                            {{ militar.nome_guerra or militar.nome_completo }} • Matrícula {{ militar.matricula }} • CPF
+                            {{ militar.cpf }}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ url_for('home_cadete') }}" class="btn btn-outline-light"><i
+                            class="bi bi-arrow-left"></i> Minhas tarefas</a>
+                    {% if tarefa %}<span class="badge bg-soft"><i class="bi bi-clipboard-check me-1"></i> Tarefa #{{
+                        tarefa.id }} — {{ tarefa.status }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 g-lg-4" data-bs-spy="scroll" data-bs-target="#sectionNav" data-bs-offset="120" tabindex="0">
+
+            <!-- Navegação de seções -->
+            <div class="col-lg-3">
+                <div id="sectionNav" class="section-nav p-2">
+                    <ul class="nav nav-pills nav-fill flex-lg-column gap-1">
+                        <li class="nav-item"><a class="nav-link active" href="#identificacao"><i
+                                    class="bi bi-person-badge me-1"></i> Identificação</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#documentos"><i class="bi bi-card-text me-1"></i>
+                                Documentos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#eleitoral"><i class="bi bi-people me-1"></i>
+                                Eleitoral</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#vinculo"><i class="bi bi-diagram-3 me-1"></i>
+                                Vínculo / Função</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#perfil"><i class="bi bi-pin-map me-1"></i>
+                                Perfil & Localidade</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#datas"><i class="bi bi-calendar3 me-1"></i>
+                                Datas & Cálculos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#situacao"><i
+                                    class="bi bi-clipboard2-pulse me-1"></i> Situação</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#ltip"><i class="bi bi-heart-pulse me-1"></i>
+                                LTIP</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#formacao"><i class="bi bi-mortarboard me-1"></i>
+                                Formação</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#endereco"><i class="bi bi-geo-alt me-1"></i>
+                                Endereço</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#contatos"><i class="bi bi-telephone me-1"></i>
+                                Contatos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#progressao"><i
+                                    class="bi bi-arrow-up-right-circle me-1"></i> Progressões</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#alteracoes"><i
+                                    class="bi bi-pencil-square me-1"></i> Alterações</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Formulário -->
+            <div class="col-lg-9">
+                <div class="glass-card p-3 p-md-4">
+                    <form method="POST" class="row g-3" enctype="multipart/form-data">
+                        {{ form_militar.csrf_token }}
+
+                        {# ========= IDENTIFICAÇÃO ========= #}
+                        <div id="identificacao" class="super-section">
+                            <div class="section-header"><i class="bi bi-person-badge"></i>
+                                <h2 class="h6 m-0">Identificação</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form_militar.nome_completo.label(class="form-label") }}
+                                    {{ form_militar.nome_completo(class="form-control" + (' is-invalid' if
+                                    form_militar.nome_completo.errors else ''), placeholder="Nome completo") }}
+                                    {% if form_militar.nome_completo.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.nome_completo.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form_militar.nome_guerra.label(class="form-label") }}
+                                    {{ form_militar.nome_guerra(class="form-control" + (' is-invalid' if
+                                    form_militar.nome_guerra.errors else ''), placeholder="Nome de guerra") }}
+                                    {% if form_militar.nome_guerra.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.nome_guerra.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form_militar.estado_civil.label(class="form-label") }}
+                                    {{ form_militar.estado_civil(class="form-select" + (' is-invalid' if
+                                    form_militar.estado_civil.errors else '')) }}
+                                    {% if form_militar.estado_civil.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.estado_civil.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form_militar.nome_pai.label(class="form-label") }}
+                                    {{ form_militar.nome_pai(class="form-control" + (' is-invalid' if
+                                    form_militar.nome_pai.errors else '')) }}
+                                    {% if form_militar.nome_pai.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.nome_pai.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form_militar.nome_mae.label(class="form-label") }}
+                                    {{ form_militar.nome_mae(class="form-control" + (' is-invalid' if
+                                    form_militar.nome_mae.errors else '')) }}
+                                    {% if form_militar.nome_mae.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.nome_mae.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ========= DOCUMENTOS ========= #}
+                        <div id="documentos" class="super-section">
+                            <div class="section-header"><i class="bi bi-card-text"></i>
+                                <h2 class="h6 m-0">Documentos</h2>
+                            </div>
+
+                            <div class="alert glass-alert small d-flex align-items-center gap-2 mb-2" role="alert">
+                                <i class="bi bi-lock-fill"></i>
+                                <span><strong>CPF</strong> e <strong>Matrícula</strong> estão bloqueados para
+                                    edição. Se notar algum erro, avise o DRH.</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">{{ form_militar.matricula.label(class="form-label") }}{{
+                                    form_militar.matricula(class="form-control" + (' is-invalid' if
+                                    form_militar.matricula.errors else ''), readonly=True) }}{% if
+                                    form_militar.matricula.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.matricula.errors %}{{e}}{%
+                                        endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.rg.label(class="form-label") }}{{
+                                    form_militar.rg(class="form-control" + (' is-invalid' if form_militar.rg.errors else
+                                    '')) }}{% if form_militar.rg.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.rg.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.pis_pasep.label(class="form-label") }}{{
+                                    form_militar.pis_pasep(class="form-control" + (' is-invalid' if
+                                    form_militar.pis_pasep.errors else '')) }}{% if form_militar.pis_pasep.errors %}<div
+                                        class="invalid-feedback">{% for e in form_militar.pis_pasep.errors %}{{e}}{%
+                                        endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.cpf.label(class="form-label") }}{{
+                                    form_militar.cpf(class="form-control" + (' is-invalid' if form_militar.cpf.errors
+                                    else ''),readonly=True) }}{% if form_militar.cpf.errors %}<div
+                                        class="invalid-feedback">{% for e
+                                        in form_militar.cpf.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                            </div>
+                        </div>
+
+                        {# ========= ELEITORAL ========= #}
+                        <div id="eleitoral" class="super-section">
+                            <div class="section-header"><i class="bi bi-people"></i>
+                                <h2 class="h6 m-0">Dados Eleitorais</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">{{ form_militar.num_titulo_eleitor.label(class="form-label") }}{{
+                                    form_militar.num_titulo_eleitor(class="form-control" + (' is-invalid' if
+                                    form_militar.num_titulo_eleitor.errors else '')) }}{% if
+                                    form_militar.num_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.num_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-3">{{ form_militar.digito_titulo_eleitor.label(class="form-label")
+                                    }}{{ form_militar.digito_titulo_eleitor(class="form-control" + (' is-invalid' if
+                                    form_militar.digito_titulo_eleitor.errors else '')) }}{% if
+                                    form_militar.digito_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.digito_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif
+                                    %}</div>
+                                <div class="col-md-3">{{ form_militar.zona.label(class="form-label") }}{{
+                                    form_militar.zona(class="form-control" + (' is-invalid' if form_militar.zona.errors
+                                    else '')) }}{% if form_militar.zona.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.zona.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.secao.label(class="form-label") }}{{
+                                    form_militar.secao(class="form-control" + (' is-invalid' if
+                                    form_militar.secao.errors else '')) }}{% if form_militar.secao.errors %}<div
+                                        class="invalid-feedback">{% for e in form_militar.secao.errors %}{{e}}{% endfor
+                                        %}</div>{% endif %}</div>
+                            </div>
+                        </div>
+
+                        {# ========= VÍNCULO / FUNÇÃO ========= #}
+                        <div id="vinculo" class="super-section">
+                            <div class="section-header"><i class="bi bi-diagram-3"></i>
+                                <h2 class="h6 m-0">Vínculo / OBM & Função</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">{{ form_militar.obm_ids_1.label(class="form-label") }}{{
+                                    form_militar.obm_ids_1(class="form-select") }}</div>
+                                <div class="col-md-6">{{ form_militar.funcao_ids_1.label(class="form-label") }}{{
+                                    form_militar.funcao_ids_1(class="form-select") }}</div>
+                                <div class="col-md-6">{{ form_militar.obm_ids_2.label(class="form-label") }}{{
+                                    form_militar.obm_ids_2(class="form-select") }}</div>
+                                <div class="col-md-6">{{ form_militar.funcao_ids_2.label(class="form-label") }}{{
+                                    form_militar.funcao_ids_2(class="form-select") }}</div>
+                                <div class="col-md-4">{{ form_militar.posto_grad_id.label(class="form-label") }}{{
+                                    form_militar.posto_grad_id(class="form-select" + (' is-invalid' if
+                                    form_militar.posto_grad_id.errors else '')) }}{% if
+                                    form_militar.posto_grad_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.posto_grad_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.quadro_id.label(class="form-label") }}{{
+                                    form_militar.quadro_id(class="form-select" + (' is-invalid' if
+                                    form_militar.quadro_id.errors else '')) }}{% if form_militar.quadro_id.errors %}<div
+                                        class="invalid-feedback">{% for e in form_militar.quadro_id.errors %}{{e}}{%
+                                        endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.transferencia.label(class="form-label") }}{{
+                                    form_militar.transferencia(class="form-select" + (' is-invalid' if
+                                    form_militar.transferencia.errors else '')) }}{% if
+                                    form_militar.transferencia.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.transferencia.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                            </div>
+                        </div>
+
+                        {# ========= PERFIL & LOCALIDADE ========= #}
+                        <div id="perfil" class="super-section">
+                            <div class="section-header"><i class="bi bi-pin-map"></i>
+                                <h2 class="h6 m-0">Perfil & Localidade</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">{{ form_militar.especialidade_id.label(class="form-label") }}{{
+                                    form_militar.especialidade_id(class="form-select" + (' is-invalid' if
+                                    form_militar.especialidade_id.errors else '')) }}{% if
+                                    form_militar.especialidade_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.especialidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.antiguidade.label(class="form-label") }}{{
+                                    form_militar.antiguidade(class="form-control" + (' is-invalid' if
+                                    form_militar.antiguidade.errors else '')) }}{% if form_militar.antiguidade.errors %}
+                                    <div class="invalid-feedback">{% for e in form_militar.antiguidade.errors %}{{e}}{%
+                                        endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-4">{{ form_militar.sexo.label(class="form-label") }}{{
+                                    form_militar.sexo(class="form-select" + (' is-invalid' if form_militar.sexo.errors
+                                    else '')) }}{% if form_militar.sexo.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.sexo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.raca.label(class="form-label") }}{{
+                                    form_militar.raca(class="form-select" + (' is-invalid' if form_militar.raca.errors
+                                    else '')) }}{% if form_militar.raca.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.raca.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.localidade_id.label(class="form-label") }}{{
+                                    form_militar.localidade_id(class="form-select" + (' is-invalid' if
+                                    form_militar.localidade_id.errors else '')) }}{% if
+                                    form_militar.localidade_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.localidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.funcao_gratificada_id.label(class="form-label")
+                                    }}{{ form_militar.funcao_gratificada_id(class="form-select" + (' is-invalid' if
+                                    form_militar.funcao_gratificada_id.errors else '')) }}{% if
+                                    form_militar.funcao_gratificada_id.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.funcao_gratificada_id.errors %}{{e}}{% endfor %}</div>{% endif
+                                    %}</div>
+                            </div>
+                        </div>
+
+                        {# ========= DATAS & CÁLCULOS ========= #}
+                        <div id="datas" class="super-section">
+                            <div class="section-header"><i class="bi bi-calendar3"></i>
+                                <h2 class="h6 m-0">Datas & Cálculos</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">{{ form_militar.data_nascimento.label(class="form-label") }}{{
+                                    form_militar.data_nascimento(class="form-control" + (' is-invalid' if
+                                    form_militar.data_nascimento.errors else ''), id='data_nascimento',
+                                    oninput='calculateAge()') }}{% if form_militar.data_nascimento.errors %}<div
+                                        class="invalid-feedback">{% for e in form_militar.data_nascimento.errors
+                                        %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.idade_atual.label(class="form-label") }}{{
+                                    form_militar.idade_atual(class="form-control" + (' is-invalid' if
+                                    form_militar.idade_atual.errors else ''), id='idade_atual', readonly=True) }}{% if
+                                    form_militar.idade_atual.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.idade_atual.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.inclusao.label(class="form-label") }}{{
+                                    form_militar.inclusao(class="form-control" + (' is-invalid' if
+                                    form_militar.inclusao.errors else ''), id='inclusao', oninput='calculateInclusao()')
+                                    }}{% if form_militar.inclusao.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.completa_25_inclusao.label(class="form-label")
+                                    }}{{ form_militar.completa_25_inclusao(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_25_inclusao.errors else ''), id='completa_25_inclusao') }}{%
+                                    if form_militar.completa_25_inclusao.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.completa_25_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-3">{{ form_militar.completa_30_inclusao.label(class="form-label")
+                                    }}{{ form_militar.completa_30_inclusao(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_30_inclusao.errors else ''), id='completa_30_inclusao') }}{%
+                                    if form_militar.completa_30_inclusao.errors %}<div class="invalid-feedback">{% for e
+                                        in form_militar.completa_30_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-3">{{ form_militar.punicao_id.label(class="form-label") }}{{
+                                    form_militar.punicao_id(class="form-select" + (' is-invalid' if
+                                    form_militar.punicao_id.errors else ''), id='punicao') }}{% if
+                                    form_militar.punicao_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.punicao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-3">{{ form_militar.comportamento_id.label(class="form-label") }}{{
+                                    form_militar.comportamento_id(class="form-select") }}</div>
+                                <div class="col-md-3">{{ form_militar.efetivo_servico.label(class="form-label") }}{{
+                                    form_militar.efetivo_servico(class="form-control" + (' is-invalid' if
+                                    form_militar.efetivo_servico.errors else ''), id='efetivo_servico',
+                                    oninput='calculateServiceDetails()') }}{% if form_militar.efetivo_servico.errors %}
+                                    <div class="invalid-feedback">{% for e in form_militar.efetivo_servico.errors
+                                        %}{{e}}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="col-md-3">{{ form_militar.completa_25_anos_sv.label(class="form-label") }}{{
+                                    form_militar.completa_25_anos_sv(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_25_anos_sv.errors else ''), id='completa_25_anos_sv',
+                                    readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.completa_30_anos_sv.label(class="form-label") }}{{
+                                    form_militar.completa_30_anos_sv(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_30_anos_sv.errors else ''), id='completa_30_anos_sv',
+                                    readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.anos.label(class="form-label") }}{{
+                                    form_militar.anos(class="form-control" + (' is-invalid' if form_militar.anos.errors
+                                    else ''), id='anos', readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.idade_reserva_grad.label(class="form-label") }}{{
+                                    form_militar.idade_reserva_grad(class="form-control" + (' is-invalid' if
+                                    form_militar.idade_reserva_grad.errors else ''), readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.meses.label(class="form-label") }}{{
+                                    form_militar.meses(class="form-control" + (' is-invalid' if
+                                    form_militar.meses.errors else ''), id='meses', readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.dias.label(class="form-label") }}{{
+                                    form_militar.dias(class="form-control" + (' is-invalid' if form_militar.dias.errors
+                                    else ''), id='dias', readonly=True) }}</div>
+                                <div class="col-md-3">{{ form_militar.total_dias.label(class="form-label") }}{{
+                                    form_militar.total_dias(class="form-control" + (' is-invalid' if
+                                    form_militar.total_dias.errors else ''), id='total_dias', readonly=True) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= SITUAÇÃO ========= #}
+                        <div id="situacao" class="super-section">
+                            <div class="section-header"><i class="bi bi-clipboard2-pulse"></i>
+                                <h2 class="h6 m-0">Situação</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-2">{{ form_militar.pronto.label(class="form-label",
+                                    id="label_pronto") }}{{ form_militar.pronto(class="form-control", id='pronto',
+                                    readonly=True) }}</div>
+                                <div class="col-md-4">{{ form_militar.situacao_id.label(class="form-label",
+                                    id="label_situacao") }}{{ form_militar.situacao_id(class="form-select" + ('
+                                    is-invalid' if form_militar.situacao_id.errors else ''), id='situacao_id') }}{% if
+                                    form_militar.situacao_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.situacao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.agregacoes_id.label(class="form-label",
+                                    id="label_agregacoes") }}{{ form_militar.agregacoes_id(class="form-select" + ('
+                                    is-invalid' if form_militar.agregacoes_id.errors else ''), id='agregacoes_id') }}
+                                </div>
+                                <div class="col-md-6">{{ form_militar.destino_id.label(class="form-label") }}{{
+                                    form_militar.destino_id(class="form-select" + (' is-invalid' if
+                                    form_militar.destino_id.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.inicio_periodo.label(class="form-label") }}{{
+                                    form_militar.inicio_periodo(class="form-control" + (' is-invalid' if
+                                    form_militar.inicio_periodo.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.fim_periodo.label(class="form-label") }}{{
+                                    form_militar.fim_periodo(class="form-control" + (' is-invalid' if
+                                    form_militar.fim_periodo.errors else '')) }}</div>
+                                <div class="col-md-6">{{ form_militar.situacao_militar.label(class="form-label") }}{{
+                                    form_militar.situacao_militar(class="form-control" + (' is-invalid' if
+                                    form_militar.situacao_militar.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= LTIP ========= #}
+                        <div id="ltip" class="super-section">
+                            <div class="section-header"><i class="bi bi-heart-pulse"></i>
+                                <h2 class="h6 m-0">LTIP</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">{{
+                                    form_militar.ltip_afastamento_cargo_eletivo.label(class="form-label") }}{{
+                                    form_militar.ltip_afastamento_cargo_eletivo(class="form-control" + (' is-invalid' if
+                                    form_militar.ltip_afastamento_cargo_eletivo.errors else ''), readonly=True) }}</div>
+                                <div class="col-md-6">{{ form_militar.periodo_ltip.label(class="form-label") }}{{
+                                    form_militar.periodo_ltip(class="form-control" + (' is-invalid' if
+                                    form_militar.periodo_ltip.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.total_ltip.label(class="form-label") }}{{
+                                    form_militar.total_ltip(class="form-control" + (' is-invalid' if
+                                    form_militar.total_ltip.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.completa_25_anos_ltip.label(class="form-label")
+                                    }}{{ form_militar.completa_25_anos_ltip(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_25_anos_ltip.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.completa_30_anos_ltip.label(class="form-label")
+                                    }}{{ form_militar.completa_30_anos_ltip(class="form-control" + (' is-invalid' if
+                                    form_militar.completa_30_anos_ltip.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= FORMAÇÃO ========= #}
+                        <div id="formacao" class="super-section">
+                            <div class="section-header"><i class="bi bi-mortarboard"></i>
+                                <h2 class="h6 m-0">Formação & Cursos</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">{{ form_militar.cursos.label(class="form-label") }}{{
+                                    form_militar.cursos(class="form-control" + (' is-invalid' if
+                                    form_militar.cursos.errors else '')) }}</div>
+                                <div class="col-md-6">{{ form_militar.grau_instrucao.label(class="form-label") }}{{
+                                    form_militar.grau_instrucao(class="form-select" + (' is-invalid' if
+                                    form_militar.grau_instrucao.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.graduacao.label(class="form-label") }}{{
+                                    form_militar.graduacao(class="form-control" + (' is-invalid' if
+                                    form_militar.graduacao.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.pos_graduacao.label(class="form-label") }}{{
+                                    form_militar.pos_graduacao(class="form-control" + (' is-invalid' if
+                                    form_militar.pos_graduacao.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.mestrado.label(class="form-label") }}{{
+                                    form_militar.mestrado(class="form-control" + (' is-invalid' if
+                                    form_militar.mestrado.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.doutorado.label(class="form-label") }}{{
+                                    form_militar.doutorado(class="form-control" + (' is-invalid' if
+                                    form_militar.doutorado.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cfsd.label(class="form-label") }}{{
+                                    form_militar.cfsd(class="form-control" + (' is-invalid' if form_militar.cfsd.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cfc.label(class="form-label") }}{{
+                                    form_militar.cfc(class="form-control" + (' is-invalid' if form_militar.cfc.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cfs.label(class="form-label") }}{{
+                                    form_militar.cfs(class="form-control" + (' is-invalid' if form_militar.cfs.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cas.label(class="form-label") }}{{
+                                    form_militar.cas(class="form-control" + (' is-invalid' if form_militar.cas.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.choa.label(class="form-label") }}{{
+                                    form_militar.choa(class="form-control" + (' is-invalid' if form_militar.choa.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cfo.label(class="form-label") }}{{
+                                    form_militar.cfo(class="form-control" + (' is-invalid' if form_militar.cfo.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cbo.label(class="form-label") }}{{
+                                    form_militar.cbo(class="form-control" + (' is-invalid' if form_militar.cbo.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cao.label(class="form-label") }}{{
+                                    form_militar.cao(class="form-control" + (' is-invalid' if form_militar.cao.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.csbm.label(class="form-label") }}{{
+                                    form_militar.csbm(class="form-control" + (' is-invalid' if form_militar.csbm.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cursos_civis.label(class="form-label") }}{{
+                                    form_militar.cursos_civis(class="form-control" + (' is-invalid' if
+                                    form_militar.cursos_civis.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= ENDEREÇO ========= #}
+                        <div id="endereco" class="super-section">
+                            <div class="section-header"><i class="bi bi-geo-alt"></i>
+                                <h2 class="h6 m-0">Endereço</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12">{{ form_militar.endereco.label(class="form-label") }}{{
+                                    form_militar.endereco(class="form-control" + (' is-invalid' if
+                                    form_militar.endereco.errors else '')) }}</div>
+                                <div class="col-12">{{ form_militar.complemento.label(class="form-label") }}{{
+                                    form_militar.complemento(class="form-control" + (' is-invalid' if
+                                    form_militar.complemento.errors else '')) }}</div>
+                                <div class="col-md-6">{{ form_militar.cidade.label(class="form-label") }}{{
+                                    form_militar.cidade(class="form-control" + (' is-invalid' if
+                                    form_militar.cidade.errors else '')) }}</div>
+                                <div class="col-md-4">{{ form_militar.estado.label(class="form-label") }}{{
+                                    form_militar.estado(class="form-select" + (' is-invalid' if
+                                    form_militar.estado.errors else '')) }}</div>
+                                <div class="col-md-2">{{ form_militar.cep.label(class="form-label") }}{{
+                                    form_militar.cep(class="form-control" + (' is-invalid' if form_militar.cep.errors
+                                    else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= CONTATOS ========= #}
+                        <div id="contatos" class="super-section">
+                            <div class="section-header"><i class="bi bi-telephone"></i>
+                                <h2 class="h6 m-0">Contatos</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-2">{{ form_militar.celular.label(class="form-label") }}{{
+                                    form_militar.celular(class="form-control" + (' is-invalid' if
+                                    form_militar.celular.errors else '')) }}</div>
+                                <div class="col-md-4">{{ form_militar.email.label(class="form-label") }}{{
+                                    form_militar.email(class="form-control" + (' is-invalid' if
+                                    form_militar.email.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.inclusao_bg.label(class="form-label") }}{{
+                                    form_militar.inclusao_bg(class="form-control" + (' is-invalid' if
+                                    form_militar.inclusao_bg.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= PROGRESSÕES ========= #}
+                        <div id="progressao" class="super-section">
+                            <div class="section-header"><i class="bi bi-arrow-up-right-circle"></i>
+                                <h2 class="h6 m-0">Progressões</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">{{ form_militar.soldado_tres.label(class="form-label") }}{{
+                                    form_militar.soldado_tres(class="form-control" + (' is-invalid' if
+                                    form_militar.soldado_tres.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.soldado_dois.label(class="form-label") }}{{
+                                    form_militar.soldado_dois(class="form-control" + (' is-invalid' if
+                                    form_militar.soldado_dois.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.soldado_um.label(class="form-label") }}{{
+                                    form_militar.soldado_um(class="form-control" + (' is-invalid' if
+                                    form_militar.soldado_um.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cabo.label(class="form-label") }}{{
+                                    form_militar.cabo(class="form-control" + (' is-invalid' if form_militar.cabo.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.terceiro_sgt.label(class="form-label") }}{{
+                                    form_militar.terceiro_sgt(class="form-control" + (' is-invalid' if
+                                    form_militar.terceiro_sgt.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.segundo_sgt.label(class="form-label") }}{{
+                                    form_militar.segundo_sgt(class="form-control" + (' is-invalid' if
+                                    form_militar.segundo_sgt.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.primeiro_sgt.label(class="form-label") }}{{
+                                    form_militar.primeiro_sgt(class="form-control" + (' is-invalid' if
+                                    form_militar.primeiro_sgt.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.subtenente.label(class="form-label") }}{{
+                                    form_militar.subtenente(class="form-control" + (' is-invalid' if
+                                    form_militar.subtenente.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.segundo_tenente.label(class="form-label") }}{{
+                                    form_militar.segundo_tenente(class="form-control" + (' is-invalid' if
+                                    form_militar.segundo_tenente.errors else '')) }}</div>
+                                <div class="col-md-3">{{
+                                    form_militar.publicidade_segundo_tenente.label(class="form-label") }}{{
+                                    form_militar.publicidade_segundo_tenente(class="form-control" + (' is-invalid' if
+                                    form_militar.publicidade_segundo_tenente.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.primeiro_tenente.label(class="form-label") }}{{
+                                    form_militar.primeiro_tenente(class="form-control" + (' is-invalid' if
+                                    form_militar.primeiro_tenente.errors else '')) }}</div>
+                                <div class="col-md-3">{{
+                                    form_militar.publicidade_primeiro_tenente.label(class="form-label") }}{{
+                                    form_militar.publicidade_primeiro_tenente(class="form-control" + (' is-invalid' if
+                                    form_militar.publicidade_primeiro_tenente.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cap.label(class="form-label") }}{{
+                                    form_militar.cap(class="form-control" + (' is-invalid' if form_militar.cap.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.pub_cap.label(class="form-label") }}{{
+                                    form_militar.pub_cap(class="form-control" + (' is-invalid' if
+                                    form_militar.pub_cap.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.maj.label(class="form-label") }}{{
+                                    form_militar.maj(class="form-control" + (' is-invalid' if form_militar.maj.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.pub_maj.label(class="form-label") }}{{
+                                    form_militar.pub_maj(class="form-control" + (' is-invalid' if
+                                    form_militar.pub_maj.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.tc.label(class="form-label") }}{{
+                                    form_militar.tc(class="form-control" + (' is-invalid' if form_militar.tc.errors else
+                                    '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.pub_tc.label(class="form-label") }}{{
+                                    form_militar.pub_tc(class="form-control" + (' is-invalid' if
+                                    form_militar.pub_tc.errors else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.cel.label(class="form-label") }}{{
+                                    form_militar.cel(class="form-control" + (' is-invalid' if form_militar.cel.errors
+                                    else '')) }}</div>
+                                <div class="col-md-3">{{ form_militar.pub_cel.label(class="form-label") }}{{
+                                    form_militar.pub_cel(class="form-control" + (' is-invalid' if
+                                    form_militar.pub_cel.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        {# ========= ALTERAÇÕES ========= #}
+                        <div id="alteracoes" class="super-section">
+                            <div class="section-header"><i class="bi bi-pencil-square"></i>
+                                <h2 class="h6 m-0">Alterações</h2>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">{{ form_militar.alteracao_nome_guerra.label(class="form-label")
+                                    }}{{ form_militar.alteracao_nome_guerra(class="form-control" + (' is-invalid' if
+                                    form_militar.alteracao_nome_guerra.errors else '')) }}</div>
+                                <div class="col-md-6">{{ form_militar.pub_alteracao.label(class="form-label") }}{{
+                                    form_militar.pub_alteracao(class="form-control" + (' is-invalid' if
+                                    form_militar.pub_alteracao.errors else '')) }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra de ação -->
+                        <div class="action-bar mt-2">
+                            {{ form_militar.botao_submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('home_cadete') }}" class="btn btn-outline-light">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- Scripts utilitários (mesmos do template da DRH, sem partes de envio de documento) -->
+<script>
+    (function () {
+        // Ativa ScrollSpy
+        const dataSpyList = [].slice.call(document.querySelectorAll('[data-bs-spy="scroll"]'))
+        dataSpyList.forEach(function (el) {
+            bootstrap.ScrollSpy.getInstance(el) || new bootstrap.ScrollSpy(el, { target: '#sectionNav', offset: 140 })
+        })
+    })();
+</script>
+
+<script src="{{ url_for('static', filename='js/exibir_militar_down.js') }}"></script>
+{% endblock %}

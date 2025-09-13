@@ -34,8 +34,8 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta, timezone
 from io import BytesIO
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import case, func, text, or_
+from sqlalchemy.orm import joinedload, selectinload, load_only
+from sqlalchemy import case, func, text, or_, cast, String
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -3843,10 +3843,10 @@ def ficha_aluno():
         flash('Ficha do aluno salva com sucesso!', 'success')
         return redirect(url_for('ficha_aluno'))
 
-    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year, 
-                            aluno=None,          # <- importante
-                            is_edicao=False      # <- flag
-                            )
+    return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year,
+                           aluno=None,          # <- importante
+                           is_edicao=False      # <- flag
+                           )
 
 
 @app.route('/fichas')
@@ -3945,7 +3945,7 @@ def editar_ficha(aluno_id):
         return redirect(url_for('listar_fichas', aluno_id=aluno.id))
 
     return render_template('ficha_alunos.html', form=form, foto_url=foto_url, aluno=aluno, ano_atual=datetime.now().year,
-                            is_edicao=True)
+                           is_edicao=True)
 
 
 @app.route('/fichas/<int:aluno_id>/inativar', methods=['GET', 'POST'])
@@ -4335,7 +4335,10 @@ def criar_senha(cpf):
                 novo_usuario.localidade_id = None  # ajuste se necessário
 
         database.session.add(novo_usuario)
-        database.session.commit()
+        database.session.flush()  # pega novo_usuario.id sem commit
+
+        if pessoa_tipo == 'militar':
+            pessoa.usuario_id = novo_usuario.id
 
         _limpa_sessao_validacao()
         flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
@@ -4429,6 +4432,7 @@ def login_atualizacao():
 
 # --------------------------------------------------------------- PARTE DOS CADETES -----------------------------------------------------------------#
 
+
 @app.route("/login-cadete", methods=['GET', 'POST'])
 def login_cadete():
     if current_user.is_authenticated:
@@ -4515,7 +4519,7 @@ def cadete_exibir_militar(militar_id):
 
     obm_funcao_tipo_2 = MilitarObmFuncao.query.filter_by(militar_id=militar_id, tipo=2) \
         .filter(MilitarObmFuncao.data_fim == None).first()
-    
+
     # --- AQUI você pode reaproveitar quase tudo da sua rota exibir_militar ---
     # Reaproveite o setup do form e choices:
     form_militar = FormMilitar(obj=militar)
@@ -4962,106 +4966,161 @@ def ficha_atualizada():
         segundo_vinculo=segundo_vinculo
     )
 
+
+def _norm_cpf(cpf: str) -> str:
+    return re.sub(r'\D', '', cpf or '')
+
+
 @app.route("/admin/distribuir-atualizacao", methods=["GET", "POST"])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH', 'CHEFE DRH', 'DRH')
 def distribuir_atualizacao():
     form = DistribuirAtualizacaoForm()
 
-    # Cadetes = usuários cujo Militar relacionado tem posto_grad_id = 7
-    cadetes_users = (database.session.query(User)
-        .join(Militar, Militar.usuario_id == User.id)
-        .filter(Militar.posto_grad_id == 7)
-        .all())
+    # 1) Cadetes na tabela MILITAR (por posto_grad_id = 7)
+    cadetes_mil = (Militar.query
+                   .filter(Militar.posto_grad_id == 7)
+                   .all())
 
-    # Alvos = Militares elegíveis (exclui alunos e cadetes)
+    # Conjunto de CPFs normalizados desses cadetes
+    cadete_cpfs_norm = {_norm_cpf(m.cpf) for m in cadetes_mil if m.cpf}
+
+    # 2) Users casados por CPF (normalizado)
+    #    (Se CPFs já estiverem no mesmo formato, você poderia fazer IN direto.
+    #     Aqui faço robusto: pego todos e filtro em Python pelo CPF normalizado.)
+    all_users = User.query.all()
+    cadetes_users_por_cpf = [
+        u for u in all_users if _norm_cpf(u.cpf) in cadete_cpfs_norm]
+
+    # 3) Users casados por FK usuario_id (para quem já está linkado)
+    cadetes_users_por_fk = (database.session.query(User)
+                            .join(Militar, Militar.usuario_id == User.id)
+                            .filter(Militar.posto_grad_id == 7)
+                            .all())
+
+    # 4) União dos dois métodos (distinct por id)
+    cadetes_users_dict = {u.id: u for u in cadetes_users_por_cpf}
+    cadetes_users_dict.update({u.id: u for u in cadetes_users_por_fk})
+    cadetes_users = list(cadetes_users_dict.values())
+
+    # Alvos = Militares elegíveis (NÃO alunos; NÃO civis posto_grad=15, como você pediu)
     alvos = (Militar.query
-        .filter(Militar.situacao_id != 9)  # NÃO incluir alunos
-        .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))  # NÃO atribuir cadetes
-        .order_by(Militar.id.asc())
-        .all())
+             .filter(Militar.situacao_id != 9)
+             .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
+             .order_by(Militar.id.asc())
+             .all())
 
-    # Métricas atuais
-    tot_cadetes = len(cadetes_users)
-    tot_alvos   = len(alvos)
-    tot_tarefas = database.session.query(func.count(TarefaAtualizacaoCadete.id)).scalar() or 0
+    # Métricas
+    # cadetes encontrados na tabela Militar
+    tot_cadetes_mil = len(cadetes_mil)
+    tot_cadetes_cpf = len(cadetes_users_por_cpf)       # users casados por CPF
+    # users casados por usuario_id
+    tot_cadetes_fk = len(cadetes_users_por_fk)
+    tot_cadetes = len(cadetes_users)               # união/distinct
+    tot_alvos = len(alvos)
+    tot_tarefas = database.session.query(
+        func.count(TarefaAtualizacaoCadete.id)).scalar() or 0
     tarefas_pend = (TarefaAtualizacaoCadete.query
                     .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
                     .count())
     estim_por_cadete = math.ceil(tot_alvos / tot_cadetes) if tot_cadetes else 0
 
-    # GET → prévia + formulário
     if request.method == "GET":
         return render_template(
             "admin/distribuir_atualizacao.html",
             form=form,
+            # métricas exibidas
             tot_cadetes=tot_cadetes,
             tot_alvos=tot_alvos,
             tot_tarefas=tot_tarefas,
             tarefas_pend=tarefas_pend,
             estim_por_cadete=estim_por_cadete,
+            # métricas de depuração (mostramos no template também)
+            tot_cadetes_mil=tot_cadetes_mil,
+            tot_cadetes_cpf=tot_cadetes_cpf,
+            tot_cadetes_fk=tot_cadetes_fk,
         )
 
-    # POST → executar
     if form.validate_on_submit():
-        modo_limpeza = form.limpeza.data  # 'nenhuma' | 'pendentes' | 'todas'
+        modo_limpeza = form.limpeza.data
         try:
             if modo_limpeza == "pendentes":
-                # Remove pendentes/em edição (mantém concluídos)
                 (TarefaAtualizacaoCadete.query
-                 .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
-                 .delete(synchronize_session=False))
+                .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
+                .delete(synchronize_session=False))
                 database.session.commit()
-
             elif modo_limpeza == "todas":
-                # Remove tudo (inclui concluídos)
                 TarefaAtualizacaoCadete.query.delete()
                 database.session.commit()
 
-            # Recarrega após limpeza
-            cadetes_users = (database.session.query(User)
-                .join(Militar, Militar.usuario_id == User.id)
-                .filter(Militar.posto_grad_id == 7)
-                .all())
-            alvos = (Militar.query
-                .filter(Militar.situacao_id != 9)
-                .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
-                .order_by(Militar.id.asc())
-                .all())
+            # --- Recarregar bases -----------------------------
+            cadetes_mil = Militar.query.filter(Militar.posto_grad_id == 7).all()
+            cadete_cpfs_norm = {_norm_cpf(m.cpf) for m in cadetes_mil if m.cpf}
 
+            # Users que são cadetes (por CPF normalizado)
+            all_users = User.query.options(load_only(User.id, User.cpf)).all()
+            cadetes_users = [u for u in all_users if _norm_cpf(u.cpf) in cadete_cpfs_norm]
             if not cadetes_users:
-                flash("Nenhum cadete encontrado (posto_grad_id = 7).", "warning")
-                return redirect(url_for("home"))
+                flash("Nenhum cadete encontrado via CPF.", "warning")
+                return redirect(url_for("distribuir_atualizacao"))
 
+            # Alvos: não alunos e não civis
+            alvos = (Militar.query
+                    .filter(Militar.situacao_id != 9)
+                    .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
+                    .order_by(Militar.id.asc())
+                    .all())
             if not alvos:
-                flash("Não há militares elegíveis para distribuição.", "warning")
-                return redirect(url_for("home"))
+                flash("Não há militares elegíveis.", "warning")
+                return redirect(url_for("distribuir_atualizacao"))
 
-            created = 0
+            # --- Mapeia cadete_user_id -> cadete_militar_id em UMA query -----------
+            # join por cpf normalizado (cobre caso não exista usuario_id populado)
+            cpf_user_norm = func.regexp_replace(cast(User.cpf, String), r'[^0-9]', '', 'g')
+            cpf_mil_norm  = func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g')
+
+            pares_user_mil = (database.session.query(User.id, Militar.id)
+                            .join(Militar, cpf_user_norm == cpf_mil_norm)
+                            .filter(Militar.posto_grad_id == 7,
+                                    User.id.in_([u.id for u in cadetes_users]))
+                            .all())
+            cadete_map = dict(pares_user_mil)  # {cadete_user_id: cadete_militar_id}
+
+            # --- Carrega pares já existentes para evitar SELECT no loop ------------
+            existentes = set(database.session.query(
+                TarefaAtualizacaoCadete.cadete_user_id,
+                TarefaAtualizacaoCadete.militar_id
+            ).all())
+
+            # --- Monta inserts em lote (sem autoflush no meio) ---------------------
+            to_insert = []
             ccount = len(cadetes_users)
+            cad_user_ids = [u.id for u in cadetes_users]
 
-            for i, m in enumerate(alvos):
-                cadete_user = cadetes_users[i % ccount]
-
-                # Evita duplicidade
-                existe = (TarefaAtualizacaoCadete.query
-                          .filter_by(cadete_user_id=cadete_user.id, militar_id=m.id)
-                          .first())
-                if existe:
+            for i, alvo in enumerate(alvos):
+                cad_uid = cad_user_ids[i % ccount]
+                cad_mil_id = cadete_map.get(cad_uid)
+                if not cad_mil_id:
+                    # sem vínculo por CPF — pula silenciosamente
                     continue
 
-                cadete_mil = Militar.query.filter_by(usuario_id=cadete_user.id).first()
-                t = TarefaAtualizacaoCadete(
-                    cadete_user_id=cadete_user.id,
-                    cadete_militar_id=cadete_mil.id if cadete_mil else None,
-                    militar_id=m.id,
-                    status="PENDENTE",
-                )
-                database.session.add(t)
-                created += 1
+                par = (cad_uid, alvo.id)
+                if par in existentes:
+                    continue
+
+                to_insert.append({
+                    "cadete_user_id": cad_uid,
+                    "cadete_militar_id": cad_mil_id,
+                    "militar_id": alvo.id,
+                    "status": "PENDENTE",
+                })
+
+            if to_insert:
+                # bem mais rápido que add() em loop
+                database.session.bulk_insert_mappings(TarefaAtualizacaoCadete, to_insert)
 
             database.session.commit()
-            flash(f"Distribuição concluída. Novas tarefas criadas: {created}.", "success")
+            flash(f"Distribuição concluída. Criadas: {len(to_insert)}.", "success")
             return redirect(url_for("distribuir_atualizacao"))
 
         except Exception as e:
@@ -5069,7 +5128,7 @@ def distribuir_atualizacao():
             flash(f"Erro na distribuição: {e}", "danger")
             return redirect(url_for("distribuir_atualizacao"))
 
-    # Se não validar, re-renderiza com erros
+    # fallback de validação
     return render_template(
         "admin/distribuir_atualizacao.html",
         form=form,
@@ -5078,7 +5137,11 @@ def distribuir_atualizacao():
         tot_tarefas=tot_tarefas,
         tarefas_pend=tarefas_pend,
         estim_por_cadete=estim_por_cadete,
+        tot_cadetes_mil=tot_cadetes_mil,
+        tot_cadetes_cpf=tot_cadetes_cpf,
+        tot_cadetes_fk=tot_cadetes_fk,
     )
+
 
 @app.route('/fichas/<int:aluno_id>/recompensa', methods=['GET', 'POST'])
 @login_required

@@ -11,48 +11,158 @@
     --ink-200: #e8eef6;
     --ink-400: #c0cfda;
   }
-  body { background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed; }
-  .brand-header {
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-    border: 1px solid var(--glass-brd);
-    border-radius: 16px; color: var(--ink-200);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
+
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid var(--glass-brd);
+    border-radius: 16px;
+    color: var(--ink-200);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
   .glass-card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-brd);
-    border-radius: 16px; color: var(--ink-200);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    border-radius: 16px;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
   }
+
   .card-soft {
-    background: #fff; border: 1px solid rgba(0,0,0,.06);
-    border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
   }
-  .kpi .title { font-size: .85rem; color: #475569; }
-  .kpi .value { font-size: 1.6rem; font-weight: 700; }
-  .chip { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .55rem; font-size: .78rem; border-radius: 999px; border: 1px solid var(--glass-brd); }
-  .muted { color: #cbd5e1; }
-  .avatar { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: rgba(255,255,255,.1); color: #fff; border: 1px solid var(--glass-brd); }
-  .btn-primary { background: var(--brand-red); border-color: var(--brand-red); }
-  .btn-primary:hover { background: var(--brand-red-600); border-color: var(--brand-red-600); }
-  .btn-outline-primary { color: var(--brand-red); border-color: var(--brand-red); }
-  .btn-outline-primary:hover { color: #fff; background: var(--brand-red); }
-  .status-badge { font-size: .75rem; }
-  .table thead th { color: #94a3b8; }
-  .table tbody tr { border-color: rgba(255,255,255,.08); }
-  .search-input { background: rgba(255,255,255,.1); color: #fff; border: 1px solid var(--glass-brd); }
-  .search-input::placeholder { color: #cbd5e1; }
-  .progress { height: 10px; background: rgba(255,255,255,.15); }
-  .progress-bar { background: var(--brand-red); }
-  .filter-tabs .nav-link { color: #e2e8f0; border: 1px solid transparent; }
-  .filter-tabs .nav-link.active { color: #fff; background: rgba(255,255,255,.08); border-color: var(--glass-brd); }
+
+  .kpi .title {
+    font-size: .85rem;
+    color: #475569;
+  }
+
+  .kpi .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .55rem;
+    font-size: .78rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-brd);
+  }
+
+  .muted {
+    color: #cbd5e1;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    border: 1px solid var(--glass-brd);
+  }
+
+  .btn-primary {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
+
+  .btn-outline-primary {
+    color: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-outline-primary:hover {
+    color: #fff;
+    background: var(--brand-red);
+  }
+
+  .status-badge {
+    font-size: .75rem;
+  }
+
+  .table thead th {
+    color: #94a3b8;
+  }
+
+  .table tbody tr {
+    border-color: rgba(255, 255, 255, .08);
+  }
+
+  .search-input {
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    border: 1px solid var(--glass-brd);
+  }
+
+  .search-input::placeholder {
+    color: #cbd5e1;
+  }
+
+  .progress {
+    height: 10px;
+    background: rgba(255, 255, 255, .15);
+  }
+
+  .progress-bar {
+    background: var(--brand-red);
+  }
+
+  .filter-tabs .nav-link {
+    color: #e2e8f0;
+    border: 1px solid transparent;
+  }
+
+  .filter-tabs .nav-link.active {
+    color: #fff;
+    background: rgba(255, 255, 255, .08);
+    border-color: var(--glass-brd);
+  }
+
+  input[readonly],
+  textarea[readonly] {
+    cursor: not-allowed;
+    opacity: .9;
+    background: rgba(255, 255, 255, .08) !important;
+  }
+
+  /* Alerta “glass” combinando com o tema */
+  .glass-alert {
+    background: rgba(255, 255, 255, .08);
+    color: var(--ink-200);
+    border: 1px solid var(--glass-brd);
+    border-left: 4px solid var(--brand-red);
+    border-radius: 12px;
+    padding: .6rem .75rem;
+    z-index: 2000;
+  }
 </style>
 {% endblock %}
 
 {% block body %}
 {% set total = tarefas|length %}
-{% set qtd_pendentes = pendentes if pendentes is defined else (tarefas|selectattr('status','equalto','PENDENTE')|list|length) %}
+{% set qtd_pendentes = pendentes if pendentes is defined else
+(tarefas|selectattr('status','equalto','PENDENTE')|list|length) %}
 {% set em_edicao = tarefas|selectattr('status','equalto','EM_EDICAO')|list|length %}
 {% set concluidos = tarefas|selectattr('status','equalto','CONCLUIDO')|list|length %}
 {% set pct = ( (concluidos / total * 100) if total > 0 else 0 ) | round(0, 'floor') %}
@@ -67,7 +177,8 @@
           <div class="avatar">{{ (current_user.nome or 'U')[:1] }}</div>
           <div>
             <h1 class="h5 m-0">Missão de Atualização — Cadete</h1>
-            <div class="small opacity-75">Você recebeu <strong>{{ total }}</strong> registros para revisar. <span class="ms-2">Somente militares elegíveis (sem alunos).</span></div>
+            <div class="small opacity-75">Você recebeu <strong>{{ total }}</strong> registros para revisar. <span
+                class="ms-2">Somente militares elegíveis (sem alunos).</span></div>
           </div>
         </div>
         <div class="text-end">
@@ -78,6 +189,16 @@
           <div class="small mt-1">Concluídos: {{ concluidos }} / {{ total }}</div>
         </div>
       </div>
+    </div>
+
+    <div class="alert glass-alert d-flex align-items-start gap-2 mt-3 alert-dismissible fade show" role="alert">
+      <i class="bi bi-lock-fill fs-5 mt-1"></i>
+      <div>
+        <strong>CPF e Matrícula bloqueados.</strong>
+        Esses campos já estão corretos no sistema e não precisam ser atualizados pelos cadetes.
+        Em caso de divergência, informe o DRH.
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
     </div>
 
     <!-- KPIs -->
@@ -112,7 +233,8 @@
       <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
         <h2 class="h6 m-0"><i class="bi bi-list-check me-1"></i> Sua lista de militares</h2>
         <div class="d-flex gap-2 flex-wrap">
-          <input id="busca" type="search" class="form-control form-control-sm search-input" placeholder="Buscar por nome, matrícula ou CPF…" style="min-width: 260px;" autocomplete="off">
+          <input id="busca" type="search" class="form-control form-control-sm search-input"
+            placeholder="Buscar por nome, matrícula ou CPF…" style="min-width: 260px;" autocomplete="off">
           <ul class="nav filter-tabs nav-pills small">
             <li class="nav-item"><button class="nav-link active" data-filter="TODOS" type="button">Todos</button></li>
             <li class="nav-item"><button class="nav-link" data-filter="PENDENTE" type="button">Pendentes</button></li>
@@ -123,7 +245,7 @@
       </div>
 
       {% if total == 0 %}
-        <div class="muted">Você não possui militares atribuídos no momento.</div>
+      <div class="muted">Você não possui militares atribuídos no momento.</div>
       {% else %}
       <div class="table-responsive">
         <table class="table table-sm align-middle text-white">
@@ -139,7 +261,7 @@
             </tr>
           </thead>
           <tbody id="linhas">
-          {% for t in tarefas %}
+            {% for t in tarefas %}
             {% set m = t.militar_atribuido or None %}
             {% set nome = (m.nome_completo if m else '—') %}
             {% set matricula = (m.matricula if m and m.matricula else '—') %}
@@ -157,26 +279,28 @@
               <td class="text-nowrap">{{ sit }}</td>
               <td>
                 {% if st == 'CONCLUIDO' %}
-                  <span class="badge bg-success status-badge"><i class="bi bi-check2-circle me-1"></i>Concluído</span>
+                <span class="badge bg-success status-badge"><i class="bi bi-check2-circle me-1"></i>Concluído</span>
                 {% elif st == 'EM_EDICAO' %}
-                  <span class="badge bg-warning text-dark status-badge"><i class="bi bi-pencil-square me-1"></i>Em edição</span>
+                <span class="badge bg-warning text-dark status-badge"><i class="bi bi-pencil-square me-1"></i>Em
+                  edição</span>
                 {% else %}
-                  <span class="badge bg-secondary status-badge"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
+                <span class="badge bg-secondary status-badge"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
                 {% endif %}
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm" role="group">
                   {% if st == 'CONCLUIDO' %}
-                    <a class="btn btn-outline-secondary disabled" aria-disabled="true" href="#"><i class="bi bi-check2"></i> Feito</a>
+                  <a class="btn btn-outline-secondary disabled" aria-disabled="true" href="#"><i
+                      class="bi bi-check2"></i> Feito</a>
                   {% else %}
-                    <a class="btn btn-primary" href="{{ url_for('cadete_exibir_militar', militar_id=t.militar_id) }}">
-                      <i class="bi bi-clipboard-check me-1"></i> Atualizar
-                    </a>
+                  <a class="btn btn-primary" href="{{ url_for('cadete_exibir_militar', militar_id=t.militar_id) }}">
+                    <i class="bi bi-clipboard-check me-1"></i> Atualizar
+                  </a>
                   {% endif %}
                 </div>
               </td>
             </tr>
-          {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -184,40 +308,41 @@
     </div>
 
     <div class="mt-3 text-end">
-      <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-1"></i> Sair</a>
+      <a class="btn btn-outline-light btn-sm" href="{{ url_for('sair') }}"><i class="bi bi-box-arrow-right me-1"></i>
+        Sair</a>
     </div>
 
   </div>
 </section>
 
 <script>
-(() => {
-  const busca = document.getElementById('busca');
-  const linhas = document.querySelectorAll('#linhas tr');
-  const tabs = document.querySelectorAll('.filter-tabs .nav-link');
-  let filtroStatus = 'TODOS';
+  (() => {
+    const busca = document.getElementById('busca');
+    const linhas = document.querySelectorAll('#linhas tr');
+    const tabs = document.querySelectorAll('.filter-tabs .nav-link');
+    let filtroStatus = 'TODOS';
 
-  function aplicaFiltro() {
-    const q = (busca?.value || '').trim().toLowerCase();
-    let visiveis = 0;
-    linhas.forEach(tr => {
-      const s = tr.getAttribute('data-status') || 'PENDENTE';
-      const str = tr.getAttribute('data-str') || '';
-      const matchStatus = (filtroStatus === 'TODOS') || (s === filtroStatus);
-      const matchBusca = !q || str.includes(q);
-      const show = matchStatus && matchBusca;
-      tr.style.display = show ? '' : 'none';
-      if (show) visiveis++;
-    });
-  }
+    function aplicaFiltro() {
+      const q = (busca?.value || '').trim().toLowerCase();
+      let visiveis = 0;
+      linhas.forEach(tr => {
+        const s = tr.getAttribute('data-status') || 'PENDENTE';
+        const str = tr.getAttribute('data-str') || '';
+        const matchStatus = (filtroStatus === 'TODOS') || (s === filtroStatus);
+        const matchBusca = !q || str.includes(q);
+        const show = matchStatus && matchBusca;
+        tr.style.display = show ? '' : 'none';
+        if (show) visiveis++;
+      });
+    }
 
-  busca?.addEventListener('input', aplicaFiltro);
-  tabs.forEach(btn => btn.addEventListener('click', () => {
-    tabs.forEach(x => x.classList.remove('active'));
-    btn.classList.add('active');
-    filtroStatus = btn.getAttribute('data-filter') || 'TODOS';
-    aplicaFiltro();
-  }));
-})();
+    busca?.addEventListener('input', aplicaFiltro);
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      filtroStatus = btn.getAttribute('data-filter') || 'TODOS';
+      aplicaFiltro();
+    }));
+  })();
 </script>
 {% endblock %}
