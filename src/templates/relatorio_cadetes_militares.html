@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9e1119;
+    --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
+    --ink-100:#f6f8fb; --ink-200:#e8eef6; --ink-400:#c0cfda;
+  }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .glass-card{
+    background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .btn-primary{ background:var(--brand-red); border-color:var(--brand-red) }
+  .btn-primary:hover{ background:var(--brand-red-600); border-color:var(--brand-red-600) }
+  .btn-outline-light{ --bs-btn-color:#fff; --bs-btn-border-color:#ffffff88; }
+  .btn-outline-light:hover{ background:#ffffff22; border-color:#fff; color:#fff; }
+
+  .filter-tabs .nav-link{ color:#e2e8f0; border:1px solid transparent;}
+  .filter-tabs .nav-link.active{ color:#fff; background:rgba(255,255,255,.08); border-color:var(--glass-brd); }
+
+  .group-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.6rem .9rem; border-bottom:1px dashed rgba(255,255,255,.18);
+    color:#e2e8f0;
+  }
+  .chip{ display:inline-flex; align-items:center; gap:.4rem; padding:.15rem .5rem;
+         border:1px solid var(--glass-brd); border-radius:999px; font-size:.78rem; }
+  .table-soft thead th{ color:#cbd5e1; }
+  .table-soft tbody tr{ border-color:rgba(255,255,255,.08); }
+  .table-soft tbody tr:hover{ background:rgba(255,255,255,.04); }
+  .table-responsive{ overflow-y:visible !important; } /* evita scrollbar vertical interno */
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+  <div class="container">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <h1 class="h6 m-0">Relatório — Militares por Cadete
+            {% if status and status != 'TODOS' %}<small class="text-light opacity-75">— {{ status|title }}</small>{% endif %}
+          </h1>
+          <div class="small text-light opacity-75">Visualização rápida com opção de exportar.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <ul class="nav filter-tabs nav-pills small me-2">
+            {% set opts = ['TODOS','PENDENTE','EM_EDICAO','CONCLUIDO'] %}
+            {% for s in opts %}
+              <li class="nav-item">
+                <a class="nav-link {% if s==status %}active{% endif %}"
+                   href="{{ url_for('relatorio_cadetes_militares', status=s, format='html') }}">{{ s.replace('_',' ') }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+          <a class="btn btn-outline-light btn-sm"
+             href="{{ url_for('relatorio_cadetes_militares', format='xlsx', status=status) }}">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Baixar Excel
+          </a>
+          <a class="btn btn-outline-light btn-sm"
+             href="{{ url_for('relatorio_cadetes_militares', format='json', status=status) }}">
+            <i class="bi bi-code-square me-1"></i> Ver JSON
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grupos por cadete -->
+    <div class="d-flex flex-column gap-3">
+      {% for (cadete_id, cadete_nome), itens in grupos %}
+        <div class="glass-card">
+          <div class="group-head">
+            <div><i class="bi bi-person-badge me-1"></i>{{ cadete_nome }}</div>
+            <span class="chip"><i class="bi bi-list-check"></i> {{ itens|length }} militar(es)</span>
+          </div>
+          <div class="table-responsive p-3 pt-0">
+            <table class="table table-sm table-soft text-white align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width:44%">Militar</th>
+                  <th style="width:20%">Posto/Grad</th>
+                  <th style="width:24%">OBM</th>
+                  <th style="width:12%" class="text-muted">ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in itens %}
+                  <tr>
+                    <td class="fw-semibold">{{ r.militar }}</td>
+                    <td>{{ r.posto_grad or '—' }}</td>
+                    <td>{{ r.obm or '—' }}</td>
+                    <td class="text-muted">{{ r.militar_id }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+{% endblock %}

@@ -34,8 +34,8 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta, timezone
 from io import BytesIO
-from sqlalchemy.orm import joinedload, selectinload, load_only
-from sqlalchemy import case, func, text, or_, cast, String
+from sqlalchemy.orm import joinedload, selectinload, load_only, aliased
+from sqlalchemy import case, func, text, or_, cast, String, and_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -53,6 +53,7 @@ import plotly.io as pio
 from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
 import time
 import statistics
+from collections import defaultdict
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -4986,7 +4987,6 @@ def distribuir_atualizacao():
     cadete_cpfs_norm = {_norm_cpf(m.cpf) for m in cadetes_mil if m.cpf}
 
     # 2) Users casados por CPF (normalizado)
-    #    (Se CPFs já estiverem no mesmo formato, você poderia fazer IN direto.
     #     Aqui faço robusto: pego todos e filtro em Python pelo CPF normalizado.)
     all_users = User.query.all()
     cadetes_users_por_cpf = [
@@ -5003,20 +5003,16 @@ def distribuir_atualizacao():
     cadetes_users_dict.update({u.id: u for u in cadetes_users_por_fk})
     cadetes_users = list(cadetes_users_dict.values())
 
-    # Alvos = Militares elegíveis (NÃO alunos; NÃO civis posto_grad=15, como você pediu)
     alvos = (Militar.query
              .filter(Militar.situacao_id != 9)
              .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
              .order_by(Militar.id.asc())
              .all())
 
-    # Métricas
-    # cadetes encontrados na tabela Militar
     tot_cadetes_mil = len(cadetes_mil)
-    tot_cadetes_cpf = len(cadetes_users_por_cpf)       # users casados por CPF
-    # users casados por usuario_id
+    tot_cadetes_cpf = len(cadetes_users_por_cpf)
     tot_cadetes_fk = len(cadetes_users_por_fk)
-    tot_cadetes = len(cadetes_users)               # união/distinct
+    tot_cadetes = len(cadetes_users)
     tot_alvos = len(alvos)
     tot_tarefas = database.session.query(
         func.count(TarefaAtualizacaoCadete.id)).scalar() or 0
@@ -5035,7 +5031,6 @@ def distribuir_atualizacao():
             tot_tarefas=tot_tarefas,
             tarefas_pend=tarefas_pend,
             estim_por_cadete=estim_por_cadete,
-            # métricas de depuração (mostramos no template também)
             tot_cadetes_mil=tot_cadetes_mil,
             tot_cadetes_cpf=tot_cadetes_cpf,
             tot_cadetes_fk=tot_cadetes_fk,
@@ -5140,6 +5135,96 @@ def distribuir_atualizacao():
         tot_cadetes_mil=tot_cadetes_mil,
         tot_cadetes_cpf=tot_cadetes_cpf,
         tot_cadetes_fk=tot_cadetes_fk,
+    )
+
+ 
+@app.route("/relatorio/cadetes-militares")
+def relatorio_cadetes_militares():
+    fmt = (request.args.get("format") or "html").lower()
+    status = (request.args.get("status") or "TODOS").upper()
+
+    # SUBQUERY: escolhe 1 OBM por militar: prioridade (data_fim IS NULL) e mais recente por data_criacao
+    obm_ranked = (
+        database.session.query(
+            MilitarObmFuncao.militar_id.label("m_id"),
+            MilitarObmFuncao.obm_id.label("obm_id"),
+            func.row_number().over(
+                partition_by=MilitarObmFuncao.militar_id,
+                order_by=(
+                    case((MilitarObmFuncao.data_fim.is_(None), 0), else_=1),
+                    MilitarObmFuncao.data_criacao.desc(),
+                )
+            ).label("rn")
+        )
+    ).subquery()
+
+    q = (
+        database.session.query(
+            User.id.label("cadete_id"),
+            User.nome.label("cadete"),
+            Militar.id.label("militar_id"),
+            Militar.nome_completo.label("militar"),
+            PostoGrad.sigla.label("posto_grad"),
+            func.coalesce(Obm.sigla, "").label("obm"),
+        )
+        .join(TarefaAtualizacaoCadete, TarefaAtualizacaoCadete.cadete_user_id == User.id)
+        .join(Militar, Militar.id == TarefaAtualizacaoCadete.militar_id)
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        # junta a OBM "escolhida" (rn = 1) sem perder quem não tem OBM
+        .outerjoin(obm_ranked, and_(obm_ranked.c.m_id == Militar.id, obm_ranked.c.rn == 1))
+        .outerjoin(Obm, Obm.id == obm_ranked.c.obm_id)
+    )
+
+    if status != "TODOS":
+        q = q.filter(TarefaAtualizacaoCadete.status == status)
+
+    q = q.order_by(User.nome.asc(), Militar.nome_completo.asc())
+
+    rows = [{
+        "cadete_id":  r.cadete_id,
+        "cadete":     r.cadete,
+        "militar_id": r.militar_id,
+        "militar":    r.militar,
+        "posto_grad": r.posto_grad or "",
+        "obm":        r.obm or "",
+    } for r in q.all()]
+
+    # ===== formatos =====
+    if fmt == "json":
+        return jsonify(rows)
+
+    if fmt == "xlsx":
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Militares por Cadete"
+        headers = ["Cadete", "Militar", "Posto/Grad", "OBM", "Militar ID"]
+        ws.append(headers)
+        for r in rows:
+            ws.append([r["cadete"], r["militar"], r["posto_grad"], r["obm"], r["militar_id"]])
+        for col_idx in range(1, len(headers) + 1):
+            col = get_column_letter(col_idx)
+            maxlen = max((len(str(c.value)) if c.value else 0) for c in ws[col])
+            ws.column_dimensions[col].width = min(max(12, maxlen + 2), 50)
+        buf = BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name="cadetes_militares.xlsx"
+        )
+
+    # HTML agrupado por cadete
+    grupos = defaultdict(list)
+    for r in rows:
+        grupos[(r["cadete_id"], r["cadete"])].append(r)
+    grupos_sorted = sorted(grupos.items(), key=lambda k: k[0][1].upper())
+
+    return render_template(
+        "relatorio_cadetes_militares.html",
+        grupos=grupos_sorted,
+        status=status
     )
 
 
