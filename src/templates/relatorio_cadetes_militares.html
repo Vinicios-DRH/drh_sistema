@@ -5,38 +5,42 @@
   :root{
     --brand-red:#B5121B; --brand-red-600:#9e1119;
     --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
-    --ink-100:#f6f8fb; --ink-200:#e8eef6; --ink-400:#c0cfda;
+    --ink-200:#e8eef6;
   }
   body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
   .brand-header{
     background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
     border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    box-shadow:0 10px 30px rgba(0,0,0,.35)
   }
   .glass-card{
     background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
-    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35)
   }
   .btn-primary{ background:var(--brand-red); border-color:var(--brand-red) }
   .btn-primary:hover{ background:var(--brand-red-600); border-color:var(--brand-red-600) }
-  .btn-outline-light{ --bs-btn-color:#fff; --bs-btn-border-color:#ffffff88; }
-  .btn-outline-light:hover{ background:#ffffff22; border-color:#fff; color:#fff; }
 
   .filter-tabs .nav-link{ color:#e2e8f0; border:1px solid transparent;}
   .filter-tabs .nav-link.active{ color:#fff; background:rgba(255,255,255,.08); border-color:var(--glass-brd); }
 
-  .group-head{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:.6rem .9rem; border-bottom:1px dashed rgba(255,255,255,.18);
-    color:#e2e8f0;
+  .accordion-button{
+    background:transparent; color:#e5e7eb; box-shadow:none !important;
+    border-bottom:1px dashed rgba(255,255,255,.18);
   }
-  .chip{ display:inline-flex; align-items:center; gap:.4rem; padding:.15rem .5rem;
+  .accordion-button:not(.collapsed){ background:rgba(255,255,255,.06); color:#fff; }
+  .accordion-item{ background:transparent; color:#e2e8f0; border:0 }
+  .accordion-body{ padding:.75rem 1rem 1rem 1rem }
+
+  .chip{ display:inline-flex; align-items:center; gap:.35rem; padding:.15rem .55rem;
          border:1px solid var(--glass-brd); border-radius:999px; font-size:.78rem; }
+
   .table-soft thead th{ color:#cbd5e1; }
   .table-soft tbody tr{ border-color:rgba(255,255,255,.08); }
   .table-soft tbody tr:hover{ background:rgba(255,255,255,.04); }
-  .table-responsive{ overflow-y:visible !important; } /* evita scrollbar vertical interno */
+
+  .search-input{ background:rgba(255,255,255,.08); border:1px solid var(--glass-brd); color:#fff; }
+  .search-input::placeholder{ color:#cbd5e1; }
 </style>
 {% endblock %}
 
@@ -51,7 +55,7 @@
           <h1 class="h6 m-0">Relatório — Militares por Cadete
             {% if status and status != 'TODOS' %}<small class="text-light opacity-75">— {{ status|title }}</small>{% endif %}
           </h1>
-          <div class="small text-light opacity-75">Visualização rápida com opção de exportar.</div>
+          <div class="small text-light opacity-75">Accordion por cadete, com exportação.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <ul class="nav filter-tabs nav-pills small me-2">
@@ -65,50 +69,81 @@
           </ul>
           <a class="btn btn-outline-light btn-sm"
              href="{{ url_for('relatorio_cadetes_militares', format='xlsx', status=status) }}">
-            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Baixar Excel
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
           </a>
           <a class="btn btn-outline-light btn-sm"
              href="{{ url_for('relatorio_cadetes_militares', format='json', status=status) }}">
-            <i class="bi bi-code-square me-1"></i> Ver JSON
+            <i class="bi bi-code-square me-1"></i> JSON
           </a>
         </div>
       </div>
+      <div class="mt-2">
+        <input id="filtroCadete" type="search" class="form-control form-control-sm search-input"
+               placeholder="Filtrar por nome do cadete…" autocomplete="off">
+      </div>
     </div>
 
-    <!-- Grupos por cadete -->
-    <div class="d-flex flex-column gap-3">
-      {% for (cadete_id, cadete_nome), itens in grupos %}
-        <div class="glass-card">
-          <div class="group-head">
-            <div><i class="bi bi-person-badge me-1"></i>{{ cadete_nome }}</div>
-            <span class="chip"><i class="bi bi-list-check"></i> {{ itens|length }} militar(es)</span>
+    <!-- Uma única carta com accordion -->
+    <div class="glass-card p-2 p-md-3">
+      <div class="accordion" id="accCadetes">
+        {% for (cadete_id, cadete_nome), itens in grupos %}
+          {% set acc_id = "cadete_" ~ cadete_id %}
+          <div class="accordion-item cadete-item" data-name="{{ cadete_nome|lower }}">
+            <h2 class="accordion-header" id="h_{{ acc_id }}">
+              <button class="accordion-button collapsed" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#c_{{ acc_id }}"
+                      aria-expanded="false" aria-controls="c_{{ acc_id }}">
+                <i class="bi bi-person-badge me-2"></i>{{ cadete_nome }}
+                <span class="chip ms-2"><i class="bi bi-list-check"></i> {{ itens|length }} militar(es)</span>
+              </button>
+            </h2>
+            <div id="c_{{ acc_id }}" class="accordion-collapse collapse" aria-labelledby="h_{{ acc_id }}"
+                 data-bs-parent="#accCadetes">
+              <div class="accordion-body">
+                <div class="table-responsive">
+                  <table class="table table-sm table-soft text-white align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width:44%">Militar</th>
+                        <th style="width:20%">Posto/Grad</th>
+                        <th style="width:24%">OBM</th>
+                        <th style="width:12%" class="text-muted">ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for r in itens %}
+                        <tr>
+                          <td class="fw-semibold">{{ r.militar }}</td>
+                          <td>{{ r.posto_grad or '—' }}</td>
+                          <td>{{ r.obm or '—' }}</td>
+                          <td class="text-muted">{{ r.militar_id }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="table-responsive p-3 pt-0">
-            <table class="table table-sm table-soft text-white align-middle mb-0">
-              <thead>
-                <tr>
-                  <th style="width:44%">Militar</th>
-                  <th style="width:20%">Posto/Grad</th>
-                  <th style="width:24%">OBM</th>
-                  <th style="width:12%" class="text-muted">ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in itens %}
-                  <tr>
-                    <td class="fw-semibold">{{ r.militar }}</td>
-                    <td>{{ r.posto_grad or '—' }}</td>
-                    <td>{{ r.obm or '—' }}</td>
-                    <td class="text-muted">{{ r.militar_id }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
 
   </div>
 </section>
+
+<script>
+  // filtro por nome do cadete
+  (function() {
+    const input = document.getElementById('filtroCadete');
+    const rows  = document.querySelectorAll('.cadete-item');
+    input?.addEventListener('input', () => {
+      const q = (input.value || '').trim().toLowerCase();
+      rows.forEach(r => {
+        const n = r.getAttribute('data-name') || '';
+        r.style.display = !q || n.includes(q) ? '' : 'none';
+      });
+    });
+  })();
+</script>
 {% endblock %}
