@@ -4206,13 +4206,6 @@ def atualizacao_cadastral():
     return render_template("atualizacao/identificacao.html", form=form)
 
 
-# def normaliza_matricula(valor: str) -> str:
-#     if not valor:
-#         return ""
-#     # Remove espaços extras, mantém só números e letra final
-#     # Ex: "123.456-7 A" → "1234567A"
-#     return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
-
 @app.route('/confirmar-matricula', methods=['GET', 'POST'])
 def confirmar_matricula():
     cpf = session.get('cpf_em_validacao')
@@ -4336,7 +4329,8 @@ def criar_senha(cpf):
                 novo_usuario.localidade_id = None  # ajuste se necessário
 
         database.session.add(novo_usuario)
-        database.session.flush()  # pega novo_usuario.id sem commit
+        database.session.flush()
+        database.session.commit()
 
         if pessoa_tipo == 'militar':
             pessoa.usuario_id = novo_usuario.id
