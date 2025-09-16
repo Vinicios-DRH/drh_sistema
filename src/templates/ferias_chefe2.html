@@ -152,6 +152,26 @@
         }
     }
 
+    function desbloquearSegundoSePode(row, mid, maxDias) {
+        const d1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`)?.value || 0, 10);
+        if (d1 < maxDias) {
+            const s2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
+            const i2 = row.querySelector(`[name="inicio_2_${mid}"]`);
+            const f2 = row.querySelector(`[name="fim_2_${mid}"]`);
+            [s2, i2, f2].forEach(el => { if (el) el.disabled = false; });
+
+            const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || "");
+                if (i2 && i2.type === 'date') {
+                    const pad = v => String(v).padStart(2, '0');
+                    if (f1) {
+                        const next = new Date(f1.getFullYear(), f1.getMonth(), f1.getDate() + 1);
+                        i2.min = `${next.getFullYear()}-${pad(next.getMonth()+1)}-${pad(next.getDate())}`;
+                    }
+                    i2.max = `${ANO_ATUAL}-12-31`;
+                }
+        }
+    }
+
     function bloquearPeriodo(row, mid, p, bloquear) {
         const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
         const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
@@ -163,12 +183,12 @@
     function aplicarRegraPeriodo(row, mid, p, maxDias) {
         if (p === "3" && travarTerceiroSeBateu(row, mid, maxDias)) return true;
 
-        if (p === "3") {
-            desbloquearTerceiroSePode(row, mid, maxDias);
-        }
+        if (p === "2") desbloquearSegundoSePode(row, mid, maxDias);
+
+        if (p === "3") desbloquearTerceiroSePode(row, mid, maxDias);
 
         const iniVal = row.querySelector(`[name="inicio_${p}_${mid}"]`)?.value || "";
-        const dtIni = parseInputDate(iniVal);
+        const dtIni  = parseInputDate(iniVal);
         let habilitar = false;
 
         if (dtIni) {
@@ -179,16 +199,17 @@
             let anoBase = ANO_ATUAL;
             const dt1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || "");
             if (dt1) anoBase = dt1.getFullYear();
-            if (mesNum) {
-                habilitar = isFuturoEstrito(new Date(anoBase, mesNum - 1, 1));
-            }
+            if (mesNum) habilitar = isFuturoEstrito(new Date(anoBase, mesNum - 1, 1));
         }
+
         bloquearPeriodo(row, mid, p, !habilitar);
+
+        if (p === "2" && !habilitar) desbloquearSegundoSePode(row, mid, maxDias);
         if (p === "3" && !habilitar) desbloquearTerceiroSePode(row, mid, maxDias);
+
         return !habilitar;
     }
 
-    // ===== NOVO: valida sobreposição e limite 31/12 =====
     function clearPeriodo(row, mid, p) {
         const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
         const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
@@ -279,6 +300,7 @@
         }
 
         atualizarCampos();
+        desbloquearSegundoSePode(row, mid, maxDias);
         desbloquearTerceiroSePode(row, mid, maxDias);
         if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias);
     }
@@ -357,6 +379,7 @@
 
             // garantia
             atualizarCampos();
+            desbloquearSegundoSePode(row, mid, maxDias);
             desbloquearTerceiroSePode(row, mid, maxDias);
             travarTerceiroSeBateu(row, mid, maxDias);
         });
