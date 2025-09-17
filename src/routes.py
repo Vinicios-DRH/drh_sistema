@@ -2,6 +2,7 @@ import math
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify, make_response, current_app
+from random import shuffle
 import os
 import zipfile
 import qrcode
@@ -5033,6 +5034,7 @@ def distribuir_atualizacao():
     if form.validate_on_submit():
         modo_limpeza = form.limpeza.data
         try:
+            # limpeza...
             if modo_limpeza == "pendentes":
                 (TarefaAtualizacaoCadete.query
                 .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
@@ -5057,46 +5059,45 @@ def distribuir_atualizacao():
             alvos = (Militar.query
                     .filter(Militar.situacao_id != 9)
                     .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
-                    .order_by(Militar.id.asc())
                     .all())
             if not alvos:
                 flash("Não há militares elegíveis.", "warning")
                 return redirect(url_for("distribuir_atualizacao"))
 
-            # --- Mapeia cadete_user_id -> cadete_militar_id em UMA query -----------
-            # join por cpf normalizado (cobre caso não exista usuario_id populado)
+            # >>> EMBARALHA TUDO PARA FICAR ALEATÓRIO A CADA POST <<<
+            cad_user_ids = [u.id for u in cadetes_users]
+            shuffle(cad_user_ids)     # ordem aleatória dos cadetes
+            shuffle(alvos)            # ordem aleatória dos alvos
+
+            # --- Mapeia cadete_user_id -> cadete_militar_id por CPF normalizado -------
             cpf_user_norm = func.regexp_replace(cast(User.cpf, String), r'[^0-9]', '', 'g')
             cpf_mil_norm  = func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g')
 
             pares_user_mil = (database.session.query(User.id, Militar.id)
                             .join(Militar, cpf_user_norm == cpf_mil_norm)
                             .filter(Militar.posto_grad_id == 7,
-                                    User.id.in_([u.id for u in cadetes_users]))
+                                    User.id.in_(cad_user_ids))
                             .all())
             cadete_map = dict(pares_user_mil)  # {cadete_user_id: cadete_militar_id}
 
-            # --- Carrega pares já existentes para evitar SELECT no loop ------------
+            # --- Evita recriar pares já existentes ------------------------------------
             existentes = set(database.session.query(
                 TarefaAtualizacaoCadete.cadete_user_id,
                 TarefaAtualizacaoCadete.militar_id
             ).all())
 
-            # --- Monta inserts em lote (sem autoflush no meio) ---------------------
+            # --- Round-robin em cima das listas embaralhadas --------------------------
             to_insert = []
-            ccount = len(cadetes_users)
-            cad_user_ids = [u.id for u in cadetes_users]
+            ccount = len(cad_user_ids)
 
             for i, alvo in enumerate(alvos):
                 cad_uid = cad_user_ids[i % ccount]
                 cad_mil_id = cadete_map.get(cad_uid)
                 if not cad_mil_id:
-                    # sem vínculo por CPF — pula silenciosamente
                     continue
-
                 par = (cad_uid, alvo.id)
                 if par in existentes:
                     continue
-
                 to_insert.append({
                     "cadete_user_id": cad_uid,
                     "cadete_militar_id": cad_mil_id,
@@ -5105,7 +5106,6 @@ def distribuir_atualizacao():
                 })
 
             if to_insert:
-                # bem mais rápido que add() em loop
                 database.session.bulk_insert_mappings(TarefaAtualizacaoCadete, to_insert)
 
             database.session.commit()
