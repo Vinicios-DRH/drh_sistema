@@ -155,10 +155,12 @@
                         {% set ja_enviado = (enviado_drh_map and enviado_drh_map.get(row.decl_id)) %}
                         {% set eh_positiva = (row.decl_tipo == 'positiva') %}
                         {% set pode_selecionar =
-                              (not is_drh_like and not ja_enviado)
-                              or (is_drh_like and (not eh_positiva or ja_enviado))
+                            is_super_user
+                            or ((not is_drh_like and eh_positiva and not ja_enviado)
+                                or (is_drh_like and (not eh_positiva or ja_enviado)))
                         %}
                         {% set pode_acionar = pode_selecionar %}
+
 
                         <tr data-id="{{ row.decl_id or '' }}">
                             <td>
@@ -254,7 +256,7 @@
                                                 </button>
                                             </form>
                                         {% else %}
-                                            {% if is_drh_like and eh_positiva and not row.encaminhado_flag %}
+                                            {% if is_drh_like and eh_positiva and not row.encaminhado_flag and not is_super_user %}
                                                 <span class="subtle small text-bg-info">Aguardando encaminhamento — sem ações</span>
                                             {% else %}
                                                 <span class="subtle small">Sem ações</span>

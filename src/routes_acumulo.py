@@ -1445,6 +1445,7 @@ def recebimento():
 
     M, D, PG, MOF, O, F = Militar, DeclaracaoAcumulo, PostoGrad, MilitarObmFuncao, Obm, Funcao
     IS_DRH_LIKE = _is_drh_like()
+    IS_SUPER = _is_super_user()
 
     IS_PRIV = _is_privilegiado()
 
@@ -1499,6 +1500,7 @@ def recebimento():
             total_ano=0, total_pendentes=0, total_validados=0, total_inconformes=0, total_nao_enviaram=0,
             pagination="", pode_editar_map={}, enviado_drh_map={},
             is_drh_like=IS_DRH_LIKE,
+            is_super_user=IS_SUPER,
         )
 
     base_page_q = (
@@ -1758,6 +1760,7 @@ def recebimento():
         pode_editar_map=pode_editar_map,
         enviado_drh_map=enviado_drh_map,
         is_drh_like=IS_DRH_LIKE,
+        is_super_user=IS_SUPER, 
     )
 
 
@@ -1771,6 +1774,7 @@ def recebimento_mudar_status(decl_id):
 
     decl = db.session.get(DeclaracaoAcumulo, decl_id) or abort(404)
     IS_DRH_LIKE = _is_drh_like()
+    IS_SUPER = _is_super_user()
 
     # chefia NÃO mexe em negativas (nem encaminhar)
     if decl.tipo == "negativa" and not IS_DRH_LIKE:
@@ -1782,15 +1786,15 @@ def recebimento_mudar_status(decl_id):
         abort(403)
 
     # depois de carregar decl e conferir 'validado'
-    if novo == "validado" and IS_DRH_LIKE:
-        # positivas só podem ser validadas se já foram encaminhadas
+    if novo == "validado" and IS_DRH_LIKE and not IS_SUPER:
         enc_reg = db.session.query(AuditoriaDeclaracao.id).filter(
             AuditoriaDeclaracao.declaracao_id == decl.id,
             AuditoriaDeclaracao.motivo == "enviado_drh"
         ).first()
         if decl.tipo == "positiva" and not enc_reg:
             flash("Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
-            return redirect(url_for("acumulo.recebimento",
+            return redirect(url_for(
+                "acumulo.recebimento",
                 ano=request.args.get("ano"), status=request.args.get("status"),
                 q=request.args.get("q"), obm_id=request.args.get("obm_id"),
                 page=request.args.get("page"), per_page=request.args.get("per_page"),
