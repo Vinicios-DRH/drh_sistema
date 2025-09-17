@@ -68,369 +68,325 @@
 </script>
 
 <script>
-    // flag vindo do servidor (já definido no bloco acima)
-    const CAN_EDIT = Boolean(window.CAN_EDIT);
+  // ==== Listas de regras especiais ====
+  // Quem pode ter teto 40
+  window.MILITARES_40    = [513];
+  // Dentro dos de 40, quem é forçado a 20 + 20 (sem 3º período)
+  window.MILITARES_20_20 = [513];
 
-    // se não pode editar, trava tudo
-    if (!CAN_EDIT) {
-        document.addEventListener("DOMContentLoaded", () => {
-            const observer = new MutationObserver(() => {
-                document.querySelectorAll("#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar")
-                    .forEach(el => { if (!el.hasAttribute("data-keep-disabled")) el.disabled = true; });
-            });
-            observer.observe(document.getElementById("tabelaContainer"), { childList: true, subtree: true });
-        });
+  // flag vindo do servidor (já definido acima na página)
+  const CAN_EDIT = Boolean(window.CAN_EDIT);
+
+  // Se não pode editar, trava tudo (inclui redraw da DataTable)
+  if (!CAN_EDIT) {
+    document.addEventListener("DOMContentLoaded", () => {
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll("#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar")
+          .forEach(el => { if (!el.hasAttribute("data-keep-disabled")) el.disabled = true; });
+      });
+      observer.observe(document.getElementById("tabelaContainer"), { childList: true, subtree: true });
+    });
+  }
+
+  // ===== utils básicos =====
+  function bloquearLinha(row, bloquear = true) {
+    row.querySelectorAll("input, select, button.botao-salvar").forEach(el => {
+      if (!el.hasAttribute("data-keep-disabled")) el.disabled = bloquear;
+    });
+  }
+
+  const hoje = new Date();
+  const ANO_ATUAL = hoje.getFullYear();
+  const LIMITE_ANO = new Date(ANO_ATUAL, 11, 31); // 31/12/yyyy
+
+  function parseInputDate(s) {
+    if (!s) return null;
+    const t = s.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y, m, d] = t.split('-').map(Number); return new Date(y, m - 1, d); }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d, m, y] = t.split('/').map(Number); return new Date(y, m - 1, d); }
+    return null;
+  }
+
+  // Só libera se (ano, mês) do início for estritamente > (ano, mês) atual
+  function isMesFuturoEstrito(dt) {
+    if (!dt || isNaN(+dt)) return false;
+    const a = dt.getFullYear(), m = dt.getMonth();
+    const aN = hoje.getFullYear(), mN = hoje.getMonth();
+    return (a > aN) || (a === aN && m > mN);
+  }
+
+  function setMinProxMes(inputDate) {
+    if (!inputDate || inputDate.type !== 'date') return;
+    const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const pad = v => String(v).padStart(2, '0');
+    inputDate.min = `${prox.getFullYear()}-${pad(prox.getMonth() + 1)}-${pad(prox.getDate())}`;
+    inputDate.max = `${ANO_ATUAL}-12-31`;
+  }
+
+  function getTotais(row, mid) {
+    const d1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`)?.value || 0, 10);
+    const d2 = parseInt(row.querySelector(`[name="qtd_dias_2_${mid}"]`)?.value || 0, 10);
+    const d3 = parseInt(row.querySelector(`[name="qtd_dias_3_${mid}"]`)?.value || 0, 10);
+    return { d1, d2, d3, total12: d1 + d2, total123: d1 + d2 + d3 };
+  }
+
+  function limparDatas(mid, p, row) {
+    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+    const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
+    if (i) i.value = '';
+    if (f) f.value = '';
+  }
+
+  // ===== Regras de teto p/ 3º =====
+  function travarTerceiroSeBateu(row, mid, maxDias) {
+    const { total12 } = getTotais(row, mid);
+    const s3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
+    const i3 = row.querySelector(`[name="inicio_3_${mid}"]`);
+    const f3 = row.querySelector(`[name="fim_3_${mid}"]`);
+    if (total12 >= maxDias) {
+      if (s3) { s3.value = ''; s3.disabled = true; }
+      if (i3) { i3.value = ''; i3.disabled = true; }
+      if (f3) { f3.value = ''; f3.disabled = true; }
+      return true;
+    }
+    return false;
+  }
+
+  // ===== Habilitação/Desabilitação de campos =====
+  function bloquearPeriodo(row, mid, p, bloquear) {
+    const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
+    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+    const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
+    [s, i, f].forEach(el => { if (el) el.disabled = !!bloquear; });
+  }
+
+  // Opções válidas do 2º período de acordo com teto e 20/20
+  function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
+    const dias1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`)?.value || 0, 10);
+    const sel2  = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
+    if (!sel2) return;
+
+    const teto = podeTer40 ? 40 : 30;
+    let permitidasBase = podeTer40
+      ? (forcar20x20 ? [20] : [10, 20]) // 40 → 10/20 (ou só 20 se 20x20)
+      : [10, 15, 20, 30];               // 30 → 10/15/20/30
+
+    const permitidas = permitidasBase.filter(v => dias1 + v <= teto);
+
+    Array.from(sel2.options).forEach(opt => {
+      if (!opt.value) return;
+      const v = parseInt(opt.value, 10);
+      opt.disabled = !permitidas.includes(v);
+    });
+
+    const atual = parseInt(sel2.value || 0, 10);
+    if (!permitidas.includes(atual)) {
+      sel2.value = '';
+      limparDatas(mid, 2, row);
+      const s3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
+      if (s3) { s3.value = ''; limparDatas(mid, 3, row); }
+    }
+  }
+
+  // Regra central por período (libera apenas com INÍCIO em mês futuro estrito)
+  function aplicarRegraPeriodo(row, mid, p, maxDias, podeTer40, forcar20x20) {
+    if (p === "3" && travarTerceiroSeBateu(row, mid, maxDias)) return true;
+
+    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+    setMinProxMes(i); // ajuda a não escolher passado
+
+    const dtIni = parseInputDate(i?.value || '');
+    const habilitar = isMesFuturoEstrito(dtIni);
+
+    bloquearPeriodo(row, mid, p, !habilitar);
+    if (!habilitar) return true;
+
+    // Ajusta opções do 2º quando ele for liberado
+    if (p === "2") aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
+
+    return false; // liberado
+  }
+
+  // ===== Validações =====
+  function clearPeriodo(row, mid, p) { limparDatas(mid, p, row); }
+
+  function validarSequencia(row, mid) {
+    const i1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || "");
+    const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || "");
+    const i2 = parseInputDate(row.querySelector(`[name="inicio_2_${mid}"]`)?.value || "");
+    const f2 = parseInputDate(row.querySelector(`[name="fim_2_${mid}"]`)?.value || "");
+    const i3 = parseInputDate(row.querySelector(`[name="inicio_3_${mid}"]`)?.value || "");
+    const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value || "");
+
+    // 2º não pode começar antes de terminar o 1º
+    const base2 = f1 || i1;
+    if (i2 && base2 && i2 <= base2) {
+      alert("O 2º período não pode começar antes de terminar o 1º.");
+      clearPeriodo(row, mid, "2");
     }
 
-    // ===== util =====
-    function bloquearLinha(row, bloquear = true) {
-        row.querySelectorAll("input, select, button.botao-salvar").forEach(el => {
-            if (!el.hasAttribute("data-keep-disabled")) el.disabled = bloquear;
-        });
+    // 3º não pode começar antes do período anterior (2º se houver, senão 1º)
+    const base3 = (f2 || i2 || f1 || i1);
+    if (i3 && base3 && i3 <= base3) {
+      alert("O 3º período não pode começar antes de terminar o período anterior.");
+      clearPeriodo(row, mid, "3");
     }
 
-    const hoje = new Date();
-    const ANO_ATUAL = hoje.getFullYear();
-    const LIMITE_ANO = new Date(ANO_ATUAL, 11, 31); // 31/12/yyyy
+    // nenhum fim pode ultrapassar 31/12 do ano atual
+    [["1", f1], ["2", f2], ["3", f3]].forEach(([p, fim]) => {
+      if (fim && (fim.getFullYear() !== ANO_ATUAL || fim > LIMITE_ANO)) {
+        alert("O término das férias não pode ultrapassar 31/12 do ano atual.");
+        clearPeriodo(row, mid, p);
+      }
+    });
+  }
 
-    function parseInputDate(s) {
-        if (!s) return null;
-        const t = s.trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y, m, d] = t.split('-').map(Number); return new Date(y, m - 1, d); }
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d, m, y] = t.split('/').map(Number); return new Date(y, m - 1, d); }
-        return null;
-    }
-    function isFuturoEstrito(dt) {
-        if (!dt || isNaN(+dt)) return false;
-        const a = dt.getFullYear(), m = dt.getMonth() + 1, aN = hoje.getFullYear(), mN = hoje.getMonth() + 1;
-        return (a > aN) || (a === aN && m > mN);
-    }
-    function obterMesNumero(raw) {
-        if (!raw) return null;
-        const n = String(raw).trim().toLowerCase();
-        const mapa = { "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4, "maio": 5, "junho": 6, "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12 };
-        return mapa[n] ?? null;
-    }
-    function getTotais(row, mid) {
-        const d1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`)?.value || 0, 10);
-        const d2 = parseInt(row.querySelector(`[name="qtd_dias_2_${mid}"]`)?.value || 0, 10);
-        const d3 = parseInt(row.querySelector(`[name="qtd_dias_3_${mid}"]`)?.value || 0, 10);
-        return { d1, d2, d3, total12: d1 + d2, total123: d1 + d2 + d3 };
+  function calcularFim(row, mid, p) {
+    const ini = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+    const dias = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
+    const fim = row.querySelector(`[name="fim_${p}_${mid}"]`);
+    if (!ini || !dias || !fim) return;
+
+    const dt = parseInputDate(ini.value);
+    const n  = parseInt(dias.value || 0, 10);
+    if (!dt || !n) return;
+    if (!isMesFuturoEstrito(dt)) return;
+
+    const out = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n - 1);
+    if (out.getFullYear() !== ANO_ATUAL || out > LIMITE_ANO) {
+      alert("Este período ultrapassa 31/12 do ano atual. Ajuste a data ou a quantidade de dias.");
+      clearPeriodo(row, mid, p);
+      return;
     }
 
-    // trava 3º se 1º+2º atingiu o teto
-    function travarTerceiroSeBateu(row, mid, maxDias) {
-        const { total12 } = getTotais(row, mid);
+    const pad = v => String(v).padStart(2, '0');
+    if (fim.type === 'date') fim.value = `${out.getFullYear()}-${pad(out.getMonth() + 1)}-${pad(out.getDate())}`;
+    else fim.value = `${pad(out.getDate())}/${pad(out.getMonth() + 1)}/${out.getFullYear()}`;
+  }
+
+  function ativarListenersPeriodo(row, mid, p, maxDias, podeTer40, forcar20x20) {
+    const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
+    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+
+    if (i) {
+      setMinProxMes(i);
+      i.addEventListener('change', () => {
+        aplicarRegraPeriodo(row, mid, p, maxDias, podeTer40, forcar20x20);
+        if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias, podeTer40, forcar20x20);
+        calcularFim(row, mid, p);
+        validarSequencia(row, mid);
+      });
+    }
+    if (s) {
+      s.addEventListener('change', () => {
+        if (p === "2") aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
+        calcularFim(row, mid, p);
+        validarSequencia(row, mid);
+      });
+    }
+  }
+
+  function inicializarListeners() {
+    document.querySelectorAll("tr[data-militar-id]").forEach(row => {
+      const mid = row.dataset.militarId;
+      const midNum = Number(mid);
+
+      const podeTer40   = (row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(midNum);
+      const forcar20x20 = (window.MILITARES_20_20 || []).includes(midNum);
+      const maxDias     = podeTer40 ? 40 : 30;
+
+      if (!CAN_EDIT) { bloquearLinha(row, true); return; }
+
+      // Regra inicial: tudo bloqueado até escolher INÍCIO em mês futuro
+      ["1","2","3"].forEach(p => aplicarRegraPeriodo(row, mid, p, maxDias, podeTer40, forcar20x20));
+      ["1","2","3"].forEach(p => ativarListenersPeriodo(row, mid, p, maxDias, podeTer40, forcar20x20));
+
+      // 20/20: 3º período nunca é usado
+      if (podeTer40 && forcar20x20) {
         const s3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
         const i3 = row.querySelector(`[name="inicio_3_${mid}"]`);
         const f3 = row.querySelector(`[name="fim_3_${mid}"]`);
-        if (total12 >= maxDias) {
-            if (s3) { s3.value = ''; s3.disabled = true; }
-            if (i3) { i3.value = ''; i3.disabled = true; }
-            if (f3) { f3.value = ''; f3.disabled = true; }
-            return true;
-        }
-        return false;
-    }
+        [s3,i3,f3].forEach(el => { if (el) { el.value=''; el.disabled = true; }});
+      }
 
-    function desbloquearTerceiroSePode(row, mid, maxDias) {
-        const { total12 } = getTotais(row, mid);
-        const s3  = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
-        const i3  = row.querySelector(`[name="inicio_3_${mid}"]`);
-        const f3  = row.querySelector(`[name="fim_3_${mid}"]`);
+      // Ajusta opções do 2º (caso 1º já tenha valor na carga)
+      aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
 
-        // se ainda NÃO bateu o teto, libera os 3 campos do 3º período
-        if (total12 < maxDias) {
-            [s3, i3, f3].forEach(el => { if (el) el.disabled = false; });
-            // opcional: mínima = primeiro dia do mês que vem (evita passado)
-            if (i3 && i3.type === 'date') {
-            const base = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1); // mês que vem, dia 1
-            const pad = v => String(v).padStart(2, '0');
-            i3.min = `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}`;
-            i3.max = `${ANO_ATUAL}-12-31`;
-            }
-        }
-    }
+      // Fins + validação (se já houver valores)
+      ["1","2","3"].forEach(p => calcularFim(row, mid, p));
+      validarSequencia(row, mid);
 
-    function desbloquearSegundoSePode(row, mid, maxDias) {
-        const d1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`)?.value || 0, 10);
-        if (d1 < maxDias) {
-            const s2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
-            const i2 = row.querySelector(`[name="inicio_2_${mid}"]`);
-            const f2 = row.querySelector(`[name="fim_2_${mid}"]`);
-            [s2, i2, f2].forEach(el => { if (el) el.disabled = false; });
+      // Alterações no 1º repercutem nos demais
+      const s1 = row.querySelector(`[name="qtd_dias_1_${mid}"]`);
+      const i1 = row.querySelector(`[name="inicio_1_${mid}"]`);
+      const bounce = () => {
+        aplicarRegraPeriodo(row, mid, "2", maxDias, podeTer40, forcar20x20);
+        aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
+        aplicarRegraPeriodo(row, mid, "3", maxDias, podeTer40, forcar20x20);
+        calcularFim(row, mid, "1");
+        validarSequencia(row, mid);
+      };
+      if (s1) s1.addEventListener('change', bounce);
+      if (i1) { setMinProxMes(i1); i1.addEventListener('change', bounce); }
 
-            const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || "");
-                if (i2 && i2.type === 'date') {
-                    const pad = v => String(v).padStart(2, '0');
-                    if (f1) {
-                        const next = new Date(f1.getFullYear(), f1.getMonth(), f1.getDate() + 1);
-                        i2.min = `${next.getFullYear()}-${pad(next.getMonth()+1)}-${pad(next.getDate())}`;
-                    }
-                    i2.max = `${ANO_ATUAL}-12-31`;
-                }
-        }
-    }
-
-    function bloquearPeriodo(row, mid, p, bloquear) {
-        const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-        const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-        const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
-        [s, i, f].forEach(el => { if (el) el.disabled = !!bloquear; });
-    }
-
-    // habilita por DATA somente se futuro estrito; respeita teto 1º+2º
-    function aplicarRegraPeriodo(row, mid, p, maxDias) {
-        if (p === "3" && travarTerceiroSeBateu(row, mid, maxDias)) return true;
-
-        if (p === "2") desbloquearSegundoSePode(row, mid, maxDias);
-
-        if (p === "3") desbloquearTerceiroSePode(row, mid, maxDias);
-
-        const iniVal = row.querySelector(`[name="inicio_${p}_${mid}"]`)?.value || "";
-        const dtIni  = parseInputDate(iniVal);
-        let habilitar = false;
-
-        if (dtIni) {
-            habilitar = isFuturoEstrito(dtIni);
-        } else {
-            const mesSel = row.querySelector(`[name="mes_usufruto_${mid}"]`)?.value;
-            const mesNum = obterMesNumero(mesSel);
-            let anoBase = ANO_ATUAL;
-            const dt1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || "");
-            if (dt1) anoBase = dt1.getFullYear();
-            if (mesNum) habilitar = isFuturoEstrito(new Date(anoBase, mesNum - 1, 1));
-        }
-
-        bloquearPeriodo(row, mid, p, !habilitar);
-
-        if (p === "2" && !habilitar) desbloquearSegundoSePode(row, mid, maxDias);
-        if (p === "3" && !habilitar) desbloquearTerceiroSePode(row, mid, maxDias);
-
-        return !habilitar;
-    }
-
-    function clearPeriodo(row, mid, p) {
-        const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-        const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-        const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
-        if (s) s.value = '';
-        if (i) i.value = '';
-        if (f) f.value = '';
-    }
-
-    function validarSequencia(row, mid) {
-        const i1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || "");
-        const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || "");
-        const i2 = parseInputDate(row.querySelector(`[name="inicio_2_${mid}"]`)?.value || "");
-        const f2 = parseInputDate(row.querySelector(`[name="fim_2_${mid}"]`)?.value || "");
-        const i3 = parseInputDate(row.querySelector(`[name="inicio_3_${mid}"]`)?.value || "");
-        const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value || "");
-
-        // 2º não pode ser antes do 1º (usa fim_1 se existir; senão início_1)
-        const base2 = f1 || i1;
-        if (i2 && base2 && i2 <= base2) {
-            alert("O 2º período não pode começar antes de terminar o 1º.");
-            clearPeriodo(row, mid, "2");
-        }
-
-        // 3º não pode ser antes do 2º; se não houver 2º, usa 1º
-        const base3 = (f2 || i2 || f1 || i1);
-        if (i3 && base3 && i3 <= base3) {
-            alert("O 3º período não pode começar antes de terminar o período anterior.");
-            clearPeriodo(row, mid, "3");
-        }
-
-        // nenhum fim pode ultrapassar 31/12/ANO_ATUAL
-        [["1", f1], ["2", f2], ["3", f3]].forEach(([p, fim]) => {
-            if (fim && (fim.getFullYear() !== ANO_ATUAL || fim > LIMITE_ANO)) {
-                alert("O término das férias não pode ultrapassar 31/12 do ano atual.");
-                clearPeriodo(row, mid, p);
-            }
-        });
-    }
-
-    // calcula fim; aborta se exceder 31/12
-    function calcularFim(row, mid, p) {
-        const ini = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-        const dias = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-        const fim = row.querySelector(`[name="fim_${p}_${mid}"]`);
-        if (!ini || !dias || !fim) return;
-
-        const dt = parseInputDate(ini.value);
-        const n = parseInt(dias.value || 0, 10);
-        if (!dt || !n) return;
-        if (!isFuturoEstrito(dt)) return;
-
-        const out = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n - 1);
-
-        // limite 31/12 do ano atual
-        if (out.getFullYear() !== ANO_ATUAL || out > LIMITE_ANO) {
-            alert("Este período ultrapassa 31/12 do ano atual. Ajuste a data ou a quantidade de dias.");
-            clearPeriodo(row, mid, p);
-            return;
-        }
-
-        const pad = v => String(v).padStart(2, '0');
-        if (fim.type === 'date') fim.value = `${out.getFullYear()}-${pad(out.getMonth() + 1)}-${pad(out.getDate())}`;
-        else fim.value = `${pad(out.getDate())}/${pad(out.getMonth() + 1)}/${out.getFullYear()}`;
-    }
-
-    function ativarListenersPeriodo(row, mid, p, maxDias, atualizarCampos) {
-        const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-        const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-
-        if (i) {
-            i.addEventListener('change', () => {
-                aplicarRegraPeriodo(row, mid, p, maxDias);
-                if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias);
-                calcularFim(row, mid, p);
-                validarSequencia(row, mid);
-            });
-            // define max para 31/12/ano atual se tipo=date
-            if (i.type === 'date') i.max = `${ANO_ATUAL}-12-31`;
-        }
-        if (s) {
-            s.addEventListener('change', () => {
-                atualizarCampos();
-                if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias);
-                calcularFim(row, mid, p);
-                validarSequencia(row, mid);
-            });
-        }
-
-        atualizarCampos();
-        desbloquearSegundoSePode(row, mid, maxDias);
-        desbloquearTerceiroSePode(row, mid, maxDias);
-        if (p === "2") aplicarRegraPeriodo(row, mid, "3", maxDias);
-    }
-
-    function ligarListenerMesUsufruto(row, mid, maxDias, atualizarCampos) {
-        const mes = row.querySelector(`[name="mes_usufruto_${mid}"]`);
-        if (!mes) return;
-        mes.addEventListener('change', () => {
-            ["1", "2", "3"].forEach(p => aplicarRegraPeriodo(row, mid, p, maxDias));
-            desbloquearTerceiroSePode(row, mid, maxDias);
-            ["1", "2", "3"].forEach(p => calcularFim(row, mid, p));
-            validarSequencia(row, mid);
-        });
-    }
-
-    // ===== inicialização por linha =====
-    function inicializarListeners() {
-        document.querySelectorAll("tr[data-militar-id]").forEach(row => {
-            const mid = row.dataset.militarId;
-            const podeTer40 = row.dataset.podeTer40 === 'true';
-            const maxDias = podeTer40 ? 40 : 30;
-
-            if (!CAN_EDIT) { bloquearLinha(row, true); return; }
-
-            function atualizarCampos() {
-                const d1 = parseInt(row.querySelector(`[name="qtd_dias_1_${mid}"]`).value || 0);
-                const sel2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
-                const val2 = parseInt(sel2?.value || 0);
-                const sel3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
-
-                // opções do 2º
-                let op2 = [];
-                if (podeTer40) {
-                    if (d1 === 20) op2 = [10];
-                    else if (d1 === 10) op2 = [20];
-                    else op2 = [10, 20].filter(x => d1 + x <= 40);
-                } else {
-                    if (d1 === 20) op2 = [10, 20].filter(x => d1 + x <= 30);
-                    else if (d1 === 15) op2 = [15];
-                    else if (d1 === 10) op2 = [10, 15, 20].filter(x => d1 + x <= 30);
-                    else op2 = [10, 15, 20, 30].filter(x => d1 + x <= 30);
-                }
-                if (sel2) {
-                    Array.from(sel2.options).forEach(o => { if (!o.value) return; o.disabled = !op2.includes(parseInt(o.value, 10)); });
-                    sel2.disabled = op2.length === 0 ? true : sel2.disabled;
-                    if (!op2.includes(val2)) {
-                        sel2.value = ''; clearPeriodo(row, mid, "2"); if (sel3) { sel3.value = ''; clearPeriodo(row, mid, "3"); }
-                    }
-                }
-
-                // teto 1º+2º → trava 3º
-                travarTerceiroSeBateu(row, mid, maxDias);
-            }
-
-            // aplica regras iniciais
-            ["1", "2", "3"].forEach(p => aplicarRegraPeriodo(row, mid, p, maxDias));
-            ["1", "2", "3"].forEach(p => ativarListenersPeriodo(row, mid, p, maxDias, atualizarCampos));
-            ligarListenerMesUsufruto(row, mid, maxDias, atualizarCampos);
-
-            // recalcula fins e valida sequência na carga
-            ["1", "2", "3"].forEach(p => calcularFim(row, mid, p));
-            validarSequencia(row, mid);
-
-            // mudanças no 1º repercutem nos demais
-            const s1 = row.querySelector(`[name="qtd_dias_1_${mid}"]`);
-            const i1 = row.querySelector(`[name="inicio_1_${mid}"]`);
-            const bounce = () => {
-                atualizarCampos();
-                aplicarRegraPeriodo(row, mid, "2", maxDias);
-                aplicarRegraPeriodo(row, mid, "3", maxDias);
-                calcularFim(row, mid, "1");
-                validarSequencia(row, mid);
-            };
-            if (s1) s1.addEventListener('change', bounce);
-            if (i1) { i1.addEventListener('change', bounce); if (i1.type === 'date') i1.max = `${ANO_ATUAL}-12-31`; }
-
-            // garantia
-            atualizarCampos();
-            desbloquearSegundoSePode(row, mid, maxDias);
-            desbloquearTerceiroSePode(row, mid, maxDias);
-            travarTerceiroSeBateu(row, mid, maxDias);
-        });
-
-        // salvar
-        document.querySelectorAll(".botao-salvar").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const mid = btn.dataset.militarId;
-                // última checagem de sobreposição/limite antes de enviar
-                const row = btn.closest("tr");
-                validarSequencia(row, mid);
-
-                const formData = new URLSearchParams();
-                formData.append("militar_id", mid);
-                ["mes_usufruto", "qtd_dias_1", "inicio_1", "fim_1", "qtd_dias_2", "inicio_2", "fim_2", "qtd_dias_3", "inicio_3", "fim_3"]
-                    .forEach(campo => formData.append(campo, document.querySelector(`[name="${campo}_${mid}"]`).value));
-                fetch("/pafs/update", { method: "POST", body: formData })
-                    .then(r => r.json()).then(resp => alert(resp.message)).catch(() => alert("Erro ao salvar."));
-            });
-        });
-    }
-
-    // carregar tabela por OBM
-    document.getElementById("obmSelect").addEventListener("change", function () {
-        const obmId = this.value;
-        document.getElementById("btnGrafico").disabled = !obmId;
-        if (!obmId) { document.getElementById("tabelaContainer").innerHTML = ""; return; }
-
-        fetch(`/pafs/tabela/${obmId}`)
-            .then(r => r.text())
-            .then(html => {
-                document.getElementById("tabelaContainer").innerHTML = html;
-                $('#militaresTable').DataTable({
-                    scrollX: true, scrollY: "400px", paging: true,
-                    language: { search: "Pesquisar:", lengthMenu: "Mostrar _MENU_ registros", info: "Mostrando _START_ a _END_ de _TOTAL_ registros", paginate: { previous: "Anterior", next: "Próximo" } }
-                });
-                inicializarListeners();
-                $('#militaresTable').on('draw.dt', function () { inicializarListeners(); });
-            });
+      // Garantias finais
+      travarTerceiroSeBateu(row, mid, maxDias);
     });
 
-    // gráfico
-    document.getElementById("btnGrafico").addEventListener("click", function () {
-        const obmId = document.getElementById("obmSelect").value;
-        fetch(`/grafico-ferias/${obmId}`)
-            .then(r => r.text())
-            .then(data => {
-                document.getElementById("grafico-img").src = 'data:image/png;base64,' + data;
-                document.getElementById("graficoModal").style.display = "block";
-            });
+    // Botão SALVAR
+    document.querySelectorAll(".botao-salvar").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const mid = btn.dataset.militarId;
+        const row = btn.closest("tr");
+        validarSequencia(row, mid); // última checagem
+
+        const formData = new URLSearchParams();
+        formData.append("militar_id", mid);
+        ["mes_usufruto", "qtd_dias_1", "inicio_1", "fim_1",
+         "qtd_dias_2", "inicio_2", "fim_2",
+         "qtd_dias_3", "inicio_3", "fim_3"]
+          .forEach(campo => formData.append(campo, document.querySelector(`[name="${campo}_${mid}"]`).value));
+        fetch("/pafs/update", { method: "POST", body: formData })
+          .then(r => r.json()).then(resp => alert(resp.message))
+          .catch(() => alert("Erro ao salvar."));
+      });
     });
+  }
+
+  // Carregar tabela pela OBM
+  document.getElementById("obmSelect").addEventListener("change", function () {
+    const obmId = this.value;
+    document.getElementById("btnGrafico").disabled = !obmId;
+    if (!obmId) { document.getElementById("tabelaContainer").innerHTML = ""; return; }
+
+    fetch(`/pafs/tabela/${obmId}`)
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById("tabelaContainer").innerHTML = html;
+        $('#militaresTable').DataTable({
+          scrollX: true, scrollY: "400px", paging: true,
+          language: {
+            search: "Pesquisar:",
+            lengthMenu: "Mostrar _MENU_ registros",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            paginate: { previous: "Anterior", next: "Próximo" }
+          }
+        });
+        inicializarListeners();
+        $('#militaresTable').on('draw.dt', function () { inicializarListeners(); });
+      });
+  });
+
+  // Gráfico
+  document.getElementById("btnGrafico").addEventListener("click", function () {
+    const obmId = document.getElementById("obmSelect").value;
+    fetch(`/grafico-ferias/${obmId}`)
+      .then(r => r.text())
+      .then(data => {
+        document.getElementById("grafico-img").src = 'data:image/png;base64,' + data;
+        document.getElementById("graficoModal").style.display = "block";
+      });
+  });
 </script>
 
 {% endblock %}
