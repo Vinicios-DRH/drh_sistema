@@ -451,7 +451,7 @@ def adicionar_militar():
             cel=form_militar.cel.data,
             funcao_gratificada_id=form_militar.funcao_gratificada_id.data,
             alteracao_nome_guerra=form_militar.alteracao_nome_guerra.data,
-            inativo=form_militar.inativo.data,
+            inativo=False,
             ip_address=get_user_ip(),
             usuario_id=current_user.id
         )

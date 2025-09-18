@@ -1,93 +1,252 @@
 {% extends 'base.html' %}
 
 {% block head %}
-  <!-- Scripts existentes -->
-  <script src="{{ url_for('static', filename='js/adicionar_militar.js') }}"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <style>
-    :root{
-      /* ===== PALETA CBMAM (Vermelho/Âmbar) ===== */
-      --brand-red: #B5121B;        /* vermelho CBMAM */
-      --brand-red-600:#a01017;
-      --brand-red-700:#7f0c12;
-      --brand-amber:#FFB703;      /* âmbar */
-      --ink-100:#f6f8fb; --ink-200:#e8eef6; --ink-300:#cfe4ff; --ink-400:#c0cfda;
-      --glass-bg: rgba(255,255,255,0.04);
-      --glass-brd: rgba(255,255,255,0.12);
-      --glass-soft: rgba(0,0,0,.18);
-    }
+<!-- Scripts existentes -->
+<script src="{{ url_for('static', filename='js/adicionar_militar.js') }}"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    /* ===== PALETA CBMAM (Vermelho/Âmbar) ===== */
+    --brand-red: #B5121B;
+    /* vermelho CBMAM */
+    --brand-red-600: #a01017;
+    --brand-red-700: #7f0c12;
+    --brand-amber: #FFB703;
+    /* âmbar */
+    --ink-100: #f6f8fb;
+    --ink-200: #e8eef6;
+    --ink-300: #cfe4ff;
+    --ink-400: #c0cfda;
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-brd: rgba(255, 255, 255, 0.12);
+    --glass-soft: rgba(0, 0, 0, .18);
+  }
 
-    /* Override Bootstrap primary para o vermelho CBMAM */
-    .btn-primary{ background: var(--brand-red); border-color: var(--brand-red); }
-    .btn-primary:hover{ background: var(--brand-red-600); border-color: var(--brand-red-600); }
-    .btn-outline-primary{ color: var(--brand-red); border-color: var(--brand-red); }
-    .btn-outline-primary:hover{ color:#fff; background: var(--brand-red); }
-    .form-check-input:checked{ background-color: var(--brand-red); border-color: var(--brand-red); }
+  /* Override Bootstrap primary para o vermelho CBMAM */
+  .btn-primary {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+  }
 
-    /* ===== VISUAL GERAL ===== */
-    body { background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed; }
-    .page-wrapper { position: relative; }
-    .brand-header{
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 16px;
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-      color: var(--ink-200);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    .brand-header .title{ letter-spacing: .4px; }
+  .btn-primary:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
 
-    /* ===== CARD VIDRADO ===== */
-    .glass-card{
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-brd);
-      border-radius: 18px;
-      color: var(--ink-200);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    }
+  .btn-outline-primary {
+    color: var(--brand-red);
+    border-color: var(--brand-red);
+  }
 
-    /* ===== NAV DE SEÇÕES (SCROLLSPY) ===== */
-    .section-nav { position: sticky; top: 10px; z-index: 3; background: var(--glass-soft); border: 1px solid var(--glass-brd); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-radius: 12px; }
-    .section-nav .nav-link{ color:var(--ink-200); }
-    .section-nav .nav-link.active{ background:var(--brand-red); color:white; }
+  .btn-outline-primary:hover {
+    color: #fff;
+    background: var(--brand-red);
+  }
 
-    /* ===== CARTÃO RESUMO ===== */
-    .summary-card{ background: var(--glass-bg); border:1px solid var(--glass-brd); border-radius:12px; padding: .9rem; color:var(--ink-200); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-    .summary-name{ font-weight:700; }
-    .summary-rank{ font-size:.9rem; opacity:.9; }
-    .summary-id{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.85rem; opacity:.9; }
+  .form-check-input:checked {
+    background-color: var(--brand-red);
+    border-color: var(--brand-red);
+  }
 
-    /* ===== TÍTULO DE SEÇÃO ===== */
-    .section-header{ display:flex; align-items:center; gap:.6rem; padding:.25rem 0 .75rem 0; color:var(--ink-200); border-bottom: 1px dashed rgba(255,255,255,.18); margin-bottom: 1rem; }
-    .section-header i{font-size:1.2rem; opacity:.9}
+  /* ===== VISUAL GERAL ===== */
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
 
-    /* ===== GRUPOS E CAMPOS ===== */
-    .form-label{ color:var(--ink-300); font-weight:600; }
-    .form-control, .form-select{ background: rgba(255,255,255,.06) !important; color:var(--ink-200) !important; border:1px solid rgba(255,255,255,.18) !important; }
-    .form-control::placeholder{ color:var(--ink-400); opacity:.75; }
-    .form-text{ color:var(--ink-300); opacity:.85; }
-    .invalid-feedback{ color:#ffb4b4; }
+  .page-wrapper {
+    position: relative;
+  }
 
-    /* ===== BARRA DE AÇÃO (STICKY) ===== */
-    .action-bar{ position: sticky; bottom: 8px; z-index:4; background: rgba(181,18,27,.12); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 14px; padding: .65rem; display:flex; gap:.5rem; justify-content:flex-end; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 16px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
 
-    /* ===== INPUT FILE CUSTOM ===== */
-    .botao-arquivo{ display:inline-flex; align-items:center; gap:.6rem; cursor:pointer; padding:.6rem 1rem; border:1px dashed rgba(255,255,255,.25); border-radius: 12px; color:var(--ink-200); background: rgba(255,255,255,.06); }
-    #fileInput{ display:none; }
+  .brand-header .title {
+    letter-spacing: .4px;
+  }
 
-    /* Melhor espaçamento entre super grupos */
-    .super-section{ padding: 1.25rem 1rem; }
+  /* ===== CARD VIDRADO ===== */
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: 18px;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
 
-    /* Corrige cores dos badges */
-    .badge.bg-soft{ background: rgba(255,255,255,.12); color:var(--ink-200); border:1px solid rgba(255,255,255,.22) }
+  /* ===== NAV DE SEÇÕES (SCROLLSPY) ===== */
+  .section-nav {
+    position: sticky;
+    top: 10px;
+    z-index: 3;
+    background: var(--glass-soft);
+    border: 1px solid var(--glass-brd);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 12px;
+  }
 
-    /* ===== MODO ABAS ===== */
-    .nav-mode{ gap:.5rem; }
-    .nav-mode .btn{ padding:.35rem .6rem; }
-    .tabbed .super-section{ display:none; }
-    .tabbed .super-section.active{ display:block; }
-  </style>
+  .section-nav .nav-link {
+    color: var(--ink-200);
+  }
+
+  .section-nav .nav-link.active {
+    background: var(--brand-red);
+    color: white;
+  }
+
+  /* ===== CARTÃO RESUMO ===== */
+  .summary-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: 12px;
+    padding: .9rem;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .summary-name {
+    font-weight: 700;
+  }
+
+  .summary-rank {
+    font-size: .9rem;
+    opacity: .9;
+  }
+
+  .summary-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: .85rem;
+    opacity: .9;
+  }
+
+  /* ===== TÍTULO DE SEÇÃO ===== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .25rem 0 .75rem 0;
+    color: var(--ink-200);
+    border-bottom: 1px dashed rgba(255, 255, 255, .18);
+    margin-bottom: 1rem;
+  }
+
+  .section-header i {
+    font-size: 1.2rem;
+    opacity: .9
+  }
+
+  /* ===== GRUPOS E CAMPOS ===== */
+  .form-label {
+    color: var(--ink-300);
+    font-weight: 600;
+  }
+
+  .form-control,
+  .form-select {
+    background: rgba(255, 255, 255, .06) !important;
+    color: var(--ink-200) !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+  }
+
+  .form-control::placeholder {
+    color: var(--ink-400);
+    opacity: .75;
+  }
+
+  .form-text {
+    color: var(--ink-300);
+    opacity: .85;
+  }
+
+  .invalid-feedback {
+    color: #ffb4b4;
+  }
+
+  /* ===== BARRA DE AÇÃO (STICKY) ===== */
+  .action-bar {
+    position: sticky;
+    bottom: 8px;
+    z-index: 4;
+    background: rgba(181, 18, 27, .12);
+    border: 1px solid rgba(255, 255, 255, .18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 14px;
+    padding: .65rem;
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  /* ===== INPUT FILE CUSTOM ===== */
+  .botao-arquivo {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    cursor: pointer;
+    padding: .6rem 1rem;
+    border: 1px dashed rgba(255, 255, 255, .25);
+    border-radius: 12px;
+    color: var(--ink-200);
+    background: rgba(255, 255, 255, .06);
+  }
+
+  #fileInput {
+    display: none;
+  }
+
+  /* Melhor espaçamento entre super grupos */
+  .super-section {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Corrige cores dos badges */
+  .badge.bg-soft {
+    background: rgba(255, 255, 255, .12);
+    color: var(--ink-200);
+    border: 1px solid rgba(255, 255, 255, .22)
+  }
+
+  /* ===== MODO ABAS ===== */
+  .nav-mode {
+    gap: .5rem;
+  }
+
+  .nav-mode .btn {
+    padding: .35rem .6rem;
+  }
+
+  .tabbed .super-section {
+    display: none;
+  }
+
+  .tabbed .super-section.active {
+    display: block;
+  }
+
+  /* realça erro mesmo com seu override */
+  .form-select.is-invalid,
+  .form-control.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 .25rem rgba(220, 53, 69, .25);
+  }
+
+  .invalid-feedback.js {
+    display: block;
+  }
+
+  /* garante exibição das msgs criadas via JS */
+</style>
 {% endblock %}
 
 {% block body %}
@@ -98,10 +257,11 @@
     <div class="brand-header p-3 p-md-4 mb-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+            alt="CBMAM">
           <div>
-            <h1 class="h5 mb-1 title">Adicionar Militar<\/h1>
-            <div class="small text-light opacity-75">DRH • Sistema CBMAM</div>
+            <h1 class="h5 mb-1 title">Adicionar Militar<\ /h1>
+                <div class="small text-light opacity-75">DRH • Sistema CBMAM</div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -119,14 +279,16 @@
       </div>
     </div>
 
-    <div class="row g-3 g-lg-4" id="layoutRoot" data-bs-spy="scroll" data-bs-target="#sectionNav" data-bs-offset="120" tabindex="0">
+    <div class="row g-3 g-lg-4" id="layoutRoot" data-bs-spy="scroll" data-bs-target="#sectionNav" data-bs-offset="120"
+      tabindex="0">
 
       <!-- COL ESQUERDA: RESUMO + NAV (STICKY) -->
       <div class="col-lg-3">
         <!-- RESUMO DO MILITAR -->
         <div class="summary-card mb-2">
           <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:56px;height:56px;background:rgba(255,255,255,.08); border:1px solid var(--glass-brd)">
+            <div class="rounded-circle d-flex align-items-center justify-content-center"
+              style="width:56px;height:56px;background:rgba(255,255,255,.08); border:1px solid var(--glass-brd)">
               <i class="bi bi-person-fill" style="font-size:1.6rem; opacity:.9"></i>
             </div>
             <div class="flex-grow-1">
@@ -144,20 +306,34 @@
         <!-- NAV LATERAL (STICKY) -->
         <div id="sectionNav" class="section-nav p-2">
           <ul class="nav nav-pills nav-fill flex-lg-column gap-1" role="tablist">
-            <li class="nav-item"><a class="nav-link active" data-section="identificacao" href="#identificacao"><i class="bi bi-person-badge me-1"></i> Identificação</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="documentos" href="#documentos"><i class="bi bi-card-text me-1"></i> Documentos</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="eleitoral" href="#eleitoral"><i class="bi bi-people me-1"></i> Dados Eleitorais</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="vinculo" href="#vinculo"><i class="bi bi-diagram-3 me-1"></i> Vínculo / OBM & Função</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="perfil" href="#perfil"><i class="bi bi-pin-map me-1"></i> Perfil & Localidade</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="datas" href="#datas"><i class="bi bi-calendar3 me-1"></i> Datas & Cálculos</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="situacao" href="#situacao"><i class="bi bi-clipboard2-pulse me-1"></i> Situação</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="ltip" href="#ltip"><i class="bi bi-heart-pulse me-1"></i> LTIP</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="formacao" href="#formacao"><i class="bi bi-mortarboard me-1"></i> Formação</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="endereco" href="#endereco"><i class="bi bi-geo-alt me-1"></i> Endereço</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="contatos" href="#contatos"><i class="bi bi-telephone me-1"></i> Contatos</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="progressao" href="#progressao"><i class="bi bi-arrow-up-right-circle me-1"></i> Progressões</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="alteracoes" href="#alteracoes"><i class="bi bi-pencil-square me-1"></i> Alterações</a></li>
-            <li class="nav-item"><a class="nav-link" data-section="anexos" href="#anexos"><i class="bi bi-paperclip me-1"></i> Anexos</a></li>
+            <li class="nav-item"><a class="nav-link active" data-section="identificacao" href="#identificacao"><i
+                  class="bi bi-person-badge me-1"></i> Identificação</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="documentos" href="#documentos"><i
+                  class="bi bi-card-text me-1"></i> Documentos</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="eleitoral" href="#eleitoral"><i
+                  class="bi bi-people me-1"></i> Dados Eleitorais</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="vinculo" href="#vinculo"><i
+                  class="bi bi-diagram-3 me-1"></i> Vínculo / OBM & Função</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="perfil" href="#perfil"><i
+                  class="bi bi-pin-map me-1"></i> Perfil & Localidade</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="datas" href="#datas"><i
+                  class="bi bi-calendar3 me-1"></i> Datas & Cálculos</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="situacao" href="#situacao"><i
+                  class="bi bi-clipboard2-pulse me-1"></i> Situação</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="ltip" href="#ltip"><i
+                  class="bi bi-heart-pulse me-1"></i> LTIP</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="formacao" href="#formacao"><i
+                  class="bi bi-mortarboard me-1"></i> Formação</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="endereco" href="#endereco"><i
+                  class="bi bi-geo-alt me-1"></i> Endereço</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="contatos" href="#contatos"><i
+                  class="bi bi-telephone me-1"></i> Contatos</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="progressao" href="#progressao"><i
+                  class="bi bi-arrow-up-right-circle me-1"></i> Progressões</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="alteracoes" href="#alteracoes"><i
+                  class="bi bi-pencil-square me-1"></i> Alterações</a></li>
+            <li class="nav-item"><a class="nav-link" data-section="anexos" href="#anexos"><i
+                  class="bi bi-paperclip me-1"></i> Anexos</a></li>
           </ul>
         </div>
       </div>
@@ -171,16 +347,21 @@
 
             <!-- ========== IDENTIFICAÇÃO ========== -->
             <div id="identificacao" class="super-section active">
-              <div class="section-header"><i class="bi bi-person-badge"></i><h2 class="h6 m-0">Identificação</h2></div>
+              <div class="section-header"><i class="bi bi-person-badge"></i>
+                <h2 class="h6 m-0">Identificação</h2>
+              </div>
               <div class="row g-3">
                 <div class="col-md-6">
                   <div class="form-group">
                     {{ form_militar.nome_completo.label(class="form-label") }}
                     {% if form_militar.nome_completo.errors %}
-                      {{ form_militar.nome_completo(class="form-control is-invalid", placeholder="Nome completo", id="nome_completo") }}
-                      <div class="invalid-feedback">{% for erro in form_militar.nome_completo.errors %}{{ erro }}{% endfor %}</div>
+                    {{ form_militar.nome_completo(class="form-control is-invalid", placeholder="Nome completo",
+                    id="nome_completo") }}
+                    <div class="invalid-feedback">{% for erro in form_militar.nome_completo.errors %}{{ erro }}{% endfor
+                      %}</div>
                     {% else %}
-                      {{ form_militar.nome_completo(class="form-control", placeholder="Nome completo", id="nome_completo") }}
+                    {{ form_militar.nome_completo(class="form-control", placeholder="Nome completo", id="nome_completo")
+                    }}
                     {% endif %}
                   </div>
                 </div>
@@ -188,10 +369,12 @@
                   <div class="form-group">
                     {{ form_militar.nome_guerra.label(class="form-label") }}
                     {% if form_militar.nome_guerra.errors %}
-                      {{ form_militar.nome_guerra(class="form-control is-invalid", placeholder="Nome de guerra", id="nome_guerra") }}
-                      <div class="invalid-feedback">{% for erro in form_militar.nome_guerra.errors %}{{ erro }}{% endfor %}</div>
+                    {{ form_militar.nome_guerra(class="form-control is-invalid", placeholder="Nome de guerra",
+                    id="nome_guerra") }}
+                    <div class="invalid-feedback">{% for erro in form_militar.nome_guerra.errors %}{{ erro }}{% endfor
+                      %}</div>
                     {% else %}
-                      {{ form_militar.nome_guerra(class="form-control", placeholder="Nome de guerra", id="nome_guerra") }}
+                    {{ form_militar.nome_guerra(class="form-control", placeholder="Nome de guerra", id="nome_guerra") }}
                     {% endif %}
                   </div>
                 </div>
@@ -199,10 +382,11 @@
                   <div class="form-group">
                     {{ form_militar.estado_civil.label(class="form-label") }}
                     {% if form_militar.estado_civil.errors %}
-                      {{ form_militar.estado_civil(class="form-select is-invalid", id="estado_civil") }}
-                      <div class="invalid-feedback">{% for erro in form_militar.estado_civil.errors %}{{ erro }}{% endfor %}</div>
+                    {{ form_militar.estado_civil(class="form-select is-invalid", id="estado_civil") }}
+                    <div class="invalid-feedback">{% for erro in form_militar.estado_civil.errors %}{{ erro }}{% endfor
+                      %}</div>
                     {% else %}
-                      {{ form_militar.estado_civil(class="form-select", id="estado_civil") }}
+                    {{ form_militar.estado_civil(class="form-select", id="estado_civil") }}
                     {% endif %}
                   </div>
                 </div>
@@ -210,10 +394,11 @@
                   <div class="form-group">
                     {{ form_militar.nome_pai.label(class="form-label") }}
                     {% if form_militar.nome_pai.errors %}
-                      {{ form_militar.nome_pai(class="form-control is-invalid", id="nome_pai") }}
-                      <div class="invalid-feedback">{% for erro in form_militar.nome_pai.errors %}{{ erro }}{% endfor %}</div>
+                    {{ form_militar.nome_pai(class="form-control is-invalid", id="nome_pai") }}
+                    <div class="invalid-feedback">{% for erro in form_militar.nome_pai.errors %}{{ erro }}{% endfor %}
+                    </div>
                     {% else %}
-                      {{ form_militar.nome_pai(class="form-control", id="nome_pai") }}
+                    {{ form_militar.nome_pai(class="form-control", id="nome_pai") }}
                     {% endif %}
                   </div>
                 </div>
@@ -221,10 +406,11 @@
                   <div class="form-group">
                     {{ form_militar.nome_mae.label(class="form-label") }}
                     {% if form_militar.nome_mae.errors %}
-                      {{ form_militar.nome_mae(class="form-control is-invalid", id="nome_mae") }}
-                      <div class="invalid-feedback">{% for erro in form_militar.nome_mae.errors %}{{ erro }}{% endfor %}</div>
+                    {{ form_militar.nome_mae(class="form-control is-invalid", id="nome_mae") }}
+                    <div class="invalid-feedback">{% for erro in form_militar.nome_mae.errors %}{{ erro }}{% endfor %}
+                    </div>
                     {% else %}
-                      {{ form_militar.nome_mae(class="form-control", id="nome_mae") }}
+                    {{ form_militar.nome_mae(class="form-control", id="nome_mae") }}
                     {% endif %}
                   </div>
                 </div>
@@ -233,29 +419,61 @@
 
             <!-- ========== DOCUMENTOS ========== -->
             <div id="documentos" class="super-section">
-              <div class="section-header"><i class="bi bi-card-text"></i><h2 class="h6 m-0">Documentos</h2></div>
+              <div class="section-header"><i class="bi bi-card-text"></i>
+                <h2 class="h6 m-0">Documentos</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-3">{{ form_militar.matricula.label(class="form-label") }}{{ form_militar.matricula(class="form-control" + (' is-invalid' if form_militar.matricula.errors else ''), id='matricula') }}{% if form_militar.matricula.errors %}<div class="invalid-feedback">{% for e in form_militar.matricula.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.rg.label(class="form-label") }}{{ form_militar.rg(class="form-control" + (' is-invalid' if form_militar.rg.errors else ''), id='rg') }}{% if form_militar.rg.errors %}<div class="invalid-feedback">{% for e in form_militar.rg.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pis_pasep.label(class="form-label") }}{{ form_militar.pis_pasep(class="form-control" + (' is-invalid' if form_militar.pis_pasep.errors else ''), id='pis_pasep') }}{% if form_militar.pis_pasep.errors %}<div class="invalid-feedback">{% for e in form_militar.pis_pasep.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cpf.label(class="form-label") }}{{ form_militar.cpf(class="form-control" + (' is-invalid' if form_militar.cpf.errors else ''), id='cpf') }}{% if form_militar.cpf.errors %}<div class="invalid-feedback">{% for e in form_militar.cpf.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.matricula.label(class="form-label") }}{{
+                  form_militar.matricula(class="form-control" + (' is-invalid' if form_militar.matricula.errors else
+                  ''), id='matricula') }}{% if form_militar.matricula.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.matricula.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.rg.label(class="form-label") }}{{
+                  form_militar.rg(class="form-control" + (' is-invalid' if form_militar.rg.errors else ''), id='rg')
+                  }}{% if form_militar.rg.errors %}<div class="invalid-feedback">{% for e in form_militar.rg.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pis_pasep.label(class="form-label") }}{{
+                  form_militar.pis_pasep(class="form-control" + (' is-invalid' if form_militar.pis_pasep.errors else
+                  ''), id='pis_pasep') }}{% if form_militar.pis_pasep.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.pis_pasep.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cpf.label(class="form-label") }}{{
+                  form_militar.cpf(class="form-control" + (' is-invalid' if form_militar.cpf.errors else ''), id='cpf')
+                  }}{% if form_militar.cpf.errors %}<div class="invalid-feedback">{% for e in form_militar.cpf.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== ELEITORAL ========== -->
             <div id="eleitoral" class="super-section">
-              <div class="section-header"><i class="bi bi-people"></i><h2 class="h6 m-0">Dados Eleitorais</h2></div>
+              <div class="section-header"><i class="bi bi-people"></i>
+                <h2 class="h6 m-0">Dados Eleitorais</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-3">{{ form_militar.num_titulo_eleitor.label(class="form-label") }}{{ form_militar.num_titulo_eleitor(class="form-control" + (' is-invalid' if form_militar.num_titulo_eleitor.errors else ''), id='num_titulo_eleitor') }}{% if form_militar.num_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e in form_militar.num_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.digito_titulo_eleitor.label(class="form-label") }}{{ form_militar.digito_titulo_eleitor(class="form-control" + (' is-invalid' if form_militar.digito_titulo_eleitor.errors else ''), id='digito_titulo_eleitor') }}{% if form_militar.digito_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e in form_militar.digito_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.zona.label(class="form-label") }}{{ form_militar.zona(class="form-control" + (' is-invalid' if form_militar.zona.errors else ''), id='zona') }}{% if form_militar.zona.errors %}<div class="invalid-feedback">{% for e in form_militar.zona.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.secao.label(class="form-label") }}{{ form_militar.secao(class="form-control" + (' is-invalid' if form_militar.secao.errors else ''), id='secao') }}{% if form_militar.secao.errors %}<div class="invalid-feedback">{% for e in form_militar.secao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.num_titulo_eleitor.label(class="form-label") }}{{
+                  form_militar.num_titulo_eleitor(class="form-control" + (' is-invalid' if
+                  form_militar.num_titulo_eleitor.errors else ''), id='num_titulo_eleitor') }}{% if
+                  form_militar.num_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.num_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.digito_titulo_eleitor.label(class="form-label") }}{{
+                  form_militar.digito_titulo_eleitor(class="form-control" + (' is-invalid' if
+                  form_militar.digito_titulo_eleitor.errors else ''), id='digito_titulo_eleitor') }}{% if
+                  form_militar.digito_titulo_eleitor.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.digito_titulo_eleitor.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.zona.label(class="form-label") }}{{
+                  form_militar.zona(class="form-control" + (' is-invalid' if form_militar.zona.errors else ''),
+                  id='zona') }}{% if form_militar.zona.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.zona.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.secao.label(class="form-label") }}{{
+                  form_militar.secao(class="form-control" + (' is-invalid' if form_militar.secao.errors else ''),
+                  id='secao') }}{% if form_militar.secao.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.secao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== VÍNCULO / OBM & FUNÇÃO / CARGO ========== -->
             <div id="vinculo" class="super-section">
-              <div class="section-header"><i class="bi bi-diagram-3"></i><h2 class="h6 m-0">Vínculo / OBM & Função</h2></div>
+              <div class="section-header"><i class="bi bi-diagram-3"></i>
+                <h2 class="h6 m-0">Vínculo / OBM & Função</h2>
+              </div>
               <div class="obm-funcao-group row g-3 align-items-end">
                 <div class="col-md-6">
                   <div class="form-group">
@@ -285,159 +503,453 @@
                 </div>
               </div>
               <div class="row g-3 mt-1">
-                <div class="col-md-4">{{ form_militar.posto_grad_id.label(class="form-label") }}{{ form_militar.posto_grad_id(class="form-select" + (' is-invalid' if form_militar.posto_grad_id.errors else ''), id='posto_grad_id') }}{% if form_militar.posto_grad_id.errors %}<div class="invalid-feedback">{% for e in form_militar.posto_grad_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.quadro_id.label(class="form-label") }}{{ form_militar.quadro_id(class="form-select" + (' is-invalid' if form_militar.quadro_id.errors else ''), id='quadro_id') }}{% if form_militar.quadro_id.errors %}<div class="invalid-feedback">{% for e in form_militar.quadro_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.transferencia.label(class="form-label") }}{{ form_militar.transferencia(class="form-select" + (' is-invalid' if form_militar.transferencia.errors else ''), id='transferencia') }}{% if form_militar.transferencia.errors %}<div class="invalid-feedback">{% for e in form_militar.transferencia.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.posto_grad_id.label(class="form-label") }}{{
+                  form_militar.posto_grad_id(class="form-select" + (' is-invalid' if form_militar.posto_grad_id.errors
+                  else ''), id='posto_grad_id') }}{% if form_militar.posto_grad_id.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.posto_grad_id.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-4">{{ form_militar.quadro_id.label(class="form-label") }}{{
+                  form_militar.quadro_id(class="form-select" + (' is-invalid' if form_militar.quadro_id.errors else ''),
+                  id='quadro_id') }}{% if form_militar.quadro_id.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.quadro_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.transferencia.label(class="form-label") }}{{
+                  form_militar.transferencia(class="form-select" + (' is-invalid' if form_militar.transferencia.errors
+                  else ''), id='transferencia') }}{% if form_militar.transferencia.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.transferencia.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
               </div>
             </div>
 
             <!-- ========== PERFIL & LOCALIDADE ========== -->
             <div id="perfil" class="super-section">
-              <div class="section-header"><i class="bi bi-pin-map"></i><h2 class="h6 m-0">Perfil & Localidade</h2></div>
+              <div class="section-header"><i class="bi bi-pin-map"></i>
+                <h2 class="h6 m-0">Perfil & Localidade</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-4">{{ form_militar.especialidade_id.label(class="form-label") }}{{ form_militar.especialidade_id(class="form-select" + (' is-invalid' if form_militar.especialidade_id.errors else ''), id='especialidade_id') }}{% if form_militar.especialidade_id.errors %}<div class="invalid-feedback">{% for e in form_militar.especialidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.antiguidade.label(class="form-label") }}{{ form_militar.antiguidade(class="form-control" + (' is-invalid' if form_militar.antiguidade.errors else ''), id='antiguidade') }}{% if form_militar.antiguidade.errors %}<div class="invalid-feedback">{% for e in form_militar.antiguidade.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.sexo.label(class="form-label") }}{{ form_militar.sexo(class="form-select" + (' is-invalid' if form_militar.sexo.errors else ''), id='sexo') }}{% if form_militar.sexo.errors %}<div class="invalid-feedback">{% for e in form_militar.sexo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.raca.label(class="form-label") }}{{ form_militar.raca(class="form-select" + (' is-invalid' if form_militar.raca.errors else ''), id='raca') }}{% if form_militar.raca.errors %}<div class="invalid-feedback">{% for e in form_militar.raca.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.localidade_id.label(class="form-label") }}{{ form_militar.localidade_id(class="form-select" + (' is-invalid' if form_militar.localidade_id.errors else ''), id='localidade_id') }}{% if form_militar.localidade_id.errors %}<div class="invalid-feedback">{% for e in form_militar.localidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.funcao_gratificada_id.label(class="form-label") }}{{ form_militar.funcao_gratificada_id(class="form-select" + (' is-invalid' if form_militar.funcao_gratificada_id.errors else ''), id='funcao_gratificada_id') }}{% if form_militar.funcao_gratificada_id.errors %}<div class="invalid-feedback">{% for e in form_militar.funcao_gratificada_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.especialidade_id.label(class="form-label") }}{{
+                  form_militar.especialidade_id(class="form-select" + (' is-invalid' if
+                  form_militar.especialidade_id.errors else ''), id='especialidade_id') }}{% if
+                  form_militar.especialidade_id.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.especialidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.antiguidade.label(class="form-label") }}{{
+                  form_militar.antiguidade(class="form-control" + (' is-invalid' if form_militar.antiguidade.errors else
+                  ''), id='antiguidade') }}{% if form_militar.antiguidade.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.antiguidade.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.sexo.label(class="form-label") }}{{
+                  form_militar.sexo(class="form-select" + (' is-invalid' if form_militar.sexo.errors else ''),
+                  id='sexo') }}{% if form_militar.sexo.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.sexo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.raca.label(class="form-label") }}{{
+                  form_militar.raca(class="form-select" + (' is-invalid' if form_militar.raca.errors else ''),
+                  id='raca') }}{% if form_militar.raca.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.raca.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.localidade_id.label(class="form-label") }}{{
+                  form_militar.localidade_id(class="form-select" + (' is-invalid' if form_militar.localidade_id.errors
+                  else ''), id='localidade_id') }}{% if form_militar.localidade_id.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.localidade_id.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-4">{{ form_militar.funcao_gratificada_id.label(class="form-label") }}{{
+                  form_militar.funcao_gratificada_id(class="form-select" + (' is-invalid' if
+                  form_militar.funcao_gratificada_id.errors else ''), id='funcao_gratificada_id') }}{% if
+                  form_militar.funcao_gratificada_id.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.funcao_gratificada_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== DATAS & CÁLCULOS ========== -->
             <div id="datas" class="super-section">
-              <div class="section-header"><i class="bi bi-calendar3"></i><h2 class="h6 m-0">Datas & Cálculos</h2></div>
+              <div class="section-header"><i class="bi bi-calendar3"></i>
+                <h2 class="h6 m-0">Datas & Cálculos</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-3">{{ form_militar.data_nascimento.label(class="form-label") }}{{ form_militar.data_nascimento(class="form-control" + (' is-invalid' if form_militar.data_nascimento.errors else ''), id='data_nascimento', oninput='calculateAge()') }}{% if form_militar.data_nascimento.errors %}<div class="invalid-feedback">{% for e in form_militar.data_nascimento.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.idade_atual.label(class="form-label") }}{{ form_militar.idade_atual(class="form-control" + (' is-invalid' if form_militar.idade_atual.errors else ''), id='idade_atual', readonly=True) }}{% if form_militar.idade_atual.errors %}<div class="invalid-feedback">{% for e in form_militar.idade_atual.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.inclusao.label(class="form-label") }}{{ form_militar.inclusao(class="form-control" + (' is-invalid' if form_militar.inclusao.errors else ''), id='inclusao', oninput='calculateInclusao()') }}{% if form_militar.inclusao.errors %}<div class="invalid-feedback">{% for e in form_militar.inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_25_inclusao.label(class="form-label") }}{{ form_militar.completa_25_inclusao(class="form-control" + (' is-invalid' if form_militar.completa_25_inclusao.errors else ''), id='completa_25_inclusao') }}{% if form_militar.completa_25_inclusao.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_25_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_30_inclusao.label(class="form-label") }}{{ form_militar.completa_30_inclusao(class="form-control" + (' is-invalid' if form_militar.completa_30_inclusao.errors else ''), id='completa_30_inclusao') }}{% if form_militar.completa_30_inclusao.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_30_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.punicao_id.label(class="form-label") }}{{ form_militar.punicao_id(class="form-select" + (' is-invalid' if form_militar.punicao_id.errors else ''), id='punicao') }}{% if form_militar.punicao_id.errors %}<div class="invalid-feedback">{% for e in form_militar.punicao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.comportamento_id.label(class="form-label") }}{{ form_militar.comportamento_id(class="form-select", id='comportamento_id') }}</div>
-                <div class="col-md-3">{{ form_militar.efetivo_servico.label(class="form-label") }}{{ form_militar.efetivo_servico(class="form-control" + (' is-invalid' if form_militar.efetivo_servico.errors else ''), id='efetivo_servico', oninput='calculateServiceDetails()') }}{% if form_militar.efetivo_servico.errors %}<div class="invalid-feedback">{% for e in form_militar.efetivo_servico.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_25_anos_sv.label(class="form-label") }}{{ form_militar.completa_25_anos_sv(class="form-control" + (' is-invalid' if form_militar.completa_25_anos_sv.errors else ''), id='completa_25_anos_sv', readonly=True) }}{% if form_militar.completa_25_anos_sv.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_25_anos_sv.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_30_anos_sv.label(class="form-label") }}{{ form_militar.completa_30_anos_sv(class="form-control" + (' is-invalid' if form_militar.completa_30_anos_sv.errors else ''), id='completa_30_anos_sv', readonly=True) }}{% if form_militar.completa_30_anos_sv.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_30_anos_sv.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.anos.label(class="form-label") }}{{ form_militar.anos(class="form-control" + (' is-invalid' if form_militar.anos.errors else ''), id='anos', readonly=True) }}{% if form_militar.anos.errors %}<div class="invalid-feedback">{% for e in form_militar.anos.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.idade_reserva_grad.label(class="form-label") }}{{ form_militar.idade_reserva_grad(class="form-control" + (' is-invalid' if form_militar.idade_reserva_grad.errors else ''), id='idade_reserva_grad', readonly=True) }}{% if form_militar.idade_reserva_grad.errors %}<div class="invalid-feedback">{% for e in form_militar.idade_reserva_grad.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.meses.label(class="form-label") }}{{ form_militar.meses(class="form-control" + (' is-invalid' if form_militar.meses.errors else ''), id='meses', readonly=True) }}{% if form_militar.meses.errors %}<div class="invalid-feedback">{% for e in form_militar.meses.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.dias.label(class="form-label") }}{{ form_militar.dias(class="form-control" + (' is-invalid' if form_militar.dias.errors else ''), id='dias', readonly=True) }}{% if form_militar.dias.errors %}<div class="invalid-feedback">{% for e in form_militar.dias.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.total_dias.label(class="form-label") }}{{ form_militar.total_dias(class="form-control" + (' is-invalid' if form_militar.total_dias.errors else ''), id='total_dias', readonly=True) }}{% if form_militar.total_dias.errors %}<div class="invalid-feedback">{% for e in form_militar.total_dias.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.data_nascimento.label(class="form-label") }}{{
+                  form_militar.data_nascimento(class="form-control" + (' is-invalid' if
+                  form_militar.data_nascimento.errors else ''), id='data_nascimento', oninput='calculateAge()') }}{% if
+                  form_militar.data_nascimento.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.data_nascimento.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.idade_atual.label(class="form-label") }}{{
+                  form_militar.idade_atual(class="form-control" + (' is-invalid' if form_militar.idade_atual.errors else
+                  ''), id='idade_atual', readonly=True) }}{% if form_militar.idade_atual.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.idade_atual.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-3">{{ form_militar.inclusao.label(class="form-label") }}{{
+                  form_militar.inclusao(class="form-control" + (' is-invalid' if form_militar.inclusao.errors else ''),
+                  id='inclusao', oninput='calculateInclusao()') }}{% if form_militar.inclusao.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.inclusao.errors %}{{e}}{% endfor %}</div>{% endif
+                  %}</div>
+                <div class="col-md-3">{{ form_militar.completa_25_inclusao.label(class="form-label") }}{{
+                  form_militar.completa_25_inclusao(class="form-control" + (' is-invalid' if
+                  form_militar.completa_25_inclusao.errors else ''), id='completa_25_inclusao') }}{% if
+                  form_militar.completa_25_inclusao.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_25_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.completa_30_inclusao.label(class="form-label") }}{{
+                  form_militar.completa_30_inclusao(class="form-control" + (' is-invalid' if
+                  form_militar.completa_30_inclusao.errors else ''), id='completa_30_inclusao') }}{% if
+                  form_militar.completa_30_inclusao.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_30_inclusao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.punicao_id.label(class="form-label") }}{{
+                  form_militar.punicao_id(class="form-select" + (' is-invalid' if form_militar.punicao_id.errors else
+                  ''), id='punicao') }}{% if form_militar.punicao_id.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.punicao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.comportamento_id.label(class="form-label") }}{{
+                  form_militar.comportamento_id(class="form-select", id='comportamento_id') }}</div>
+                <div class="col-md-3">{{ form_militar.efetivo_servico.label(class="form-label") }}{{
+                  form_militar.efetivo_servico(class="form-control" + (' is-invalid' if
+                  form_militar.efetivo_servico.errors else ''), id='efetivo_servico',
+                  oninput='calculateServiceDetails()') }}{% if form_militar.efetivo_servico.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.efetivo_servico.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-3">{{ form_militar.completa_25_anos_sv.label(class="form-label") }}{{
+                  form_militar.completa_25_anos_sv(class="form-control" + (' is-invalid' if
+                  form_militar.completa_25_anos_sv.errors else ''), id='completa_25_anos_sv', readonly=True) }}{% if
+                  form_militar.completa_25_anos_sv.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_25_anos_sv.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.completa_30_anos_sv.label(class="form-label") }}{{
+                  form_militar.completa_30_anos_sv(class="form-control" + (' is-invalid' if
+                  form_militar.completa_30_anos_sv.errors else ''), id='completa_30_anos_sv', readonly=True) }}{% if
+                  form_militar.completa_30_anos_sv.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_30_anos_sv.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.anos.label(class="form-label") }}{{
+                  form_militar.anos(class="form-control" + (' is-invalid' if form_militar.anos.errors else ''),
+                  id='anos', readonly=True) }}{% if form_militar.anos.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.anos.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.idade_reserva_grad.label(class="form-label") }}{{
+                  form_militar.idade_reserva_grad(class="form-control" + (' is-invalid' if
+                  form_militar.idade_reserva_grad.errors else ''), id='idade_reserva_grad', readonly=True) }}{% if
+                  form_militar.idade_reserva_grad.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.idade_reserva_grad.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.meses.label(class="form-label") }}{{
+                  form_militar.meses(class="form-control" + (' is-invalid' if form_militar.meses.errors else ''),
+                  id='meses', readonly=True) }}{% if form_militar.meses.errors %}<div class="invalid-feedback">{% for e
+                    in form_militar.meses.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.dias.label(class="form-label") }}{{
+                  form_militar.dias(class="form-control" + (' is-invalid' if form_militar.dias.errors else ''),
+                  id='dias', readonly=True) }}{% if form_militar.dias.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.dias.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.total_dias.label(class="form-label") }}{{
+                  form_militar.total_dias(class="form-control" + (' is-invalid' if form_militar.total_dias.errors else
+                  ''), id='total_dias', readonly=True) }}{% if form_militar.total_dias.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.total_dias.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
               </div>
             </div>
 
             <!-- ========== SITUAÇÃO / DESTINO ========== -->
             <div id="situacao" class="super-section">
-              <div class="section-header"><i class="bi bi-clipboard2-pulse"></i><h2 class="h6 m-0">Situação</h2></div>
+              <div class="section-header"><i class="bi bi-clipboard2-pulse"></i>
+                <h2 class="h6 m-0">Situação</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-2">{{ form_militar.pronto.label(class="form-label", id="label_pronto") }}{{ form_militar.pronto(class="form-control", id='pronto', readonly=True) }}</div>
-                <div class="col-md-4">{{ form_militar.situacao_id.label(class="form-label", id="label_situacao") }}{{ form_militar.situacao_id(class="form-select" + (' is-invalid' if form_militar.situacao_id.errors else ''), id='situacao_id') }}{% if form_militar.situacao_id.errors %}<div class="invalid-feedback">{% for e in form_militar.situacao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.agregacoes_id.label(class="form-label", id="label_agregacoes") }}{{ form_militar.agregacoes_id(class="form-select" + (' is-invalid' if form_militar.agregacoes_id.errors else ''), id='agregacoes_id') }}{% if form_militar.agregacoes_id.errors %}<div class="invalid-feedback">{% for e in form_militar.agregacoes_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.destino_id.label(class="form-label") }}{{ form_militar.destino_id(class="form-select" + (' is-invalid' if form_militar.destino_id.errors else ''), id='destino_id') }}{% if form_militar.destino_id.errors %}<div class="invalid-feedback">{% for e in form_militar.destino_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.inicio_periodo.label(class="form-label") }}{{ form_militar.inicio_periodo(class="form-control" + (' is-invalid' if form_militar.inicio_periodo.errors else ''), id='inicio_periodo') }}{% if form_militar.inicio_periodo.errors %}<div class="invalid-feedback">{% for e in form_militar.inicio_periodo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.fim_periodo.label(class="form-label") }}{{ form_militar.fim_periodo(class="form-control" + (' is-invalid' if form_militar.fim_periodo.errors else ''), id='fim_periodo') }}{% if form_militar.fim_periodo.errors %}<div class="invalid-feedback">{% for e in form_militar.fim_periodo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.situacao_militar.label(class="form-label") }}{{ form_militar.situacao_militar(class="form-control" + (' is-invalid' if form_militar.situacao_militar.errors else ''), id='situacao_militar') }}{% if form_militar.situacao_militar.errors %}<div class="invalid-feedback">{% for e in form_militar.situacao_militar.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-2">{{ form_militar.pronto.label(class="form-label", id="label_pronto") }}{{
+                  form_militar.pronto(class="form-control", id='pronto', readonly=True) }}</div>
+                <div class="col-md-4">{{ form_militar.situacao_id.label(class="form-label", id="label_situacao") }}{{
+                  form_militar.situacao_id(class="form-select" + (' is-invalid' if form_militar.situacao_id.errors else
+                  ''), id='situacao_id') }}{% if form_militar.situacao_id.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.situacao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.agregacoes_id.label(class="form-label", id="label_agregacoes")
+                  }}{{ form_militar.agregacoes_id(class="form-select" + (' is-invalid' if
+                  form_militar.agregacoes_id.errors else ''), id='agregacoes_id') }}{% if
+                  form_militar.agregacoes_id.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.agregacoes_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.destino_id.label(class="form-label") }}{{
+                  form_militar.destino_id(class="form-select" + (' is-invalid' if form_militar.destino_id.errors else
+                  ''), id='destino_id') }}{% if form_militar.destino_id.errors %}<div class="invalid-feedback">{% for e
+                    in form_militar.destino_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.inicio_periodo.label(class="form-label") }}{{
+                  form_militar.inicio_periodo(class="form-control" + (' is-invalid' if
+                  form_militar.inicio_periodo.errors else ''), id='inicio_periodo') }}{% if
+                  form_militar.inicio_periodo.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.inicio_periodo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.fim_periodo.label(class="form-label") }}{{
+                  form_militar.fim_periodo(class="form-control" + (' is-invalid' if form_militar.fim_periodo.errors else
+                  ''), id='fim_periodo') }}{% if form_militar.fim_periodo.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.fim_periodo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.situacao_militar.label(class="form-label") }}{{
+                  form_militar.situacao_militar(class="form-control" + (' is-invalid' if
+                  form_militar.situacao_militar.errors else ''), id='situacao_militar') }}{% if
+                  form_militar.situacao_militar.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.situacao_militar.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== LTIP ========== -->
             <div id="ltip" class="super-section">
-              <div class="section-header"><i class="bi bi-heart-pulse"></i><h2 class="h6 m-0">LTIP</h2></div>
+              <div class="section-header"><i class="bi bi-heart-pulse"></i>
+                <h2 class="h6 m-0">LTIP</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-3">{{ form_militar.ltip_afastamento_cargo_eletivo.label(class="form-label") }}{{ form_militar.ltip_afastamento_cargo_eletivo(class="form-control" + (' is-invalid' if form_militar.ltip_afastamento_cargo_eletivo.errors else ''), id='ltip_afastamento_cargo_eletivo', readonly=True) }}{% if form_militar.ltip_afastamento_cargo_eletivo.errors %}<div class="invalid-feedback">{% for e in form_militar.ltip_afastamento_cargo_eletivo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.periodo_ltip.label(class="form-label") }}{{ form_militar.periodo_ltip(class="form-control" + (' is-invalid' if form_militar.periodo_ltip.errors else ''), id='periodo_ltip') }}{% if form_militar.periodo_ltip.errors %}<div class="invalid-feedback">{% for e in form_militar.periodo_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.total_ltip.label(class="form-label") }}{{ form_militar.total_ltip(class="form-control" + (' is-invalid' if form_militar.total_ltip.errors else ''), id='total_ltip') }}{% if form_militar.total_ltip.errors %}<div class="invalid-feedback">{% for e in form_militar.total_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_25_anos_ltip.label(class="form-label") }}{{ form_militar.completa_25_anos_ltip(class="form-control" + (' is-invalid' if form_militar.completa_25_anos_ltip.errors else ''), id='completa_25_anos_ltip') }}{% if form_militar.completa_25_anos_ltip.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_25_anos_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.completa_30_anos_ltip.label(class="form-label") }}{{ form_militar.completa_30_anos_ltip(class="form-control" + (' is-invalid' if form_militar.completa_30_anos_ltip.errors else ''), id='completa_30_anos_ltip') }}{% if form_militar.completa_30_anos_ltip.errors %}<div class="invalid-feedback">{% for e in form_militar.completa_30_anos_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.ltip_afastamento_cargo_eletivo.label(class="form-label") }}{{
+                  form_militar.ltip_afastamento_cargo_eletivo(class="form-control" + (' is-invalid' if
+                  form_militar.ltip_afastamento_cargo_eletivo.errors else ''), id='ltip_afastamento_cargo_eletivo',
+                  readonly=True) }}{% if form_militar.ltip_afastamento_cargo_eletivo.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.ltip_afastamento_cargo_eletivo.errors %}{{e}}{%
+                    endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.periodo_ltip.label(class="form-label") }}{{
+                  form_militar.periodo_ltip(class="form-control" + (' is-invalid' if form_militar.periodo_ltip.errors
+                  else ''), id='periodo_ltip') }}{% if form_militar.periodo_ltip.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.periodo_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.total_ltip.label(class="form-label") }}{{
+                  form_militar.total_ltip(class="form-control" + (' is-invalid' if form_militar.total_ltip.errors else
+                  ''), id='total_ltip') }}{% if form_militar.total_ltip.errors %}<div class="invalid-feedback">{% for e
+                    in form_militar.total_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.completa_25_anos_ltip.label(class="form-label") }}{{
+                  form_militar.completa_25_anos_ltip(class="form-control" + (' is-invalid' if
+                  form_militar.completa_25_anos_ltip.errors else ''), id='completa_25_anos_ltip') }}{% if
+                  form_militar.completa_25_anos_ltip.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_25_anos_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.completa_30_anos_ltip.label(class="form-label") }}{{
+                  form_militar.completa_30_anos_ltip(class="form-control" + (' is-invalid' if
+                  form_militar.completa_30_anos_ltip.errors else ''), id='completa_30_anos_ltip') }}{% if
+                  form_militar.completa_30_anos_ltip.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.completa_30_anos_ltip.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== FORMAÇÃO & CURSOS ========== -->
             <div id="formacao" class="super-section">
-              <div class="section-header"><i class="bi bi-mortarboard"></i><h2 class="h6 m-0">Formação & Cursos</h2></div>
+              <div class="section-header"><i class="bi bi-mortarboard"></i>
+                <h2 class="h6 m-0">Formação & Cursos</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-6">{{ form_militar.cursos.label(class="form-label") }}{{ form_militar.cursos(class="form-control" + (' is-invalid' if form_militar.cursos.errors else ''), id='cursos') }}{% if form_militar.cursos.errors %}<div class="invalid-feedback">{% for e in form_militar.cursos.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.grau_instrucao.label(class="form-label") }}{{ form_militar.grau_instrucao(class="form-select" + (' is-invalid' if form_militar.grau_instrucao.errors else ''), id='grau_instrucao') }}{% if form_militar.grau_instrucao.errors %}<div class="invalid-feedback">{% for e in form_militar.grau_instrucao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.graduacao.label(class="form-label") }}{{ form_militar.graduacao(class="form-control" + (' is-invalid' if form_militar.graduacao.errors else ''), id='graduacao') }}{% if form_militar.graduacao.errors %}<div class="invalid-feedback">{% for e in form_militar.graduacao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pos_graduacao.label(class="form-label") }}{{ form_militar.pos_graduacao(class="form-control" + (' is-invalid' if form_militar.pos_graduacao.errors else ''), id='pos_graduacao') }}{% if form_militar.pos_graduacao.errors %}<div class="invalid-feedback">{% for e in form_militar.pos_graduacao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.mestrado.label(class="form-label") }}{{ form_militar.mestrado(class="form-control" + (' is-invalid' if form_militar.mestrado.errors else ''), id='mestrado') }}{% if form_militar.mestrado.errors %}<div class="invalid-feedback">{% for e in form_militar.mestrado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.doutorado.label(class="form-label") }}{{ form_militar.doutorado(class="form-control" + (' is-invalid' if form_militar.doutorado.errors else ''), id='doutorado') }}{% if form_militar.doutorado.errors %}<div class="invalid-feedback">{% for e in form_militar.doutorado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cfsd.label(class="form-label") }}{{ form_militar.cfsd(class="form-control" + (' is-invalid' if form_militar.cfsd.errors else ''), id='cfsd') }}{% if form_militar.cfsd.errors %}<div class="invalid-feedback">{% for e in form_militar.cfsd.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cfc.label(class="form-label") }}{{ form_militar.cfc(class="form-control" + (' is-invalid' if form_militar.cfc.errors else ''), id='cfc') }}{% if form_militar.cfc.errors %}<div class="invalid-feedback">{% for e in form_militar.cfc.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cfs.label(class="form-label") }}{{ form_militar.cfs(class="form-control" + (' is-invalid' if form_militar.cfs.errors else ''), id='cfs') }}{% if form_militar.cfs.errors %}<div class="invalid-feedback">{% for e in form_militar.cfs.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cas.label(class="form-label") }}{{ form_militar.cas(class="form-control" + (' is-invalid' if form_militar.cas.errors else ''), id='cas') }}{% if form_militar.cas.errors %}<div class="invalid-feedback">{% for e in form_militar.cas.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.choa.label(class="form-label") }}{{ form_militar.choa(class="form-control" + (' is-invalid' if form_militar.choa.errors else ''), id='choa') }}{% if form_militar.choa.errors %}<div class="invalid-feedback">{% for e in form_militar.choa.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cfo.label(class="form-label") }}{{ form_militar.cfo(class="form-control" + (' is-invalid' if form_militar.cfo.errors else ''), id='cfo') }}{% if form_militar.cfo.errors %}<div class="invalid-feedback">{% for e in form_militar.cfo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cbo.label(class="form-label") }}{{ form_militar.cbo(class="form-control" + (' is-invalid' if form_militar.cbo.errors else ''), id='cbo') }}{% if form_militar.cbo.errors %}<div class="invalid-feedback">{% for e in form_militar.cbo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cao.label(class="form-label") }}{{ form_militar.cao(class="form-control" + (' is-invalid' if form_militar.cao.errors else ''), id='cao') }}{% if form_militar.cao.errors %}<div class="invalid-feedback">{% for e in form_militar.cao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.csbm.label(class="form-label") }}{{ form_militar.csbm(class="form-control" + (' is-invalid' if form_militar.csbm.errors else ''), id='csbm') }}{% if form_militar.csbm.errors %}<div class="invalid-feedback">{% for e in form_militar.csbm.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cursos_civis.label(class="form-label") }}{{ form_militar.cursos_civis(class="form-control" + (' is-invalid' if form_militar.cursos_civis.errors else ''), id='cursos_civis') }}{% if form_militar.cursos_civis.errors %}<div class="invalid-feedback">{% for e in form_militar.cursos_civis.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.cursos.label(class="form-label") }}{{
+                  form_militar.cursos(class="form-control" + (' is-invalid' if form_militar.cursos.errors else ''),
+                  id='cursos') }}{% if form_militar.cursos.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.cursos.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.grau_instrucao.label(class="form-label") }}{{
+                  form_militar.grau_instrucao(class="form-select" + (' is-invalid' if form_militar.grau_instrucao.errors
+                  else ''), id='grau_instrucao') }}{% if form_militar.grau_instrucao.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.grau_instrucao.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-3">{{ form_militar.graduacao.label(class="form-label") }}{{
+                  form_militar.graduacao(class="form-control" + (' is-invalid' if form_militar.graduacao.errors else
+                  ''), id='graduacao') }}{% if form_militar.graduacao.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.graduacao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pos_graduacao.label(class="form-label") }}{{
+                  form_militar.pos_graduacao(class="form-control" + (' is-invalid' if form_militar.pos_graduacao.errors
+                  else ''), id='pos_graduacao') }}{% if form_militar.pos_graduacao.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.pos_graduacao.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
+                <div class="col-md-3">{{ form_militar.mestrado.label(class="form-label") }}{{
+                  form_militar.mestrado(class="form-control" + (' is-invalid' if form_militar.mestrado.errors else ''),
+                  id='mestrado') }}{% if form_militar.mestrado.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.mestrado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.doutorado.label(class="form-label") }}{{
+                  form_militar.doutorado(class="form-control" + (' is-invalid' if form_militar.doutorado.errors else
+                  ''), id='doutorado') }}{% if form_militar.doutorado.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.doutorado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cfsd.label(class="form-label") }}{{
+                  form_militar.cfsd(class="form-control" + (' is-invalid' if form_militar.cfsd.errors else ''),
+                  id='cfsd') }}{% if form_militar.cfsd.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.cfsd.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cfc.label(class="form-label") }}{{
+                  form_militar.cfc(class="form-control" + (' is-invalid' if form_militar.cfc.errors else ''), id='cfc')
+                  }}{% if form_militar.cfc.errors %}<div class="invalid-feedback">{% for e in form_militar.cfc.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cfs.label(class="form-label") }}{{
+                  form_militar.cfs(class="form-control" + (' is-invalid' if form_militar.cfs.errors else ''), id='cfs')
+                  }}{% if form_militar.cfs.errors %}<div class="invalid-feedback">{% for e in form_militar.cfs.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cas.label(class="form-label") }}{{
+                  form_militar.cas(class="form-control" + (' is-invalid' if form_militar.cas.errors else ''), id='cas')
+                  }}{% if form_militar.cas.errors %}<div class="invalid-feedback">{% for e in form_militar.cas.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.choa.label(class="form-label") }}{{
+                  form_militar.choa(class="form-control" + (' is-invalid' if form_militar.choa.errors else ''),
+                  id='choa') }}{% if form_militar.choa.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.choa.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cfo.label(class="form-label") }}{{
+                  form_militar.cfo(class="form-control" + (' is-invalid' if form_militar.cfo.errors else ''), id='cfo')
+                  }}{% if form_militar.cfo.errors %}<div class="invalid-feedback">{% for e in form_militar.cfo.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cbo.label(class="form-label") }}{{
+                  form_militar.cbo(class="form-control" + (' is-invalid' if form_militar.cbo.errors else ''), id='cbo')
+                  }}{% if form_militar.cbo.errors %}<div class="invalid-feedback">{% for e in form_militar.cbo.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cao.label(class="form-label") }}{{
+                  form_militar.cao(class="form-control" + (' is-invalid' if form_militar.cao.errors else ''), id='cao')
+                  }}{% if form_militar.cao.errors %}<div class="invalid-feedback">{% for e in form_militar.cao.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.csbm.label(class="form-label") }}{{
+                  form_militar.csbm(class="form-control" + (' is-invalid' if form_militar.csbm.errors else ''),
+                  id='csbm') }}{% if form_militar.csbm.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.csbm.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cursos_civis.label(class="form-label") }}{{
+                  form_militar.cursos_civis(class="form-control" + (' is-invalid' if form_militar.cursos_civis.errors
+                  else ''), id='cursos_civis') }}{% if form_militar.cursos_civis.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.cursos_civis.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== ENDEREÇO ========== -->
             <div id="endereco" class="super-section">
-              <div class="section-header"><i class="bi bi-geo-alt"></i><h2 class="h6 m-0">Endereço</h2></div>
+              <div class="section-header"><i class="bi bi-geo-alt"></i>
+                <h2 class="h6 m-0">Endereço</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-12">{{ form_militar.endereco.label(class="form-label") }}{{ form_militar.endereco(class="form-control" + (' is-invalid' if form_militar.endereco.errors else ''), id='endereco') }}{% if form_militar.endereco.errors %}<div class="invalid-feedback">{% for e in form_militar.endereco.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-12">{{ form_militar.complemento.label(class="form-label") }}{{ form_militar.complemento(class="form-control" + (' is-invalid' if form_militar.complemento.errors else ''), id='complemento') }}{% if form_militar.complemento.errors %}<div class="invalid-feedback">{% for e in form_militar.complemento.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.cidade.label(class="form-label") }}{{ form_militar.cidade(class="form-control" + (' is-invalid' if form_militar.cidade.errors else ''), id='cidade') }}{% if form_militar.cidade.errors %}<div class="invalid-feedback">{% for e in form_militar.cidade.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.estado.label(class="form-label") }}{{ form_militar.estado(class="form-select" + (' is-invalid' if form_militar.estado.errors else ''), id='estado') }}{% if form_militar.estado.errors %}<div class="invalid-feedback">{% for e in form_militar.estado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-2">{{ form_militar.cep.label(class="form-label") }}{{ form_militar.cep(class="form-control" + (' is-invalid' if form_militar.cep.errors else ''), id='cep') }}{% if form_militar.cep.errors %}<div class="invalid-feedback">{% for e in form_militar.cep.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-12">{{ form_militar.endereco.label(class="form-label") }}{{
+                  form_militar.endereco(class="form-control" + (' is-invalid' if form_militar.endereco.errors else ''),
+                  id='endereco') }}{% if form_militar.endereco.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.endereco.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-12">{{ form_militar.complemento.label(class="form-label") }}{{
+                  form_militar.complemento(class="form-control" + (' is-invalid' if form_militar.complemento.errors else
+                  ''), id='complemento') }}{% if form_militar.complemento.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.complemento.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.cidade.label(class="form-label") }}{{
+                  form_militar.cidade(class="form-control" + (' is-invalid' if form_militar.cidade.errors else ''),
+                  id='cidade') }}{% if form_militar.cidade.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.cidade.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.estado.label(class="form-label") }}{{
+                  form_militar.estado(class="form-select" + (' is-invalid' if form_militar.estado.errors else ''),
+                  id='estado') }}{% if form_militar.estado.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.estado.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-2">{{ form_militar.cep.label(class="form-label") }}{{
+                  form_militar.cep(class="form-control" + (' is-invalid' if form_militar.cep.errors else ''), id='cep')
+                  }}{% if form_militar.cep.errors %}<div class="invalid-feedback">{% for e in form_militar.cep.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== CONTATOS ========== -->
             <div id="contatos" class="super-section">
-              <div class="section-header"><i class="bi bi-telephone"></i><h2 class="h6 m-0">Contatos</h2></div>
+              <div class="section-header"><i class="bi bi-telephone"></i>
+                <h2 class="h6 m-0">Contatos</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-2">{{ form_militar.celular.label(class="form-label") }}{{ form_militar.celular(class="form-control" + (' is-invalid' if form_militar.celular.errors else ''), id='celular') }}{% if form_militar.celular.errors %}<div class="invalid-feedback">{% for e in form_militar.celular.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-4">{{ form_militar.email.label(class="form-label") }}{{ form_militar.email(class="form-control" + (' is-invalid' if form_militar.email.errors else ''), id='email') }}{% if form_militar.email.errors %}<div class="invalid-feedback">{% for e in form_militar.email.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.inclusao_bg.label(class="form-label") }}{{ form_militar.inclusao_bg(class="form-control" + (' is-invalid' if form_militar.inclusao_bg.errors else ''), id='inclusao_bg') }}{% if form_militar.inclusao_bg.errors %}<div class="invalid-feedback">{% for e in form_militar.inclusao_bg.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-2">{{ form_militar.celular.label(class="form-label") }}{{
+                  form_militar.celular(class="form-control" + (' is-invalid' if form_militar.celular.errors else ''),
+                  id='celular') }}{% if form_militar.celular.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.celular.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-4">{{ form_militar.email.label(class="form-label") }}{{
+                  form_militar.email(class="form-control" + (' is-invalid' if form_militar.email.errors else ''),
+                  id='email') }}{% if form_militar.email.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.email.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.inclusao_bg.label(class="form-label") }}{{
+                  form_militar.inclusao_bg(class="form-control" + (' is-invalid' if form_militar.inclusao_bg.errors else
+                  ''), id='inclusao_bg') }}{% if form_militar.inclusao_bg.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.inclusao_bg.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== PROGRESSÕES / PUBLICAÇÕES ========== -->
             <div id="progressao" class="super-section">
-              <div class="section-header"><i class="bi bi-arrow-up-right-circle"></i><h2 class="h6 m-0">Progressões</h2></div>
+              <div class="section-header"><i class="bi bi-arrow-up-right-circle"></i>
+                <h2 class="h6 m-0">Progressões</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-3">{{ form_militar.soldado_tres.label(class="form-label") }}{{ form_militar.soldado_tres(class="form-control" + (' is-invalid' if form_militar.soldado_tres.errors else ''), id='soldado_tres') }}{% if form_militar.soldado_tres.errors %}<div class="invalid-feedback">{% for e in form_militar.soldado_tres.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.soldado_dois.label(class="form-label") }}{{ form_militar.soldado_dois(class="form-control" + (' is-invalid' if form_militar.soldado_dois.errors else ''), id='soldado_dois') }}{% if form_militar.soldado_dois.errors %}<div class="invalid-feedback">{% for e in form_militar.soldado_dois.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.soldado_um.label(class="form-label") }}{{ form_militar.soldado_um(class="form-control" + (' is-invalid' if form_militar.soldado_um.errors else ''), id='soldado_um') }}{% if form_militar.soldado_um.errors %}<div class="invalid-feedback">{% for e in form_militar.soldado_um.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cabo.label(class="form-label") }}{{ form_militar.cabo(class="form-control" + (' is-invalid' if form_militar.cabo.errors else ''), id='cabo') }}{% if form_militar.cabo.errors %}<div class="invalid-feedback">{% for e in form_militar.cabo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.terceiro_sgt.label(class="form-label") }}{{ form_militar.terceiro_sgt(class="form-control" + (' is-invalid' if form_militar.terceiro_sgt.errors else ''), id='terceiro_sgt') }}{% if form_militar.terceiro_sgt.errors %}<div class="invalid-feedback">{% for e in form_militar.terceiro_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.segundo_sgt.label(class="form-label") }}{{ form_militar.segundo_sgt(class="form-control" + (' is-invalid' if form_militar.segundo_sgt.errors else ''), id='segundo_sgt') }}{% if form_militar.segundo_sgt.errors %}<div class="invalid-feedback">{% for e in form_militar.segundo_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.primeiro_sgt.label(class="form-label") }}{{ form_militar.primeiro_sgt(class="form-control" + (' is-invalid' if form_militar.primeiro_sgt.errors else ''), id='primeiro_sgt') }}{% if form_militar.primeiro_sgt.errors %}<div class="invalid-feedback">{% for e in form_militar.primeiro_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.subtenente.label(class="form-label") }}{{ form_militar.subtenente(class="form-control" + (' is-invalid' if form_militar.subtenente.errors else ''), id='subtenente') }}{% if form_militar.subtenente.errors %}<div class="invalid-feedback">{% for e in form_militar.subtenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.segundo_tenente.label(class="form-label") }}{{ form_militar.segundo_tenente(class="form-control" + (' is-invalid' if form_militar.segundo_tenente.errors else ''), id='segundo_tenente') }}{% if form_militar.segundo_tenente.errors %}<div class="invalid-feedback">{% for e in form_militar.segundo_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.publicidade_segundo_tenente.label(class="form-label") }}{{ form_militar.publicidade_segundo_tenente(class="form-control" + (' is-invalid' if form_militar.publicidade_segundo_tenente.errors else ''), id='publicidade_segundo_tenente') }}{% if form_militar.publicidade_segundo_tenente.errors %}<div class="invalid-feedback">{% for e in form_militar.publicidade_segundo_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.primeiro_tenente.label(class="form-label") }}{{ form_militar.primeiro_tenente(class="form-control" + (' is-invalid' if form_militar.primeiro_tenente.errors else ''), id='primeiro_tenente') }}{% if form_militar.primeiro_tenente.errors %}<div class="invalid-feedback">{% for e in form_militar.primeiro_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.publicidade_primeiro_tenente.label(class="form-label") }}{{ form_militar.publicidade_primeiro_tenente(class="form-control" + (' is-invalid' if form_militar.publicidade_primeiro_tenente.errors else ''), id='publicidade_primeiro_tenente') }}{% if form_militar.publicidade_primeiro_tenente.errors %}<div class="invalid-feedback">{% for e in form_militar.publicidade_primeiro_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cap.label(class="form-label") }}{{ form_militar.cap(class="form-control" + (' is-invalid' if form_militar.cap.errors else ''), id='cap') }}{% if form_militar.cap.errors %}<div class="invalid-feedback">{% for e in form_militar.cap.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pub_cap.label(class="form-label") }}{{ form_militar.pub_cap(class="form-control" + (' is-invalid' if form_militar.pub_cap.errors else ''), id='pub_cap') }}{% if form_militar.pub_cap.errors %}<div class="invalid-feedback">{% for e in form_militar.pub_cap.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.maj.label(class="form-label") }}{{ form_militar.maj(class="form-control" + (' is-invalid' if form_militar.maj.errors else ''), id='maj') }}{% if form_militar.maj.errors %}<div class="invalid-feedback">{% for e in form_militar.maj.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pub_maj.label(class="form-label") }}{{ form_militar.pub_maj(class="form-control" + (' is-invalid' if form_militar.pub_maj.errors else ''), id='pub_maj') }}{% if form_militar.pub_maj.errors %}<div class="invalid-feedback">{% for e in form_militar.pub_maj.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.tc.label(class="form-label") }}{{ form_militar.tc(class="form-control" + (' is-invalid' if form_militar.tc.errors else ''), id='tc') }}{% if form_militar.tc.errors %}<div class="invalid-feedback">{% for e in form_militar.tc.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pub_tc.label(class="form-label") }}{{ form_militar.pub_tc(class="form-control" + (' is-invalid' if form_militar.pub_tc.errors else ''), id='pub_tc') }}{% if form_militar.pub_tc.errors %}<div class="invalid-feedback">{% for e in form_militar.pub_tc.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.cel.label(class="form-label") }}{{ form_militar.cel(class="form-control" + (' is-invalid' if form_militar.cel.errors else ''), id='cel') }}{% if form_militar.cel.errors %}<div class="invalid-feedback">{% for e in form_militar.cel.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-3">{{ form_militar.pub_cel.label(class="form-label") }}{{ form_militar.pub_cel(class="form-control" + (' is-invalid' if form_militar.pub_cel.errors else ''), id='pub_cel') }}{% if form_militar.pub_cel.errors %}<div class="invalid-feedback">{% for e in form_militar.pub_cel.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.soldado_tres.label(class="form-label") }}{{
+                  form_militar.soldado_tres(class="form-control" + (' is-invalid' if form_militar.soldado_tres.errors
+                  else ''), id='soldado_tres') }}{% if form_militar.soldado_tres.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.soldado_tres.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.soldado_dois.label(class="form-label") }}{{
+                  form_militar.soldado_dois(class="form-control" + (' is-invalid' if form_militar.soldado_dois.errors
+                  else ''), id='soldado_dois') }}{% if form_militar.soldado_dois.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.soldado_dois.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.soldado_um.label(class="form-label") }}{{
+                  form_militar.soldado_um(class="form-control" + (' is-invalid' if form_militar.soldado_um.errors else
+                  ''), id='soldado_um') }}{% if form_militar.soldado_um.errors %}<div class="invalid-feedback">{% for e
+                    in form_militar.soldado_um.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cabo.label(class="form-label") }}{{
+                  form_militar.cabo(class="form-control" + (' is-invalid' if form_militar.cabo.errors else ''),
+                  id='cabo') }}{% if form_militar.cabo.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.cabo.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.terceiro_sgt.label(class="form-label") }}{{
+                  form_militar.terceiro_sgt(class="form-control" + (' is-invalid' if form_militar.terceiro_sgt.errors
+                  else ''), id='terceiro_sgt') }}{% if form_militar.terceiro_sgt.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.terceiro_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.segundo_sgt.label(class="form-label") }}{{
+                  form_militar.segundo_sgt(class="form-control" + (' is-invalid' if form_militar.segundo_sgt.errors else
+                  ''), id='segundo_sgt') }}{% if form_militar.segundo_sgt.errors %}<div class="invalid-feedback">{% for
+                    e in form_militar.segundo_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.primeiro_sgt.label(class="form-label") }}{{
+                  form_militar.primeiro_sgt(class="form-control" + (' is-invalid' if form_militar.primeiro_sgt.errors
+                  else ''), id='primeiro_sgt') }}{% if form_militar.primeiro_sgt.errors %}<div class="invalid-feedback">
+                    {% for e in form_militar.primeiro_sgt.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.subtenente.label(class="form-label") }}{{
+                  form_militar.subtenente(class="form-control" + (' is-invalid' if form_militar.subtenente.errors else
+                  ''), id='subtenente') }}{% if form_militar.subtenente.errors %}<div class="invalid-feedback">{% for e
+                    in form_militar.subtenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.segundo_tenente.label(class="form-label") }}{{
+                  form_militar.segundo_tenente(class="form-control" + (' is-invalid' if
+                  form_militar.segundo_tenente.errors else ''), id='segundo_tenente') }}{% if
+                  form_militar.segundo_tenente.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.segundo_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.publicidade_segundo_tenente.label(class="form-label") }}{{
+                  form_militar.publicidade_segundo_tenente(class="form-control" + (' is-invalid' if
+                  form_militar.publicidade_segundo_tenente.errors else ''), id='publicidade_segundo_tenente') }}{% if
+                  form_militar.publicidade_segundo_tenente.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.publicidade_segundo_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.primeiro_tenente.label(class="form-label") }}{{
+                  form_militar.primeiro_tenente(class="form-control" + (' is-invalid' if
+                  form_militar.primeiro_tenente.errors else ''), id='primeiro_tenente') }}{% if
+                  form_militar.primeiro_tenente.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.primeiro_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.publicidade_primeiro_tenente.label(class="form-label") }}{{
+                  form_militar.publicidade_primeiro_tenente(class="form-control" + (' is-invalid' if
+                  form_militar.publicidade_primeiro_tenente.errors else ''), id='publicidade_primeiro_tenente') }}{% if
+                  form_militar.publicidade_primeiro_tenente.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.publicidade_primeiro_tenente.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cap.label(class="form-label") }}{{
+                  form_militar.cap(class="form-control" + (' is-invalid' if form_militar.cap.errors else ''), id='cap')
+                  }}{% if form_militar.cap.errors %}<div class="invalid-feedback">{% for e in form_militar.cap.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pub_cap.label(class="form-label") }}{{
+                  form_militar.pub_cap(class="form-control" + (' is-invalid' if form_militar.pub_cap.errors else ''),
+                  id='pub_cap') }}{% if form_militar.pub_cap.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.pub_cap.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.maj.label(class="form-label") }}{{
+                  form_militar.maj(class="form-control" + (' is-invalid' if form_militar.maj.errors else ''), id='maj')
+                  }}{% if form_militar.maj.errors %}<div class="invalid-feedback">{% for e in form_militar.maj.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pub_maj.label(class="form-label") }}{{
+                  form_militar.pub_maj(class="form-control" + (' is-invalid' if form_militar.pub_maj.errors else ''),
+                  id='pub_maj') }}{% if form_militar.pub_maj.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.pub_maj.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.tc.label(class="form-label") }}{{
+                  form_militar.tc(class="form-control" + (' is-invalid' if form_militar.tc.errors else ''), id='tc')
+                  }}{% if form_militar.tc.errors %}<div class="invalid-feedback">{% for e in form_militar.tc.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pub_tc.label(class="form-label") }}{{
+                  form_militar.pub_tc(class="form-control" + (' is-invalid' if form_militar.pub_tc.errors else ''),
+                  id='pub_tc') }}{% if form_militar.pub_tc.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.pub_tc.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.cel.label(class="form-label") }}{{
+                  form_militar.cel(class="form-control" + (' is-invalid' if form_militar.cel.errors else ''), id='cel')
+                  }}{% if form_militar.cel.errors %}<div class="invalid-feedback">{% for e in form_militar.cel.errors
+                    %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-3">{{ form_militar.pub_cel.label(class="form-label") }}{{
+                  form_militar.pub_cel(class="form-control" + (' is-invalid' if form_militar.pub_cel.errors else ''),
+                  id='pub_cel') }}{% if form_militar.pub_cel.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.pub_cel.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
               </div>
             </div>
 
             <!-- ========== ALTERAÇÕES ========== -->
             <div id="alteracoes" class="super-section">
-              <div class="section-header"><i class="bi bi-pencil-square"></i><h2 class="h6 m-0">Alterações</h2></div>
+              <div class="section-header"><i class="bi bi-pencil-square"></i>
+                <h2 class="h6 m-0">Alterações</h2>
+              </div>
               <div class="row g-3">
-                <div class="col-md-6">{{ form_militar.alteracao_nome_guerra.label(class="form-label") }}{{ form_militar.alteracao_nome_guerra(class="form-control" + (' is-invalid' if form_militar.alteracao_nome_guerra.errors else ''), id='alteracao_nome_guerra') }}{% if form_militar.alteracao_nome_guerra.errors %}<div class="invalid-feedback">{% for e in form_militar.alteracao_nome_guerra.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                <div class="col-md-6">{{ form_militar.pub_alteracao.label(class="form-label") }}{{ form_militar.pub_alteracao(class="form-control" + (' is-invalid' if form_militar.pub_alteracao.errors else ''), id='pub_alteracao') }}{% if form_militar.pub_alteracao.errors %}<div class="invalid-feedback">{% for e in form_militar.pub_alteracao.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.alteracao_nome_guerra.label(class="form-label") }}{{
+                  form_militar.alteracao_nome_guerra(class="form-control" + (' is-invalid' if
+                  form_militar.alteracao_nome_guerra.errors else ''), id='alteracao_nome_guerra') }}{% if
+                  form_militar.alteracao_nome_guerra.errors %}<div class="invalid-feedback">{% for e in
+                    form_militar.alteracao_nome_guerra.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                <div class="col-md-6">{{ form_militar.pub_alteracao.label(class="form-label") }}{{
+                  form_militar.pub_alteracao(class="form-control" + (' is-invalid' if form_militar.pub_alteracao.errors
+                  else ''), id='pub_alteracao') }}{% if form_militar.pub_alteracao.errors %}<div
+                    class="invalid-feedback">{% for e in form_militar.pub_alteracao.errors %}{{e}}{% endfor %}</div>{%
+                  endif %}</div>
               </div>
             </div>
 
             <!-- ========== ANEXOS ========== -->
             <div id="anexos" class="super-section">
-              <div class="section-header"><i class="bi bi-paperclip"></i><h2 class="h6 m-0">Anexos</h2></div>
+              <div class="section-header"><i class="bi bi-paperclip"></i>
+                <h2 class="h6 m-0">Anexos</h2>
+              </div>
               <div class="container bloco-arquivo p-0">
-                <label for="fileInput" class="botao-arquivo"><i class="bi bi-cloud-upload"></i> Adicionar Boletins Gerais</label>
+                <label for="fileInput" class="botao-arquivo"><i class="bi bi-cloud-upload"></i> Adicionar Boletins
+                  Gerais</label>
                 <input type="file" id="fileInput" name="arquivo" multiple>
                 <span id="bg-arquivo" class="ms-2 small opacity-75"></span>
               </div>
@@ -446,81 +958,100 @@
             <!-- ========== AÇÕES ========== -->
             <div class="action-bar mt-2">
               {{ form_militar.botao_submit(class="btn btn-primary") }}
-              
+
             </div>
           </form>
         </div>
       </div>
     </div>
   </div>
-</section>
+  <!-- Modal: Campos obrigatórios faltando -->
+  <div class="modal fade" id="missingFieldsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content"
+        style="background:rgba(19,19,19,.96); color:#f1f5f9; border:1px solid rgba(255,255,255,.18)">
+        <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.18)">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Campos obrigatórios pendentes</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Preencha os campos abaixo antes de salvar:</p>
+          <ul id="missingFieldsList" class="mb-0"></ul>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.18)">
+          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Ok, vou preencher</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
+</section>
 <!-- Script extra: nome do arquivo no input, ScrollSpy e Modo Abas + Resumo dinâmico -->
 <script>
-  (function(){
+  (function () {
     const fileInput = document.getElementById('fileInput');
     const info = document.getElementById('bg-arquivo');
-    if(fileInput){
+    if (fileInput) {
       fileInput.addEventListener('change', () => {
-        if(!fileInput.files || !fileInput.files.length){ info.textContent=''; return; }
-        const names = Array.from(fileInput.files).map(f=>f.name);
-        info.textContent = names.slice(0,3).join(', ') + (names.length>3 ? ` e +${names.length-3} arquivo(s)` : '');
+        if (!fileInput.files || !fileInput.files.length) { info.textContent = ''; return; }
+        const names = Array.from(fileInput.files).map(f => f.name);
+        info.textContent = names.slice(0, 3).join(', ') + (names.length > 3 ? ` e +${names.length - 3} arquivo(s)` : '');
       });
     }
 
     // ===== ScrollSpy (fallback quando em modo rolagem) =====
     const layoutRoot = document.getElementById('layoutRoot');
     const initScrollSpy = () => {
-      if(!layoutRoot) return;
+      if (!layoutRoot) return;
       bootstrap.ScrollSpy.getInstance(layoutRoot) || new bootstrap.ScrollSpy(layoutRoot, { target: '#sectionNav', offset: 140 });
     };
 
     // ===== Modo Abas =====
     const modeScroll = document.getElementById('modeScroll');
-    const modeTabs   = document.getElementById('modeTabs');
+    const modeTabs = document.getElementById('modeTabs');
     const allSections = Array.from(document.querySelectorAll('.super-section'));
     const sectionNav = document.getElementById('sectionNav');
 
-    function setTabbed(on){
-      if(on){
+    function setTabbed(on) {
+      if (on) {
         layoutRoot.classList.add('tabbed');
         // marca 1ª seção como ativa
         showSection(document.querySelector('.super-section')?.id);
-      }else{
+      } else {
         layoutRoot.classList.remove('tabbed');
         // garante exibição de todas as seções
-        allSections.forEach(s=>s.classList.add('active'));
+        allSections.forEach(s => s.classList.add('active'));
         initScrollSpy();
       }
     }
 
-    function showSection(id){
-      if(!id) return;
-      allSections.forEach(s=>s.classList.remove('active'));
+    function showSection(id) {
+      if (!id) return;
+      allSections.forEach(s => s.classList.remove('active'));
       const target = document.getElementById(id);
-      if(target){ target.classList.add('active'); window.scrollTo({ top: target.offsetTop - 120, behavior: 'smooth' }); }
+      if (target) { target.classList.add('active'); window.scrollTo({ top: target.offsetTop - 120, behavior: 'smooth' }); }
       // destacar nav
-      sectionNav.querySelectorAll('.nav-link').forEach(a=>{
+      sectionNav.querySelectorAll('.nav-link').forEach(a => {
         a.classList.toggle('active', a.getAttribute('data-section') === id);
       });
     }
 
     // Clicks do menu lateral controlam abas quando em modo tabbed
-    sectionNav?.addEventListener('click', (e)=>{
+    sectionNav?.addEventListener('click', (e) => {
       const a = e.target.closest('a.nav-link');
-      if(!a) return;
+      if (!a) return;
       const id = a.getAttribute('data-section');
-      if(modeTabs.checked){ e.preventDefault(); showSection(id); }
+      if (modeTabs.checked) { e.preventDefault(); showSection(id); }
     });
 
-    modeScroll?.addEventListener('change', ()=> setTabbed(false));
-    modeTabs?.addEventListener('change', ()=> setTabbed(true));
+    modeScroll?.addEventListener('change', () => setTabbed(false));
+    modeTabs?.addEventListener('change', () => setTabbed(true));
 
     // Inicializa estado
     setTabbed(false);
 
     // ===== Resumo Dinâmico =====
-    const $ = (sel)=>document.getElementById(sel);
+    const $ = (sel) => document.getElementById(sel);
     const sNome = $('s_nome');
     const sPosto = $('s_posto');
     const sMat = $('s_matricula');
@@ -532,10 +1063,10 @@
     const inpMat = $('matricula');
     const inpCpf = $('cpf');
 
-    function textOrDash(v){ return v && v.trim() ? v.trim() : '—'; }
-    function postoTxt(){ return inpPosto && inpPosto.options ? inpPosto.options[inpPosto.selectedIndex]?.text?.trim() : ''; }
+    function textOrDash(v) { return v && v.trim() ? v.trim() : '—'; }
+    function postoTxt() { return inpPosto && inpPosto.options ? inpPosto.options[inpPosto.selectedIndex]?.text?.trim() : ''; }
 
-    function sync(){
+    function sync() {
       const nome = textOrDash(inpNome?.value || '');
       const guerra = textOrDash(inpGuerra?.value || '');
       const posto = textOrDash(postoTxt());
@@ -545,7 +1076,7 @@
       sCpf.textContent = textOrDash(inpCpf?.value || '');
     }
 
-    ['input','change'].forEach(evt=>{
+    ['input', 'change'].forEach(evt => {
       inpNome?.addEventListener(evt, sync);
       inpGuerra?.addEventListener(evt, sync);
       inpPosto?.addEventListener(evt, sync);
