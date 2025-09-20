@@ -4464,11 +4464,11 @@ def home_cadete():
         return redirect(url_for("home"))
 
     # Fechamento automático: se zerou pendentes, mostra tela de conclusão.
-    pendentes = TarefaAtualizacaoCadete.query.filter_by(
-        cadete_user_id=current_user.id, status="PENDENTE"
-    ).count()
+    pendentes = (TarefaAtualizacaoCadete.query
+                 .filter_by(cadete_user_id=current_user.id, status="PENDENTE")
+                 .count())
 
-    if pendentes == 0:
+    if pendentes == 0 and request.args.get("lista") != "1":
         return render_template("cadete/finalizado.html")
 
     # lista para a página (paginável, se quiser)
@@ -4917,21 +4917,27 @@ def cadete_exibir_militar(militar_id):
                 form_militar.fim_periodo.data)
             militar_lts.publicacao_bg_id = bg_id
             militar_lts.atualizar_status()
+        acao = request.form.get("acao", "salvar")  # padrão: salvar rascunho
         try:
             database.session.commit()
-            # Marca como concluído
-            tarefa.status = "CONCLUIDO"
-            tarefa.atualizado_em = datetime.utcnow()
-            tarefa.locked_by_user_id = None
-            tarefa.locked_at = None
+            if acao == "concluir":
+                tarefa.status = "CONCLUIDO"
+                tarefa.atualizado_em = datetime.utcnow()
+                tarefa.locked_by_user_id = None
+                tarefa.locked_at = None
+            else:
+                # só salva rascunho
+                tarefa.status = "EM_EDICAO"
+                tarefa.locked_by_user_id = current_user.id
+                tarefa.locked_at = datetime.utcnow()
+
             database.session.commit()
 
-            # Se zerou pendentes, redireciona para tela de finalizado
-            if cadete_restantes(current_user) == 0:
+            if acao == "concluir" and cadete_restantes(current_user) == 0:
                 flash("Você concluiu todas as suas atualizações!", "success")
                 return redirect(url_for("home_cadete"))
 
-            flash("Atualizado com sucesso.", "success")
+            flash("Dados salvos.", "success" if acao=="salvar" else "Atualizado com sucesso.")
             return redirect(url_for("home_cadete"))
         except Exception as e:
             database.session.rollback()
@@ -4947,6 +4953,29 @@ def cadete_exibir_militar(militar_id):
                            militar=militar,
                            documentos_militar=documentos_militar,
                            tarefa=tarefa)
+
+
+@app.route("/cadete/reabrir/<int:militar_id>", methods=["POST"])
+@login_required
+def cadete_reabrir(militar_id):
+    if not is_cadete(current_user):
+        flash("Acesso restrito aos cadetes.", "danger")
+        return redirect(url_for("home"))
+
+    tarefa = (TarefaAtualizacaoCadete.query
+              .filter_by(cadete_user_id=current_user.id, militar_id=militar_id)
+              .first_or_404())
+
+    if tarefa.status != "CONCLUIDO":
+        flash("Esta tarefa não está concluída.", "warning")
+        return redirect(url_for("home_cadete"))
+
+    tarefa.status = "EM_EDICAO"
+    tarefa.locked_by_user_id = current_user.id
+    tarefa.locked_at = datetime.utcnow()
+    database.session.commit()
+
+    return redirect(url_for("cadete_exibir_militar", militar_id=militar_id))
 
 
 @app.route('/ficha-atualizada')
@@ -5037,29 +5066,31 @@ def distribuir_atualizacao():
             # limpeza...
             if modo_limpeza == "pendentes":
                 (TarefaAtualizacaoCadete.query
-                .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
-                .delete(synchronize_session=False))
+                 .filter(TarefaAtualizacaoCadete.status.in_(["PENDENTE", "EM_EDICAO"]))
+                 .delete(synchronize_session=False))
                 database.session.commit()
             elif modo_limpeza == "todas":
                 TarefaAtualizacaoCadete.query.delete()
                 database.session.commit()
 
             # --- Recarregar bases -----------------------------
-            cadetes_mil = Militar.query.filter(Militar.posto_grad_id == 7).all()
+            cadetes_mil = Militar.query.filter(
+                Militar.posto_grad_id == 7).all()
             cadete_cpfs_norm = {_norm_cpf(m.cpf) for m in cadetes_mil if m.cpf}
 
             # Users que são cadetes (por CPF normalizado)
             all_users = User.query.options(load_only(User.id, User.cpf)).all()
-            cadetes_users = [u for u in all_users if _norm_cpf(u.cpf) in cadete_cpfs_norm]
+            cadetes_users = [u for u in all_users if _norm_cpf(
+                u.cpf) in cadete_cpfs_norm]
             if not cadetes_users:
                 flash("Nenhum cadete encontrado via CPF.", "warning")
                 return redirect(url_for("distribuir_atualizacao"))
 
             # Alvos: não alunos e não civis
             alvos = (Militar.query
-                    .filter(Militar.situacao_id != 9)
-                    .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
-                    .all())
+                     .filter(Militar.situacao_id != 9)
+                     .filter((Militar.posto_grad_id != 15) | (Militar.posto_grad_id.is_(None)))
+                     .all())
             if not alvos:
                 flash("Não há militares elegíveis.", "warning")
                 return redirect(url_for("distribuir_atualizacao"))
@@ -5070,15 +5101,18 @@ def distribuir_atualizacao():
             shuffle(alvos)            # ordem aleatória dos alvos
 
             # --- Mapeia cadete_user_id -> cadete_militar_id por CPF normalizado -------
-            cpf_user_norm = func.regexp_replace(cast(User.cpf, String), r'[^0-9]', '', 'g')
-            cpf_mil_norm  = func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g')
+            cpf_user_norm = func.regexp_replace(
+                cast(User.cpf, String), r'[^0-9]', '', 'g')
+            cpf_mil_norm = func.regexp_replace(
+                cast(Militar.cpf, String), r'[^0-9]', '', 'g')
 
             pares_user_mil = (database.session.query(User.id, Militar.id)
-                            .join(Militar, cpf_user_norm == cpf_mil_norm)
-                            .filter(Militar.posto_grad_id == 7,
-                                    User.id.in_(cad_user_ids))
-                            .all())
-            cadete_map = dict(pares_user_mil)  # {cadete_user_id: cadete_militar_id}
+                              .join(Militar, cpf_user_norm == cpf_mil_norm)
+                              .filter(Militar.posto_grad_id == 7,
+                                      User.id.in_(cad_user_ids))
+                              .all())
+            # {cadete_user_id: cadete_militar_id}
+            cadete_map = dict(pares_user_mil)
 
             # --- Evita recriar pares já existentes ------------------------------------
             existentes = set(database.session.query(
@@ -5106,10 +5140,12 @@ def distribuir_atualizacao():
                 })
 
             if to_insert:
-                database.session.bulk_insert_mappings(TarefaAtualizacaoCadete, to_insert)
+                database.session.bulk_insert_mappings(
+                    TarefaAtualizacaoCadete, to_insert)
 
             database.session.commit()
-            flash(f"Distribuição concluída. Criadas: {len(to_insert)}.", "success")
+            flash(
+                f"Distribuição concluída. Criadas: {len(to_insert)}.", "success")
             return redirect(url_for("distribuir_atualizacao"))
 
         except Exception as e:
@@ -5131,7 +5167,7 @@ def distribuir_atualizacao():
         tot_cadetes_fk=tot_cadetes_fk,
     )
 
- 
+
 @app.route("/relatorio/cadetes-militares")
 def relatorio_cadetes_militares():
     fmt = (request.args.get("format") or "html").lower()
@@ -5194,10 +5230,12 @@ def relatorio_cadetes_militares():
         headers = ["Cadete", "Militar", "Posto/Grad", "OBM", "Militar ID"]
         ws.append(headers)
         for r in rows:
-            ws.append([r["cadete"], r["militar"], r["posto_grad"], r["obm"], r["militar_id"]])
+            ws.append([r["cadete"], r["militar"],
+                      r["posto_grad"], r["obm"], r["militar_id"]])
         for col_idx in range(1, len(headers) + 1):
             col = get_column_letter(col_idx)
-            maxlen = max((len(str(c.value)) if c.value else 0) for c in ws[col])
+            maxlen = max((len(str(c.value)) if c.value else 0)
+                         for c in ws[col])
             ws.column_dimensions[col].width = min(max(12, maxlen + 2), 50)
         buf = BytesIO()
         wb.save(buf)

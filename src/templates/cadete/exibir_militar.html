@@ -65,7 +65,7 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
-        
+
         overflow: hidden;
     }
 
@@ -760,8 +760,13 @@
 
                         <!-- Barra de ação -->
                         <div class="action-bar mt-2">
-                            {{ form_militar.botao_submit(class="btn btn-primary") }}
-                            <a href="{{ url_for('home_cadete') }}" class="btn btn-outline-light">Cancelar</a>
+                            <button type="submit" name="acao" value="salvar" class="btn btn-outline-light">
+                                <i class="bi bi-save me-1"></i> Salvar rascunho
+                            </button>
+                            <button type="submit" name="acao" value="concluir" class="btn btn-primary"
+                                onclick="return confirm('Concluir esta atualização? Você ainda poderá reabrir depois.');">
+                                <i class="bi bi-check2-circle me-1"></i> Concluir atualização
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -780,6 +785,13 @@
             bootstrap.ScrollSpy.getInstance(el) || new bootstrap.ScrollSpy(el, { target: '#sectionNav', offset: 140 })
         })
     })();
+</script>
+
+<script>
+    // evita Enter enviar o form fora de <textarea>
+    document.querySelector('form')?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); }
+    });
 </script>
 
 <script src="{{ url_for('static', filename='js/exibir_militar_down.js') }}"></script>
