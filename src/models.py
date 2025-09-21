@@ -338,7 +338,7 @@ class Militar(database.Model):
     matricula = database.Column(database.String(50))
     pis_pasep = database.Column(database.String(50))
 
-    num_titulo_eleitor = database.Column(database.String(9))
+    num_titulo_eleitor = database.Column(database.String(10))
     digito_titulo_eleitor = database.Column(database.String(2))
     zona = database.Column(database.String(5))
     secao = database.Column(database.String(5))

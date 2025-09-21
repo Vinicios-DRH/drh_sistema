@@ -71,7 +71,7 @@ class FormMilitar(FlaskForm):
         "PIS/PASEP", render_kw={"placeholder": "123.45678.90-1"})
     cpf = StringField("CPF", render_kw={"placeholder": "123.456.789-01"})
     num_titulo_eleitor = StringField("Número do Título de Eleitor", render_kw={
-                                     "placeholder": "123465789"})
+                                     "placeholder": "1234657890"})
     digito_titulo_eleitor = StringField(
         "Dígito do Título de Eleitor", render_kw={"placeholder": "00"})
     zona = StringField("Zona")
