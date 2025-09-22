@@ -3788,22 +3788,19 @@ def ficha_aluno():
         4° Pelotão: Rio Purus
     '''
     # Preenchendo choices se necessário
-    form.pelotao.choices = [('Rio Javari', 'Rio Javari'), ('Rio Juruá', 'Rio Juruá'),
-                            ('Rio Japurá', 'Rio Japurá'), ('Rio Purus', 'Rio Purus')]
-    form.estado_civil.choices = [('Solteiro', 'Solteiro'), (
-        'Casado', 'Casado'), ('Divorciado', 'Divorciado'), ('Viúvo', 'Viúvo')]
-    form.estado.choices = [('AM', 'Amazonas'), ('AC', 'Acre')]
-    form.categoria_cnh.choices = [
-        ('A', 'A'),
-        ('B', 'B'),
-        ('AB', 'AB'),
-        ('C', 'C'),
-        ('D', 'D'),
-        ('E', 'E'),
-        ('AC', 'AC'),
-        ('AD', 'AD'),
-        ('AE', 'AE'),
-    ]
+    form.pelotao.choices = [('', '— Selecionar —'),
+                        ('Rio Javari','Rio Javari'), ('Rio Juruá','Rio Juruá'),
+                        ('Rio Japurá','Rio Japurá'), ('Rio Purus','Rio Purus')]
+    
+    form.estado_civil.choices = [('', '— Selecionar —'),
+                             ('Solteiro','Solteiro'), ('Casado','Casado'),
+                             ('Divorciado','Divorciado'), ('Viúvo','Viúvo')]
+    
+    form.estado.choices = [('', '— Selecionar —'), ('AM','Amazonas'), ('AC','Acre')]
+
+    form.categoria_cnh.choices = [('', '— Selecionar —'),
+                              ('A','A'),('B','B'),('AB','AB'),('C','C'),('D','D'),
+                              ('E','E'),('AC','AC'),('AD','AD'),('AE','AE')]
 
     foto_url = None
 
@@ -3816,34 +3813,39 @@ def ficha_aluno():
             foto_filename = foto_path
 
         novo_aluno = FichaAlunos(
-            nome_completo=form.nome_completo.data,
-            nome_guerra=form.nome_guerra.data,
+            nome_completo=form.nome_completo.data or 'NÃO INFORMADO',
+            nome_guerra=form.nome_guerra.data or None,
             idade_atual=form.idade_atual.data,
-            cpf=form.cpf.data,
-            rg=form.rg.data,
-            estado_civil=form.estado_civil.data,
-            nome_pai=form.nome_pai.data,
-            nome_mae=form.nome_mae.data,
-            pelotao=form.pelotao.data,
-            email=form.email.data,
-            telefone=form.telefone.data,
-            telefone_emergencia=form.telefone_emergencia.data,
-            rua=form.rua.data,
-            bairro=form.bairro.data,
-            complemento=form.complemento.data,
-            estado=form.estado.data,
-            formacao_academica=form.formacao_academica.data,
-            tipo_sanguineo=form.tipo_sanguineo.data,
-            categoria_cnh=form.categoria_cnh.data,
-            comportamento=form.comportamento.data,
-            caso_aluno_nao_resida_em_manaus=form.hospedagem_aluno_de_fora.data,
-            foto=foto_filename,
-            matricula=form.matricula.data
+            cpf=form.cpf.data or None,
+            rg=form.rg.data or None,
+            estado_civil=form.estado_civil.data or None,
+            nome_pai=form.nome_pai.data or 'NÃO INFORMADO',
+            nome_mae=form.nome_mae.data or 'NÃO INFORMADO',
+            pelotao=form.pelotao.data or None,
+            email=form.email.data or None,
+            telefone=form.telefone.data or None,
+            telefone_emergencia=form.telefone_emergencia.data or None,
+            rua=form.rua.data or None,
+            bairro=form.bairro.data or None,
+            complemento=form.complemento.data or None,
+            estado=form.estado.data or None,
+            formacao_academica=form.formacao_academica.data or 'NÃO INFORMADO',
+            tipo_sanguineo=form.tipo_sanguineo.data or None,
+            categoria_cnh=form.categoria_cnh.data or None,
+            comportamento=(form.comportamento.data or 'Bom'),
+            nota_comportamento=(form.nota_comportamento.data if form.nota_comportamento.data is not None else 5.0),
+            caso_aluno_nao_resida_em_manaus=form.hospedagem_aluno_de_fora.data or None,
+            foto=foto_filename or None,
+            matricula=form.matricula.data or None
         )
         database.session.add(novo_aluno)
         database.session.commit()
         flash('Ficha do aluno salva com sucesso!', 'success')
         return redirect(url_for('ficha_aluno'))
+    else:
+        # Mostra erros explícitos (agora você vai ver por causa do padding/top/flash)
+        if form.errors:
+            flash('Corrija os campos destacados para salvar a ficha.', 'danger')
 
     return render_template('ficha_alunos.html', form=form, foto_url=foto_url, ano_atual=datetime.now().year,
                            aluno=None,          # <- importante

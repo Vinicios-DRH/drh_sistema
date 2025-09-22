@@ -333,51 +333,48 @@ class ControleConvocacaoForm(FlaskForm):
 
 
 class FichaAlunosForm(FlaskForm):
-    foto = FileField('Foto do Aluno', validators=[
-        FileAllowed(['jpg', 'jpeg', 'png'],
-                    'Apenas imagens (.jpg, .jpeg, .png) são permitidas')
-    ])
-    nome_completo = StringField('Nome Completo', validators=[
-                                Length(max=100)])
-    nome_guerra = StringField('Nome de Guerra', validators=[Length(max=50)])
-    idade_atual = IntegerField("Idade Atual", validators=[
-                               Optional(), NumberRange(0, 120)])
-    cpf = StringField('CPF', validators=[Length(max=14)])
-    rg = StringField('RG', validators=[Length(max=14)])
-    estado_civil = SelectField('Estado civil', choices=[])
-    nome_pai = StringField('Nome do pai', validators=[
-        Length(max=100)])
-    nome_mae = StringField('Nome da mãe', validators=[
-        Length(max=100)])
-    pelotao = SelectField('Pelotão', choices=[])
-    email = StringField('E-mail', validators=[Optional(), Email()])
-    telefone = StringField('Telefone para contato', validators=[
-                           Optional(), Length(max=15)])
-    telefone_emergencia = StringField('Telefone de emergência', validators=[
-                                      Optional(), Length(max=15)])
-    rua = StringField('Rua', validators=[
-        Optional(), Length(max=200)])
-    bairro = StringField('Bairro', validators=[
-        Optional(), Length(max=200)])
-    complemento = StringField('Complemento', validators=[
-        Optional(), Length(max=200)])
-    estado = SelectField('Estado', choices=[])
-    formacao_academica = StringField('Formação Acadêmica', validators=[
-        Optional(), Length(max=200)])
-    tipo_sanguineo = StringField('Tipo Sanguíneo e Fator', validators=[
-        Optional(), Length(max=10)])
-    categoria_cnh = SelectField('Categoria CNH', choices=[])
-    comportamento = SelectField('Comportamento', choices=[
-        ('Excepcional', 'Excepcional'), ('Ótimo', 'Ótimo'), ('Bom',
-                                                             'Bom'), ('Insuficiente', 'Insuficiente'), ('Mau', 'Mau')
-    ])
-    nota_comportamento = FloatField(
-        'Nota do Comportamento', validators=[InputRequired()])
-    hospedagem_aluno_de_fora = StringField(
-        'Hospedagem (se fora de Manaus )', validators=[Optional(), Length(max=200)])
-    matricula = StringField('Matrícula', validators=[Length(max=11)])
-    botao_submit = SubmitField('Salvar')
+    foto = FileField('Foto do Aluno', validators=[FileAllowed(['jpg','jpeg','png'])])
+    nome_completo = StringField('Nome Completo', validators=[Optional(), Length(max=100)])
+    nome_guerra = StringField('Nome de Guerra', validators=[Optional(), Length(max=50)])
+    idade_atual = IntegerField("Idade Atual", validators=[Optional(), NumberRange(0, 120)])
+    cpf = StringField('CPF', validators=[Optional(), Length(max=14)])
+    rg  = StringField('RG',  validators=[Optional(), Length(max=14)])
 
+    # IMPORTANTES: permitem vazio
+    estado_civil = SelectField('Estado civil', choices=[], validators=[Optional()], validate_choice=False)
+    pelotao      = SelectField('Pelotão',       choices=[], validators=[Optional()], validate_choice=False)
+    estado       = SelectField('Estado',        choices=[], validators=[Optional()], validate_choice=False)
+    categoria_cnh= SelectField('Categoria CNH', choices=[], validators=[Optional()], validate_choice=False)
+
+    nome_pai = StringField('Nome do pai', validators=[Optional(), Length(max=100)])
+    nome_mae = StringField('Nome da mãe', validators=[Optional(), Length(max=100)])
+    email    = StringField('E-mail', validators=[Optional(), Email()])
+    telefone = StringField('Telefone para contato', validators=[Optional(), Length(max=15)])
+    telefone_emergencia = StringField('Telefone de emergência', validators=[Optional(), Length(max=15)])
+
+    rua = StringField('Rua', validators=[Optional(), Length(max=200)])
+    bairro = StringField('Bairro', validators=[Optional(), Length(max=200)])
+    complemento = StringField('Complemento', validators=[Optional(), Length(max=200)])
+    estado = SelectField('Estado', choices=[], validators=[Optional()], validate_choice=False)
+
+    formacao_academica = StringField('Formação Acadêmica', validators=[Optional(), Length(max=200)])
+    tipo_sanguineo     = StringField('Tipo Sanguíneo e Fator', validators=[Optional(), Length(max=10)])
+
+    comportamento = SelectField('Comportamento',
+        choices=[('Excepcional','Excepcional'),('Ótimo','Ótimo'),('Bom','Bom'),
+                 ('Insuficiente','Insuficiente'),('Mau','Mau')],
+        validators=[Optional()], validate_choice=False)
+
+    # AGORA OPCIONAL, com default
+    nota_comportamento = FloatField('Nota do Comportamento',
+                                    validators=[Optional(), NumberRange(min=0, max=10)],
+                                    default=5.0)
+
+    hospedagem_aluno_de_fora = StringField('Hospedagem (se fora de Manaus )',
+                                           validators=[Optional(), Length(max=200)])
+    matricula = StringField('Matrícula', validators=[Optional(), Length(max=50)])  # relaxei o max
+    botao_submit = SubmitField('Salvar')
+    
 
 class InativarAlunoForm(FlaskForm):
     motivo_saida = SelectField('Motivo da Saída', choices=[
