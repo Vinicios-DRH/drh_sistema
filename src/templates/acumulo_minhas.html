@@ -232,6 +232,22 @@
   </div>
 </section>
 
+<div id="modal-prazo-fechado" class="modal-backdrop-custom" aria-hidden="true">
+  <div class="modal-card">
+    <div class="p-3 border-bottom">
+      <h5 class="m-0">Prazo encerrado</h5>
+      <div class="small text-muted mt-1">
+        O prazo para envio da declaração encerrou em
+        <strong>{{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.
+      </div>
+    </div>
+    <div class="p-3 d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-primary" id="fechar-prazo-fechado">OK</button>
+    </div>
+  </div>
+</div>
+
+
 <style>
   .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1050}
   .modal-backdrop-custom.show{display:flex}
@@ -285,26 +301,50 @@
   });
 }) ();
 </script>
-
 <script>
 (() => {
-  const temPendente = {{ (tem_pendente or False) | tojson }};
-  const novaUrl = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
+  const temPendente   = {{ (tem_pendente or False) | tojson }};
+  const novaUrl       = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
+  const prazoFechado  = {{ (prazo_fechado or False) | tojson }};
+  const jaEnviouAno   = {{ (ja_enviou_no_ano or False) | tojson }};
 
-  const btnNova = document.getElementById('btn-nova-declaracao');
-  const modal   = document.getElementById('modal-bloqueio');
-  const fechar  = document.getElementById('fechar-bloqueio');
+  const btnNova   = document.getElementById('btn-nova-declaracao');
 
-  function abrirModal(){ modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false'); }
-  function fecharModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
+  // modal "já enviou (pendente)"
+  const modalPend = document.getElementById('modal-bloqueio');
+  const fecharPend= document.getElementById('fechar-bloqueio');
+  function abrirPend(){ modalPend?.classList.add('show'); modalPend?.setAttribute('aria-hidden','false'); }
+  function fecharPendFn(){ modalPend?.classList.remove('show'); modalPend?.setAttribute('aria-hidden','true'); }
+  fecharPend?.addEventListener('click', fecharPendFn);
+  modalPend?.addEventListener('click', (e) => { if (e.target === modalPend) fecharPendFn(); });
 
-  fechar?.addEventListener('click', fecharModal);
-  modal?.addEventListener('click', (e) => { if (e.target === modal) fecharModal(); });
+  // >>> NOVO: modal "prazo fechado"
+  const modalPrazo = document.getElementById('modal-prazo-fechado');
+  const fecharPrazo= document.getElementById('fechar-prazo-fechado');
+  function abrirPrazo(){ modalPrazo?.classList.add('show'); modalPrazo?.setAttribute('aria-hidden','false'); }
+  function fecharPrazoFn(){ modalPrazo?.classList.remove('show'); modalPrazo?.setAttribute('aria-hidden','true'); }
+  fecharPrazo?.addEventListener('click', fecharPrazoFn);
+  modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) fecharPrazoFn(); });
 
   btnNova?.addEventListener('click', (e) => {
     e.preventDefault();
-    if (temPendente) { abrirModal(); return; }
-    window.location.href = novaUrl;
+
+    // 1) Prazo fechado e usuário AINDA não enviou nada no ano -> bloqueia com modal de prazo
+    if (prazoFechado && !jaEnviouAno) {
+      abrirPrazo();
+      return;
+    }
+
+    // 2) Já enviou e está pendente -> mostra modal "aguardando análise"
+    if (temPendente) {
+      abrirPend();
+      return;
+    }
+
+    // 3) Fluxo normal
+    if (novaUrl && novaUrl !== '#') {
+      window.location.href = novaUrl;
+    }
   });
 })();
 </script>

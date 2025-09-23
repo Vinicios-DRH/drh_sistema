@@ -287,6 +287,19 @@ def _is_privilegiado() -> bool:
     return ("SUPER USER" in up) or ("DIRETOR DRH" in up)
 
 
+
+ANO_ATUAL = date.today().year
+
+def _prazo_envio_ate() -> date:
+    # ajuste como preferir (config/DB). Aqui, “até ontem”:
+    return date.today().replace(day=date.today().day - 1)
+
+
+def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
+    return db.session.query(DeclaracaoAcumulo.id)\
+        .filter(DeclaracaoAcumulo.usuario_id == user_id,
+                DeclaracaoAcumulo.ano_referencia == ano).first() is not None
+
 @app.route("/home-atualizacao", methods=["GET"])
 @login_required
 def home_atualizacao():
@@ -295,6 +308,9 @@ def home_atualizacao():
     DM = DocumentoMilitar
 
     U = current_user
+    
+    prazo_limite = _prazo_envio_ate()
+    prazo_fechado = date.today() > prazo_limite
 
     # -------- 1) Resolver Militar do usuário --------
     militar = None
@@ -509,6 +525,8 @@ def home_atualizacao():
         pessoa_id_atual=pessoa_id_atual,
         docs_pendentes=docs_pendentes,
         docs_pendentes_qtd=docs_pendentes_qtd,
+        prazo_fechado=prazo_fechado,
+        prazo_limite=prazo_limite,
     )
 
 
@@ -700,6 +718,11 @@ def _obms_ativas_do_militar(militar_id: int):
 @bp_acumulo.route("/novo/<int:militar_id>", methods=["GET", "POST"])
 @login_required
 def novo(militar_id):
+
+    if date.today() > _prazo_envio_ate() and not _usuario_ja_tem_declaracao(current_user.id, ANO_ATUAL):
+        flash('O prazo para envio da declaração deste ano está encerrado.', 'warning')
+        return redirect(url_for('home'))
+
     # Se for usuário comum, força militar_id a ser o do próprio usuário
     if current_user.funcao_user_id == 12:
         militar = get_militar_por_user(current_user)
@@ -2398,6 +2421,10 @@ def minhas_declaracoes():
     tem_pendente = bool(decl_pendente)
     decl_pendente_id = decl_pendente[0] if decl_pendente else None
 
+    prazo_limite = _prazo_envio_ate()
+    prazo_fechado = date.today() > prazo_limite
+    ja_enviou_no_ano = kpi_total > 0
+
     # Rascunho (único por militar/ano)
     # Ajuste o modelo/campo conforme sua implementação de rascunhos
     rasc = (db.session.query(DraftDeclaracaoAcumulo)
@@ -2428,6 +2455,9 @@ def minhas_declaracoes():
         kpi_decl_inconformes=kpi_inc,
         tem_pendente=tem_pendente,
         decl_pendente_id=decl_pendente_id,
+        prazo_fechado=prazo_fechado,
+        prazo_limite=prazo_limite,
+        ja_enviou_no_ano=ja_enviou_no_ano,
     )
 
 
@@ -2459,6 +2489,10 @@ def excluir_rascunho(militar_id, ano):
 @bp_acumulo.route("/novo/<pessoa_tipo>/<int:pessoa_id>", methods=["GET", "POST"])
 @login_required
 def novo_generico(pessoa_tipo, pessoa_id):
+    if date.today() > _prazo_envio_ate() and not _usuario_ja_tem_declaracao(current_user.id, ANO_ATUAL):
+        flash('O prazo para envio da declaração deste ano está encerrado.', 'warning')
+        return redirect(url_for('home'))
+    
     pessoa_tipo = (pessoa_tipo or "").lower().strip()
     if pessoa_tipo not in {"militar", "aluno"}:
         abort(404)
