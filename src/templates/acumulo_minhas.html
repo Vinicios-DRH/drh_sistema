@@ -23,7 +23,7 @@
     color: var(--ink-200);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
   }
 
   .glass-card {
@@ -31,56 +31,35 @@
     border: 1px solid var(--glass-brd);
     border-radius: 16px;
     color: var(--ink-200);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
   }
 
   .btn-primary {
     background: var(--brand-red);
     border-color: var(--brand-red);
   }
-
-  .btn-primary:hover {
-    background: var(--brand-red-600);
-    border-color: var(--brand-red-600);
-  }
+  .btn-primary:hover { background: var(--brand-red-600); border-color: var(--brand-red-600); }
 
   .btn-outline-primary {
     color: var(--brand-red);
     border-color: var(--brand-red);
   }
+  .btn-outline-primary:hover { color:#fff; background:var(--brand-red); }
 
-  .btn-outline-primary:hover {
-    color: #fff;
-    background: var(--brand-red);
-  }
+  .badge-soft { border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); }
 
-  .badge-soft {
-    border: 1px solid rgba(255, 255, 255, .3);
-    background: rgba(255, 255, 255, .08);
-  }
-
-  .list-plain {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
+  .list-plain { list-style:none; margin:0; padding:0; }
   .list-plain li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    padding: .6rem 0;
-    border-bottom: 1px dashed rgba(255, 255, 255, .18);
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+    padding:.6rem 0; border-bottom:1px dashed rgba(255,255,255,.18);
   }
+  .list-plain li:last-child { border-bottom:0; }
 
-  .list-plain li:last-child {
-    border-bottom: 0;
-  }
+  .small-muted { color:#94a3b8; }
 
-  .small-muted {
-    color: #94a3b8;
-  }
+  .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1050}
+  .modal-backdrop-custom.show{display:flex}
+  .modal-card{background:#fff;color:#111;border-radius:12px;max-width:560px;width:96vw;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.08)}
 </style>
 {% endblock %}
 
@@ -92,19 +71,18 @@
     <div class="brand-header p-3 p-md-4 mb-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
-            alt="CBMAM">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
           <div>
             <h1 class="h5 m-0">Minhas declarações — {{ ano }}</h1>
             <div class="small opacity-75">
-              {% if militar %}{{ militar.nome_completo }}{% else %}Usuário{% endif %} · PG: {{ posto_grad_sigla or '-'
-              }}
+              {% if militar %}{{ militar.nome_completo }}{% else %}Usuário{% endif %} · PG: {{ posto_grad_sigla or '-' }}
             </div>
           </div>
         </div>
         <div class="d-flex gap-2">
-          <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i>
-            Voltar</a>
+          <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </a>
           {% if militar %}
           <button type="button" id="btn-nova-declaracao" class="btn btn-primary">
             <i class="bi bi-file-earmark-plus me-1"></i> Nova declaração
@@ -156,34 +134,33 @@
           </div>
 
           {% if rascunho %}
-          {% set pj = rascunho.payload if rascunho.payload is mapping else {} %}
-          <div class="mb-2 small-muted">Atualizado em {{ (rascunho.updated_at or rascunho.created_at).strftime('%d/%m/%Y
-            %H:%M') if rascunho.updated_at or rascunho.created_at else '—' }}</div>
+            {% set pj = rascunho.payload if rascunho.payload is mapping else {} %}
+            <div class="mb-2 small-muted">
+              Atualizado em {{ (rascunho.updated_at or rascunho.created_at).strftime('%d/%m/%Y %H:%M') if (rascunho.updated_at or rascunho.created_at) else '—' }}
+            </div>
 
-          <ul class="list-plain">
-            <li><span>Tipo</span><strong>{{ (pj.tipo or '—')|capitalize }}</strong></li>
-            {% if (pj.tipo or '') == 'positiva' %}
-            <li><span>Órgão</span><strong>{{ (pj.vinculos[0].empregador_nome if pj.vinculos and pj.vinculos|length>0
-                else pj.get('empregador_nome')) or '—' }}</strong></li>
-            <li><span>Esfera</span><strong>{{ (pj.vinculos[0].empregador_tipo if pj.vinculos and pj.vinculos|length>0
-                else pj.get('empregador_tipo')) or '—' }}</strong></li>
-            <li><span>Vínculos</span><strong>{{ (pj.vinculos|length) if pj.vinculos is sequence else 1 }}</strong></li>
-            {% endif %}
-            <li><span>Observações</span><strong>{{ pj.observacoes or '—' }}</strong></li>
-          </ul>
+            <ul class="list-plain">
+              <li><span>Tipo</span><strong>{{ (pj.tipo or '—')|capitalize }}</strong></li>
+              {% if (pj.tipo or '') == 'positiva' %}
+                <li><span>Órgão</span><strong>{{ (pj.vinculos[0].empregador_nome if pj.vinculos and pj.vinculos|length>0 else pj.get('empregador_nome')) or '—' }}</strong></li>
+                <li><span>Esfera</span><strong>{{ (pj.vinculos[0].empregador_tipo if pj.vinculos and pj.vinculos|length>0 else pj.get('empregador_tipo')) or '—' }}</strong></li>
+                <li><span>Vínculos</span><strong>{{ (pj.vinculos|length) if pj.vinculos is sequence else 1 }}</strong></li>
+              {% endif %}
+              <li><span>Observações</span><strong>{{ pj.observacoes or '—' }}</strong></li>
+            </ul>
 
-          <div class="mt-3 d-flex gap-2">
-            {% if militar %}
-            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.novo', militar_id=militar.id, ano=ano) }}">
-              <i class="bi bi-pencil-square me-1"></i> Retomar preenchimento
-            </a>
-            <a class="btn btn-primary" href="{{ url_for('acumulo.upload_assinado', militar_id=militar.id, ano=ano) }}">
-              <i class="bi bi-upload me-1"></i> Enviar documentos assinados
-            </a>
-            {% endif %}
-          </div>
+            <div class="mt-3 d-flex gap-2">
+              {% if militar %}
+                <a class="btn btn-outline-primary" href="{{ url_for('acumulo.novo', militar_id=militar.id, ano=ano) }}">
+                  <i class="bi bi-pencil-square me-1"></i> Retomar preenchimento
+                </a>
+                <a class="btn btn-primary" href="{{ url_for('acumulo.upload_assinado', militar_id=militar.id, ano=ano) }}">
+                  <i class="bi bi-upload me-1"></i> Enviar documentos assinados
+                </a>
+              {% endif %}
+            </div>
           {% else %}
-          <div class="small-muted">Você não possui rascunho para {{ ano }}.</div>
+            <div class="small-muted">Você não possui rascunho para {{ ano }}.</div>
           {% endif %}
         </div>
       </div>
@@ -196,35 +173,38 @@
           </div>
 
           {% if declaracoes %}
-          <ul class="list-plain">
-            {% for d in declaracoes %}
-            <li>
-              <div>
-                <div><strong>{{ d.ano_referencia }}</strong> — {{ d.tipo or '—' }}</div>
-                <div class="small-muted">
-                  Enviado em {{ d.created_at.strftime('%d/%m/%Y %H:%M') if d.created_at else '—' }}
-                  {% if d.updated_at %} · Atualizado em {{ d.updated_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+            <ul class="list-plain">
+              {% for d in declaracoes %}
+              <li>
+                <div>
+                  <div><strong>{{ d.ano_referencia }}</strong> — {{ d.tipo or '—' }}</div>
+                  <div class="small-muted">
+                    Enviado em {{ d.created_at.strftime('%d/%m/%Y %H:%M') if d.created_at else '—' }}
+                    {% if d.updated_at %} · Atualizado em {{ d.updated_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                  </div>
                 </div>
-              </div>
-              <div class="text-nowrap">
-                {% set st = (d.status or '')|lower %}
-                {% if st == 'validado' %}
-                <span class="badge text-bg-success">validado</span>
-                {% elif st == 'inconforme' %}
-                <span class="badge text-bg-danger">inconforme</span>
-                <a class="btn btn-sm btn-outline-light ms-2"
-                  href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Corrigir</a>
-                {% else %}
-                <span class="badge text-bg-warning text-dark">pendente</span>
-                {% endif %}
-                <a class="btn btn-sm btn-outline-primary ms-2"
-                  href="{{ url_for('acumulo.detalhe', decl_id=d.id) }}">Abrir</a>
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
+                <div class="text-nowrap">
+                  {% set st = (d.status or '')|lower %}
+                  {% if st == 'validado' %}
+                    <span class="badge text-bg-success">validado</span>
+                  {% elif st == 'inconforme' %}
+                    <span class="badge text-bg-danger">inconforme</span>
+                    {# BLOQUEIO do "Corrigir" se prazo_fechado == True #}
+                    {% if not prazo_fechado %}
+                      <a class="btn btn-sm btn-outline-light ms-2" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Corrigir</a>
+                    {% else %}
+                      <span class="small-muted ms-2">Edição bloqueada (prazo encerrado)</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge text-bg-warning text-dark">pendente</span>
+                  {% endif %}
+                  <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('acumulo.detalhe', decl_id=d.id) }}">Abrir</a>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
           {% else %}
-          <div class="small-muted">Nenhum envio seu para {{ ano }} ainda.</div>
+            <div class="small-muted">Nenhum envio seu para {{ ano }} ainda.</div>
           {% endif %}
         </div>
       </div>
@@ -232,13 +212,13 @@
   </div>
 </section>
 
+<!-- Modal: prazo fechado -->
 <div id="modal-prazo-fechado" class="modal-backdrop-custom" aria-hidden="true">
   <div class="modal-card">
     <div class="p-3 border-bottom">
       <h5 class="m-0">Prazo encerrado</h5>
       <div class="small text-muted mt-1">
-        O prazo para envio da declaração encerrou em
-        <strong>{{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.
+        O prazo para envio da declaração encerrou em <strong>{{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.
       </div>
     </div>
     <div class="p-3 d-flex justify-content-end gap-2">
@@ -247,13 +227,7 @@
   </div>
 </div>
 
-
-<style>
-  .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1050}
-  .modal-backdrop-custom.show{display:flex}
-  .modal-card{background:#fff;color:#111;border-radius:12px;max-width:560px;width:96vw;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.08)}
-</style>
-
+<!-- Modal: já enviou (pendente) -->
 <div id="modal-bloqueio" class="modal-backdrop-custom" aria-hidden="true">
   <div class="modal-card">
     <div class="p-3 border-bottom">
@@ -274,78 +248,79 @@
   </div>
 </div>
 
-
 {% if militar %}
 <script>
-  (() => {
-    const btnExcluir = document.getElementById('btn-excluir-rascunho');
-    if (!btnExcluir) return;
-
+(() => {
+  const btnExcluir = document.getElementById('btn-excluir-rascunho');
+  if (btnExcluir){
     btnExcluir.addEventListener('click', async () => {
       if (!confirm('Remover o rascunho deste ano? Esta ação não pode ser desfeita.')) return;
       btnExcluir.disabled = true;
       btnExcluir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Excluindo…';
-
       try {
-        const url = {{ url_for('acumulo.excluir_rascunho', militar_id = militar.id, ano = ano) | tojson
-      }};
-    const resp = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } });
-    const data = await resp.json().catch(() => ({ ok: false }));
-    if (!resp.ok || !data.ok) throw new Error(data.error || 'Falha ao excluir rascunho.');
-    location.reload();
-  }catch (e) {
-    alert(e.message || 'Erro ao excluir rascunho.');
-    btnExcluir.disabled = false;
-    btnExcluir.textContent = 'Excluir';
+        const url = {{ url_for('acumulo.excluir_rascunho', militar_id=militar.id, ano=ano) | tojson }};
+        const resp = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'fetch' }});
+        const data = await resp.json().catch(() => ({ ok:false }));
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Falha ao excluir rascunho.');
+        location.reload();
+      } catch(e){
+        alert(e.message || 'Erro ao excluir rascunho.');
+        btnExcluir.disabled = false;
+        btnExcluir.textContent = 'Excluir';
+      }
+    });
   }
-  });
-}) ();
+})();
 </script>
+
 <script>
 (() => {
-  const temPendente   = {{ (tem_pendente or False) | tojson }};
-  const novaUrl       = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
-  const prazoFechado  = {{ (prazo_fechado or False) | tojson }};
-  const jaEnviouAno   = {{ (ja_enviou_no_ano or False) | tojson }};
+  const temPendente  = {{ (tem_pendente or False) | tojson }};
+  const novaUrl      = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
+  const prazoFechado = {{ (prazo_fechado or False) | tojson }};
 
-  const btnNova   = document.getElementById('btn-nova-declaracao');
+  const btnNova    = document.getElementById('btn-nova-declaracao');
 
-  // modal "já enviou (pendente)"
-  const modalPend = document.getElementById('modal-bloqueio');
-  const fecharPend= document.getElementById('fechar-bloqueio');
+  // modal pendente
+  const modalPend  = document.getElementById('modal-bloqueio');
+  const fecharPend = document.getElementById('fechar-bloqueio');
   function abrirPend(){ modalPend?.classList.add('show'); modalPend?.setAttribute('aria-hidden','false'); }
   function fecharPendFn(){ modalPend?.classList.remove('show'); modalPend?.setAttribute('aria-hidden','true'); }
   fecharPend?.addEventListener('click', fecharPendFn);
   modalPend?.addEventListener('click', (e) => { if (e.target === modalPend) fecharPendFn(); });
 
-  // >>> NOVO: modal "prazo fechado"
-  const modalPrazo = document.getElementById('modal-prazo-fechado');
-  const fecharPrazo= document.getElementById('fechar-prazo-fechado');
+  // modal prazo
+  const modalPrazo  = document.getElementById('modal-prazo-fechado');
+  const fecharPrazo = document.getElementById('fechar-prazo-fechado');
   function abrirPrazo(){ modalPrazo?.classList.add('show'); modalPrazo?.setAttribute('aria-hidden','false'); }
   function fecharPrazoFn(){ modalPrazo?.classList.remove('show'); modalPrazo?.setAttribute('aria-hidden','true'); }
   fecharPrazo?.addEventListener('click', fecharPrazoFn);
   modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) fecharPrazoFn(); });
 
   btnNova?.addEventListener('click', (e) => {
+    // trava totalmente a propagação pra evitar qualquer outro handler navegando
     e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
 
-    // 1) Prazo fechado e usuário AINDA não enviou nada no ano -> bloqueia com modal de prazo
-    if (prazoFechado && !jaEnviouAno) {
+    // 1) PRAZO FECHADO => SEMPRE bloqueia e mostra modal
+    if (prazoFechado) {
       abrirPrazo();
-      return;
+      return false;
     }
 
-    // 2) Já enviou e está pendente -> mostra modal "aguardando análise"
+    // 2) Já enviou e está pendente => bloqueia nova com modal
     if (temPendente) {
       abrirPend();
-      return;
+      return false;
     }
 
     // 3) Fluxo normal
     if (novaUrl && novaUrl !== '#') {
       window.location.href = novaUrl;
     }
-  });
+    return false;
+  }, true); // <— captura primeiro, antes de qualquer outro listener
 })();
 </script>
 
