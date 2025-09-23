@@ -1874,6 +1874,7 @@ def arquivo(decl_id):
 @login_required
 @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
 def recebimento_export():
+    from sqlalchemy.orm import selectinload  # p/ evitar N+1 no len(d.vinculos)
 
     def fmt_dt(dt):
         return dt.strftime("%d/%m/%Y %H:%M") if dt else ""
@@ -1886,22 +1887,13 @@ def recebimento_export():
 
     # mapeamentos legíveis
     TIPO_PT = {
-        "positiva": "Positiva (com vínculo)", "negativa": "Negativa (sem vínculo)"}
-    STATUS_PT = {"pendente": "Pendente",
-                 "validado": "Validado", "inconforme": "Inconforme"}
+        "positiva": "Positiva (com vínculo)",
+        "negativa": "Negativa (sem vínculo)"
+    }
+    STATUS_PT = {"pendente": "Pendente", "validado": "Validado", "inconforme": "Inconforme"}
     MEIO_PT = {"digital": "Digital", "presencial": "Presencial"}
-    EMPREG_TIPO_PT = {
-        "publico": "Público",
-        "privado": "Privado",
-        "cooperativa": "Cooperativa",
-        "profissional_liberal": "Profissional liberal",
-    }
-    NATUREZA_PT = {
-        "efetivo": "Efetivo",
-        "contratado": "Contratado",
-        "prestacao_servicos": "Prestação de serviços",
-        "profissional_liberal": "Profissional liberal",
-    }
+    EMPREG_TIPO_PT = {"publico": "Público", "privado": "Privado", "cooperativa": "Cooperativa", "profissional_liberal": "Profissional liberal"}
+    NATUREZA_PT = {"efetivo": "Efetivo", "contratado": "Contratado", "prestacao_servicos": "Prestação de serviços", "profissional_liberal": "Profissional liberal"}
     JORNADA_PT = {"escala": "Escala", "expediente": "Expediente"}
 
     def label(mapper, value):
@@ -1914,16 +1906,16 @@ def recebimento_export():
     q = (request.args.get("q") or "").strip()
     obm_id = request.args.get("obm_id", type=int)
 
-    # User: ajusta import se necessário
+    # apelidos de modelos
     D, M, PG, U = DeclaracaoAcumulo, Militar, PostoGrad, User
+    VE = VinculoExterno
 
-    # ---------------------------
-    # BASE: mesmas condições (ano/obm/status/q) + join em User
-    # ---------------------------
-    # tentar pegar User.nome; se o campo for 'name', troque abaixo
-    # <- ajuste caso seu modelo seja diferente
+    # coluna nome do usuário que recebeu
     user_name_col = functions.coalesce(U.nome)
 
+    # ---------------------------
+    # BASE (filtros comuns)
+    # ---------------------------
     base_qry = (
         db.session.query(
             D,
@@ -1943,8 +1935,10 @@ def recebimento_export():
             MilitarObmFuncao.obm_id == obm_id,
             MilitarObmFuncao.data_fim.is_(None),
         )))
+
     if status in {"pendente", "validado", "inconforme"}:
         base_qry = base_qry.filter(D.status == status)
+
     if q:
         ilike = f"%{q}%"
         base_qry = base_qry.filter(or_(
@@ -1954,9 +1948,14 @@ def recebimento_export():
         ))
 
     # ---------------------------
-    # 1) RESUMO
+    # 1) RESUMO (com selectinload p/ evitar N+1 no len(vinculos))
     # ---------------------------
-    resumo_rows = base_qry.order_by(D.data_entrega.desc(), D.id.desc()).all()
+    resumo_rows = (
+        base_qry
+        .options(selectinload(D.vinculos))  # carrega todos vínculos das declarações em 1 SELECT
+        .order_by(D.data_entrega.desc(), D.id.desc())
+        .all()
+    )
 
     wb = Workbook()
     ws_resumo = wb.active
@@ -1965,7 +1964,6 @@ def recebimento_export():
         "Ano", "Status", "Tipo", "Meio", "Data de entrega",
         "Recebido por (nome)", "Recebido em",
         "Militar (nome completo)", "Matrícula", "Posto/Grad.", "Qtd vínculos", "Observações",
-        # << NOVO
         "Arquivo modelo (URL/caminho)", "Arquivo órgão (URL/caminho)"
     ])
 
@@ -1981,16 +1979,15 @@ def recebimento_export():
             m.nome_completo,
             m.matricula,
             pg_sigla or "",
-            len(d.vinculos),
+            len(d.vinculos),  # NÃO vai gerar N+1 graças ao selectinload
             d.observacoes or "",
-            d.arquivo_declaracao or "",          # modelo
-            getattr(d, "arquivo_declaracao_orgao", "") or "",  # órgão
+            d.arquivo_declaracao or "",
+            getattr(d, "arquivo_declaracao_orgao", "") or "",
         ])
 
     # ---------------------------
-    # 2) VÍNCULOS das POSITIVAS (uma linha por vínculo)
+    # 2) VÍNCULOS das POSITIVAS (sem session.get no loop)
     # ---------------------------
-    VE = VinculoExterno
     vinc_qry = (
         db.session.query(
             D.id.label("decl_id"),
@@ -2001,6 +1998,8 @@ def recebimento_export():
             VE.natureza_vinculo, VE.cargo_funcao, VE.jornada_trabalho,
             VE.carga_horaria_semanal, VE.horario_inicio, VE.horario_fim,
             VE.data_inicio,
+            D.arquivo_declaracao,                 # << já vem na mesma linha
+            D.arquivo_declaracao_orgao,           # << idem
         )
         .join(M, M.id == D.militar_id)
         .outerjoin(PG, PG.id == M.posto_grad_id)
@@ -2015,8 +2014,10 @@ def recebimento_export():
             MilitarObmFuncao.obm_id == obm_id,
             MilitarObmFuncao.data_fim.is_(None),
         )))
+
     if status in {"pendente", "validado", "inconforme"}:
         vinc_qry = vinc_qry.filter(D.status == status)
+
     if q:
         ilike = f"%{q}%"
         vinc_qry = vinc_qry.filter(or_(
@@ -2061,12 +2062,12 @@ def recebimento_export():
             fmt_t(r.horario_inicio),
             fmt_t(r.horario_fim),
             fmt_d(r.data_inicio),
-            (db.session.get(DeclaracaoAcumulo, r.decl_id).arquivo_declaracao or ""),
-            (db.session.get(DeclaracaoAcumulo, r.decl_id).arquivo_declaracao_orgao or ""),
+            r.arquivo_declaracao or "",
+            (r.arquivo_declaracao_orgao or ""),
         ])
 
     # ---------------------------
-    # 3) DECLARAÇÕES NEGATIVAS (uma linha por declaração)
+    # 3) DECLARAÇÕES NEGATIVAS
     # ---------------------------
     neg_qry = (
         db.session.query(
@@ -2088,8 +2089,10 @@ def recebimento_export():
             MilitarObmFuncao.obm_id == obm_id,
             MilitarObmFuncao.data_fim.is_(None),
         )))
+
     if status in {"pendente", "validado", "inconforme"}:
         neg_qry = neg_qry.filter(D.status == status)
+
     if q:
         ilike = f"%{q}%"
         neg_qry = neg_qry.filter(or_(
@@ -2125,6 +2128,69 @@ def recebimento_export():
         ])
 
     # ---------------------------
+    # 4) NÃO ENVIARAM  (AGORA FORA DO LOOP, roda 1x só)
+    # ---------------------------
+    falt_qry = (
+        db.session.query(
+            M.id.label("militar_id"),
+            M.nome_completo,
+            M.matricula,
+            PG.sigla.label("pg_sigla"),
+        )
+        .outerjoin(PG, PG.id == M.posto_grad_id)
+        .filter(~exists().where(and_(
+            DeclaracaoAcumulo.militar_id == M.id,
+            DeclaracaoAcumulo.ano_referencia == ano
+        )))
+    )
+
+    if obm_id:
+        falt_qry = falt_qry.filter(exists().where(and_(
+            MilitarObmFuncao.militar_id == M.id,
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None),
+        )))
+
+    if q:
+        ilike = f"%{q}%"
+        falt_qry = falt_qry.filter(or_(
+            M.nome_completo.ilike(ilike),
+            M.matricula.ilike(ilike),
+            PG.sigla.ilike(ilike),
+        ))
+
+    faltantes = falt_qry.order_by(M.nome_completo.asc()).all()
+
+    # OBMs ativas em lote
+    falt_ids = [r.militar_id for r in faltantes]
+    obm_map = {}
+    if falt_ids:
+        MOF, O = MilitarObmFuncao, Obm  # ajuste se nomes forem outros
+        obm_rows = (
+            db.session.query(MOF.militar_id, O.sigla)
+            .join(O, O.id == MOF.obm_id)
+            .filter(
+                MOF.militar_id.in_(falt_ids),
+                MOF.data_fim.is_(None),
+                *( [MOF.obm_id == obm_id] if obm_id else [] )
+            )
+            .order_by(O.sigla.asc())
+            .all()
+        )
+        for mid, sigla in obm_rows:
+            obm_map.setdefault(mid, []).append(sigla)
+
+    ws_falt = wb.create_sheet(f"Não enviados {ano}")
+    ws_falt.append(["Militar (nome completo)", "Matrícula", "Posto/Grad.", "OBM(s)"])
+    for r in faltantes:
+        ws_falt.append([
+            r.nome_completo,
+            r.matricula,
+            r.pg_sigla or "",
+            ", ".join(obm_map.get(r.militar_id, [])),
+        ])
+
+    # ---------------------------
     # Retorno
     # ---------------------------
     bio = BytesIO()
@@ -2133,7 +2199,7 @@ def recebimento_export():
 
     bstatus = status if status != 'todos' else 'todos'
     suffix_obm = f"_obm{obm_id}" if obm_id else ""
-    fname = f"declaracoes_{ano}_{bstatus}{suffix_obm}_com_vinculos_e_negativas.xlsx"
+    fname = f"declaracoes_{ano}_{bstatus}{suffix_obm}_com_vinculos_negativas_e_naoenviados.xlsx"
 
     resp = send_file(
         bio,
