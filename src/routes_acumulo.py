@@ -1874,8 +1874,6 @@ def arquivo(decl_id):
 @login_required
 @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
 def recebimento_export():
-    from sqlalchemy.orm import selectinload  # p/ evitar N+1 no len(d.vinculos)
-
     def fmt_dt(dt):
         return dt.strftime("%d/%m/%Y %H:%M") if dt else ""
 
