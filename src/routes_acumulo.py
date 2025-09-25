@@ -2593,3 +2593,5 @@ def novo_generico(pessoa_tipo, pessoa_id):
         pass
 
     return redirect(url_for("acumulo.novo", militar_id=m.id))
+
+#bora porra!
