@@ -1158,3 +1158,35 @@ class TarefaAtualizacaoCadete(database.Model):
         database.UniqueConstraint(
             'cadete_user_id', 'militar_id', name='uq_cadete_militar'),
     )
+
+
+class NovoPaf(database.Model):
+    __tablename__ = "novo_paf"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    ano_referencia = database.Column(database.Integer, nullable=False)
+
+    opcao_1 = database.Column(database.String(50))
+    opcao_2 = database.Column(database.String(50))
+    opcao_3 = database.Column(database.String(50))
+
+    recebido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    recebido_em = database.Column(
+        database.DateTime(timezone=True), nullable=True)
+
+    observacoes = database.Column(database.Text)
+
+    data_entrega = database.Column(database.DateTime(timezone=True),
+                                   nullable=False, server_default=func.now())
+
+    created_at = database.Column(database.DateTime(timezone=True),
+                                 nullable=False, server_default=func.now())
+    updated_at = database.Column(database.DateTime(timezone=True),
+                                 onupdate=func.now())
+
+    militar = database.relationship('Militar', backref='novo_paf')
+    recebido_por = database.relationship('User')
+    

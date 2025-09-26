@@ -2594,4 +2594,15 @@ def novo_generico(pessoa_tipo, pessoa_id):
 
     return redirect(url_for("acumulo.novo", militar_id=m.id))
 
-#bora porra!
+
+@bp_acumulo.route("/novo-paf", methods=["GET", "POST"])
+@login_required
+def novo_paf(militar_id):
+    if current_user.funcao_user_id == 12:
+        militar = get_militar_por_user(current_user)
+        if not militar:
+            flash("Não foi possível localizar seus dados de militar.", "danger")
+            return redirect(url_for("home"))
+        militar_id = militar.id
+
+    ano = request.values.get("ano", type=int) or datetime.now().year
