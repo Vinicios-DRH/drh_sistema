@@ -4395,7 +4395,7 @@ def formulario_atualizacao_cadastral():
     return render_template('atualizacao/formulario_cadastro.html', form=form)
 
 
-@app.route("/login-atualizacao", methods=['GET', 'POST'])
+@app.route("/login-militar", methods=['GET', 'POST'])
 def login_atualizacao():
     if current_user.is_authenticated:
         militar = get_militar_por_user(current_user)
