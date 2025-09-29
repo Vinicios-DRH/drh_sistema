@@ -1160,33 +1160,45 @@ class TarefaAtualizacaoCadete(database.Model):
     )
 
 
+class PafCapacidade(database.Model):
+    __tablename__ = "paf_capacidade"
+    id = database.Column(database.Integer, primary_key=True)
+    ano = database.Column(database.Integer, nullable=False)
+    mes = database.Column(database.SmallInteger, nullable=False)
+    limite = database.Column(database.Integer, nullable=False, default=0)
+    created_at = database.Column(database.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = database.Column(database.DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    __table_args__ = (database.UniqueConstraint('ano','mes', name='uq_pafcap_ano_mes'),)
+
+
 class NovoPaf(database.Model):
     __tablename__ = "novo_paf"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(
-        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
 
-    opcao_1 = database.Column(database.String(50))
-    opcao_2 = database.Column(database.String(50))
-    opcao_3 = database.Column(database.String(50))
+    opcao_1 = database.Column(database.SmallInteger, nullable=False)
+    opcao_2 = database.Column(database.SmallInteger, nullable=False)
+    opcao_3 = database.Column(database.SmallInteger, nullable=False)
 
-    recebido_por_user_id = database.Column(
-        database.Integer, database.ForeignKey('user.id'))
-    recebido_em = database.Column(
-        database.DateTime(timezone=True), nullable=True)
+    status = database.Column(database.String(32), nullable=False, server_default="enviado")  # rascunho/enviado/aprovado_chefe/reprovado_chefe/validado_drh/aguardando_drh
+    justificativa = database.Column(database.Text)
+
+    mes_definido = database.Column(database.SmallInteger)  # setado pela DRH
+
+    recebido_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    recebido_em = database.Column(database.DateTime(timezone=True))
+
+    aprovado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    aprovado_em = database.Column(database.DateTime(timezone=True))
+    validado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    validado_em = database.Column(database.DateTime(timezone=True))
 
     observacoes = database.Column(database.Text)
 
-    data_entrega = database.Column(database.DateTime(timezone=True),
-                                   nullable=False, server_default=func.now())
+    data_entrega = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at   = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at   = database.Column(database.DateTime(timezone=True), onupdate=func.now())
 
-    created_at = database.Column(database.DateTime(timezone=True),
-                                 nullable=False, server_default=func.now())
-    updated_at = database.Column(database.DateTime(timezone=True),
-                                 onupdate=func.now())
-
-    militar = database.relationship('Militar', backref='novo_paf')
-    recebido_por = database.relationship('User')
-    
+    militar = database.relationship('Militar', backref='novo_pafs')

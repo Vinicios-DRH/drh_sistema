@@ -120,6 +120,8 @@ def br_currency(value):
 # Importa rotas depois
 from src import routes
 from src.routes_acumulo import bp_acumulo
+from src.routes_paf import bp_paf
 app.register_blueprint(bp_acumulo)
+app.register_blueprint(bp_paf)
 # Torna o supabase acessível de fora
 app.supabase = supabase

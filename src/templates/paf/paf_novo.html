@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9e1119;
+    --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
+    --ink-200:#e8eef6;
+  }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  .brand-header{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .glass-card{background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);}
+  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);}
+  .btn-outline-primary{color:var(--brand-red); border-color:var(--brand-red);}
+  .btn-outline-primary:hover{color:#fff; background:var(--brand-red);}
+  .small-muted{color:#94a3b8;}
+  .chip{display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .55rem; font-size:.78rem;
+    border-radius:999px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.06)}
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+  <div class="container-xxl">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <div>
+            <h1 class="h5 m-0">Solicitar PAF — {{ ano }}</h1>
+            <div class="small opacity-75">
+              {% if militar %}{{ militar.nome_completo }}{% else %}Usuário{% endif %}
+              {% if posto_grad_sigla|default('') %} · PG: {{ posto_grad_sigla }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-7">
+        <!-- Form -->
+        <form class="glass-card p-3 p-md-4" method="post" id="form-paf">
+          <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento</h2>
+
+          {# meses por extenso #}
+          {% set meses_full = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Primeira opção</label>
+              <select class="form-select mes" name="opcao_1" required>
+                <option value="">Selecione...</option>
+                {% for m in range(1,13) %}
+                  <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
+                    {{ meses_full[m-1] }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Segunda opção</label>
+              <select class="form-select mes" name="opcao_2" required>
+                <option value="">Selecione...</option>
+                {% for m in range(1,13) %}
+                  <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
+                    {{ meses_full[m-1] }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Terceira opção</label>
+              <select class="form-select mes" name="opcao_3" required>
+                <option value="">Selecione...</option>
+                {% for m in range(1,13) %}
+                  <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
+                    {{ meses_full[m-1] }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Observações (opcional)</label>
+              <textarea class="form-control" rows="3" name="observacoes">{{ observacoes|default('') }}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-3 small text-danger d-none" id="msg-duplicado">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            As três opções devem ser <strong>diferentes</strong>.
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-4">
+            <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-secondary">Cancelar</a>
+            <button class="btn btn-primary" type="submit" id="btn-submit">
+              <span class="me-1"><i class="bi bi-send"></i></span> Enviar para aprovação
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <!-- Ajuda / Regras -->
+        <div class="glass-card p-3 p-md-4">
+          <h2 class="h6 m-0 mb-2"><i class="bi bi-info-circle me-1"></i> Como funciona</h2>
+          <ul class="small-muted mb-2 ps-3">
+            <li>Você escolhe três meses distintos para pagamento das férias.</li>
+            <li>Se o 1º mês estiver cheio, tenta-se o 2º; se também estiver, usa-se o 3º.</li>
+            <li>Se todos estiverem cheios, a DRH definirá o mês.</li>
+          </ul>
+          <div class="small-muted">Resumo escolhido:</div>
+          <div class="mt-2" id="resumo-opcoes">
+            <span class="chip">1ª — <span class="mes1">—</span></span>
+            <span class="chip">2ª — <span class="mes2">—</span></span>
+            <span class="chip">3ª — <span class="mes3">—</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+(() => {
+  // nomes completos
+  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const selects = Array.from(document.querySelectorAll('select.mes'));
+  const msgDup  = document.getElementById('msg-duplicado');
+  const btn     = document.getElementById('btn-submit');
+
+  const lbl1 = document.querySelector('#resumo-opcoes .mes1');
+  const lbl2 = document.querySelector('#resumo-opcoes .mes2');
+  const lbl3 = document.querySelector('#resumo-opcoes .mes3');
+
+  function updateResumo(){
+    const [v1,v2,v3] = selects.map(s => parseInt(s.value||0));
+    lbl1.textContent = v1 ? meses[v1-1] : "—";
+    lbl2.textContent = v2 ? meses[v2-1] : "—";
+    lbl3.textContent = v3 ? meses[v3-1] : "—";
+  }
+
+  function lockDuplicates(){
+    // desabilita nos outros selects os meses já escolhidos
+    const chosen = new Set(selects.map(s => s.value).filter(Boolean));
+    selects.forEach(sel => {
+      Array.from(sel.options).forEach(opt => {
+        if (!opt.value) return;
+        const isMine = sel.value === opt.value;
+        opt.disabled = !isMine && chosen.has(opt.value);
+      });
+    });
+  }
+
+  function validateDistinct(){
+    const vals = selects.map(s => s.value).filter(Boolean);
+    const ok = new Set(vals).size === vals.length;
+    msgDup?.classList.toggle('d-none', ok);
+    btn.disabled = !ok || vals.length < 3;
+    return ok;
+  }
+
+  function onChange(){
+    lockDuplicates();
+    updateResumo();
+    validateDistinct();
+  }
+
+  selects.forEach(s => s.addEventListener('change', onChange));
+  onChange(); // init
+
+  // UX envio
+  const form = document.getElementById('form-paf');
+  form?.addEventListener('submit', (e) => {
+    if (!validateDistinct()){
+      e.preventDefault();
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+  });
+})();
+</script>
+{% endblock %}
