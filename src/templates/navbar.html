@@ -69,11 +69,31 @@
 
                     {# --- Recebimento (funcao_user_id em {1,2,5,6,7}) --- #}
                     {% if pode_recebimento %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('acumulo.recebimento') }}">
-                            <i class="fas fa-file-signature me-2"></i> Declarações — Recebimento
+                    
+                    <!-- <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i>Validações
                         </a>
-                    </li>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">Declarações — Recebimento
+                                </a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
+                        </ul>
+                    </li> -->
+                    {% endif %}
+
+                    {% if user_funcao == 12 %}
+                    <!-- <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Plano Anual de Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('paf.novo') }}">Solicitação de meses para pagamento</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('paf.minhas') }}">Minhas Solicitações</a></li>
+                        </ul>
+                    </li> -->
                     {% endif %}
 
                     {# Se o usuário é da OBM DRH ou SUPER USER #}
@@ -244,13 +264,29 @@
 
                     {# Férias (perfis) #}
                     {% if user_funcao in [1, 2, 7] %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('exibir_ferias_chefe') }}">Férias</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools me-2"></i> Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('exibir_ferias_chefe') }}">Férias</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a>
+                            </li>
+                        </ul>
                     </li>
                     {% endif %}
                     {% if user_funcao == 6 %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools me-2"></i> Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                            </li>
+                        </ul>
                     </li>
                     {% endif %}
 

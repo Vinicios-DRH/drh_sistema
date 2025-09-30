@@ -131,6 +131,30 @@
     }
   </style>
 
+<style>
+  /* pilha de alerts acima da navbar */
+  #flash-stack{
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    z-index: 1200; /* maior que .navbar.fixed-top (1030) e offcanvas (1045) */
+    pointer-events: none; /* não bloquear cliques na página */
+  }
+  #flash-stack .alert{
+    width: min(700px, 92vw);
+    box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    pointer-events: auto; /* permitir clique no X */
+    animation: flashDrop .24s ease-out;
+  }
+  @keyframes flashDrop{
+    from{ opacity: 0; transform: translateY(-10px) }
+    to  { opacity: 1; transform: translateY(0) }
+  }
+</style>
 
   {% block head %}
   {% endblock %}
@@ -143,17 +167,17 @@
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-  {% for category, message in messages %}
-  <div class="d-flex justify-content-center">
-    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm w-100" style="max-width: 700px;"
-      role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-    </div>
-  </div>
-  {% endfor %}
-  {% endif %}
+      <div id="flash-stack">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
   {% endwith %}
+
 
   {% block body %}
   {% endblock %}
