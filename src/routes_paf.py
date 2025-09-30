@@ -113,6 +113,33 @@ def _eh_chefe_do(militar_id: int) -> bool:
     ).scalar())
 
 
+def _capacidade_disponivel(ano: int, mes: int) -> tuple[int, int, int]:
+    """retorna (limite, ocupadas, disponíveis)"""
+    cap = database.session.query(PafCapacidade.limite).filter_by(
+        ano=ano, mes=mes).scalar() or 0
+    ocup = database.session.query(func.count(NovoPaf.id)).filter(
+        NovoPaf.ano_referencia == ano,
+        NovoPaf.mes_definido == mes,
+        NovoPaf.status.in_(["validado_drh"])
+    ).scalar() or 0
+    return cap, ocup, max(cap - ocup, 0)
+
+
+def _alocar_automaticamente(paf: NovoPaf) -> bool:
+    """tenta alocar no 1º mês disponível dentre as 3 opções; retorna True se alocou"""
+    for mes in [paf.opcao_1, paf.opcao_2, paf.opcao_3]:
+        cap, ocup, disp = _capacidade_disponivel(paf.ano_referencia, mes)
+        if cap == 0:
+            continue  # sem configuração ou zero de limite => considere indisponível
+        if disp > 0:
+            paf.mes_definido = mes
+            paf.status = "validado_drh"
+            paf.validado_por_user_id = current_user.id
+            paf.validado_em = func.now()
+            return True
+    return False
+
+
 @bp_paf.route("/novo", methods=["GET", "POST"])
 @login_required
 def novo():
@@ -212,33 +239,6 @@ def aprovar(paf_id):
     database.session.commit()
     flash("Avaliação registrada.", "success")
     return redirect(request.referrer or url_for("paf.minhas"))
-
-
-def _capacidade_disponivel(ano: int, mes: int) -> tuple[int, int, int]:
-    """retorna (limite, ocupadas, disponíveis)"""
-    cap = database.session.query(PafCapacidade.limite).filter_by(
-        ano=ano, mes=mes).scalar() or 0
-    ocup = database.session.query(func.count(NovoPaf.id)).filter(
-        NovoPaf.ano_referencia == ano,
-        NovoPaf.mes_definido == mes,
-        NovoPaf.status.in_(["validado_drh"])
-    ).scalar() or 0
-    return cap, ocup, max(cap - ocup, 0)
-
-
-def _alocar_automaticamente(paf: NovoPaf) -> bool:
-    """tenta alocar no 1º mês disponível dentre as 3 opções; retorna True se alocou"""
-    for mes in [paf.opcao_1, paf.opcao_2, paf.opcao_3]:
-        cap, ocup, disp = _capacidade_disponivel(paf.ano_referencia, mes)
-        if cap == 0:
-            continue  # sem configuração ou zero de limite => considere indisponível
-        if disp > 0:
-            paf.mes_definido = mes
-            paf.status = "validado_drh"
-            paf.validado_por_user_id = current_user.id
-            paf.validado_em = func.now()
-            return True
-    return False
 
 
 @bp_paf.route("/validar/<int:paf_id>", methods=["GET", "POST"])
@@ -535,3 +535,9 @@ def detalhe(paf_id):
         "paf/paf_detalhe.html",
         paf=paf, militar=militar, pg_sigla=pg_sigla, obm_sigla=obm_sigla
     )
+
+
+@bp_paf.route("/novo-periodo", methods=["GET", "POST"])
+@login_required
+def novo_periodo():
+    pass
