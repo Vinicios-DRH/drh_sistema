@@ -1,7 +1,8 @@
 from datetime import datetime
+from encodings import aliases
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from sqlalchemy import exists, func, and_, literal, or_
+from sqlalchemy import case, exists, func, and_, literal, or_, select
 from src import database
 from src.formatar_cpf import get_militar_por_user
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PostoGrad, User
@@ -10,8 +11,43 @@ from zoneinfo import ZoneInfo
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
 
 
-def _ano_atual_manaus():
-    return datetime.now(ZoneInfo("America/Manaus")).year
+def _ocupacao_nome() -> str:
+    # tenta via relação user_funcao.ocupacao (ou nome); fallback para campos soltos
+    try:
+        fu = getattr(current_user, "user_funcao", None) or getattr(current_user, "funcao_user", None)
+        if isinstance(fu, (list, tuple)):
+            for f in fu:
+                oc = getattr(f, "ocupacao", None) or getattr(f, "nome", None)
+                if oc:
+                    return str(oc).upper()
+        elif fu is not None:
+            oc = getattr(fu, "ocupacao", None) or getattr(fu, "nome", None)
+            if oc:
+                return str(oc).upper()
+    except Exception:
+        pass
+    # fallbacks possíveis no próprio user
+    val = (getattr(current_user, "ocupacao", None)
+           or getattr(current_user, "perfil", None)
+           or "").upper()
+    return val
+
+
+def _is_super_user() -> bool:
+    return "SUPER" in _ocupacao_nome()
+
+
+def _user_obm_ids() -> set[int]:
+    ids = {getattr(current_user, "obm_id_1", None), getattr(current_user, "obm_id_2", None)}
+    ids.discard(None)
+    # se existir relação many-to-many, agrega
+    obms_rel = getattr(current_user, "obms", None)
+    if obms_rel:
+        for o in obms_rel:
+            oid = getattr(o, "id", None)
+            if oid:
+                ids.add(oid)
+    return ids
 
 
 def _funcao_nome():
@@ -20,13 +56,36 @@ def _funcao_nome():
             getattr(current_user, "perfil", "") or "").upper()
 
 
-def _is_drh_like():
-    # Mesmos papéis usados nas declarações
-    return _funcao_nome() in {"DRH", "DIRETOR DRH", "DRH CHEFE", "CHEFE DRH", "SUPER USER"}
+def _is_drh_like() -> bool:
+    # SUPER já é DRH-like
+    if _is_super_user():
+        return True
+    up = _ocupacao_nome()
+    return any(tag in up for tag in ("DRH", "DIRETOR DRH", "CHEFE DRH"))
 
 
-def _is_super_user():
-    return _funcao_nome() == "SUPER USER"
+def _obm_parent_col():
+    # ajuste os possíveis nomes de coluna hierárquica
+    for name in ("pai_id", "obm_pai_id", "superior_id", "id_pai"):
+        if hasattr(Obm, name):
+            return name
+    return None
+
+
+def _obm_subtree_ids(root_id: int) -> list[int]:
+    parent_col = _obm_parent_col()
+    if not parent_col:
+        return [root_id]
+    # WITH RECURSIVE
+    tree = select(Obm.id).where(Obm.id == root_id).cte("obm_tree", recursive=True)
+    O2 = aliases(Obm)
+    tree = tree.union_all(select(O2.id).where(getattr(O2, parent_col) == tree.c.id))
+    ids = [r[0] for r in database.session.execute(select(tree.c.id)).all()]
+    return ids or [root_id]
+
+
+def _ano_atual_manaus():
+    return datetime.now(ZoneInfo("America/Manaus")).year
 
 
 def _obms_do_usuario():
@@ -96,11 +155,15 @@ def novo():
             flash("Você já enviou uma solicitação para este ano.", "warning")
             return redirect(url_for("paf.minhas", ano=ano))
 
+        agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
         paf = NovoPaf(
             militar_id=militar.id,
             ano_referencia=ano,
             opcao_1=o1, opcao_2=o2, opcao_3=o3,
-            status="enviado"
+            status="pendente",
+            updated_at=agora_manaus,         # <— evita NULL no INSERT
+            created_at=agora_manaus,
+            data_entrega=agora_manaus
         )
         database.session.add(paf)
         database.session.commit()
@@ -235,13 +298,37 @@ def capacidade():
         return redirect(url_for("paf.minhas"))
 
     ano = request.values.get("ano", type=int) or _ano_atual_manaus()
+
+    # ---- efetivo total da corporação (militares com vínculo ativo em alguma OBM)
+    MOF = MilitarObmFuncao
+    efetivo_total = (database.session.query(func.count(func.distinct(MOF.militar_id)))
+                     .filter(MOF.data_fim.is_(None))
+                     .scalar() or 0)
+
+    # Ação: distribuir automaticamente 1/12
+    if request.method == "POST" and (request.form.get("acao") == "auto"):
+        base = efetivo_total // 12
+        resto = efetivo_total % 12
+        for m in range(1, 13):
+            sugestao = base + (1 if m <= resto else 0)
+            row = (database.session.query(PafCapacidade)
+                   .filter_by(ano=ano, mes=m).first())
+            if not row:
+                row = PafCapacidade(ano=ano, mes=m, limite=max(sugestao, 0))
+                database.session.add(row)
+            else:
+                row.limite = max(sugestao, 0)
+        database.session.commit()
+        flash("Capacidade distribuída automaticamente (1/12 do efetivo).", "success")
+        return redirect(url_for("paf.capacidade", ano=ano))
+
+    # Ação: salvar edição manual
     if request.method == "POST":
         for m in range(1, 13):
             lim = request.form.get(f"limite_{m}", type=int)
             if lim is None:
                 continue
-            row = database.session.query(
-                PafCapacidade).filter_by(ano=ano, mes=m).first()
+            row = database.session.query(PafCapacidade).filter_by(ano=ano, mes=m).first()
             if not row:
                 row = PafCapacidade(ano=ano, mes=m, limite=max(lim, 0))
                 database.session.add(row)
@@ -251,78 +338,200 @@ def capacidade():
         flash("Capacidade salva.", "success")
         return redirect(url_for("paf.capacidade", ano=ano))
 
+    # ---- carregar dados para exibir
     rows = (database.session.query(PafCapacidade)
             .filter(PafCapacidade.ano == ano).all())
     limite_map = {r.mes: r.limite for r in rows}
+
     usados = (database.session.query(NovoPaf.mes_definido, func.count(NovoPaf.id))
-              .filter(NovoPaf.ano_referencia == ano, NovoPaf.status == 'validado_drh', NovoPaf.mes_definido.isnot(None))
+              .filter(NovoPaf.ano_referencia == ano,
+                      NovoPaf.status == 'validado_drh',
+                      NovoPaf.mes_definido.isnot(None))
               .group_by(NovoPaf.mes_definido).all())
     usado_map = {m: c for m, c in usados}
-    return render_template("paf/paf_capacidade.html", ano=ano, limite_map=limite_map, usado_map=usado_map)
+
+    soma_limites = sum(limite_map.values()) if limite_map else 0
+    diferenca = max(efetivo_total - soma_limites, 0)
+
+    return render_template(
+        "paf/paf_capacidade.html",
+        ano=ano,
+        limite_map=limite_map,
+        usado_map=usado_map,
+        efetivo_total=efetivo_total,
+        soma_limites=soma_limites,
+        diferenca=diferenca,
+    )
 
 
 @bp_paf.route("/recebimento", methods=["GET"])
 @login_required
 def recebimento():
-    ano = request.args.get("ano", type=int) or _ano_atual_manaus()
-    # pendente, aprovado_chefe, reprovado_chefe, aguardando_drh, validado_drh, todos
-    status = (request.args.get("status") or "todos").lower()
-    q = (request.args.get("q") or "").strip()
-    obm_id = request.args.get("obm_id", type=int)
+    ano     = request.args.get("ano", type=int) or _ano_atual_manaus()
+    status  = (request.args.get("status") or "todos").lower()  # pendente, aprovado_chefe, reprovado_chefe, aguardando_drh, validado_drh, nao_enviou, todos
+    q       = (request.args.get("q") or "").strip()
+    obm_id  = request.args.get("obm_id", type=int)
 
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
 
-    is_drh_like = _is_drh_like()
-    is_super = _is_super_user()
-    user_obms = _obms_do_usuario()
+    IS_SUPER    = _is_super_user()
+    IS_DRH_LIKE = _is_drh_like()
+    USER_OBMS   = _user_obm_ids()
 
-    qry = (database.session.query(
-        D, M,
-        PG.sigla.label("pg_sigla"),
-        O.sigla.label("obm_sigla"))
-        .join(M, M.id == D.militar_id)
-        .outerjoin(PG, PG.id == M.posto_grad_id)
+    # ---- SUBQUERY: último PAF do ano por militar ----
+    rn = func.row_number().over(
+        partition_by=D.militar_id,
+        order_by=(D.updated_at.desc().nullslast(), D.id.desc())
+    ).label("rn")
+
+    ultimo_paf_sq = (
+        database.session.query(
+            D.militar_id.label("m_id"),
+            D.id.label("paf_id"),
+            D.status.label("paf_status"),
+            D.opcao_1, D.opcao_2, D.opcao_3,
+            D.mes_definido,
+            D.recebido_em, D.created_at, D.updated_at,
+            rn
+        )
+        .filter(D.ano_referencia == ano)
+        .subquery()
+    )
+
+    # ---- BASE: militares com vínculo ativo (escopo + filtros) ----
+    base_q = (
+        database.session.query(M.id.label("m_id"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
-        .join(O, O.id == MOF.obm_id)
-        .filter(D.ano_referencia == ano))
+    )
 
-    # Filtro por OBM escolhido no filtro
+    # Filtro por OBM selecionada (sempre por subárvore)
     if obm_id:
-        qry = qry.filter(MOF.obm_id == obm_id)
+        base_q = base_q.filter(MOF.obm_id.in_(_obm_subtree_ids(obm_id)))
 
-    # Escopo do usuário (chefia só vê as próprias OBMs; DRH/SUPER vê tudo)
-    if not is_drh_like:
-        if user_obms:
-            qry = qry.filter(MOF.obm_id.in_(user_obms))
+    # Escopo do usuário: Chefia/Diretor restringe às próprias OBMs; DRH-like e SUPER veem tudo
+    if not (IS_DRH_LIKE or IS_SUPER):
+        if USER_OBMS:
+            base_q = base_q.filter(MOF.obm_id.in_(USER_OBMS))
         else:
-            qry = qry.filter(literal(False))  # sem OBM vinculada → não vê nada
+            base_q = base_q.filter(literal(False))  # sem OBM vinculada → nada
 
     # Busca livre
     if q:
         ilike = f"%{q}%"
-        qry = qry.filter(or_(
-            M.nome_completo.ilike(ilike),
-            M.matricula.ilike(ilike),
-            PG.sigla.ilike(ilike),
-            O.sigla.ilike(ilike),
-        ))
+        base_q = (base_q.join(PG, PG.id == M.posto_grad_id, isouter=True)
+                        .join(O, O.id == MOF.obm_id)
+                        .filter(or_(M.nome_completo.ilike(ilike),
+                                    M.matricula.ilike(ilike),
+                                    PG.sigla.ilike(ilike),
+                                    O.sigla.ilike(ilike))))
+
+    base_cte = base_q.distinct().cte("base_militares")
+
+    # ---- KPIs (agregações) ----
+    kpi_row = (
+        database.session.query(
+            func.count().label("total_militares"),
+            func.sum(case((ultimo_paf_sq.c.paf_id.is_(None), 1), else_=0)).label("nao_enviaram"),
+            func.sum(case((ultimo_paf_sq.c.paf_status.in_(["pendente","enviado"]), 1), else_=0)).label("pendentes_chefe"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "aguardando_drh", 1), else_=0)).label("aguardando_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "validado_drh", 1), else_=0)).label("validados_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "reprovado_chefe", 1), else_=0)).label("reprovados"),
+        )
+        .select_from(base_cte)
+        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id,
+                                       ultimo_paf_sq.c.rn == 1))
+    ).one()
+
+    kpi = dict(
+        total       = int(kpi_row.total_militares or 0),
+        nao_enviaram= int(kpi_row.nao_enviaram or 0),
+        pendentes   = int(kpi_row.pendentes_chefe or 0),
+        aguardando  = int(kpi_row.aguardando_drh or 0),
+        validados   = int(kpi_row.validados_drh or 0),
+        reprovados  = int(kpi_row.reprovados or 0),
+    )
+
+    # ---- Linhas (1 por militar) ----
+    rows_q = (
+        database.session.query(
+            M,
+            PG.sigla.label("pg_sigla"),
+            O.sigla.label("obm_sigla"),
+            ultimo_paf_sq.c.paf_id,
+            ultimo_paf_sq.c.paf_status,
+            ultimo_paf_sq.c.opcao_1,
+            ultimo_paf_sq.c.opcao_2,
+            ultimo_paf_sq.c.opcao_3,
+            ultimo_paf_sq.c.mes_definido,
+            ultimo_paf_sq.c.recebido_em,
+            ultimo_paf_sq.c.created_at,
+            ultimo_paf_sq.c.updated_at,
+        )
+        .join(base_cte, base_cte.c.m_id == M.id)
+        .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
+        .join(O, O.id == MOF.obm_id)
+        .outerjoin(PG, PG.id == M.posto_grad_id)
+        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == M.id,
+                                       ultimo_paf_sq.c.rn == 1))
+    )
 
     # Filtro de status
-    if status != "todos":
-        qry = qry.filter(D.status == status)
+    if status == "nao_enviou":
+        rows_q = rows_q.filter(ultimo_paf_sq.c.paf_id.is_(None))
+    elif status == "pendente":
+        rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]))
+    elif status != "todos":
+        rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status == status)
 
-    rows = (qry
-            .order_by(D.created_at.desc(), M.nome_completo.asc(), D.id.desc())
-            .all())
+    rows = rows_q.order_by(M.nome_completo.asc()).all()
 
-    # Para o template decidir botões/ações
+    obms = database.session.query(Obm).order_by(Obm.sigla).all()
+
     return render_template(
         "paf/paf_recebimento.html",
-        rows=rows,
+        linhas=rows,
         ano=ano,
         q=q,
-        status=request.args.get("status", "todos").lower(),
-        obm_id=request.args.get("obm_id", type=int),
-        obms=database.session.query(Obm).order_by(Obm.sigla).all(),
-        is_drh=_is_drh_like(),
+        status=status,
+        obm_id=obm_id,
+        obms=obms,
+        is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,  # SUPER também vê botões de validação
+        kpi=kpi,
+    )
+
+
+@bp_paf.route("/detalhe/<int:paf_id>", methods=["GET"])
+@login_required
+def detalhe(paf_id):
+    paf = database.session.get(NovoPaf, paf_id)
+    if not paf:
+        flash("PAF não encontrado.", "danger")
+        return redirect(url_for("paf.minhas"))
+
+    # Permissão: DRH/SUPER, chefe do militar, ou o próprio militar
+    is_drh = _is_drh_like() or _is_super_user()
+    sou_dono = False
+    try:
+        meu_militar = get_militar_por_user(current_user)
+        sou_dono = bool(meu_militar and meu_militar.id == paf.militar_id)
+    except Exception:
+        pass
+    pode_ver = is_drh or sou_dono or _eh_chefe_do(paf.militar_id)
+    if not pode_ver:
+        flash("Você não tem permissão para ver este PAF.", "warning")
+        return redirect(url_for("paf.minhas"))
+
+    # Dados do militar/PG/OBM (atuais)
+    M, PG, MOF, O = Militar, PostoGrad, MilitarObmFuncao, Obm
+    m_row = (database.session.query(M, PG.sigla.label("pg_sigla"), O.sigla.label("obm_sigla"))
+             .outerjoin(PG, PG.id == M.posto_grad_id)
+             .outerjoin(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
+             .outerjoin(O, O.id == MOF.obm_id)
+             .filter(M.id == paf.militar_id)
+             .first())
+    militar, pg_sigla, obm_sigla = (m_row or (None, None, None))
+
+    return render_template(
+        "paf/paf_detalhe.html",
+        paf=paf, militar=militar, pg_sigla=pg_sigla, obm_sigla=obm_sigla
     )

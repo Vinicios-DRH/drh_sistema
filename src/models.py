@@ -5,7 +5,7 @@ from src import database, login_manager
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
-from sqlalchemy import func, CheckConstraint
+from sqlalchemy import func, CheckConstraint, text
 
 
 class PostoGrad(database.Model):
@@ -1171,6 +1171,8 @@ class PafCapacidade(database.Model):
     __table_args__ = (database.UniqueConstraint('ano','mes', name='uq_pafcap_ano_mes'),)
 
 
+MANAUS_NOW = text("timezone('America/Manaus', now())")
+
 class NovoPaf(database.Model):
     __tablename__ = "novo_paf"
 
@@ -1197,8 +1199,26 @@ class NovoPaf(database.Model):
 
     observacoes = database.Column(database.Text)
 
-    data_entrega = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
-    created_at   = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at   = database.Column(database.DateTime(timezone=True), onupdate=func.now())
+    data_entrega = database.Column(
+        database.DateTime(timezone=True),
+        nullable=False,
+        server_default=MANAUS_NOW
+    )
+    created_at = database.Column(
+        database.DateTime(timezone=True),
+        nullable=False,
+        server_default=MANAUS_NOW
+    )
+    updated_at = database.Column(
+        database.DateTime(timezone=True),
+        nullable=False,                          # mantém NOT NULL
+        server_default=MANAUS_NOW,               # evita NULL no INSERT
+        onupdate=MANAUS_NOW                      # atualiza no UPDATE
+    )
 
     militar = database.relationship('Militar', backref='novo_pafs')
+
+    __table_args__ = (
+        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_paf_militar_ano'),
+    )
+    

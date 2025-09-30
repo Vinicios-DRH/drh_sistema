@@ -3,73 +3,25 @@
 {% block head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  :root {
-    --brand-red: #B5121B;
-    --brand-red-600: #9e1119;
-    --glass-bg: rgba(255, 255, 255, .06);
-    --glass-brd: rgba(255, 255, 255, .16);
-    --ink-200: #e8eef6;
-    --ink-400: #c0cfda;
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9e1119;
+    --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
+    --ink-200:#e8eef6; --ink-400:#c0cfda;
   }
-
-  body {
-    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
-  }
-
-  .brand-header {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-    border: 1px solid var(--glass-brd);
-    border-radius: 16px;
-    color: var(--ink-200);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-  }
-
-  .glass-card {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-brd);
-    border-radius: 16px;
-    color: var(--ink-200);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-  }
-
-  .btn-primary {
-    background: var(--brand-red);
-    border-color: var(--brand-red);
-  }
-
-  .btn-primary:hover {
-    background: var(--brand-red-600);
-    border-color: var(--brand-red-600);
-  }
-
-  .small-muted {
-    color: #94a3b8;
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .15rem .6rem;
-    font-size: .78rem;
-    border-radius: 999px;
-    border: 1px solid var(--glass-brd);
-    background: rgba(255, 255, 255, .06)
-  }
-
-  .table thead th {
-    color: #cbd5e1;
-    font-weight: 600;
-    border-color: rgba(255, 255, 255, .14)
-  }
-
-  .table td,
-  .table th {
-    color: #e5eef9;
-    border-color: rgba(255, 255, 255, .08)
-  }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  .brand-header{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .glass-card{background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);}
+  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);}
+  .small-muted{color:#94a3b8;}
+  .chip{display:inline-flex; align-items:center; gap:.35rem; padding:.15rem .6rem; font-size:.78rem;
+    border-radius:999px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.06)}
+  .table thead th{color:#cbd5e1; font-weight:600; border-color:rgba(255,255,255,.14)}
+  .table td,.table th{color:#e5eef9; border-color:rgba(255,255,255,.08)}
 </style>
 {% endblock %}
 
@@ -77,39 +29,39 @@
 <section class="py-3 py-md-4">
   <div class="container-xxl">
 
-    <!-- Cabeçalho -->
+    <!-- Cabeçalho / Filtros -->
     <div class="brand-header p-3 p-md-4 mb-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
-            alt="CBMAM">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
           <div>
-            <h1 class="h5 m-0">Recebimento de PAF — {{ ano|default('—') }}</h1>
+            <h1 class="h5 m-0">Recebimento de PAF — {{ ano }}</h1>
             <div class="small opacity-75">Filtre por nome, matrícula, PG, OBM.</div>
           </div>
         </div>
         <form class="d-flex flex-wrap gap-2" method="get">
-          <input type="hidden" name="ano" value="{{ ano|default('') }}">
-          <input class="form-control form-control-sm" name="q" value="{{ q|default('') }}"
-            placeholder="Buscar nome, matrícula, PG" style="min-width:260px">
+          <input type="hidden" name="ano" value="{{ ano }}">
+          <input class="form-control form-control-sm" name="q" value="{{ q or '' }}"
+                 placeholder="Buscar nome, matrícula, PG" style="min-width:260px">
           <select class="form-select form-select-sm" name="status">
-            {% set status_val = status|default('todos') %}
+            {% set status_val = status or 'todos' %}
             {% set status_opts = {
-            'todos':'Todos',
-            'pendente':'Pendente',
-            'aprovado_chefe':'Aprovado chefia',
-            'reprovado_chefe':'Reprovado chefia',
-            'aguardando_drh':'Aguardando DRH',
-            'validado_drh':'Validado DRH'
+              'todos':'Todos',
+              'nao_enviou':'Não enviou',
+              'pendente':'Pendente',
+              'aprovado_chefe':'Aprovado chefia',
+              'reprovado_chefe':'Reprovado chefia',
+              'aguardando_drh':'Aguardando DRH',
+              'validado_drh':'Validado DRH'
             } %}
             {% for val,label in status_opts.items() %}
-            <option value="{{ val }}" {{ 'selected' if status_val==val else '' }}>{{ label }}</option>
+              <option value="{{ val }}" {{ 'selected' if status_val==val else '' }}>{{ label }}</option>
             {% endfor %}
           </select>
           <select class="form-select form-select-sm" name="obm_id">
             <option value="">Todas OBMs</option>
-            {% for o in obms|default([]) %}
-            <option value="{{ o.id }}" {{ 'selected' if obm_id|default(None)==o.id else '' }}>{{ o.sigla }}</option>
+            {% for o in obms %}
+              <option value="{{ o.id }}" {{ 'selected' if obm_id and o.id==obm_id else '' }}>{{ o.sigla }}</option>
             {% endfor %}
           </select>
           <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel me-1"></i> Filtrar</button>
@@ -117,82 +69,150 @@
       </div>
     </div>
 
-    {% set meses_full =
-    ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-    %}
+    {% if kpi %}
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Total militares</div>
+          <div class="h4 m-0">{{ kpi.total }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Não enviaram</div>
+          <div class="h4 m-0">{{ kpi.nao_enviaram }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Pendentes (chefia)</div>
+          <div class="h4 m-0">{{ kpi.pendentes }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Aguard. DRH</div>
+          <div class="h4 m-0">{{ kpi.aguardando }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Validados DRH</div>
+          <div class="h4 m-0">{{ kpi.validados }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Reprovados</div>
+          <div class="h4 m-0">{{ kpi.reprovados }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% set meses_full = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
     {% macro mes_nome(v) -%}
-    {%- if v is not none and (v|string)|int>=1 and (v|string)|int<=12 -%} {{ meses_full[(v|string)|int-1] }} {%- elif v
-      -%} {{ v }} {%- else -%} — {%- endif -%} {%- endmacro %} {% set badge_cls={ 'pendente' :'badge text-bg-warning
-      text-dark', 'aprovado_chefe' :'badge text-bg-info', 'reprovado_chefe' :'badge text-bg-danger', 'aguardando_drh'
-      :'badge text-bg-secondary', 'validado_drh' :'badge text-bg-success' } %} <!-- Tabela -->
-      <div class="glass-card p-3 p-md-4">
-        {% if rows and rows|length %}
+      {%- if v is not none and (v|string)|int>=1 and (v|string)|int<=12 -%}
+        {{ meses_full[(v|string)|int-1] }}
+      {%- else -%} — {%- endif -%}
+    {%- endmacro %}
+
+    {% set badge_cls = {
+      'nao_enviou':'badge text-bg-secondary',
+      'pendente':'badge text-bg-warning text-dark',
+      'enviado':'badge text-bg-warning text-dark',
+      'aprovado_chefe':'badge text-bg-info',
+      'reprovado_chefe':'badge text-bg-danger',
+      'aguardando_drh':'badge text-bg-secondary',
+      'validado_drh':'badge text-bg-success'
+    } %}
+
+    <!-- Tabela -->
+    <div class="glass-card p-3 p-md-4">
+      {% if linhas and linhas|length %}
         <div class="table-responsive">
           <table class="table align-middle">
             <thead>
               <tr>
                 <th style="width:90px">#</th>
                 <th>Militar</th>
-                <th style="width:170px">PG</th>
+                <th style="width:120px">Posto/Graduação</th>
+                <th style="width:140px">OBM</th>
                 <th>Opções</th>
-                <th style="width:170px">Status</th>
+                <th style="width:160px">Status</th>
                 <th style="width:200px">Recebido em</th>
                 <th style="width:220px">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {# rows vem como (D, M, pg_sigla) #}
-              {% for d, m, pg_sigla in rows %}
-              {% set st = (d.status or '')|lower %}
-              <tr>
-                <td class="text-muted">#{{ d.id }}</td>
-                <td>
-                  <div class="fw-semibold">{{ m.nome_completo }}</div>
-                  <div class="small-muted">{{ m.matricula }}</div>
-                </td>
-                <td>{{ pg_sigla or '—' }}</td>
-                <td>
-                  <span class="chip">{{ mes_nome(d.opcao_1) }}</span>
-                  <span class="chip">{{ mes_nome(d.opcao_2) }}</span>
-                  <span class="chip">{{ mes_nome(d.opcao_3) }}</span>
-                </td>
-                <td><span class="{{ badge_cls.get(st,'badge text-bg-secondary') }}">{{ d.status or '—' }}</span></td>
-                <td class="small">
-                  {{ d.recebido_em.strftime('%d/%m/%Y %H:%M') if d.recebido_em else (d.created_at.strftime('%d/%m/%Y
-                  %H:%M') if d.created_at else '—') }}
-                </td>
-                <td class="text-nowrap">
-                  {# Chefia/Diretor (não-DRH): Encaminhar/Reprovar; DRH: Validar #}
-                  {% if is_drh|default(False) %}
-                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('paf.validar', paf_id=d.id) }}">
-                    <i class="bi bi-clipboard-check me-1"></i> Validar
-                  </a>
-                  {% else %}
-                  <form method="post" action="{{ url_for('paf.aprovar', paf_id=d.id) }}" class="d-inline">
-                    <input type="hidden" name="acao" value="aprovar">
-                    <button class="btn btn-sm btn-success" type="submit" {{ 'disabled' if st in
-                      ['aprovado_chefe','aguardando_drh','validado_drh'] else '' }}>
-                      <i class="bi bi-send-check me-1"></i> Encaminhar DRH
-                    </button>
-                  </form>
-                  <form method="post" action="{{ url_for('paf.aprovar', paf_id=d.id) }}" class="d-inline ms-1">
-                    <input type="hidden" name="acao" value="reprovar">
-                    <button class="btn btn-sm btn-outline-danger" type="submit" {{ 'disabled' if st in
-                      ['reprovado_chefe','validado_drh'] else '' }}>
-                      <i class="bi bi-x-circle me-1"></i> Reprovar
-                    </button>
-                  </form>
-                  {% endif %}
-                </td>
-              </tr>
+              {# cada item vem como (M, pg_sigla, obm_sigla, paf_id, paf_status, opc1, opc2, opc3, mes_definido, recebido_em, created_at, updated_at) #}
+              {% for m, pg_sigla, obm_sigla, paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at in linhas %}
+                {% set st = (paf_status or 'nao_enviou')|lower %}
+                <tr>
+                  <td class="text-muted">{{ '#' ~ (paf_id if paf_id else '—') }}</td>
+                  <td>
+                    <div class="fw-semibold">{{ m.nome_completo }}</div>
+                    <div class="small-muted">{{ m.matricula }}</div>
+                  </td>
+                  <td>{{ pg_sigla or '—' }}</td>
+                  <td>{{ obm_sigla or '—' }}</td>
+                  <td>
+                    {% if paf_id %}
+                      <span class="chip">{{ mes_nome(opc1) }}</span>
+                      <span class="chip">{{ mes_nome(opc2) }}</span>
+                      <span class="chip">{{ mes_nome(opc3) }}</span>
+                    {% else %}
+                      <span class="small-muted">—</span>
+                    {% endif %}
+                  </td>
+                  {% set label_st = 'Não enviou' if st=='nao_enviou' else ('Pendente' if st in ['pendente','enviado'] else (paf_status or '—')) %}
+                  <td><span class="{{ badge_cls.get(st, 'badge text-bg-secondary') }}">{{ label_st }}</span></td>
+                  <td class="small">
+                    {% if recebido_em %}
+                      {{ recebido_em.strftime('%d/%m/%Y %H:%M') }}
+                    {% elif created_at %}
+                      {{ created_at.strftime('%d/%m/%Y %H:%M') }}
+                    {% else %} — {% endif %}
+                  </td>
+                  <td class="text-nowrap">
+                    {% if is_drh %}
+                      {% if paf_id %}
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('paf.validar', paf_id=paf_id) }}">
+                          <i class="bi bi-clipboard-check me-1"></i> Validar
+                        </a>
+                      {% else %}
+                        <span class="small-muted">—</span>
+                      {% endif %}
+                    {% else %}
+                      {% if paf_id %}
+                        <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline">
+                          <input type="hidden" name="acao" value="aprovar">
+                          <button class="btn btn-sm btn-success" type="submit"
+                                  {{ 'disabled' if st in ['aprovado_chefe','aguardando_drh','validado_drh'] else '' }}>
+                            <i class="bi bi-send-check me-1"></i> Encaminhar DRH
+                          </button>
+                        </form>
+                        <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline ms-1">
+                          <input type="hidden" name="acao" value="reprovar">
+                          <button class="btn btn-sm btn-outline-danger" type="submit"
+                                  {{ 'disabled' if st in ['reprovado_chefe','validado_drh'] else '' }}>
+                            <i class="bi bi-x-circle me-1"></i> Reprovar
+                          </button>
+                        </form>
+                      {% else %}
+                        <span class="small-muted">—</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        {% else %}
-        <div class="small-muted">Nenhum PAF encontrado para {{ ano|default('—') }}.</div>
-        {% endif %}
-      </div>
+      {% else %}
+        <div class="small-muted">Nenhum PAF encontrado para {{ ano }}.</div>
+      {% endif %}
+    </div>
 
   </div>
 </section>

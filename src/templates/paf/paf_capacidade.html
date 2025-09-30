@@ -1,20 +1,170 @@
 {% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9e1119;
+    --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
+    --ink-200:#e8eef6; --ink-400:#c0cfda;
+  }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .glass-card{background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);}
+  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);}
+  .small-muted{color:#94a3b8;}
+
+  .cap-box{
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--glass-brd);
+    border-radius:12px;
+    padding:12px;
+    height:100%;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:.35rem;
+    padding:.15rem .6rem; font-size:.78rem;
+    border-radius:999px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,.06)
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<section class="container py-4">
-  <h1 class="h5 mb-3">Capacidade de meses — {{ ano }}</h1>
-  <form method="post">
-    <div class="row g-3">
-      {% for m in range(1,13) %}
-      <div class="col-6 col-md-3">
-        <label class="form-label">Mês {{ m }}</label>
-        <input type="number" min="0" class="form-control" name="limite_{{m}}" value="{{ limite_map.get(m, 0) }}">
-        <div class="form-text">Usados: {{ usado_map.get(m, 0) }}</div>
+<section class="py-3 py-md-4">
+  <div class="container-xxl">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <div>
+            <h1 class="h5 m-0">Capacidade de alocação — {{ ano }}</h1>
+            <div class="small opacity-75">Base automática: <strong>1/12 do efetivo total</strong>. Ajuste livremente por mês.</div>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-light" href="{{ url_for('paf.recebimento', ano=ano) }}">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </a>
+
+          {# Botão: distribuir 1/12 (POST acao=auto) #}
+          <form method="post" class="d-inline">
+            <input type="hidden" name="acao" value="auto">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-calculator me-1"></i> Distribuir 1/12
+            </button>
+          </form>
+        </div>
       </div>
-      {% endfor %}
     </div>
-    <div class="mt-3">
-      <button class="btn btn-primary">Salvar</button>
+
+    {% set meses_full = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+    {% set base12 = (efetivo_total // 12) if efetivo_total is not none else 0 %}
+    {% set resto12 = (efetivo_total % 12) if efetivo_total is not none else 0 %}
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Efetivo total</div>
+          <div class="h4 m-0" id="kpi-efetivo">{{ efetivo_total }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Base 1/12</div>
+          <div class="h4 m-0">{{ base12 }} <span class="small-muted">(+{{ resto12 }} meses com +1)</span></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Soma limites</div>
+          <div class="h4 m-0" id="kpi-soma">{{ soma_limites }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-xl-2">
+        <div class="glass-card p-3 text-center">
+          <div class="small-muted">Diferença</div>
+          <div class="h4 m-0" id="kpi-diff">{{ diferenca }}</div>
+        </div>
+      </div>
     </div>
-  </form>
+
+    <!-- Formulário (edição manual) -->
+    <form method="post" class="glass-card p-3 p-md-4" id="form-cap" data-efetivo="{{ efetivo_total }}">
+      <div class="row g-3">
+        {% for m in range(1,13) %}
+          {% set usado = usado_map.get(m, 0) %}
+          {% set lim   = limite_map.get(m, 0) %}
+          {% set disp  = (lim - usado) if lim>usado else 0 %}
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="cap-box">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label m-0">
+                  <strong>{{ "%02d"|format(m) }} — {{ meses_full[m-1] }}</strong>
+                </label>
+              </div>
+
+              <div class="mb-2">
+                <div class="small-muted mb-1">Limite do mês</div>
+                <input type="number" min="0" class="form-control form-control-sm"
+                       name="limite_{{m}}"
+                       value="{{ lim }}"
+                       data-usado="{{ usado }}"
+                       oninput="atualizaMes(this, {{m}})">
+              </div>
+
+              <div class="d-flex gap-2 flex-wrap">
+                <span class="chip"><i class="bi bi-box-arrow-in-down-right"></i> Usados: <strong>{{ usado }}</strong></span>
+                <span class="chip"><i class="bi bi-check2-circle"></i> Disponíveis: <strong id="disp-{{m}}">{{ disp }}</strong></span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex align-items-center gap-2 mt-4">
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-save me-1"></i> Salvar capacidade
+        </button>
+      </div>
+    </form>
+
+  </div>
 </section>
+
+<script>
+  function atualizaMes(input, mes){
+    const usado = parseInt(input.dataset.usado || "0", 10);
+    const lim   = Math.max(parseInt(input.value || "0", 10), 0);
+    const dispEl = document.getElementById("disp-" + mes);
+    if (dispEl) dispEl.textContent = Math.max(lim - usado, 0);
+    atualizaKpis();
+  }
+
+  function atualizaKpis(){
+    const form = document.getElementById("form-cap");
+    const efetivo = parseInt(form.dataset.efetivo || "0", 10);
+    let soma = 0;
+    form.querySelectorAll('input[name^="limite_"]').forEach(inp => {
+      const v = Math.max(parseInt(inp.value || "0", 10), 0);
+      soma += v;
+    });
+    const diff = Math.max(efetivo - soma, 0);
+    document.getElementById("kpi-soma").textContent = soma;
+    document.getElementById("kpi-diff").textContent = diff;
+  }
+
+  // inicializa KPIs (caso o navegador não dispare oninput ao preencher)
+  atualizaKpis();
+</script>
 {% endblock %}
