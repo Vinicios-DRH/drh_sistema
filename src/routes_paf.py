@@ -85,7 +85,7 @@ def _obm_subtree_ids(root_id: int) -> list[int]:
 
 
 def _ano_atual_manaus():
-    return datetime.now(ZoneInfo("America/Manaus")).year
+    return datetime.now(ZoneInfo("America/Manaus")).year + 1
 
 
 def _obms_do_usuario():
