@@ -70,7 +70,7 @@
                     {# --- Recebimento (funcao_user_id em {1,2,5,6,7}) --- #}
                     {% if pode_recebimento %}
                     
-                    <!-- <li class="nav-item dropdown">
+                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-friends me-2"></i>Validações
                         </a>
@@ -79,9 +79,9 @@
                                 <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">Declarações — Recebimento
                                 </a>
                             </li>
-                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
+                            <!-- <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li> -->
                         </ul>
-                    </li> -->
+                    </li>
                     {% endif %}
 
                     {% if user_funcao == 12 %}
