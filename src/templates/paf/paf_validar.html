@@ -1,35 +1,217 @@
 {% extends "base.html" %}
-{% block body %}
-<section class="container py-4">
-  <h1 class="h5 mb-3">Validar PAF #{{ paf.id }} — Ano {{ paf.ano_referencia }}</h1>
 
-  <div class="mb-3">
-    <div>Opções do militar: <strong>{{ paf.opcao_1 }}, {{ paf.opcao_2 }}, {{ paf.opcao_3 }}</strong></div>
-    <div>Status atual: <span class="badge bg-info text-dark">{{ paf.status }}</span></div>
-    <div>Mês definido: <strong>{{ paf.mes_definido or '—' }}</strong></div>
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #9e1119;
+    --glass-bg: rgba(255, 255, 255, .06);
+    --glass-brd: rgba(255, 255, 255, .16);
+    --ink-200: #e8eef6;
+    --ink-400: #c0cfda;
+  }
+
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
+
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid var(--glass-brd);
+    border-radius: 16px;
+    color: var(--ink-200);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: 16px;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .15rem .6rem;
+    font-size: .78rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-brd);
+    background: rgba(255, 255, 255, .06)
+  }
+
+  .small-muted {
+    color: #94a3b8;
+  }
+
+  .cap-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+
+  @media (min-width:768px) {
+    .cap-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .cap-tile {
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--glass-brd);
+    border-radius: 12px;
+    padding: .6rem .75rem;
+  }
+
+  .cap-tile.full {
+    opacity: .55;
+  }
+
+  .cap-tile .ttl {
+    font-weight: 600
+  }
+
+  .btn-primary {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+  <div class="container-xxl">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+            alt="CBMAM">
+          <div>
+            <h1 class="h5 m-0">Validar PAF #{{ paf.id }} — Ano {{ paf.ano_referencia }}</h1>
+            <div class="small opacity-75">
+              {{ paf.militar.nome_completo if paf.militar else 'Militar' }}
+              {% if paf.militar and paf.militar.posto_grad and paf.militar.posto_grad.sigla %}
+              · PG: {{ paf.militar.posto_grad.sigla }}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-light" href="{{ url_for('paf.recebimento') }}"><i class="bi bi-arrow-left"></i>
+            Voltar</a>
+        </div>
+      </div>
+    </div>
+
+    {% set meses_full =
+    ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+    %}
+    {% macro mes_nome(v) -%}
+    {%- if v is not none and (v|string)|int>=1 and (v|string)|int<=12 -%} {{ meses_full[(v|string)|int-1] }} {%- elif v
+      -%} {{ v }} {%- else -%} — {%- endif -%} {%- endmacro %} <div class="row g-3">
+      <!-- Esquerda: dados do PAF -->
+      <div class="col-12 col-lg-6">
+        <div class="glass-card p-3 p-md-4 h-100">
+          <h2 class="h6 m-0 mb-3"><i class="bi bi-person-badge me-1"></i> Dados do PAF</h2>
+
+          <div class="mb-2">
+            <div class="small-muted">Opções do militar</div>
+            <div class="mt-1 d-flex flex-wrap gap-2">
+              <span class="chip">1ª — {{ mes_nome(paf.opcao_1) }}</span>
+              <span class="chip">2ª — {{ mes_nome(paf.opcao_2) }}</span>
+              <span class="chip">3ª — {{ mes_nome(paf.opcao_3) }}</span>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="small-muted">Status atual</div>
+            <div class="mt-1">
+              <span class="chip">{{ paf.status or '—' }}</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="small-muted">Mês definido</div>
+            <div class="mt-1">
+              {% if paf.mes_definido %}
+              <span class="chip"><i class="bi bi-check2-circle me-1"></i>{{ mes_nome(paf.mes_definido) }}</span>
+              {% else %}
+              <span class="small-muted">—</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="opacity-25">
+
+          <form method="post" class="d-flex gap-2">
+            <input type="hidden" name="acao" value="auto">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-magic me-1"></i> Alocar automaticamente
+            </button>
+            <a class="btn btn-outline-light" href="{{ url_for('paf.recebimento') }}">Cancelar</a>
+          </form>
+        </div>
+      </div>
+
+      <!-- Direita: capacidades + manual -->
+      <div class="col-12 col-lg-6">
+        <div class="glass-card p-3 p-md-4">
+          <h2 class="h6 m-0 mb-3"><i class="bi bi-activity me-1"></i> Capacidade por mês ({{ paf.ano_referencia }})</h2>
+
+          <div class="cap-grid mb-3">
+            {% for m in range(1,13) %}
+            {% set cap, ocup, disp = caps[m] %}
+            {% set is_opt = m in [paf.opcao_1, paf.opcao_2, paf.opcao_3] %}
+            <div class="cap-tile {{ 'full' if cap and disp<=0 else '' }}">
+              <div class="d-flex justify-content-between">
+                <div class="ttl">{{ meses_full[m-1] }}</div>
+                {% if is_opt %}<span class="chip">opção</span>{% endif %}
+              </div>
+              <div class="small mt-1">
+                limite <strong>{{ cap }}</strong> · usados <strong>{{ ocup }}</strong> · disp <strong>{{ disp
+                  }}</strong>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <h3 class="h6 m-0 mb-2"><i class="bi bi-hand-index-thumb me-1"></i> Alocação manual</h3>
+          <form method="post" class="row g-3">
+            <input type="hidden" name="acao" value="manual">
+            <div class="col-12">
+              <label class="form-label">Mês</label>
+              <select class="form-select" name="mes_definido" required>
+                <option value="">Selecione...</option>
+                {% for m in range(1,13) %}
+                {% set cap, ocup, disp = caps[m] %}
+                <option value="{{ m }}" {{ 'disabled' if (cap==0 or (cap and disp<=0)) else '' }}>
+                  {{ meses_full[m-1] }} — limite {{ cap }}, usados {{ ocup }}, disp {{ disp }}{% if cap==0 %} (sem
+                  configuração){% elif cap and disp<=0 %} (cheio){% endif %} </option>
+                    {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-success" type="submit"><i class="bi bi-check2 me-1"></i> Confirmar
+                alocação</button>
+              <a class="btn btn-outline-light" href="{{ url_for('paf.recebimento') }}">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </div>
   </div>
 
-  <form method="post" class="d-flex gap-2 mb-4">
-    <input type="hidden" name="acao" value="auto"/>
-    <button class="btn btn-primary" type="submit">Alocar automaticamente</button>
-  </form>
-
-  <h2 class="h6">Alocação manual</h2>
-  <form method="post" class="row g-3">
-    <input type="hidden" name="acao" value="manual"/>
-    <div class="col-12 col-md-4">
-      <label class="form-label">Mês</label>
-      <select class="form-select" name="mes_definido" required>
-        <option value="">Selecione...</option>
-        {% for m in range(1,13) %}
-        {% set cap, ocup, disp = caps[m] %}
-        <option value="{{m}}">{{ m }} — limite {{ cap }}, usados {{ ocup }}, disp {{ disp }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-12">
-      <button class="btn btn-success">Confirmar alocação</button>
-    </div>
-  </form>
+  </div>
 </section>
 {% endblock %}
