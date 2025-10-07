@@ -291,8 +291,8 @@ def _is_privilegiado() -> bool:
 ANO_ATUAL = date.today().year
 
 def _prazo_envio_ate() -> date:
-    # ajuste como preferir (config/DB). Aqui, “até ontem”:
-    return date.today().replace(day=date.today().day - 1)
+    # Prazo final fixo (inclusive) para envio em 2025
+    return date(2025, 9, 22)
 
 
 def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
