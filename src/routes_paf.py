@@ -187,7 +187,7 @@ def novo():
             militar_id=militar.id,
             ano_referencia=ano,
             opcao_1=o1, opcao_2=o2, opcao_3=o3,
-            status="pendente",
+            status="enviado",
             updated_at=agora_manaus,         # <— evita NULL no INSERT
             created_at=agora_manaus,
             data_entrega=agora_manaus
