@@ -294,6 +294,9 @@ def _prazo_envio_ate() -> date:
     # Prazo final fixo (inclusive) para envio em 2025
     return date(2025, 9, 22)
 
+def _prazo_fechado() -> bool:
+    return date.today() > _prazo_envio_ate()
+
 
 def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
     return db.session.query(DeclaracaoAcumulo.id)\
@@ -499,6 +502,7 @@ def home_atualizacao():
 
     # ⚠️ Define a variável usada no template/JS
     militar_id_atual = militar_id
+    tem_inconforme_no_ano = (kpi_decl_inconformes or 0) > 0
 
     return render_template(
         "home_atualizacao.html",
@@ -527,6 +531,7 @@ def home_atualizacao():
         docs_pendentes_qtd=docs_pendentes_qtd,
         prazo_fechado=prazo_fechado,
         prazo_limite=prazo_limite,
+        tem_inconforme_no_ano=tem_inconforme_no_ano,
     )
 
 
@@ -725,6 +730,10 @@ def novo(militar_id):
             flash("Não foi possível localizar seus dados de militar.", "danger")
             return redirect(url_for("home"))
         militar_id = militar.id
+    
+    if _prazo_fechado() and not _is_drh_like():
+        flash("Prazo encerrado. Reaberto apenas para corrigir declarações INCONFORME.", "warning")
+        return redirect(url_for("acumulo.minhas_declaracoes"))
 
     ano = request.values.get("ano", type=int) or datetime.now().year
 
@@ -1309,6 +1318,11 @@ def editar(decl_id):
         if not mil_user or mil_user.id != decl.militar_id:
             flash("Sem permissão para editar esta declaração.", "alert-danger")
             return redirect(url_for("home_atualizacao"))
+
+    st = (decl.status or "").lower()
+    if _prazo_fechado() and st != "inconforme" and not _is_drh_like():
+        flash("Prazo encerrado. Edição liberada apenas para declarações INCONFORME.", "warning")
+        return redirect(url_for("acumulo.minhas_declaracoes", ano=decl.ano_referencia))
 
     # SIGLA da OBM ativa (só pra exibição)
     MOF = MilitarObmFuncao
@@ -2507,6 +2521,8 @@ def minhas_declaracoes():
         DeclaracaoAcumulo.ano_referencia == ano
     ).first() is not None
 
+    tem_inconforme_no_ano = kpi_inc > 0
+
     return render_template(
         "acumulo_minhas.html",
         ano=ano,
@@ -2524,6 +2540,7 @@ def minhas_declaracoes():
         prazo_fechado=prazo_fechado,
         prazo_limite=prazo_limite,
         ja_enviou_no_ano=ja_enviou_no_ano,
+        tem_inconforme_no_ano=tem_inconforme_no_ano,
     )
 
 

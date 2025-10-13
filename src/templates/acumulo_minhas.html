@@ -189,11 +189,10 @@
                     <span class="badge text-bg-success">validado</span>
                   {% elif st == 'inconforme' %}
                     <span class="badge text-bg-danger">inconforme</span>
-                    {# BLOQUEIO do "Corrigir" se prazo_fechado == True #}
-                    {% if not prazo_fechado %}
-                      <a class="btn btn-sm btn-outline-light ms-2" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Corrigir</a>
-                    {% else %}
-                      <span class="small-muted ms-2">Edição bloqueada (prazo encerrado)</span>
+                    <a class="btn btn-sm btn-outline-light ms-2" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">Corrigir</a>
+                    {# opcional: avisa que está reaberto mesmo com prazo fechado #}
+                    {% if prazo_fechado %}
+                      <span class="badge badge-soft ms-2">reaberto (inconforme)</span>
                     {% endif %}
                   {% else %}
                     <span class="badge text-bg-warning text-dark">pendente</span>

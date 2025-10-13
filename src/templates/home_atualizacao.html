@@ -182,11 +182,9 @@
                             {% for d in minhas_declaracoes %}
                                 <li>
                                     {% if d.status == 'inconforme' %}
-                                        {% if prazo_fechado %}
-                                            <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
-                                        {% else %}
-                                            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">{{ d.ano_referencia }} — {{ d.tipo or '—' }} — Editar</a>
-                                        {% endif %}
+                                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
+                                            {{ d.ano_referencia }} — {{ d.tipo or '—' }} — Editar
+                                        </a>
                                     {% else %}
                                         <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
                                     {% endif %}
@@ -346,18 +344,17 @@
     const st = (ctx.status || '').toLowerCase();
 
     if (st === 'inconforme') {
-      // prazo fechado => não pode mais editar
-      if (prazoFechado) { showPrazo(); return; }
-      const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
-      showModal(
-        `<p>Sua declaração <strong>já foi enviada</strong> e está com status <strong>INCONFORME</strong>.</p>
-         <p>Edite a declaração para corrigir as pendências.</p>`,
-        'Status atual: inconforme',
-        hrefEditar,
-        'Editar declaração',
-        false
-      );
-      return;
+        // 🔓 Mesmo com prazo fechado, pode EDITAR para corrigir
+        const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
+        showModal(
+            `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
+            <p>Você pode editar para corrigir as pendências.</p>`,
+            'Status atual: inconforme',
+            hrefEditar,
+            'Editar declaração',
+            false
+        );
+        return;
     }
 
     if (st === 'validado') {
