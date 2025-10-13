@@ -277,6 +277,7 @@
   const temPendente  = {{ (tem_pendente or False) | tojson }};
   const novaUrl      = {{ (militar and url_for('acumulo.novo', militar_id=militar.id, ano=ano) or '#') | tojson }};
   const prazoFechado = {{ (prazo_fechado or False) | tojson }};
+  const jaEnviou     = {{ (ja_enviou_no_ano or False) | tojson }};  
 
   const btnNova    = document.getElementById('btn-nova-declaracao');
 
@@ -297,29 +298,19 @@
   modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) fecharPrazoFn(); });
 
   btnNova?.addEventListener('click', (e) => {
-    // trava totalmente a propagação pra evitar qualquer outro handler navegando
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
 
-    // 1) PRAZO FECHADO => SEMPRE bloqueia e mostra modal
-    if (prazoFechado) {
-      abrirPrazo();
-      return false;
-    }
+    // Se já tem pendente, segue bloqueando
+    if (temPendente) { abrirPend(); return false; }
 
-    // 2) Já enviou e está pendente => bloqueia nova com modal
-    if (temPendente) {
-      abrirPend();
-      return false;
-    }
+    // ✅ Prazo fechado só bloqueia quem JÁ enviou algo no ano
+    if (prazoFechado && jaEnviou) { abrirPrazo(); return false; }
 
-    // 3) Fluxo normal
-    if (novaUrl && novaUrl !== '#') {
-      window.location.href = novaUrl;
-    }
+    if (novaUrl && novaUrl !== '#') window.location.href = novaUrl;
     return false;
-  }, true); // <— captura primeiro, antes de qualquer outro listener
+  }, true);
 })();
 </script>
 

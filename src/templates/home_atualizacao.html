@@ -332,53 +332,51 @@
   modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) hidePrazo(); });
 
   btnNova?.addEventListener('click', () => {
-    // não tem declaração no ano e prazo fechado => bloqueia
-    if (!ctx.tem && prazoFechado) { showPrazo(); return; }
-
+    // ✅ Liberação: se NÃO tem declaração no ano, pode criar mesmo com prazo fechado
     if (!ctx.tem) {
-      const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
-      if (href) window.location.href = href; else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
-      return;
+        const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
+        if (href) window.location.href = href; else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
+        return;
     }
 
     const st = (ctx.status || '').toLowerCase();
 
     if (st === 'inconforme') {
-        // 🔓 Mesmo com prazo fechado, pode EDITAR para corrigir
+        // continua igual: pode editar mesmo com prazo fechado
         const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
         showModal(
-            `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
-            <p>Você pode editar para corrigir as pendências.</p>`,
-            'Status atual: inconforme',
-            hrefEditar,
-            'Editar declaração',
-            false
+        `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
+        <p>Você pode editar para corrigir as pendências.</p>`,
+        'Status atual: inconforme',
+        hrefEditar,
+        'Editar declaração',
+        false
         );
         return;
     }
 
     if (st === 'validado') {
-      const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-      showModal(
+        const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+        showModal(
         `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
         'Status atual: validado',
         hrefDet,
         'Ver declaração',
         false
-      );
-      return;
+        );
+        return;
     }
 
     // pendente
     const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
     showModal(
-      `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
-      'Status atual: pendente',
-      hrefDet,
-      'Ver envio',
-      false
+        `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
+        'Status atual: pendente',
+        hrefDet,
+        'Ver envio',
+        false
     );
-  });
+ });
 })();
 </script>
 

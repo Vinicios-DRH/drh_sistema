@@ -730,12 +730,17 @@ def novo(militar_id):
             flash("Não foi possível localizar seus dados de militar.", "danger")
             return redirect(url_for("home"))
         militar_id = militar.id
-    
-    if _prazo_fechado() and not _is_drh_like():
-        flash("Prazo encerrado. Reaberto apenas para corrigir declarações INCONFORME.", "warning")
-        return redirect(url_for("acumulo.minhas_declaracoes"))
 
     ano = request.values.get("ano", type=int) or datetime.now().year
+
+    if _prazo_fechado() and not _is_drh_like():
+        ja_tem = db.session.query(DeclaracaoAcumulo.id).filter(
+            DeclaracaoAcumulo.militar_id == militar_id,
+            DeclaracaoAcumulo.ano_referencia == ano
+        ).first()
+        if ja_tem:
+            flash("Prazo encerrado. Reaberto apenas para: (1) quem não enviou nenhuma declaração; ou (2) corrigir declarações INCONFORME.", "warning")
+            return redirect(url_for("acumulo.minhas_declaracoes", ano=ano))
 
     pendente = db.session.query(DeclaracaoAcumulo.id).filter_by(
         militar_id=militar_id, ano_referencia=ano, status='pendente'
