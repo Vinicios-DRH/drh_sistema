@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
 from sqlalchemy import func, CheckConstraint, text
 
+from zoneinfo import ZoneInfo
 
 class PostoGrad(database.Model):
     __tablename__ = "posto_grad"
@@ -1224,3 +1225,37 @@ class NovoPaf(database.Model):
         database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_paf_militar_ano'),
     )
     
+
+class PafFeriasPlano(database.Model):
+    __tablename__ = 'paf_ferias_plano'
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+
+    ano_referencia = database.Column(database.Integer, nullable=False)  # ex.: 2026
+    direito_total_dias = database.Column(database.Integer, nullable=False)  # 30 ou 40
+
+    # Período 1
+    qtd_dias_p1 = database.Column(database.Integer, nullable=False)
+    inicio_p1 = database.Column(database.Date, nullable=False)
+    fim_p1 = database.Column(database.Date, nullable=False)
+    mes_usufruto_p1 = database.Column(database.SmallInteger, nullable=False)  # 1..12
+
+    # Período 2 (pode ser nulo p/ combos 30 dias que não usam)
+    qtd_dias_p2 = database.Column(database.Integer, nullable=True)
+    inicio_p2 = database.Column(database.Date, nullable=True)
+    fim_p2 = database.Column(database.Date, nullable=True)
+    mes_usufruto_p2 = database.Column(database.SmallInteger, nullable=True)
+
+    # Período 3 (idem)
+    qtd_dias_p3 = database.Column(database.Integer, nullable=True)
+    inicio_p3 = database.Column(database.Date, nullable=True)
+    fim_p3 = database.Column(database.Date, nullable=True)
+    mes_usufruto_p3 = database.Column(database.SmallInteger, nullable=True)
+
+    status = database.Column(database.String(30), default='enviado')  # opcional
+    created_at = database.Column(database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")))
+    updated_at = database.Column(database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
+
+    usuario = database.relationship('User', foreign_keys=[usuario_id])

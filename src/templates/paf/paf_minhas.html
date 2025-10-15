@@ -110,6 +110,77 @@
         <div class="small-muted">Você ainda não enviou PAF este ano.</div>
       {% endif %}
     </div>
+    {% set pendentes = ['pendente','aguardando','em_analise'] %}
+    {% set badge_cls_plano = {
+      'pendente': 'badge text-bg-warning text-dark',
+      'aguardando': 'badge text-bg-warning text-dark',
+      'em_analise': 'badge text-bg-info',
+      'aprovado': 'badge text-bg-success',
+      'indeferido': 'badge text-bg-danger'
+    } %}
+
+    {% macro dt(v) -%}
+      {{ v.strftime('%d/%m/%Y') if v else '—' }}
+    {%- endmacro %}
+
+    {% if plano %}
+      <div class="glass-card p-3 p-md-4 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <h2 class="h6 m-0">
+            <i class="bi bi-calendar3-week me-1"></i>
+            Meu Plano de Férias — {{ ano }}
+          </h2>
+          <span class="{{ badge_cls_plano.get((plano.status or '')|lower, 'badge text-bg-secondary') }}">
+            {{ plano.status or '—' }}
+          </span>
+        </div>
+
+        {% if (plano.status or '')|lower in pendentes %}
+          <div class="alert alert-warning py-2 px-3 mb-3">
+            <i class="bi bi-hourglass-split me-1"></i>
+            Seu plano de férias foi <strong>enviado ao seu chefe</strong> e está <strong>aguardando aprovação</strong>.
+          </div>
+        {% elif (plano.status or '')|lower == 'aprovado' %}
+          <div class="alert alert-success py-2 px-3 mb-3">
+            <i class="bi bi-check2-circle me-1"></i>
+            Seu plano de férias foi <strong>aprovado</strong>.
+          </div>
+        {% elif (plano.status or '')|lower == 'indeferido' %}
+          <div class="alert alert-danger py-2 px-3 mb-3">
+            <i class="bi bi-x-circle me-1"></i>
+            Seu plano de férias foi <strong>indeferido</strong>.
+          </div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-4">
+            <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+              <div class="small-muted mb-1">1º Período</div>
+              <div><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p1 or '—' }} dias</div>
+              <div class="small mt-1"><i class="bi bi-calendar-event me-1"></i>{{ dt(plano.inicio_p1) }} — {{ dt(plano.fim_p1) }}</div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+              <div class="small-muted mb-1">2º Período</div>
+              <div><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p2 or '—' }} dias</div>
+              <div class="small mt-1"><i class="bi bi-calendar-event me-1"></i>{{ dt(plano.inicio_p2) }} — {{ dt(plano.fim_p2) }}</div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+              <div class="small-muted mb-1">3º Período</div>
+              <div><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p3 or '—' }} dias</div>
+              <div class="small mt-1"><i class="bi bi-calendar-event me-1"></i>{{ dt(plano.inicio_p3) }} — {{ dt(plano.fim_p3) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="small-muted mt-3">
+          Direito total: <span class="chip">{{ plano.direito_total_dias }} dias</span>
+        </div>
+      </div>
+    {% endif %}
   </div>
 </section>
 

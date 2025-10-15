@@ -15,12 +15,12 @@
     box-shadow:0 10px 30px rgba(0,0,0,.35);
   }
   .glass-card{background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
-    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);}
-  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);}
-  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);}
-  .btn-outline-primary{color:var(--brand-red); border-color:var(--brand-red);}
-  .btn-outline-primary:hover{color:#fff; background:var(--brand-red);}
-  .small-muted{color:#94a3b8;}
+    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);} 
+  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);} 
+  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);} 
+  .btn-outline-primary{color:var(--brand-red); border-color:var(--brand-red);} 
+  .btn-outline-primary:hover{color:#fff; background:var(--brand-red);} 
+  .small-muted{color:#94a3b8;} 
   .chip{display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .55rem; font-size:.78rem;
     border-radius:999px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.06)}
 </style>
@@ -54,7 +54,10 @@
     <div class="row g-3">
       <div class="col-12 col-lg-7">
         <!-- Form -->
-        <form class="glass-card p-3 p-md-4" method="post" id="form-paf">
+        <form class="glass-card p-3 p-md-4"
+              method="post"
+              id="form-paf"
+              action="{{ url_for('paf.salvar_plano') }}">
           <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento</h2>
 
           {# meses por extenso #}
@@ -94,16 +97,150 @@
                 {% endfor %}
               </select>
             </div>
-
-            <div class="col-12">
-              <label class="form-label">Observações (opcional)</label>
-              <textarea class="form-control" rows="3" name="observacoes">{{ observacoes|default('') }}</textarea>
-            </div>
           </div>
 
           <div class="mt-3 small text-danger d-none" id="msg-duplicado">
             <i class="bi bi-exclamation-triangle-fill me-1"></i>
             As três opções devem ser <strong>diferentes</strong>.
+          </div>
+
+          <!-- ===================== BLOCO: Planejamento de Períodos de Férias ===================== -->
+          <hr class="my-4">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <h2 class="h6 m-0">
+              <i class="bi bi-calendar3-range me-1"></i>
+              Planejamento dos Períodos de Férias — <span id="ano-ref"></span>
+            </h2>
+            <div class="small-muted">
+              Direito total: 
+              <span class="chip"><i class="bi bi-sun me-1"></i><span id="lbl-direito"></span> dias</span>
+            </div>
+          </div>
+
+          <!-- Hidden de ano e direito (preenchidos via JS) -->
+          <input type="hidden" name="ano_referencia" id="ano_referencia">
+          <input type="hidden" name="direito_total_dias" id="direito_total_dias">
+
+          <div class="row g-3" id="bloco-ferias">
+            <!-- Período 1 -->
+            <div class="col-12">
+              <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <strong>1º Período</strong>
+                  <span class="small-muted" id="p1-restante"></span>
+                </div>
+                <div class="row g-3 align-items-end">
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Quantidade de dias</label>
+                    <select class="form-select" id="qtd1" name="qtd1" required></select>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data início</label>
+                    <input type="date" class="form-control" id="inicio1" name="inicio1" required>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data fim</label>
+                    <input type="date" class="form-control" id="fim1" name="fim1" readonly>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Mês de usufruto</label>
+                    <select class="form-select" id="mes1" name="mes1" required>
+                      <option value="">Selecione...</option>
+                      {% for m in range(1,13) %}
+                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Período 2 -->
+            <div class="col-12" id="box-p2">
+              <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <strong>2º Período</strong>
+                  <span class="small-muted" id="p2-restante"></span>
+                </div>
+                <div class="row g-3 align-items-end">
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Quantidade de dias</label>
+                    <select class="form-select" id="qtd2" name="qtd2"></select>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data início</label>
+                    <input type="date" class="form-control" id="inicio2" name="inicio2">
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data fim</label>
+                    <input type="date" class="form-control" id="fim2" name="fim2" readonly>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Mês de usufruto</label>
+                    <select class="form-select" id="mes2" name="mes2">
+                      <option value="">Selecione...</option>
+                      {% for m in range(1,13) %}
+                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <div class="col-12">
+                    <div id="p2-gap-msg" class="small text-warning d-none">
+                      <i class="bi bi-exclamation-triangle me-1"></i>
+                      Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º períodos.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Período 3 -->
+            <div class="col-12" id="box-p3">
+              <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <strong>3º Período</strong>
+                </div>
+                <div class="row g-3 align-items-end">
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Quantidade de dias</label>
+                    <select class="form-select" id="qtd3" name="qtd3"></select>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data início</label>
+                    <input type="date" class="form-control" id="inicio3" name="inicio3">
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Data fim</label>
+                    <input type="date" class="form-control" id="fim3" name="fim3" readonly>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <label class="form-label">Mês de usufruto</label>
+                    <select class="form-select" id="mes3" name="mes3">
+                      <option value="">Selecione...</option>
+                      {% for m in range(1,13) %}
+                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumo/erros -->
+            <div class="col-12">
+              <div class="small-muted">Restando: <span id="dias-restantes"></span> dias</div>
+              <div id="msg-erro-ferias" class="mt-2 text-danger d-none">
+                <i class="bi bi-x-circle me-1"></i>
+                Verifique os períodos: combinação inválida para o direito total.
+              </div>
+            </div>
+          </div>
+          <!-- ===================== /BLOCO ===================== -->
+
+          <div class="mt-3">
+            <label class="form-label">Observações (opcional)</label>
+            <textarea class="form-control" rows="3" name="observacoes">{{ observacoes|default('') }}</textarea>
           </div>
 
           <div class="d-flex align-items-center gap-2 mt-4">
@@ -123,8 +260,9 @@
             <li>Você escolhe três meses distintos para pagamento das férias.</li>
             <li>Se o 1º mês estiver cheio, tenta-se o 2º; se também estiver, usa-se o 3º.</li>
             <li>Se todos estiverem cheios, a DRH definirá o mês.</li>
+            <li>Períodos de usufruto: 30 dias (1 período); 20+10, 10+20, 15+15 ou 10+10+10 (para 30 dias). Para 40 dias: 20+20 com 6 meses entre os inícios.</li>
           </ul>
-          <div class="small-muted">Resumo escolhido:</div>
+          <div class="small-muted">Resumo escolhido (pagamento):</div>
           <div class="mt-2" id="resumo-opcoes">
             <span class="chip">1ª — <span class="mes1">—</span></span>
             <span class="chip">2ª — <span class="mes2">—</span></span>
@@ -139,7 +277,7 @@
 
 <script>
 (() => {
-  // nomes completos
+  // ===== Script A: validação das 3 opções de mês (original) =====
   const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const selects = Array.from(document.querySelectorAll('select.mes'));
   const msgDup  = document.getElementById('msg-duplicado');
@@ -157,7 +295,6 @@
   }
 
   function lockDuplicates(){
-    // desabilita nos outros selects os meses já escolhidos
     const chosen = new Set(selects.map(s => s.value).filter(Boolean));
     selects.forEach(sel => {
       Array.from(sel.options).forEach(opt => {
@@ -185,13 +322,195 @@
   selects.forEach(s => s.addEventListener('change', onChange));
   onChange(); // init
 
-  // UX envio
-  const form = document.getElementById('form-paf');
-  form?.addEventListener('submit', (e) => {
-    if (!validateDistinct()){
-      e.preventDefault();
+  // ===== Script B: Planejamento de Períodos de Férias =====
+  const ANO_REF = {{ ano|int }};
+  const lblAno = document.getElementById('ano-ref');
+  const lblDireito = document.getElementById('lbl-direito');
+  const diasRestantes = document.getElementById('dias-restantes');
+  const msgErro = document.getElementById('msg-erro-ferias');
+  const gapMsg = document.getElementById('p2-gap-msg');
+
+  const qtd1 = document.getElementById('qtd1'), inicio1 = document.getElementById('inicio1'), fim1 = document.getElementById('fim1'), mes1 = document.getElementById('mes1');
+  const qtd2 = document.getElementById('qtd2'), inicio2 = document.getElementById('inicio2'), fim2 = document.getElementById('fim2'), mes2 = document.getElementById('mes2');
+  const qtd3 = document.getElementById('qtd3'), inicio3 = document.getElementById('inicio3'), fim3 = document.getElementById('fim3'), mes3 = document.getElementById('mes3');
+  const boxP2 = document.getElementById('box-p2');
+  const boxP3 = document.getElementById('box-p3');
+
+  const MILITARES_40 = window.MILITARES_40 || [];
+  const MILITAR_ID = {{ militar.id if militar else 'null' }};
+  let direito = (MILITARES_40.includes(MILITAR_ID)) ? 40 : 30;
+
+  // preenche cabecalho e hiddens
+  lblAno.textContent = ANO_REF;
+  lblDireito.textContent = direito;
+  document.getElementById('ano_referencia').value = ANO_REF;
+  document.getElementById('direito_total_dias').value = direito;
+
+  const pad = v => String(v).padStart(2,'0');
+  const dateISO = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+  const addDaysISO = (iso, n) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  const endDateInclusive = (startISO, dias) => startISO && dias ? addDaysISO(startISO, Number(dias)-1) : "";
+  const monthFromISO = iso => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); return (d.getMonth()+1).toString(); };
+  const addMonthsISO = (iso, months) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); const day=d.getDate(); d.setMonth(d.getMonth()+months); while(d.getDate()<day) d.setDate(d.getDate()-1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+
+  // limita datas ao ano de referência
+  [inicio1,inicio2,inicio3].forEach(inp => { if(!inp) return; inp.min = dateISO(ANO_REF,1,1); inp.max = dateISO(ANO_REF,12,31); });
+
+  function setOptionsPreserve(select, vals){
+    const current = select.value;
+    const optionsHtml = '<option value="">Selecione...</option>' +
+      vals.map(v => `<option value="${v}">${v} dias</option>`).join('');
+    select.innerHTML = optionsHtml;
+    // preserva seleção se ainda for válida
+    if (current && vals.map(String).includes(String(parseInt(current)))) {
+      select.value = current;
+    }
+  }
+  function recomputeFimEMes(inicioEl, qtdEl, fimEl, mesEl){
+    const d = inicioEl.value; const q = parseInt(qtdEl.value||0);
+    fimEl.value = (d && q) ? endDateInclusive(d,q) : "";
+    if(d) mesEl.value = monthFromISO(d);
+  }
+  function calcRestante(){
+    const v1 = parseInt(qtd1.value||0), v2 = parseInt(qtd2.value||0), v3 = parseInt(qtd3.value||0);
+    return direito - (v1+v2+v3);
+  }
+  function validCombo30(v1,v2,v3){
+    const arr = [v1||0,v2||0,v3||0].filter(Boolean).sort((a,b)=>a-b).join('+');
+    return (arr==='30' || arr==='10+20' || arr==='15+15' || arr==='10+10+10');
+  }
+
+  function enforceRules(){
+    const v1 = parseInt(qtd1.value||0);
+    const v2 = parseInt(qtd2.value||0);
+    const v3 = parseInt(qtd3.value||0);
+
+    if (direito === 40) {
+      // 20 + 20, sem 3º
+      setOptionsPreserve(qtd1, [20]);
+      setOptionsPreserve(qtd2, [20]);
+      setOptionsPreserve(qtd3, []);
+      boxP2.classList.remove('d-none');
+      boxP3.classList.add('d-none');
+      qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+
+      if (inicio1.value) { inicio2.min = addMonthsISO(inicio1.value, 6); }
+      else { inicio2.min = dateISO(ANO_REF,1,1); }
+
+      gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
+    } else {
+      // 30 dias
+      setOptionsPreserve(qtd1, [10,15,20,30]);
+
+      if (v1 === 30) {
+        setOptionsPreserve(qtd2, []); setOptionsPreserve(qtd3, []);
+        boxP2.classList.add('d-none'); boxP3.classList.add('d-none');
+        qtd2.value=''; inicio2.value=''; fim2.value=''; mes2.value='';
+        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+      } else if (v1 === 20) {
+        setOptionsPreserve(qtd2, [10]); setOptionsPreserve(qtd3, []);
+        boxP2.classList.remove('d-none'); boxP3.classList.add('d-none');
+        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+      } else if (v1 === 15) {
+        setOptionsPreserve(qtd2, [15]); setOptionsPreserve(qtd3, []);
+        boxP2.classList.remove('d-none'); boxP3.classList.add('d-none');
+        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+      } else if (v1 === 10) {
+        setOptionsPreserve(qtd2, [10,20]);
+        boxP2.classList.remove('d-none');
+
+        if (v2 === 20) {
+          setOptionsPreserve(qtd3, []);
+          boxP3.classList.add('d-none');
+          qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+        } else if (v2 === 10) {
+          setOptionsPreserve(qtd3, [10]);
+          boxP3.classList.remove('d-none');
+        } else {
+          setOptionsPreserve(qtd3, []);
+          boxP3.classList.add('d-none');
+        }
+      } else {
+        setOptionsPreserve(qtd2, []); setOptionsPreserve(qtd3, []);
+        boxP2.classList.add('d-none'); boxP3.classList.add('d-none');
+      }
+
+      gapMsg?.classList.add('d-none');
+      inicio2.min = dateISO(ANO_REF,1,1);
+    }
+
+    // recalcula fim e mês automaticamente
+    recomputeFimEMes(inicio1,qtd1,fim1,mes1);
+    recomputeFimEMes(inicio2,qtd2,fim2,mes2);
+    recomputeFimEMes(inicio3,qtd3,fim3,mes3);
+
+    const rest = calcRestante();
+    diasRestantes.textContent = String(rest);
+
+    // esconde erro até o usuário escolher algo
+    const anyChosen = Boolean(v1 || v2 || v3);
+    if (!anyChosen) {
+      msgErro.classList.add('d-none');
       return;
     }
+
+    const comboOK = (direito===40) ? (v1===20 && v2===20 && !v3) : validCombo30(v1,v2,v3);
+    msgErro.classList.toggle('d-none', (comboOK && rest===0));
+  }
+
+  [qtd1,qtd2,qtd3,inicio1,inicio2,inicio3].forEach(e => e && e.addEventListener('change', () => {
+    if(e===inicio1) mes1.value = monthFromISO(inicio1.value);
+    if(e===inicio2) mes2.value = monthFromISO(inicio2.value);
+    if(e===inicio3) mes3.value = monthFromISO(inicio3.value);
+    enforceRules();
+  }));
+
+  [inicio1,inicio2].forEach(inp => inp && inp.addEventListener('change', () => {
+    if(direito!==40) return;
+    if(inicio1.value){
+      const minP2 = addMonthsISO(inicio1.value,6);
+      inicio2.min = minP2;
+      if(inicio2.value && inicio2.value < minP2){ inicio2.value=''; fim2.value=''; mes2.value=''; }
+    }
+    gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
+  }));
+
+  // expõe um validador global para o submit do formulário
+  window.validateFerias = function(){
+    enforceRules();
+    const rest = calcRestante();
+    const v1 = parseInt(qtd1.value||0), v2 = parseInt(qtd2.value||0), v3 = parseInt(qtd3.value||0);
+    let ok = true;
+    if(direito===40){
+      ok = (v1===20 && v2===20 && !v3 && inicio1.value && inicio2.value);
+      if(ok && inicio1.value && inicio2.value){
+        const minP2 = addMonthsISO(inicio1.value,6);
+        if(inicio2.value < minP2) ok = false;
+      }
+    } else {
+      ok = validCombo30(v1,v2,v3);
+    }
+    ok = ok && rest===0 && !!inicio1.value && !!mes1.value;
+    if(!ok){ msgErro.classList.remove('d-none'); }
+    return ok;
+  }
+
+  // init
+  enforceRules();
+  qtd1.addEventListener('change', enforceRules);
+  qtd2.addEventListener('change', enforceRules);
+  qtd3.addEventListener('change', enforceRules);
+
+  // ===== Hook no submit do formulário (integra tudo) =====
+  const form = document.getElementById('form-paf');
+  form?.addEventListener('submit', (e) => {
+    // meses distintos
+    if (!validateDistinct()) { e.preventDefault(); return; }
+    // períodos de férias válidos
+    if (typeof window.validateFerias === 'function'){
+      if (!window.validateFerias()) { e.preventDefault(); return; }
+    }
+    // UX
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
   });

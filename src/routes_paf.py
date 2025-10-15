@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from encodings import aliases
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select
 from src import database
 from src.formatar_cpf import get_militar_por_user
-from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PostoGrad, User
+from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from zoneinfo import ZoneInfo
 
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
@@ -209,11 +209,24 @@ def minhas():
         return redirect(url_for("home"))
 
     ano = request.args.get("ano", type=int) or _ano_atual_manaus()
+
+    # opções (NovoPaf)
     pafs = (database.session.query(NovoPaf)
             .filter(NovoPaf.militar_id == militar.id, NovoPaf.ano_referencia == ano)
             .order_by(NovoPaf.created_at.desc())
             .all())
-    return render_template("paf/paf_minhas.html", pafs=pafs, ano=ano, militar=militar)
+
+    # plano de férias (PafFeriasPlano) — pega o mais recente do ano
+    plano = (database.session.query(PafFeriasPlano)
+             .filter(PafFeriasPlano.militar_id == militar.id,
+                     PafFeriasPlano.ano_referencia == ano)
+             .order_by(PafFeriasPlano.id.desc())
+             .first())
+
+    return render_template(
+        "paf/paf_minhas.html",
+        pafs=pafs, ano=ano, militar=militar, plano=plano
+    )
 
 
 @bp_paf.route("/aprovar/<int:paf_id>", methods=["POST"])
@@ -537,7 +550,133 @@ def detalhe(paf_id):
     )
 
 
-@bp_paf.route("/novo-periodo", methods=["GET", "POST"])
+def date_from_str(s):
+    return datetime.strptime(s, "%Y-%m-%d").date() if s else None
+
+def end_inclusive(start_date, days):
+    return start_date + timedelta(days=days-1)
+
+def valida_combo(direito, q1,q2,q3):
+    vals = [q for q in [q1,q2,q3] if q]
+    s = sum(vals)
+    if direito == 40:
+        return (vals == [20,20]) or (sorted(vals)==[20,20])
+    # 30
+    if s != 30: return False
+    vals_sorted = sorted(vals)
+    return (vals_sorted==[30]) or (vals_sorted==[10,20]) or (vals_sorted==[15,15]) or (vals_sorted==[10,10,10])
+
+@bp_paf.route("/salvar-plano", methods=["POST"])
 @login_required
-def novo_periodo():
-    pass
+def salvar_plano():
+    militar = get_militar_por_user(current_user)
+    if not militar:
+        flash("Não foi possível localizar seus dados.", "danger")
+        return redirect(url_for("home"))
+
+    ano = request.form.get("ano_referencia", type=int) or (datetime.now(ZoneInfo("America/Manaus")).year+1)
+    direito = request.form.get("direito_total_dias", type=int) or 30
+
+    # também salva as 3 opções de pagamento, se vierem no POST
+    o1 = request.form.get("opcao_1", type=int)
+    o2 = request.form.get("opcao_2", type=int)
+    o3 = request.form.get("opcao_3", type=int)
+
+    if o1 and o2 and o3:
+        ja_tem = database.session.query(
+            database.session.query(NovoPaf.id)
+            .filter(NovoPaf.militar_id == militar.id, NovoPaf.ano_referencia == ano)
+            .exists()
+        ).scalar()
+        if not ja_tem:
+            agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
+            database.session.add(NovoPaf(
+                militar_id=militar.id,
+                ano_referencia=ano,
+                opcao_1=o1, opcao_2=o2, opcao_3=o3,
+                status="enviado",
+                updated_at=agora_manaus,
+                created_at=agora_manaus,
+                data_entrega=agora_manaus
+            ))
+            database.session.commit()
+
+    # lê período 1
+    q1 = request.form.get("qtd1", type=int)
+    i1 = date_from_str(request.form.get("inicio1"))
+    f1 = date_from_str(request.form.get("fim1"))
+    m1 = request.form.get("mes1", type=int)
+
+    # período 2
+    q2 = request.form.get("qtd2", type=int)
+    i2 = date_from_str(request.form.get("inicio2"))
+    f2 = date_from_str(request.form.get("fim2"))
+    m2 = request.form.get("mes2", type=int)
+
+    # período 3
+    q3 = request.form.get("qtd3", type=int)
+    i3 = date_from_str(request.form.get("inicio3"))
+    f3 = date_from_str(request.form.get("fim3"))
+    m3 = request.form.get("mes3", type=int)
+
+    # validações básicas
+    if not q1 or not i1:
+        flash("Informe quantidade e data de início do 1º período.", "warning")
+        return redirect(request.referrer or url_for("paf.novo"))
+
+    # recalcula fim para garantir consistência
+    f1_calc = end_inclusive(i1, q1)
+    if f1 != f1_calc: f1 = f1_calc
+    if not m1: m1 = i1.month
+
+    if q2 and i2:
+        f2_calc = end_inclusive(i2, q2)
+        if f2 != f2_calc: f2 = f2_calc
+        if not m2: m2 = i2.month
+    else:
+        q2=i2=f2=m2=None
+
+    if q3 and i3:
+        f3_calc = end_inclusive(i3, q3)
+        if f3 != f3_calc: f3 = f3_calc
+        if not m3: m3 = i3.month
+    else:
+        q3=i3=f3=m3=None
+
+    # regras de combinação
+    if not valida_combo(direito, q1,q2,q3):
+        flash("Combinação de períodos inválida para o seu direito de dias.", "danger")
+        return redirect(request.referrer or url_for("paf.novo"))
+
+    # regra dos 40 dias: gap 6 meses entre inícios
+    if direito == 40 and (not q2 or not i2 or q1!=20 or q2!=20):
+        flash("Para 40 dias, os períodos devem ser 20 + 20 e com 6 meses de intervalo.", "danger")
+        return redirect(request.referrer or url_for("paf.novo"))
+    if direito == 40 and i1 and i2:
+        min_i2 = (i1.replace(day=1) + timedelta(days=31*6))  # aproxima 6 meses
+        # versão exata (sem aproximação) se preferir usar relativedelta
+        from dateutil.relativedelta import relativedelta
+        if i2 < (i1 + relativedelta(months=+6)):
+            flash("Precisa de 6 meses entre o início do 1º e 2º períodos.", "danger")
+            return redirect(request.referrer or url_for("paf.novo"))
+
+    # 1 por militar/ano
+    existe = database.session.query(PafFeriasPlano.id).filter_by(militar_id=militar.id, ano_referencia=ano).first()
+    if existe:
+        flash("Você já cadastrou um plano de férias para este ano.", "warning")
+        return redirect(url_for("paf.minhas", ano=ano))
+
+    plano = PafFeriasPlano(
+        militar_id=militar.id,
+        usuario_id=current_user.id,
+        ano_referencia=ano,
+        direito_total_dias=direito,
+        qtd_dias_p1=q1, inicio_p1=i1, fim_p1=f1, mes_usufruto_p1=m1,
+        qtd_dias_p2=q2, inicio_p2=i2, fim_p2=f2, mes_usufruto_p2=m2,
+        qtd_dias_p3=q3, inicio_p3=i3, fim_p3=f3, mes_usufruto_p3=m3,
+        status="enviado"
+    )
+    database.session.add(plano)
+    database.session.commit()
+    flash("Plano de férias enviado para avaliação.", "success")
+    return redirect(url_for("paf.minhas", ano=ano))
