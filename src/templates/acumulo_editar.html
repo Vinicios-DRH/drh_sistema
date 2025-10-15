@@ -176,6 +176,16 @@
                                     <option value="federal"   {{ 'selected' if esf=='federal'   else '' }}>Federal</option>
                                 </select>
                             </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">Está de licença?</label>
+                                <select class="form-select" name="licenca">
+                                    <option value="" selected disabled>Selecione…</option>
+                                    <option value="sim">Sim</option>
+                                    <option value="não">Não</option>
+                                </select>
+                            </div>
+
                             <div class="col-md-3">
                                 <label class="form-label">CNPJ/CPF</label>
                                 <input class="form-control" name="empregador_doc[]" value="{{ v.empregador_doc }}"
@@ -255,6 +265,14 @@
                                     <option value="" selected disabled>Selecione…</option>
                                     <option value="escala">Escala</option>
                                     <option value="expediente">Expediente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Está de licença?</label>
+                                <select class="form-select" name="licenca">
+                                    <option value="" selected disabled>Selecione…</option>
+                                    <option value="sim">Sim</option>
+                                    <option value="não">Não</option>
                                 </select>
                             </div>
                             <div class="col-md-5">
@@ -380,6 +398,7 @@
                     empregador_nome: nome,
                     empregador_tipo: get('empregador_tipo'),   // municipal/estadual/federal
                     empregador_doc:  get('empregador_doc'),
+                    licenca: get('licenca'),
                     natureza_vinculo:'efetivo',
                     jornada_trabalho:get('jornada_trabalho'),
                     cargo_funcao:    get('cargo_funcao'),
@@ -401,7 +420,7 @@
             const v = firstFilledVinculo();
             if (!v) return false;
             const esfera = (v.empregador_tipo || '').toLowerCase();
-            const req = ['empregador_nome','empregador_tipo','empregador_doc','jornada_trabalho','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
+            const req = ['empregador_nome','empregador_tipo','empregador_doc','licenca','jornada_trabalho','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
             if (!req.every(k => v[k])) return false;
             if (!['municipal','estadual','federal'].includes(esfera)) return false;
             if (!isCpfCnpjValid(v.empregador_doc)) return false;
@@ -423,6 +442,7 @@
                 empregador_nome: nome,
                 empregador_tipo: (get('empregador_tipo') || '').toLowerCase(), // municipal/estadual/federal
                 empregador_doc:  get('empregador_doc'),
+                licenca: get('licenca'),
                 natureza_vinculo:'efetivo', // fixo
                 jornada_trabalho:(get('jornada_trabalho') || '').toLowerCase(),
                 cargo_funcao:    get('cargo_funcao'),

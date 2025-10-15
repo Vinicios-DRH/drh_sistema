@@ -810,6 +810,8 @@ def novo(militar_id):
         # AGORA: esfera do órgão público (municipal/estadual/federal)
         emp_esfera = (request.form.get("empregador_tipo")
                       or "").strip().lower()
+        
+        licenca = (request.form.get("licenca") or "").strip().lower()
         emp_doc = _digits(request.form.get("empregador_doc") or "")
 
         # natureza é fixa = efetivo (não ler mais do form)
@@ -841,6 +843,7 @@ def novo(militar_id):
         vinculo_row = dict(
             empregador_nome=emp_nome,
             empregador_tipo=emp_esfera,      # << agora guarda a ESFERA
+            licenca = licenca,
             empregador_doc=emp_doc,
             natureza_vinculo=natureza,       # << sempre 'efetivo'
             jornada_trabalho=jornada,
@@ -973,10 +976,13 @@ def _sanitize_vinculo(v: dict) -> dict:
     if esfera not in {'municipal', 'estadual', 'federal', ''}:
         esfera = ''  # não invalidamos rascunho — só normalizamos
 
+    licenca = (v.get('licenca') or '').strip().lower()
+
     return {
         'empregador_nome': (v.get('empregador_nome') or '').strip(),
         # municipal | estadual | federal
         'empregador_tipo': esfera,
+        'licenca': licenca,
         'empregador_doc': _digits(v.get('empregador_doc') or ''),
         'natureza_vinculo': 'efetivo',                        # fixo
         'jornada_trabalho': (v.get('jornada_trabalho') or '').strip().lower(),
@@ -1106,6 +1112,7 @@ def prepara_geracao():
             pre.update({
                 "empregador_nome": (request.form.get("empregador_nome") or "").strip(),
                 "empregador_tipo": (request.form.get("empregador_tipo") or "").strip().lower(),
+                "licenca": (request.form.get("licenca") or "").strip().lower(),
                 "empregador_doc": ''.join(filter(str.isdigit, request.form.get("empregador_doc") or "")),
                 "natureza_vinculo": (request.form.get("natureza_vinculo") or "").strip().lower(),
                 "jornada_trabalho": (request.form.get("jornada_trabalho") or "").strip().lower(),
@@ -1189,6 +1196,7 @@ def upload_assinado(militar_id):
         vinculo_row = dict(
             empregador_nome=pre["empregador_nome"],
             empregador_tipo=pre["empregador_tipo"],
+            licenca=pre["licenca"],
             empregador_doc=pre["empregador_doc"],
             natureza_vinculo=pre["natureza_vinculo"],
             jornada_trabalho=pre["jornada_trabalho"],
@@ -1408,6 +1416,8 @@ def editar(decl_id):
         nomes = request.form.getlist("empregador_nome[]")
         # municipal/estadual/federal
         tipos = request.form.getlist("empregador_tipo[]")
+        
+        licenca = (request.form.get("licenca") or "").strip().lower()
         docs = request.form.getlist("empregador_doc[]")
         jornada = request.form.getlist("jornada_trabalho[]")
         cargos = request.form.getlist("cargo_funcao[]")
@@ -1441,6 +1451,7 @@ def editar(decl_id):
             "empregador_nome": first_or_empty(nomes, idx),
             "empregador_tipo": esfera,
             "empregador_doc": _digits(first_or_empty(docs, idx)),
+            "licenca": licenca,
             "natureza_vinculo": "efetivo",
             "jornada_trabalho": first_or_empty(jornada, idx).lower(),
             "cargo_funcao": first_or_empty(cargos, idx),

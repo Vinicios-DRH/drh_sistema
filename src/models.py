@@ -1009,6 +1009,8 @@ class VinculoExterno(database.Model):
         nullable=False
     )
 
+    licenca = database.Column(database.Enum('sim', 'não', name='licenca'))
+
     # CNPJ (14) ou CPF (11) — salvo limpo
     empregador_doc = database.Column(database.String(18), nullable=False)
 

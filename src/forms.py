@@ -570,6 +570,9 @@ class VinculoExternoSubForm(FlaskForm):
         Regexp(r"^\d{11}$|^\d{14}$",
                message="Apenas dígitos (11=CPF, 14=CNPJ).")
     ])
+    ltip = SelectField("Está de licença?", choices=[
+            ('Sim', 'Sim'),
+            ('Não', 'Não'),])
     natureza_vinculo = SelectField(
         "Natureza do vínculo", choices=NATUREZA_VINCULO_CHOICES, validators=[DataRequired()])
     cargo_funcao = StringField(

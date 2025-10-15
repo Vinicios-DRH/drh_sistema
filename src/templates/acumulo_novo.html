@@ -281,6 +281,15 @@
                         </div>
 
                         <div class="col-md-3">
+                            <label class="form-label">Está de licença?</label>
+                            <select class="form-select" name="licenca">
+                                <option value="" selected disabled>Selecione…</option>
+                                <option value="sim">Sim</option>
+                                <option value="não">Não</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
                             <label class="form-label">CNPJ do Órgão</label>
                             <input class="form-control" name="empregador_doc" inputmode="numeric" autocomplete="off"
                                 maxlength="18" placeholder="somente dígitos" required>
@@ -373,7 +382,7 @@
         if (!tipoSelect.value) return false;
         if (tipoSelect.value === 'positiva') {
             const req = [
-                'empregador_nome', 'empregador_tipo', 'empregador_doc',
+                'empregador_nome', 'empregador_tipo', 'empregador_doc', 'licenca',
                 'jornada_trabalho', 'cargo_funcao', 'carga_horaria_semanal',
                 'horario_inicio', 'horario_fim', 'data_inicio'
             ];
@@ -422,6 +431,15 @@
             } else {
                 clearFieldError(form.querySelector('[name="empregador_tipo"]'));
             }
+            const licenca = (form.querySelector('[name="licenca"]')?.value || '').toLowerCase();
+            if (!['sim', 'não'].includes(licenca)) {
+                const sel = form.querySelector('[name="licenca"]');
+                setFieldError(sel, 'Selecione se você está ou não de licença.');
+                sel.focus();
+                return false;
+            } else {
+                clearFieldError(form.querySelector('[name="licenca"]'));
+            }
         }
         return true;
     }
@@ -434,6 +452,7 @@
             empregador_nome: get('empregador_nome'),
             empregador_tipo: get('empregador_tipo'),   // municipal/estadual/federal
             empregador_doc: digitsOnly(get('empregador_doc')),
+            licenca: get('licenca'),
             natureza_vinculo: 'efetivo',
             jornada_trabalho: get('jornada_trabalho'),
             cargo_funcao: get('cargo_funcao'),
@@ -471,6 +490,7 @@
             set('empregador_nome', v.empregador_nome || '');
             set('empregador_tipo', v.empregador_tipo || '');
             set('empregador_doc', v.empregador_doc || '');
+            set('licenca', v.licenca || '');
             set('jornada_trabalho', v.jornada_trabalho || '');
             set('cargo_funcao', v.cargo_funcao || '');
             set('carga_horaria_semanal', v.carga_horaria_semanal || '');
