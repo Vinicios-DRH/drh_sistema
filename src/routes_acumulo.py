@@ -1417,7 +1417,7 @@ def editar(decl_id):
         # municipal/estadual/federal
         tipos = request.form.getlist("empregador_tipo[]")
         
-        licenca = (request.form.get("licenca") or "").strip().lower()
+        licencas = request.form.getlist("licenca[]")
         docs = request.form.getlist("empregador_doc[]")
         jornada = request.form.getlist("jornada_trabalho[]")
         cargos = request.form.getlist("cargo_funcao[]")
@@ -1451,7 +1451,7 @@ def editar(decl_id):
             "empregador_nome": first_or_empty(nomes, idx),
             "empregador_tipo": esfera,
             "empregador_doc": _digits(first_or_empty(docs, idx)),
-            "licenca": licenca,
+            "licenca": first_or_empty(licencas, idx).lower(),
             "natureza_vinculo": "efetivo",
             "jornada_trabalho": first_or_empty(jornada, idx).lower(),
             "cargo_funcao": first_or_empty(cargos, idx),
@@ -1510,7 +1510,7 @@ def recebimento():
             D.tipo.label("decl_tipo"),
             D.meio_entrega.label("decl_meio"),
             D.arquivo_declaracao.label("decl_arquivo_modelo"),
-            D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),   # << NOVO
+            D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),
             rn
         )
         .filter(D.ano_referencia == ano)
@@ -1581,7 +1581,7 @@ def recebimento():
         )
     )
 
-    # VISIBILIDADE (apenas uma vez)
+    # VISIBILIDADE
     if not IS_DRH_LIKE:
         # Chefia/OBM: NÃO veem negativas; positivas sempre
         base_page_q = base_page_q.filter(
@@ -1601,7 +1601,6 @@ def recebimento():
                     enc_exists                         # positiva encaminhada
                 )
             )
-
 
     # Chegada à DRH = Somente encaminhadas
     enc_only = (request.args.get("enc") == "1")
@@ -1672,6 +1671,17 @@ def recebimento():
 
     U = User
     U2 = aliased(User)
+    V = VinculoExterno
+
+    lic_count_subq = (
+        db.session.query(
+            V.declaracao_id.label("decl_id"),
+            func.sum(case((V.licenca == "sim", 1), else_=0)).label("lic_sim"),
+            func.count(V.id).label("lic_total"),
+        )
+        .group_by(V.declaracao_id)
+        .subquery()
+    )
 
     rows = (
         db.session.query(
@@ -1687,6 +1697,9 @@ def recebimento():
             # quem validou
             U2.nome.label("validado_por"),
             val_subq.c.val_quando.label("validado_quando"),
+
+            lic_count_subq.c.lic_sim,
+            lic_count_subq.c.lic_total,
         )
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(O, O.id == MOF.obm_id)
@@ -1698,7 +1711,7 @@ def recebimento():
         # joins da validação
         .outerjoin(val_subq, and_(val_subq.c.decl_id == ultimo_subq.c.decl_id, val_subq.c.rn == 1))
         .outerjoin(U2, U2.id == val_subq.c.val_uid)
-
+        .outerjoin(lic_count_subq, lic_count_subq.c.decl_id == ultimo_subq.c.decl_id)
         .filter(M.id.in_(page_ids))
         .order_by(M.nome_completo.asc())
         .all()
@@ -1748,7 +1761,9 @@ def recebimento():
 
     url_map, linhas = {}, []
     for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao,
-         enc_por, enc_quando, val_por, val_quando) in rows:
+        enc_por, enc_quando, val_por, val_quando,
+        lic_sim, lic_total) in rows:
+
         if decl_id:
             urls = {}
             if arq_modelo:
@@ -1756,6 +1771,9 @@ def recebimento():
             if arq_orgao:
                 urls["orgao"] = b2_presigned_get(arq_orgao, 600)
             url_map[decl_id] = urls
+
+        # regra: "está de licença" = existe algum vínculo com licenca == 'sim'
+        licenca_flag = bool(lic_sim and lic_sim > 0) if decl_id and tp == "positiva" else None
 
         linhas.append(dict(
             militar=militar,
@@ -1773,6 +1791,10 @@ def recebimento():
             validado_por=val_por or "",
             validado_quando=val_quando,
             validado_flag=bool(val_quando),
+
+            licenca_flag=licenca_flag,   # True = tem algum SIM; False = (0 SIM); None = não aplicável
+            lic_sim=lic_sim or 0,
+            lic_total=lic_total or 0,
         ))
 
     def render_pagination(total, page, per_page):

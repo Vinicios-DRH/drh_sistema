@@ -179,10 +179,10 @@
                             
                             <div class="col-md-3">
                                 <label class="form-label">Está de licença?</label>
-                                <select class="form-select" name="licenca">
+                                <select class="form-select" name="licenca[]" required>
                                     <option value="" selected disabled>Selecione…</option>
-                                    <option value="sim">Sim</option>
-                                    <option value="não">Não</option>
+                                    <option value="sim" {{ 'selected' if (v.licenca or '').lower()=='sim' else '' }}>Sim</option>
+                                    <option value="nao" {{ 'selected' if (v.licenca or '').lower() in ['não','não'] else '' }}>Não</option>
                                 </select>
                             </div>
 
@@ -269,7 +269,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Está de licença?</label>
-                                <select class="form-select" name="licenca">
+                                <select class="form-select" name="licenca[]" required>
                                     <option value="" selected disabled>Selecione…</option>
                                     <option value="sim">Sim</option>
                                     <option value="não">Não</option>
@@ -366,21 +366,24 @@
 
     // Helpers
     const digitsOnly = v => (v || '').replace(/\D+/g, '');
-    const isCpfCnpjValid = v => { const d = digitsOnly(v); return d.length === 14; };
+    const isCpfCnpjValid = v => {
+        const d = digitsOnly(v);
+        return d.length === 11 || d.length === 14;
+    };
     function setFieldError(el, msg) { el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
     function clearFieldError(el) { el.setCustomValidity(''); el.classList.remove('is-invalid'); }
 
     function bindLiveDocValidation(root) {
         root.querySelectorAll('input[name="empregador_doc[]"]').forEach(inp => {
             inp.addEventListener('input', () => {
-                const cur = inp.value, cleaned = digitsOnly(cur);
-                if (cur !== cleaned) inp.value = cleaned;
-                if (!cleaned.length) { clearFieldError(inp); return; }
-                isCpfCnpjValid(cleaned) ? clearFieldError(inp) : setFieldError(inp, 'Informe 14 dígitos.');
+            const cur = inp.value, cleaned = digitsOnly(cur);
+            if (cur !== cleaned) inp.value = cleaned;
+            if (!cleaned.length) { clearFieldError(inp); return; }
+            isCpfCnpjValid(cleaned) ? clearFieldError(inp) : setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
             });
             inp.addEventListener('blur', () => {
-                const d = digitsOnly(inp.value);
-                (!d || isCpfCnpjValid(d)) ? clearFieldError(inp) : setFieldError(inp, 'Informe 14 dígitos.');
+            const d = digitsOnly(inp.value);
+            (!d || isCpfCnpjValid(d)) ? clearFieldError(inp) : setFieldError(inp, 'Informe 11 (CPF) ou 14 (CNPJ) dígitos.');
             });
         });
     }
@@ -393,20 +396,20 @@
             const get = n => card.querySelector(`[name="${n}[]"]`)?.value?.trim() || '';
             const nome = get('empregador_nome');
             if (nome) {
-                // natureza sempre efetivo
-                return {
-                    empregador_nome: nome,
-                    empregador_tipo: get('empregador_tipo'),   // municipal/estadual/federal
-                    empregador_doc:  get('empregador_doc'),
-                    licenca: get('licenca'),
-                    natureza_vinculo:'efetivo',
-                    jornada_trabalho:get('jornada_trabalho'),
-                    cargo_funcao:    get('cargo_funcao'),
-                    carga_horaria_semanal: get('carga_horaria_semanal'),
-                    horario_inicio:  get('horario_inicio'),
-                    horario_fim:     get('horario_fim'),
-                    data_inicio:     get('data_inicio'),
-                };
+            const lic = get('licenca').toLowerCase();
+            return {
+                empregador_nome: nome,
+                empregador_tipo: get('empregador_tipo'),
+                empregador_doc:  get('empregador_doc'),
+                licenca: (lic === 'não' ? 'nao' : lic), // normaliza se vier com acento
+                natureza_vinculo:'efetivo',
+                jornada_trabalho:get('jornada_trabalho'),
+                cargo_funcao:    get('cargo_funcao'),
+                carga_horaria_semanal: get('carga_horaria_semanal'),
+                horario_inicio:  get('horario_inicio'),
+                horario_fim:     get('horario_fim'),
+                data_inicio:     get('data_inicio'),
+            };
             }
         }
         return null;
@@ -423,7 +426,7 @@
             const req = ['empregador_nome','empregador_tipo','empregador_doc','licenca','jornada_trabalho','cargo_funcao','carga_horaria_semanal','horario_inicio','horario_fim','data_inicio'];
             if (!req.every(k => v[k])) return false;
             if (!['municipal','estadual','federal'].includes(esfera)) return false;
-            if (!isCpfCnpjValid(v.empregador_doc)) return false;
+            if (!isCpfCnpjValid(digitsOnly(v.empregador_doc))) return false;
         }
         return true;
     }
@@ -442,7 +445,7 @@
                 empregador_nome: nome,
                 empregador_tipo: (get('empregador_tipo') || '').toLowerCase(), // municipal/estadual/federal
                 empregador_doc:  get('empregador_doc'),
-                licenca: get('licenca'),
+                licenca: (get('licenca') || '').toLowerCase().replace('não','não'),
                 natureza_vinculo:'efetivo', // fixo
                 jornada_trabalho:(get('jornada_trabalho') || '').toLowerCase(),
                 cargo_funcao:    get('cargo_funcao'),
@@ -496,9 +499,10 @@
         if (tipoSelect.value === 'positiva') {
             const v = firstFilledVinculo();
             fd.set('empregador_nome', v.empregador_nome);
-            fd.set('empregador_tipo', v.empregador_tipo); // municipal/estadual/federal
+            fd.set('empregador_tipo', v.empregador_tipo);
             fd.set('empregador_doc', digitsOnly(v.empregador_doc));
-            fd.set('natureza_vinculo', 'efetivo'); // fixo
+            fd.set('licenca', v.licenca); // <-- ADICIONE ISTO
+            fd.set('natureza_vinculo', 'efetivo');
             fd.set('jornada_trabalho', (v.jornada_trabalho || '').toLowerCase());
             fd.set('cargo_funcao', v.cargo_funcao);
             fd.set('carga_horaria_semanal', v.carga_horaria_semanal);
@@ -518,6 +522,7 @@
             if (fd.get('tipo') === 'positiva') {
                 p.set('empregador_nome', fd.get('empregador_nome') || '');
                 p.set('empregador_doc', digitsOnly(fd.get('empregador_doc') || ''));
+                p.set('licenca', (fd.get('licenca') || '').toLowerCase());
                 p.set('natureza_vinculo', 'efetivo');
                 p.set('jornada_trabalho', (fd.get('jornada_trabalho') || '').toLowerCase());
                 p.set('cargo_funcao', fd.get('cargo_funcao') || '');

@@ -145,6 +145,7 @@
                             <th>OBM</th>
                             <th>Ano</th>
                             <th>Tipo</th>
+                            <th>Licença?</th>
                             <th>Arquivos</th>
                             <th>Status</th>
                             <th class="text-end" style="width:210px;">Ações</th>
@@ -186,6 +187,26 @@
                                     {% endif %}
                                 {% else %}
                                     <span class="badge text-bg-light text-dark">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.decl_id %}
+                                    {% if row.decl_tipo == 'positiva' %}
+                                    {% if row.lic_total > 0 %}
+                                        {% if row.licenca_flag %}
+                                        <span class="badge text-bg-success">Sim</span>
+                                        {% else %}
+                                        <span class="badge text-bg-secondary">Não</span>
+                                        {% endif %}
+                                        <div class="small subtle">({{ row.lic_sim }}/{{ row.lic_total }} com licença)</div>
+                                    {% else %}
+                                        <span class="badge text-bg-light text-dark">—</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="badge text-bg-light text-dark">—</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="subtle">Não enviado</span>
                                 {% endif %}
                             </td>
                             <td>
