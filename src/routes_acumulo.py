@@ -1724,6 +1724,23 @@ def recebimento():
         .subquery()
     )
 
+    rn_inc = func.row_number().over(
+        partition_by=AuditoriaDeclaracao.declaracao_id,
+        order_by=AuditoriaDeclaracao.data_alteracao.desc()
+    ).label("rn")
+
+    inc_subq = (
+        db.session.query(
+            AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+            AuditoriaDeclaracao.alterado_por_user_id.label("inc_uid"),
+            AuditoriaDeclaracao.data_alteracao.label("inc_quando"),
+            rn_inc
+        )
+        .filter(AuditoriaDeclaracao.para_status == "inconforme")
+        .subquery()
+    )
+
+    U3 = aliased(User)
     U = User
     U2 = aliased(User)
     V = VinculoExterno
@@ -1753,6 +1770,10 @@ def recebimento():
             U2.nome.label("validado_por"),
             val_subq.c.val_quando.label("validado_quando"),
 
+            # inconforme  <<< NOVO
+            U3.nome.label("inconforme_por"),
+            inc_subq.c.inc_quando.label("inconforme_quando"),
+
             lic_count_subq.c.lic_sim,
             lic_count_subq.c.lic_total,
         )
@@ -1766,6 +1787,8 @@ def recebimento():
         # joins da validação
         .outerjoin(val_subq, and_(val_subq.c.decl_id == ultimo_subq.c.decl_id, val_subq.c.rn == 1))
         .outerjoin(U2, U2.id == val_subq.c.val_uid)
+        .outerjoin(inc_subq, and_(inc_subq.c.decl_id == ultimo_subq.c.decl_id, inc_subq.c.rn == 1))
+        .outerjoin(U3, U3.id == inc_subq.c.inc_uid)
         .outerjoin(lic_count_subq, lic_count_subq.c.decl_id == ultimo_subq.c.decl_id)
         .filter(M.id.in_(page_ids))
         .order_by(M.nome_completo.asc())
@@ -1817,6 +1840,7 @@ def recebimento():
     url_map, linhas = {}, []
     for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao,
         enc_por, enc_quando, val_por, val_quando,
+        inc_por, inc_quando, 
         lic_sim, lic_total) in rows:
 
         if decl_id:
@@ -1846,6 +1870,10 @@ def recebimento():
             validado_por=val_por or "",
             validado_quando=val_quando,
             validado_flag=bool(val_quando),
+
+            inconforme_por=inc_por or "",
+            inconforme_quando=inc_quando,
+            inconforme_flag=bool(inc_quando),
 
             licenca_flag=licenca_flag,   # True = tem algum SIM; False = (0 SIM); None = não aplicável
             lic_sim=lic_sim or 0,

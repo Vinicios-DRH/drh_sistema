@@ -251,6 +251,13 @@
                                         </div>
                                     {% endif %}
 
+                                    {% if row.decl_status == 'inconforme' and row.inconforme_quando %}
+                                        <div class="small subtle mt-1">
+                                            Inconforme por <strong>{{ row.inconforme_por or '—' }}</strong>
+                                            em {{ row.inconforme_quando.strftime("%d/%m/%Y %H:%M") }}
+                                        </div>
+                                    {% endif %}
+
                                     {% if is_drh_like and eh_positiva and not row.encaminhado_flag %}
                                         <div class="small subtle mt-1">Aguardando encaminhamento da chefia/diretor.</div>
                                     {% endif %}
