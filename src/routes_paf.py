@@ -386,6 +386,7 @@ def recebimento():
     obm_id  = request.args.get("obm_id", type=int)
 
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
+    PFP = PafFeriasPlano
 
     IS_SUPER    = _is_super_user()
     IS_DRH_LIKE = _is_drh_like()
@@ -408,6 +409,26 @@ def recebimento():
             rn
         )
         .filter(D.ano_referencia == ano)
+        .subquery()
+    )
+
+    rn_plano = func.row_number().over(
+        partition_by=PFP.militar_id,
+        order_by=(PFP.updated_at.desc().nullslast(), PFP.id.desc())
+    ).label("rn")
+
+    ultimo_plano_sq = (
+        database.session.query(
+            PFP.militar_id.label("m_id"),
+            PFP.id.label("plano_id"),
+            PFP.status.label("plano_status"),
+            PFP.direito_total_dias,
+            PFP.qtd_dias_p1, PFP.inicio_p1, PFP.fim_p1,
+            PFP.qtd_dias_p2, PFP.inicio_p2, PFP.fim_p2,
+            PFP.qtd_dias_p3, PFP.inicio_p3, PFP.fim_p3,
+            rn_plano
+        )
+        .filter(PFP.ano_referencia == ano)
         .subquery()
     )
 
@@ -470,6 +491,7 @@ def recebimento():
             M,
             PG.sigla.label("pg_sigla"),
             O.sigla.label("obm_sigla"),
+            # PAF
             ultimo_paf_sq.c.paf_id,
             ultimo_paf_sq.c.paf_status,
             ultimo_paf_sq.c.opcao_1,
@@ -479,13 +501,20 @@ def recebimento():
             ultimo_paf_sq.c.recebido_em,
             ultimo_paf_sq.c.created_at,
             ultimo_paf_sq.c.updated_at,
+            # PLANO
+            ultimo_plano_sq.c.plano_id,
+            ultimo_plano_sq.c.plano_status,
+            ultimo_plano_sq.c.direito_total_dias,
+            ultimo_plano_sq.c.qtd_dias_p1, ultimo_plano_sq.c.inicio_p1, ultimo_plano_sq.c.fim_p1,
+            ultimo_plano_sq.c.qtd_dias_p2, ultimo_plano_sq.c.inicio_p2, ultimo_plano_sq.c.fim_p2,
+            ultimo_plano_sq.c.qtd_dias_p3, ultimo_plano_sq.c.inicio_p3, ultimo_plano_sq.c.fim_p3,
         )
         .join(base_cte, base_cte.c.m_id == M.id)
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(O, O.id == MOF.obm_id)
         .outerjoin(PG, PG.id == M.posto_grad_id)
-        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == M.id,
-                                       ultimo_paf_sq.c.rn == 1))
+        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == M.id, ultimo_paf_sq.c.rn == 1))
+        .outerjoin(ultimo_plano_sq, and_(ultimo_plano_sq.c.m_id == M.id, ultimo_plano_sq.c.rn == 1))
     )
 
     # Filtro de status
@@ -508,7 +537,7 @@ def recebimento():
         status=status,
         obm_id=obm_id,
         obms=obms,
-        is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,  # SUPER também vê botões de validação
+        is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,
         kpi=kpi,
     )
 

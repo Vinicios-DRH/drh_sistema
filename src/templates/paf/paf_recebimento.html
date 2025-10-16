@@ -22,6 +22,12 @@
     border-radius:999px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.06)}
   .table thead th{color:#cbd5e1; font-weight:600; border-color:rgba(255,255,255,.14)}
   .table td,.table th{color:#e5eef9; border-color:rgba(255,255,255,.08)}
+
+  /* pílulas dos períodos (plano) */
+  .period-pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem;
+    border-radius:10px; border:1px dashed var(--glass-brd); background:rgba(255,255,255,.05);
+    font-size:.78rem; margin:0 .25rem .25rem 0;}
+  .period-pill i{opacity:.85;}
 </style>
 {% endblock %}
 
@@ -39,6 +45,7 @@
             <div class="small opacity-75">Filtre por nome, matrícula, PG, OBM.</div>
           </div>
         </div>
+
         <form class="d-flex flex-wrap gap-2" method="get">
           <input type="hidden" name="ano" value="{{ ano }}">
           <input class="form-control form-control-sm" name="q" value="{{ q or '' }}"
@@ -71,42 +78,12 @@
 
     {% if kpi %}
     <div class="row g-3 mb-3">
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Total militares</div>
-          <div class="h4 m-0">{{ kpi.total }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Não enviaram</div>
-          <div class="h4 m-0">{{ kpi.nao_enviaram }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Pendentes (chefia)</div>
-          <div class="h4 m-0">{{ kpi.pendentes }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Aguard. DRH</div>
-          <div class="h4 m-0">{{ kpi.aguardando }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Validados DRH</div>
-          <div class="h4 m-0">{{ kpi.validados }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Reprovados</div>
-          <div class="h4 m-0">{{ kpi.reprovados }}</div>
-        </div>
-      </div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Total militares</div><div class="h4 m-0">{{ kpi.total }}</div></div></div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Não enviaram</div><div class="h4 m-0">{{ kpi.nao_enviaram }}</div></div></div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Pendentes (chefia)</div><div class="h4 m-0">{{ kpi.pendentes }}</div></div></div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Aguard. DRH</div><div class="h4 m-0">{{ kpi.aguardando }}</div></div></div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Validados DRH</div><div class="h4 m-0">{{ kpi.validados }}</div></div></div>
+      <div class="col-6 col-md-4 col-xl-2"><div class="glass-card p-3 text-center"><div class="small-muted">Reprovados</div><div class="h4 m-0">{{ kpi.reprovados }}</div></div></div>
     </div>
     {% endif %}
 
@@ -115,6 +92,14 @@
       {%- if v is not none and (v|string)|int>=1 and (v|string)|int<=12 -%}
         {{ meses_full[(v|string)|int-1] }}
       {%- else -%} — {%- endif -%}
+    {%- endmacro %}
+
+    {# helpers para datas e pílulas #}
+    {% macro d(v) -%} {{ v.strftime('%d/%m') if v else '—' }} {%- endmacro %}
+    {% macro pill(n,qd,ini,fim) -%}
+      {% if qd and ini and fim %}
+        <span class="period-pill"><i class="bi bi-calendar3"></i>{{ n }}º: {{ qd }}d · {{ d(ini) }}–{{ d(fim) }}</span>
+      {% endif %}
     {%- endmacro %}
 
     {% set badge_cls = {
@@ -136,17 +121,24 @@
               <tr>
                 <th style="width:90px">#</th>
                 <th>Militar</th>
-                <th style="width:120px">Posto/Graduação</th>
+                <th style="width:120px">PG</th>
                 <th style="width:140px">OBM</th>
-                <th>Opções</th>
+                <th>Opções (pagamento)</th>
+                <th style="min-width:260px">Períodos solicitados</th> {# NOVO #}
                 <th style="width:160px">Status</th>
                 <th style="width:200px">Recebido em</th>
                 <th style="width:220px">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {# cada item vem como (M, pg_sigla, obm_sigla, paf_id, paf_status, opc1, opc2, opc3, mes_definido, recebido_em, created_at, updated_at) #}
-              {% for m, pg_sigla, obm_sigla, paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at in linhas %}
+              {# item: (M, pg_sigla, obm_sigla,
+                        paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at,
+                        plano_id, plano_status, direito_total_dias,
+                        q1,i1,f1, q2,i2,f2, q3,i3,f3) #}
+              {% for m, pg_sigla, obm_sigla,
+                     paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at,
+                     plano_id, plano_status, direito_total,
+                     q1, i1, f1, q2, i2, f2, q3, i3, f3 in linhas %}
                 {% set st = (paf_status or 'nao_enviou')|lower %}
                 <tr>
                   <td class="text-muted">{{ '#' ~ (paf_id if paf_id else '—') }}</td>
@@ -156,17 +148,27 @@
                   </td>
                   <td>{{ pg_sigla or '—' }}</td>
                   <td>{{ obm_sigla or '—' }}</td>
+
                   <td>
                     {% if paf_id %}
                       <span class="chip">{{ mes_nome(opc1) }}</span>
                       <span class="chip">{{ mes_nome(opc2) }}</span>
                       <span class="chip">{{ mes_nome(opc3) }}</span>
-                    {% else %}
-                      <span class="small-muted">—</span>
-                    {% endif %}
+                    {% else %}<span class="small-muted">—</span>{% endif %}
                   </td>
+
+                  <td>
+                    {% if plano_id %}
+                      {{ pill(1, q1, i1, f1) }}
+                      {{ pill(2, q2, i2, f2) }}
+                      {{ pill(3, q3, i3, f3) }}
+                      {% if not (q1 and i1 and f1) %}<span class="small-muted">—</span>{% endif %}
+                    {% else %}<span class="small-muted">—</span>{% endif %}
+                  </td>
+
                   {% set label_st = 'Não enviou' if st=='nao_enviou' else ('Pendente' if st in ['pendente','enviado'] else (paf_status or '—')) %}
                   <td><span class="{{ badge_cls.get(st, 'badge text-bg-secondary') }}">{{ label_st }}</span></td>
+
                   <td class="small">
                     {% if recebido_em %}
                       {{ recebido_em.strftime('%d/%m/%Y %H:%M') }}
@@ -174,15 +176,14 @@
                       {{ created_at.strftime('%d/%m/%Y %H:%M') }}
                     {% else %} — {% endif %}
                   </td>
+
                   <td class="text-nowrap">
                     {% if is_drh %}
                       {% if paf_id %}
                         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('paf.validar', paf_id=paf_id) }}">
                           <i class="bi bi-clipboard-check me-1"></i> Validar
                         </a>
-                      {% else %}
-                        <span class="small-muted">—</span>
-                      {% endif %}
+                      {% else %}<span class="small-muted">—</span>{% endif %}
                     {% else %}
                       {% if paf_id %}
                         <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline">
@@ -199,9 +200,7 @@
                             <i class="bi bi-x-circle me-1"></i> Reprovar
                           </button>
                         </form>
-                      {% else %}
-                        <span class="small-muted">—</span>
-                      {% endif %}
+                      {% else %}<span class="small-muted">—</span>{% endif %}
                     {% endif %}
                   </td>
                 </tr>
