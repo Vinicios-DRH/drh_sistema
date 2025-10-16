@@ -33,7 +33,7 @@
 
 {% block body %}
 <section class="py-3 py-md-4">
-  <div class="container-xxl">
+  <div class="xxl">
 
     <!-- Cabeçalho / Filtros -->
     <div class="brand-header p-3 p-md-4 mb-3">
@@ -138,7 +138,7 @@
               {% for m, pg_sigla, obm_sigla,
                      paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at,
                      plano_id, plano_status, direito_total,
-                     q1, i1, f1, q2, i2, f2, q3, i3, f3 in linhas %}
+                     q1, i1, f1, q2, i2, f2, q3, i3, f3, justificativa, observacoes in linhas %}
                 {% set st = (paf_status or 'nao_enviou')|lower %}
                 <tr>
                   <td class="text-muted">{{ '#' ~ (paf_id if paf_id else '—') }}</td>
@@ -193,14 +193,31 @@
                             <i class="bi bi-send-check me-1"></i> Encaminhar DRH
                           </button>
                         </form>
-                        <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline ms-1">
-                          <input type="hidden" name="acao" value="reprovar">
-                          <button class="btn btn-sm btn-outline-danger" type="submit"
-                                  {{ 'disabled' if st in ['reprovado_chefe','validado_drh'] else '' }}>
-                            <i class="bi bi-x-circle me-1"></i> Reprovar
-                          </button>
-                        </form>
-                      {% else %}<span class="small-muted">—</span>{% endif %}
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger ms-1 btn-open-reprovar"
+                                data-paf-id="{{ paf_id }}"
+                                {{ 'disabled' if st in ['reprovado_chefe','validado_drh'] else '' }}>
+                          <i class="bi bi-x-circle me-1"></i> Reprovar
+                        </button>
+                      {% else %}
+                        <span class="small-muted">—</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if observacoes is defined and observacoes %}
+                      <div class="small text-danger mt-1">
+                        <i class="bi bi-exclamation-octagon me-1"></i>
+                        Reprovação (chefia): {{ observacoes }}
+                      </div>
+                    {% endif %}
+
+                    {% if justificativa is defined and justificativa %}
+                      <div class="small-muted mt-1">
+                        <i class="bi bi-chat-square-text me-1"></i>
+                        Justificativa do solicitante: {{ justificativa }}
+                      </div>
                     {% endif %}
                   </td>
                 </tr>
@@ -214,5 +231,71 @@
     </div>
 
   </div>
+
+<div id="modal-reprovar" class="modal-backdrop-custom" style="display:none;">
+  <div class="modal-card" style="max-width:640px;">
+    <div class="p-3 border-bottom">
+      <h5 class="m-0"><i class="bi bi-x-circle text-danger me-1"></i> Reprovar PAF</h5>
+      <div class="small text-muted mt-1">
+        Informe a justificativa da reprovação. O militar visualizará esse motivo.
+      </div>
+    </div>
+    <form method="post" id="form-reprovar">
+      <input type="hidden" name="acao" value="reprovar">
+      <div class="p-3">
+        <label class="form-label">Justificativa</label>
+        <textarea class="form-control" name="justificativa" id="motivo-reprovar"
+                  rows="4" placeholder="Explique o motivo..." required></textarea>
+      </div>
+      <div class="p-3 border-top d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" id="fechar-reprovar">Cancelar</button>
+        <button type="submit" class="btn btn-danger"><i class="bi bi-x-octagon me-1"></i> Reprovar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal-backdrop-custom{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1050;
+    display:flex;align-items:center;justify-content:center;}
+  .modal-backdrop-custom .modal-card{background:#fff;border-radius:14px;border:1px solid rgba(0,0,0,.08);
+    box-shadow:0 20px 60px rgba(0,0,0,.35);}
+</style>
 </section>
+
+<script>
+(() => {
+  const modal = document.getElementById('modal-reprovar');
+  const form  = document.getElementById('form-reprovar');
+  const motivo= document.getElementById('motivo-reprovar');
+  const fechar= document.getElementById('fechar-reprovar');
+
+  // abre modal e aponta a action para o paf certo
+  document.querySelectorAll('.btn-open-reprovar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pafId = btn.getAttribute('data-paf-id');
+      form.action = "{{ url_for('paf.aprovar', paf_id=0) }}".replace('/0', '/' + pafId);
+      motivo.value = '';
+      modal.style.display = 'flex';
+      motivo.focus();
+    });
+  });
+
+  fechar?.addEventListener('click', () => { modal.style.display = 'none'; });
+
+  // fecha clicando fora do cartão
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+
+  // valida motivo
+  form?.addEventListener('submit', (e) => {
+    if (!motivo.value.trim()) {
+      e.preventDefault();
+      motivo.focus();
+    }
+  });
+})();
+</script>
+
 {% endblock %}

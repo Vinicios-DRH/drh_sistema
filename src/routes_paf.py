@@ -167,6 +167,7 @@ def novo():
         o1 = request.form.get("opcao_1", type=int)
         o2 = request.form.get("opcao_2", type=int)
         o3 = request.form.get("opcao_3", type=int)
+        justificativa_usuario = (request.form.get("observacoes") or "").strip()
 
         if not all([o1, o2, o3]) or any(m < 1 or m > 12 for m in [o1, o2, o3]):
             flash("Escolha 3 meses válidos (1 a 12).", "warning")
@@ -186,9 +187,10 @@ def novo():
         paf = NovoPaf(
             militar_id=militar.id,
             ano_referencia=ano,
-            opcao_1=o1, opcao_2=o2, opcao_3=o3,
+            opcao_1=o1, opcao_2=o2, opcao_3=o3, 
             status="enviado",
-            updated_at=agora_manaus,         # <— evita NULL no INSERT
+            justificativa=justificativa_usuario,
+            updated_at=agora_manaus,
             created_at=agora_manaus,
             data_entrega=agora_manaus
         )
@@ -236,19 +238,36 @@ def aprovar(paf_id):
     if not paf:
         flash("Registro não encontrado.", "danger")
         return redirect(url_for("paf.minhas"))
+
     if not _eh_chefe_do(paf.militar_id):
         flash("Você não pode aprovar este PAF.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    acao = request.form.get("acao")  # "aprovar" ou "reprovar"
-    just = request.form.get("justificativa", "")
+    acao = (request.form.get("acao") or "").lower()            # "aprovar" | "reprovar"
+    motivo = (request.form.get("justificativa") or "").strip() # texto do modal na reprovação
+    agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
+
     if acao == "aprovar":
+        # Aprovado pela chefia — NÃO mexe em paf.justificativa (vem do usuário)
         paf.status = "aprovado_chefe"
-    else:
+        paf.aprovado_por_user_id = current_user.id
+        paf.aprovado_em = agora_manaus
+
+    elif acao == "reprovar":
+        # Obriga motivo e salva em OBSERVACOES (justificativa da chefia)
+        if not motivo:
+            flash("Informe a justificativa da reprovação.", "warning")
+            return redirect(request.referrer or url_for("paf.minhas"))
+
         paf.status = "reprovado_chefe"
-    paf.aprovado_por_user_id = current_user.id
-    paf.aprovado_em = func.now()
-    paf.justificativa = just or paf.justificativa
+        paf.observacoes = motivo                  # << justificativa do chefe
+        paf.aprovado_por_user_id = current_user.id
+        paf.aprovado_em = agora_manaus
+
+    else:
+        flash("Ação inválida.", "warning")
+        return redirect(request.referrer or url_for("paf.minhas"))
+
     database.session.commit()
     flash("Avaliação registrada.", "success")
     return redirect(request.referrer or url_for("paf.minhas"))
@@ -406,6 +425,8 @@ def recebimento():
             D.opcao_1, D.opcao_2, D.opcao_3,
             D.mes_definido,
             D.recebido_em, D.created_at, D.updated_at,
+            D.justificativa,     # << adicionar
+            D.observacoes,       # << adicionar
             rn
         )
         .filter(D.ano_referencia == ano)
@@ -508,6 +529,8 @@ def recebimento():
             ultimo_plano_sq.c.qtd_dias_p1, ultimo_plano_sq.c.inicio_p1, ultimo_plano_sq.c.fim_p1,
             ultimo_plano_sq.c.qtd_dias_p2, ultimo_plano_sq.c.inicio_p2, ultimo_plano_sq.c.fim_p2,
             ultimo_plano_sq.c.qtd_dias_p3, ultimo_plano_sq.c.inicio_p3, ultimo_plano_sq.c.fim_p3,
+            ultimo_paf_sq.c.justificativa,
+            ultimo_paf_sq.c.observacoes,
         )
         .join(base_cte, base_cte.c.m_id == M.id)
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
