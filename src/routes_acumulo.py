@@ -1177,35 +1177,90 @@ def upload_assinado(militar_id):
         if arquivo_orgao_fs and not (arquivo_orgao_fs.filename or "").strip():
             arquivo_orgao_fs = None
 
-    # se positiva, montar vinculo_row como você já faz (reaproveitando seu código)
     vinculo_row = None
     if tipo == "positiva":
         from datetime import datetime as _dt, time as _time
 
         def _p_time(s):
+            s = (s or "").strip()
             if not s:
                 return None
-            h, m = s.split(':')
-            return _time(int(h), int(m))
+            try:
+                h, m = s.split(":")
+                return _time(int(h), int(m))
+            except Exception:
+                return None
 
         def _p_date(s):
+            s = (s or "").strip()
             if not s:
                 return None
-            return _dt.strptime(s, "%Y-%m-%d").date()
+            try:
+                return _dt.strptime(s, "%Y-%m-%d").date()
+            except Exception:
+                return None
 
-        vinculo_row = dict(
-            empregador_nome=pre["empregador_nome"],
-            empregador_tipo=pre["empregador_tipo"],
-            licenca=pre["licenca"],
-            empregador_doc=pre["empregador_doc"],
-            natureza_vinculo=pre["natureza_vinculo"],
-            jornada_trabalho=pre["jornada_trabalho"],
-            cargo_funcao=pre["cargo_funcao"],
-            carga_horaria_semanal=int(pre["carga_horaria_semanal"]),
-            horario_inicio=_p_time(pre["horario_inicio"]),
-            horario_fim=_p_time(pre["horario_fim"]),
-            data_inicio=_p_date(pre["data_inicio"]),
-        )
+        def _p_int(s):
+            s = (s or "").strip()
+            if not s:
+                return None
+            try:
+                return int(s)
+            except Exception:
+                return None
+
+        def _norm_lic(v):
+            v = (v or "").strip().lower()
+            if v in ("nao", "não", "n", "no"):
+                return "não"
+            if v in ("sim", "s", "yes", "y"):
+                return "sim"
+            return ""
+
+        lic = _norm_lic(pre.get("licenca"))
+        is_licenca = (lic == "sim")
+
+        # === Carga horária: NOT NULL no banco -> use 0 quando estiver de licença ===
+        carga = _p_int(pre.get("carga_horaria_semanal"))
+        if is_licenca:
+            carga = 0
+        elif carga is None:
+            # Se NÃO estiver de licença, exija valor válido
+            flash("Informe a carga horária semanal.", "alert-danger")
+            return redirect(request.url)
+
+        # === Horários: NOT NULL no banco -> use 00:00 quando estiver de licença ===
+        if is_licenca:
+            h_ini = _time(0, 0)
+            h_fim = _time(0, 0)
+            jornada = None  # pode ser None; se seu banco exigir NOT NULL aqui também, troque para 'escala' ou 'expediente'
+        else:
+            h_ini = _p_time(pre.get("horario_inicio"))
+            h_fim = _p_time(pre.get("horario_fim"))
+            jornada = (pre.get("jornada_trabalho") or "").strip().lower() or None
+            # Valida se não estiver de licença
+            if h_ini is None or h_fim is None:
+                flash("Informe horário de início e fim.", "alert-danger")
+                return redirect(request.url)
+            if not jornada:
+                flash("Informe a jornada de trabalho.", "alert-danger")
+                return redirect(request.url)
+
+    vinculo_row = dict(
+        empregador_nome=(pre.get("empregador_nome") or "").strip() or None,
+        empregador_tipo=(pre.get("empregador_tipo") or "").strip() or None,
+        licenca=lic,  # "sim" ou "não"  
+        empregador_doc=(pre.get("empregador_doc") or "").strip() or None,
+        natureza_vinculo=(pre.get("natureza_vinculo") or "").strip() or None,
+
+        cargo_funcao=(pre.get("cargo_funcao") or "").strip() or None,
+        jornada_trabalho=jornada,
+
+        carga_horaria_semanal=carga,
+        horario_inicio=h_ini,
+        horario_fim=h_fim,
+        data_inicio=_p_date(pre.get("data_inicio")),
+    )
 
     # ===== Upload Backblaze (mesma pasta) =====
     try:
