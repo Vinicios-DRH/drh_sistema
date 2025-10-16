@@ -353,219 +353,261 @@
 </section>
 
 <script>
-    // Se o backend passar um rascunho, hidrate (ex.: dict com {ano,tipo,observacoes,vinculos:[...]})
-    const DRAFT = {{ draft| tojson | safe if draft else 'null' }};
+  // Se o backend passar um rascunho
+  const DRAFT = {{ draft| tojson | safe if draft else 'null' }};
 
-    const form = document.getElementById('form-declaracao');
-    const tipoSelect = document.getElementById('tipo-select');
-    const vinculo = document.getElementById('vinculo-unique');
-    const btnModelo = document.getElementById('btn-gerar-modelo');
-    const btnSalvar = document.getElementById('btn-salvar-rascunho');
+  const form      = document.getElementById('form-declaracao');
+  const tipoSelect= document.getElementById('tipo-select');
+  const vinculo   = document.getElementById('vinculo-unique');
+  const btnModelo = document.getElementById('btn-gerar-modelo');
+  const btnSalvar = document.getElementById('btn-salvar-rascunho');
 
-    function toggleVinculo() {
-        const isPositiva = tipoSelect.value === 'positiva';
-        vinculo.querySelectorAll('input,select,textarea').forEach(el => {
-            if (el.name === 'natureza_vinculo') return; // hidden e fixo
-            el.required = isPositiva;
-            el.disabled = !isPositiva;
-        });
-        vinculo.classList.toggle('disabled', !isPositiva);
+  // Helpers
+  function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
+  function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 14; }
+  function setFieldError(el, msg) { if(!el) return; el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
+  function clearFieldError(el) { if(!el) return; el.setCustomValidity(''); el.classList.remove('is-invalid'); }
+
+  // Habilita/desabilita jornada/carga/horários
+  function setWorkFieldsEnabled(enabled) {
+    const names = ['jornada_trabalho','carga_horaria_semanal','horario_inicio','horario_fim'];
+    for (const n of names) {
+      const el = form.querySelector(`[name="${n}"]`);
+      if (!el) continue;
+      el.disabled = !enabled;
+      el.required = enabled;
+      if (!enabled) {
+        el.value = '';
+        clearFieldError(el);
+      }
     }
-    tipoSelect.addEventListener('change', toggleVinculo);
+  }
 
-    function digitsOnly(v) { return (v || '').replace(/\D+/g, ''); }
-    function isCpfCnpjValid(v) { const d = digitsOnly(v); return d.length === 14; }
-    function setFieldError(el, msg) { el.setCustomValidity(msg || ''); el.classList.add('is-invalid'); el.reportValidity?.(); }
-    function clearFieldError(el) { el.setCustomValidity(''); el.classList.remove('is-invalid'); }
+  // Responde à mudança de licença
+  function onLicencaChange() {
+    const v = (form.querySelector('[name="licenca"]')?.value || '').toLowerCase();
+    // aceita nao/não
+    const isSim = v === 'sim';
+    setWorkFieldsEnabled(!isSim);
+  }
 
-    function valida() {
-        if (!tipoSelect.value) return false;
-        if (tipoSelect.value === 'positiva') {
-            const req = [
-                'empregador_nome', 'empregador_tipo', 'empregador_doc', 'licenca',
-                'jornada_trabalho', 'cargo_funcao', 'carga_horaria_semanal',
-                'horario_inicio', 'horario_fim', 'data_inicio'
-            ];
-            for (const name of req) {
-                const el = form.querySelector(`[name="${name}"]`);
-                if (!el || !el.value) return false;
-            }
-        }
-        return true;
-    }
+  // Mostra/oculta bloco de vínculo e marca required corretamente
+  function toggleVinculo() {
+    const isPositiva = tipoSelect.value === 'positiva';
 
-    const docInput = form.querySelector('input[name="empregador_doc"]');
-    if (docInput) {
-        docInput.addEventListener('input', () => {
-            const cur = docInput.value; const cleaned = digitsOnly(cur);
-            if (cur !== cleaned) docInput.value = cleaned;
-            if (!cleaned) { clearFieldError(docInput); return; }
-            if (isCpfCnpjValid(cleaned)) clearFieldError(docInput);
-            else setFieldError(docInput, 'Informe 14 dígitos.');
-        });
-        docInput.addEventListener('blur', () => {
-            const d = digitsOnly(docInput.value);
-            if (!d || isCpfCnpjValid(d)) clearFieldError(docInput);
-            else setFieldError(docInput, 'Informe 14 dígitos.');
-        });
-    }
-
-    // Reforça a regra de validação do CPF/CNPJ no "Gerar modelo"
-    const _validaOriginal = valida;
-    function validaGerar() {
-        const ok = _validaOriginal();
-        if (!ok) return false;
-        if (tipoSelect.value === 'positiva') {
-            if (!isCpfCnpjValid(docInput.value)) {
-                setFieldError(docInput, 'Informe 14 dígitos.');
-                form.classList.add('was-validated');
-                docInput.focus();
-                return false;
-            }
-            const esfera = (form.querySelector('[name="empregador_tipo"]')?.value || '').toLowerCase();
-            if (!['municipal', 'estadual', 'federal'].includes(esfera)) {
-                const sel = form.querySelector('[name="empregador_tipo"]');
-                setFieldError(sel, 'Selecione Municipal, Estadual ou Federal.');
-                sel.focus();
-                return false;
-            } else {
-                clearFieldError(form.querySelector('[name="empregador_tipo"]'));
-            }
-            const licenca = (form.querySelector('[name="licenca"]')?.value || '').toLowerCase();
-            if (!['sim', 'não'].includes(licenca)) {
-                const sel = form.querySelector('[name="licenca"]');
-                setFieldError(sel, 'Selecione se você está ou não de licença.');
-                sel.focus();
-                return false;
-            } else {
-                clearFieldError(form.querySelector('[name="licenca"]'));
-            }
-        }
-        return true;
-    }
-
-    // Serializa para rascunho (sem travas)
-    function buildDraftPayload() {
-        const get = (n) => form.querySelector(`[name="${n}"]`)?.value?.trim() || '';
-
-        const vinculo = {
-            empregador_nome: get('empregador_nome'),
-            empregador_tipo: get('empregador_tipo'),   // municipal/estadual/federal
-            empregador_doc: digitsOnly(get('empregador_doc')),
-            licenca: get('licenca'),
-            natureza_vinculo: 'efetivo',
-            jornada_trabalho: get('jornada_trabalho'),
-            cargo_funcao: get('cargo_funcao'),
-            carga_horaria_semanal: get('carga_horaria_semanal'),
-            horario_inicio: get('horario_inicio'),
-            horario_fim: get('horario_fim'),
-            data_inicio: get('data_inicio'),
-        };
-
-        return {
-            ano: get('ano'),
-            militar_id: get('militar_id'),
-            tipo: get('tipo'),
-            observacoes: get('observacoes'),
-            vinculos: [vinculo] // aqui está 1 vínculo; se virar múltiplo, basta preencher a lista
-        };
-    }
-
-    // Hidrata da estrutura draft (se backend passar)
-    function hydrateFromDraft(d) {
-        if (!d) return;
-        const set = (n, v) => {
-            const el = form.querySelector(`[name="${n}"]`);
-            if (!el) return;
-            if (el.tagName === 'SELECT') {
-                Array.from(el.options).forEach(o => o.selected = (o.value == v));
-            } else {
-                el.value = v || '';
-            }
-        };
-        set('tipo', d.tipo || '');
-        set('observacoes', d.observacoes || '');
-        if (Array.isArray(d.vinculos) && d.vinculos.length > 0) {
-            const v = d.vinculos[0];
-            set('empregador_nome', v.empregador_nome || '');
-            set('empregador_tipo', v.empregador_tipo || '');
-            set('empregador_doc', v.empregador_doc || '');
-            set('licenca', v.licenca || '');
-            set('jornada_trabalho', v.jornada_trabalho || '');
-            set('cargo_funcao', v.cargo_funcao || '');
-            set('carga_horaria_semanal', v.carga_horaria_semanal || '');
-            set('horario_inicio', v.horario_inicio || '');
-            set('horario_fim', v.horario_fim || '');
-            set('data_inicio', v.data_inicio || '');
-        }
-        // aplica estado do bloco de vínculo
-        toggleVinculo();
-    }
-
-    // Bind dos botões
-    btnSalvar.addEventListener('click', async () => {
-        const payload = buildDraftPayload();
-        try {
-            const resp = await fetch('{{ url_for("acumulo.salvar_rascunho", militar_id=militar.id) }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await resp.json().catch(() => ({}));
-            if (!resp.ok || data.ok === false) throw new Error(data.error || 'Falha ao salvar rascunho');
-            alert('Rascunho salvo com sucesso.');
-        } catch (e) {
-            alert('Erro ao salvar rascunho: ' + e.message);
-        }
+    // habilita/desabilita todo o bloco
+    vinculo.querySelectorAll('input,select,textarea').forEach(el => {
+      if (el.name === 'natureza_vinculo') return; // hidden e fixo
+      el.disabled = !isPositiva;
     });
+    vinculo.classList.toggle('disabled', !isPositiva);
 
-    btnModelo.addEventListener('click', async () => {
-        if (!validaGerar()) { form.classList.add('was-validated'); return; }
+    // required base quando positiva
+    ['empregador_nome','empregador_tipo','empregador_doc','licenca','cargo_funcao','data_inicio']
+      .forEach(n => {
+        const el = form.querySelector(`[name="${n}"]`);
+        if (el) el.required = isPositiva;
+      });
 
-        const fd = new FormData(form);
+    if (isPositiva) onLicencaChange();
+    else setWorkFieldsEnabled(false);
+  }
+  tipoSelect.addEventListener('change', toggleVinculo);
+  form.querySelector('[name="licenca"]')?.addEventListener('change', onLicencaChange);
 
-        try {
-            const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
-            const data = await prep.json();
-            if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
-
-            const militarId = fd.get('militar_id');
-            const jornada = (fd.get('jornada_trabalho') || '').toLowerCase();
-
-            const params = new URLSearchParams({
-                ano: fd.get('ano') || '',
-                tipo: fd.get('tipo') || ''
-            });
-
-            if ((fd.get('tipo') || '').toLowerCase() === 'positiva') {
-                params.set('empregador_nome', fd.get('empregador_nome') || '');
-                params.set('empregador_doc', (fd.get('empregador_doc') || '').replace(/\D+/g, ''));
-                params.set('natureza_vinculo', 'efetivo');
-                params.set('jornada_trabalho', jornada || '');
-                params.set('cargo_funcao', fd.get('cargo_funcao') || '');
-                params.set('carga_horaria_semanal', fd.get('carga_horaria_semanal') || '');
-                params.set('horario_inicio', fd.get('horario_inicio') || '');
-                params.set('horario_fim', fd.get('horario_fim') || '');
-                params.set('data_inicio', fd.get('data_inicio') || '');
-                params.set('empregador_tipo', (fd.get('empregador_tipo') || '').toLowerCase());
-            }
-
-            const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
-                .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
-            params.set('return_to', urlUpload);
-
-            // navegação única para a intermediária (sem popup, sem setTimeout)
-            const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
-                .replace('/0', `/${militarId}`) + '?' + params.toString();
-
-            window.location.assign(urlIntermediaria);
-        } catch (e) {
-            alert('Erro: ' + e.message);
-        }
+  // Máscara/validação do documento
+  const docInput = form.querySelector('input[name="empregador_doc"]');
+  if (docInput) {
+    docInput.addEventListener('input', () => {
+      const cur = docInput.value, cleaned = digitsOnly(cur);
+      if (cur !== cleaned) docInput.value = cleaned;
+      if (!cleaned) { clearFieldError(docInput); return; }
+      isCpfCnpjValid(cleaned) ? clearFieldError(docInput) : setFieldError(docInput, 'Informe 14 dígitos.');
     });
+    docInput.addEventListener('blur', () => {
+      const d = digitsOnly(docInput.value);
+      (!d || isCpfCnpjValid(d)) ? clearFieldError(docInput) : setFieldError(docInput, 'Informe 14 dígitos.');
+    });
+  }
 
-    // inicialização
+  // Validação para o fluxo do botão
+  function valida() {
+    if (!tipoSelect.value) return false;
+    if (tipoSelect.value === 'positiva') {
+      // base obrigatória
+      const baseReq = ['empregador_nome','empregador_tipo','empregador_doc','licenca','cargo_funcao','data_inicio'];
+      for (const name of baseReq) {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (!el || !el.value) return false;
+      }
+
+      const licV = (form.querySelector('[name="licenca"]')?.value || '').toLowerCase();
+      const licIsSim = licV === 'sim';
+
+      // só exige jornada/carga/horários quando NÃO está de licença
+      if (!licIsSim) {
+        const workReq = ['jornada_trabalho','carga_horaria_semanal','horario_inicio','horario_fim'];
+        for (const name of workReq) {
+          const el = form.querySelector(`[name="${name}"]`);
+          if (!el || !el.value) return false;
+        }
+      }
+
+      // Doc e esfera válidos
+      const docOk = isCpfCnpjValid(form.querySelector('[name="empregador_doc"]')?.value || '');
+      if (!docOk) return false;
+      const esfera = (form.querySelector('[name="empregador_tipo"]')?.value || '').toLowerCase();
+      if (!['municipal','estadual','federal'].includes(esfera)) return false;
+    }
+    return true;
+  }
+
+  // Validação reforçada do botão Gerar
+  function validaGerar() {
+    const ok = valida(); if (!ok) return false;
+
+    if (tipoSelect.value === 'positiva') {
+      const docEl = form.querySelector('[name="empregador_doc"]');
+      if (!isCpfCnpjValid(docEl?.value || '')) {
+        setFieldError(docEl, 'Informe 14 dígitos.');
+        form.classList.add('was-validated');
+        docEl?.focus();
+        return false;
+      }
+      const esferaEl = form.querySelector('[name="empregador_tipo"]');
+      const esfera = (esferaEl?.value || '').toLowerCase();
+      if (!['municipal','estadual','federal'].includes(esfera)) {
+        setFieldError(esferaEl, 'Selecione Municipal, Estadual ou Federal.');
+        esferaEl?.focus();
+        return false;
+      } else {
+        clearFieldError(esferaEl);
+      }
+      const licEl = form.querySelector('[name="licenca"]');
+      const lic = (licEl?.value || '').toLowerCase();
+      if (!['sim','não','nao'].includes(lic)) {
+        setFieldError(licEl, 'Selecione se você está ou não de licença.');
+        licEl?.focus();
+        return false;
+      } else {
+        clearFieldError(licEl);
+      }
+    }
+    return true;
+  }
+
+  // Serializa rascunho
+  function buildDraftPayload() {
+    const get = (n) => form.querySelector(`[name="${n}"]`)?.value?.trim() || '';
+    const v = {
+      empregador_nome: get('empregador_nome'),
+      empregador_tipo: get('empregador_tipo'),
+      empregador_doc: digitsOnly(get('empregador_doc')),
+      licenca: get('licenca'),
+      natureza_vinculo: 'efetivo',
+      jornada_trabalho: get('jornada_trabalho'),
+      cargo_funcao: get('cargo_funcao'),
+      carga_horaria_semanal: get('carga_horaria_semanal'),
+      horario_inicio: get('horario_inicio'),
+      horario_fim: get('horario_fim'),
+      data_inicio: get('data_inicio'),
+    };
+    return {
+      ano: get('ano'),
+      militar_id: get('militar_id'),
+      tipo: get('tipo'),
+      observacoes: get('observacoes'),
+      vinculos: [v]
+    };
+  }
+
+  // Hidrata rascunho
+  function hydrateFromDraft(d) {
+    if (!d) return;
+    const set = (n, v) => {
+      const el = form.querySelector(`[name="${n}"]`);
+      if (!el) return;
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options).forEach(o => o.selected = (o.value == v));
+      } else {
+        el.value = v || '';
+      }
+    };
+    set('tipo', d.tipo || '');
+    set('observacoes', d.observacoes || '');
+    if (Array.isArray(d.vinculos) && d.vinculos.length > 0) {
+      const v = d.vinculos[0];
+      set('empregador_nome', v.empregador_nome || '');
+      set('empregador_tipo', v.empregador_tipo || '');
+      set('empregador_doc', v.empregador_doc || '');
+      set('licenca', v.licenca || '');
+      set('jornada_trabalho', v.jornada_trabalho || '');
+      set('cargo_funcao', v.cargo_funcao || '');
+      set('carga_horaria_semanal', v.carga_horaria_semanal || '');
+      set('horario_inicio', v.horario_inicio || '');
+      set('horario_fim', v.horario_fim || '');
+      set('data_inicio', v.data_inicio || '');
+    }
     toggleVinculo();
-    hydrateFromDraft(DRAFT);
+    onLicencaChange();
+  }
+
+  // Botões
+  btnSalvar.addEventListener('click', async () => {
+    const payload = buildDraftPayload();
+    try {
+      const resp = await fetch('{{ url_for("acumulo.salvar_rascunho", militar_id=militar.id) }}', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) throw new Error(data.error || 'Falha ao salvar rascunho');
+      alert('Rascunho salvo com sucesso.');
+    } catch (e) {
+      alert('Erro ao salvar rascunho: ' + e.message);
+    }
+  });
+
+  btnModelo.addEventListener('click', async () => {
+    if (!validaGerar()) { form.classList.add('was-validated'); return; }
+    const fd = new FormData(form);
+    try {
+      const prep = await fetch('{{ url_for("acumulo.prepara_geracao") }}', { method: 'POST', body: fd });
+      const data = await prep.json();
+      if (!prep.ok || !data.ok) throw new Error(data.error || 'Falha ao preparar');
+
+      const militarId = fd.get('militar_id');
+      const params = new URLSearchParams({ ano: fd.get('ano') || '', tipo: fd.get('tipo') || '' });
+
+      if ((fd.get('tipo') || '').toLowerCase() === 'positiva') {
+        params.set('empregador_nome', fd.get('empregador_nome') || '');
+        params.set('empregador_doc', (fd.get('empregador_doc') || '').replace(/\D+/g, ''));
+        params.set('natureza_vinculo', 'efetivo');
+        params.set('jornada_trabalho', (fd.get('jornada_trabalho') || '').toLowerCase());
+        params.set('cargo_funcao', fd.get('cargo_funcao') || '');
+        params.set('carga_horaria_semanal', fd.get('carga_horaria_semanal') || '');
+        params.set('horario_inicio', fd.get('horario_inicio') || '');
+        params.set('horario_fim', fd.get('horario_fim') || '');
+        params.set('data_inicio', fd.get('data_inicio') || '');
+        params.set('empregador_tipo', (fd.get('empregador_tipo') || '').toLowerCase());
+        params.set('licenca', (fd.get('licenca') || '').toLowerCase());
+      }
+
+      const urlUpload = '{{ url_for("acumulo.upload_assinado", militar_id=0) }}'
+        .replace('/0', `/${militarId}`) + '?ano=' + encodeURIComponent(fd.get('ano'));
+      params.set('return_to', urlUpload);
+
+      const urlIntermediaria = '{{ url_for("acumulo.modelo_docx_page", militar_id=0) }}'
+        .replace('/0', `/${militarId}`) + '?' + params.toString();
+
+      window.location.assign(urlIntermediaria);
+    } catch (e) {
+      alert('Erro: ' + e.message);
+    }
+  });
+
+  // init
+  toggleVinculo();
+  hydrateFromDraft(DRAFT);
 </script>
+
 {% endblock %}
