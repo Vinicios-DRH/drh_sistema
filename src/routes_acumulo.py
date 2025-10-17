@@ -2003,7 +2003,7 @@ def arquivo(decl_id):
     if not decl or not decl.arquivo_declaracao:
         abort(404)
     return redirect(b2_presigned_get(decl.arquivo_declaracao, expires_seconds=600))
-
+    
 
 @bp_acumulo.route("/recebimento/export", methods=["GET"])
 @login_required
