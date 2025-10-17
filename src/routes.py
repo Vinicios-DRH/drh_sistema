@@ -1579,7 +1579,8 @@ def tabela_militares():
             joinedload(Militar.especialidade),
             joinedload(Militar.localidade),
             joinedload(Militar.situacao),
-            joinedload(Militar.obm_funcoes)
+            joinedload(Militar.obm_funcoes),
+            joinedload(Militar.destino)
         )
 
         total_militares = query.count()
@@ -1639,6 +1640,18 @@ def tabela_militares():
                 for of in militar.obm_funcoes if of.data_fim is None
             ]
 
+            destino_txt = 'N/A'
+            try:
+                if getattr(militar, 'destino', None):
+                    destino_txt = getattr(militar.destino, 'local', None) or 'N/A'
+                elif getattr(militar, 'destino_id', None):
+                    d = Destino.query.get(militar.destino_id)
+                    destino_txt = getattr(d, 'local', None) or str(militar.destino_id)
+            except Exception:
+                pass
+            
+            inclusao_fmt = militar.inclusao.strftime('%d/%m/%Y') if militar.inclusao else 'N/A'
+
             militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
@@ -1651,6 +1664,8 @@ def tabela_militares():
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
                 'situacao': militar.situacao.condicao if militar.situacao else 'N/A',
+                'destino': destino_txt,
+                'inclusao': inclusao_fmt,
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
                 'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
             })

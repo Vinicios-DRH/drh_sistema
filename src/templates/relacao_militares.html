@@ -58,6 +58,8 @@
         background: rgba(0, 0, 0, .06);
         border: 1px solid rgba(0, 0, 0, .08);
     }
+
+    th.export-only, td.export-only { display: none; }
 </style>
 {% endblock %}
 
@@ -117,9 +119,11 @@
                             <th>Matrícula</th>
                             <th>Posto/Graduação</th>
                             <th>Quadro</th>
+                            <th>Inclusão</th>
                             <th>Especialidade</th>
                             <th>Localidade</th>
                             <th>Situação</th>
+                            <th>Destino</th>
                             <th>OBM 1</th>
                             <th>Função 1</th>
                             <th>OBM 2</th>
@@ -142,9 +146,11 @@
                             <td>{{ militar.matricula }}</td>
                             <td>{{ militar.posto_grad }}</td>
                             <td>{{ militar.quadro }}</td>
+                            <td>{{ militar.inclusao }}</td>
                             <td>{{ militar.especialidade }}</td>
                             <td>{{ militar.localidade }}</td>
                             <td>{{ militar.situacao }}</td>
+                            <td>{{ militar.destino }}</td>
                             <td>{{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}</td>
                             <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}</td>
                             <td>{{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}</td>
@@ -197,7 +203,16 @@
                     extend: 'excelHtml5',
                     title: 'relacao_militares',
                     text: '<i class="bi bi-file-earmark-excel"></i> Excel',
-                    className: 'btn btn-outline-success btn-sm'
+                    className: 'btn btn-outline-success btn-sm',
+                    exportOptions: {
+                        // inclui colunas visíveis OU marcadas como export-only
+                        columns: function (idx, data, node) {
+                        // node é o TH dessa coluna
+                        const visible = dt.column(idx).visible();
+                        const hasExportOnlyClass = $(node).hasClass('export-only');
+                        return visible || hasExportOnlyClass;
+                        }
+                    }
                 },
                 {
                     extend: 'csvHtml5',

@@ -473,6 +473,8 @@ class Militar(database.Model):
         'Paf', backref='militar', cascade="all, delete-orphan")
     viaturas = database.relationship(
         "ViaturaMilitar", back_populates="militar")
+    
+    destino = database.relationship('Destino', foreign_keys=[destino_id])
 
 
 class MilitarObmFuncao(database.Model):
