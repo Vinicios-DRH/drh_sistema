@@ -1246,21 +1246,21 @@ def upload_assinado(militar_id):
                 flash("Informe a jornada de trabalho.", "alert-danger")
                 return redirect(request.url)
 
-    vinculo_row = dict(
-        empregador_nome=(pre.get("empregador_nome") or "").strip() or None,
-        empregador_tipo=(pre.get("empregador_tipo") or "").strip() or None,
-        licenca=lic,  # "sim" ou "não"  
-        empregador_doc=(pre.get("empregador_doc") or "").strip() or None,
-        natureza_vinculo=(pre.get("natureza_vinculo") or "").strip() or None,
+        vinculo_row = dict(
+            empregador_nome=(pre.get("empregador_nome") or "").strip() or None,
+            empregador_tipo=(pre.get("empregador_tipo") or "").strip() or None,
+            licenca=lic,  # "sim" ou "não"  
+            empregador_doc=(pre.get("empregador_doc") or "").strip() or None,
+            natureza_vinculo=(pre.get("natureza_vinculo") or "").strip() or None,
 
-        cargo_funcao=(pre.get("cargo_funcao") or "").strip() or None,
-        jornada_trabalho=jornada,
+            cargo_funcao=(pre.get("cargo_funcao") or "").strip() or None,
+            jornada_trabalho=jornada,
 
-        carga_horaria_semanal=carga,
-        horario_inicio=h_ini,
-        horario_fim=h_fim,
-        data_inicio=_p_date(pre.get("data_inicio")),
-    )
+            carga_horaria_semanal=carga,
+            horario_inicio=h_ini,
+            horario_fim=h_fim,
+            data_inicio=_p_date(pre.get("data_inicio")),
+        )
 
     # ===== Upload Backblaze (mesma pasta) =====
     try:
