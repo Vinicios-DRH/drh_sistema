@@ -69,31 +69,41 @@
 
                     {# --- Recebimento (funcao_user_id em {1,2,5,6,7}) --- #}
                     {% if pode_recebimento %}
-                    
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-friends me-2"></i>Validações
                         </a>
                         <ul class="dropdown-menu dropdown-glass">
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">Declarações — Recebimento
+                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">Declarações —
+                                    Recebimento
                                 </a>
                             </li>
-                            <!-- <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li> -->
+                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
                         </ul>
                     </li>
                     {% endif %}
 
-                    {% if user_funcao == 12 %}
-                    <!-- <li class="nav-item dropdown">
+                    {% set PG_SUP = [12, 13, 14] %}
+
+                    {# regra final: precisa ser usuário func 12 E ter PG 12/13/14 #}
+                    {% set pode_paf = (
+                    current_user.is_authenticated
+                    and current_user.funcao_user_id == 12
+                    and (session.get('pg_id') in PG_SUP)
+                    ) %}
+
+                    {% if pode_paf %}
+                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-friends me-2"></i> Plano Anual de Férias
                         </a>
                         <ul class="dropdown-menu dropdown-glass">
-                            <li><a class="dropdown-item" href="{{ url_for('paf.novo') }}">Solitação</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('paf.novo') }}">Solicitação</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('paf.minhas') }}">Minhas Solicitações</a></li>
                         </ul>
-                    </li> -->
+                    </li>
                     {% endif %}
 
                     {# Se o usuário é da OBM DRH ou SUPER USER #}
@@ -136,7 +146,8 @@
                             <li><a class="dropdown-item" href="{{ url_for('lts') }}">🏥 Licença para Tratamento de
                                     Saúde</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('gerar_qrcodes') }}"> Gerar QrCodes</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('relatorio_cadetes_militares') }}">📄 Militares por cadete</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('relatorio_cadetes_militares') }}">📄
+                                    Militares por cadete</a></li>
                         </ul>
                     </li>
 

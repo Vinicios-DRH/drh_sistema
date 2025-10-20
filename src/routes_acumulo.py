@@ -29,6 +29,21 @@ bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 # --- Helpers baseados em User ---
 
 
+@app.before_request
+def inject_pg_id_into_session():
+    if not current_user.is_authenticated:
+        session.pop('pg_id', None)
+        return
+    if 'pg_id' in session:
+        return
+    try:
+        # importa aqui pra evitar import circular
+        mil = get_militar_por_user(current_user)
+        session['pg_id'] = getattr(mil, 'posto_grad_id', None)
+    except Exception:
+        session['pg_id'] = None
+
+
 def _is_super_user() -> bool:
     """
     Considera SUPER se current_user.funcao_user.ocupacao (ou .nome) contiver 'SUPER'
@@ -258,6 +273,7 @@ def _ymd(s: str) -> str:
     except Exception:
         return s
 
+
 def _is_privilegiado() -> bool:
     # SUPER USER sempre é privilegiado
     if _is_super_user():
@@ -287,12 +303,13 @@ def _is_privilegiado() -> bool:
     return ("SUPER USER" in up) or ("DIRETOR DRH" in up)
 
 
-
 ANO_ATUAL = date.today().year
+
 
 def _prazo_envio_ate() -> date:
     # Prazo final fixo (inclusive) para envio em 2025
     return date(2025, 9, 22)
+
 
 def _prazo_fechado() -> bool:
     return date.today() > _prazo_envio_ate()
@@ -303,6 +320,7 @@ def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
         .filter(DeclaracaoAcumulo.usuario_id == user_id,
                 DeclaracaoAcumulo.ano_referencia == ano).first() is not None
 
+
 @app.route("/home-atualizacao", methods=["GET"])
 @login_required
 def home_atualizacao():
@@ -311,7 +329,7 @@ def home_atualizacao():
     DM = DocumentoMilitar
 
     U = current_user
-    
+
     prazo_limite = _prazo_envio_ate()
     prazo_fechado = date.today() > prazo_limite
 
@@ -810,7 +828,7 @@ def novo(militar_id):
         # AGORA: esfera do órgão público (municipal/estadual/federal)
         emp_esfera = (request.form.get("empregador_tipo")
                       or "").strip().lower()
-        
+
         licenca = (request.form.get("licenca") or "").strip().lower()
         emp_doc = _digits(request.form.get("empregador_doc") or "")
 
@@ -843,7 +861,7 @@ def novo(militar_id):
         vinculo_row = dict(
             empregador_nome=emp_nome,
             empregador_tipo=emp_esfera,      # << agora guarda a ESFERA
-            licenca = licenca,
+            licenca=licenca,
             empregador_doc=emp_doc,
             natureza_vinculo=natureza,       # << sempre 'efetivo'
             jornada_trabalho=jornada,
@@ -1237,7 +1255,8 @@ def upload_assinado(militar_id):
         else:
             h_ini = _p_time(pre.get("horario_inicio"))
             h_fim = _p_time(pre.get("horario_fim"))
-            jornada = (pre.get("jornada_trabalho") or "").strip().lower() or None
+            jornada = (pre.get("jornada_trabalho")
+                       or "").strip().lower() or None
             # Valida se não estiver de licença
             if h_ini is None or h_fim is None:
                 flash("Informe horário de início e fim.", "alert-danger")
@@ -1249,9 +1268,10 @@ def upload_assinado(militar_id):
         vinculo_row = dict(
             empregador_nome=(pre.get("empregador_nome") or "").strip() or None,
             empregador_tipo=(pre.get("empregador_tipo") or "").strip() or None,
-            licenca=lic,  # "sim" ou "não"  
+            licenca=lic,  # "sim" ou "não"
             empregador_doc=(pre.get("empregador_doc") or "").strip() or None,
-            natureza_vinculo=(pre.get("natureza_vinculo") or "").strip() or None,
+            natureza_vinculo=(pre.get("natureza_vinculo")
+                              or "").strip() or None,
 
             cargo_funcao=(pre.get("cargo_funcao") or "").strip() or None,
             jornada_trabalho=jornada,
@@ -1471,7 +1491,7 @@ def editar(decl_id):
         nomes = request.form.getlist("empregador_nome[]")
         # municipal/estadual/federal
         tipos = request.form.getlist("empregador_tipo[]")
-        
+
         licencas = request.form.getlist("licenca[]")
         docs = request.form.getlist("empregador_doc[]")
         jornada = request.form.getlist("jornada_trabalho[]")
@@ -1640,7 +1660,8 @@ def recebimento():
     if not IS_DRH_LIKE:
         # Chefia/OBM: NÃO veem negativas; positivas sempre
         base_page_q = base_page_q.filter(
-            or_(ultimo_subq.c.decl_id.is_(None), ultimo_subq.c.decl_tipo != "negativa")
+            or_(ultimo_subq.c.decl_id.is_(None),
+                ultimo_subq.c.decl_tipo != "negativa")
         )
     else:
         if IS_PRIV:
@@ -1651,7 +1672,8 @@ def recebimento():
             # positivas SOMENTE se encaminhadas
             base_page_q = base_page_q.filter(
                 or_(
-                    ultimo_subq.c.decl_id.is_(None),   # <<< reintroduz "não enviou"
+                    # <<< reintroduz "não enviou"
+                    ultimo_subq.c.decl_id.is_(None),
                     ultimo_subq.c.decl_tipo == "negativa",
                     enc_exists                         # positiva encaminhada
                 )
@@ -1839,9 +1861,9 @@ def recebimento():
 
     url_map, linhas = {}, []
     for (militar, pg_sigla, obm_sigla, decl_id, st, tp, me, arq_modelo, arq_orgao,
-        enc_por, enc_quando, val_por, val_quando,
-        inc_por, inc_quando, 
-        lic_sim, lic_total) in rows:
+         enc_por, enc_quando, val_por, val_quando,
+         inc_por, inc_quando,
+         lic_sim, lic_total) in rows:
 
         if decl_id:
             urls = {}
@@ -1852,7 +1874,8 @@ def recebimento():
             url_map[decl_id] = urls
 
         # regra: "está de licença" = existe algum vínculo com licenca == 'sim'
-        licenca_flag = bool(lic_sim and lic_sim > 0) if decl_id and tp == "positiva" else None
+        licenca_flag = bool(lic_sim and lic_sim >
+                            0) if decl_id and tp == "positiva" else None
 
         linhas.append(dict(
             militar=militar,
@@ -1875,7 +1898,8 @@ def recebimento():
             inconforme_quando=inc_quando,
             inconforme_flag=bool(inc_quando),
 
-            licenca_flag=licenca_flag,   # True = tem algum SIM; False = (0 SIM); None = não aplicável
+            # True = tem algum SIM; False = (0 SIM); None = não aplicável
+            licenca_flag=licenca_flag,
             lic_sim=lic_sim or 0,
             lic_total=lic_total or 0,
         ))
@@ -1898,8 +1922,8 @@ def recebimento():
                        for (m, _, _, decl_id, *_rest) in rows if decl_id}
 
     obms = db.session.query(O).order_by(O.sigla.asc()).all()
-    print('IS_DRH_LIKE=', IS_DRH_LIKE, 'IS_PRIV=', IS_PRIV, 'enc_only=', request.args.get("enc"))
-
+    print('IS_DRH_LIKE=', IS_DRH_LIKE, 'IS_PRIV=',
+          IS_PRIV, 'enc_only=', request.args.get("enc"))
 
     return render_template(
         "acumulo_recebimento.html",
@@ -1913,7 +1937,7 @@ def recebimento():
         pode_editar_map=pode_editar_map,
         enviado_drh_map=enviado_drh_map,
         is_drh_like=IS_DRH_LIKE,
-        is_super_user=IS_SUPER, 
+        is_super_user=IS_SUPER,
     )
 
 
@@ -1945,7 +1969,8 @@ def recebimento_mudar_status(decl_id):
             AuditoriaDeclaracao.motivo == "enviado_drh"
         ).first()
         if decl.tipo == "positiva" and not enc_reg:
-            flash("Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
+            flash(
+                "Positiva ainda não foi encaminhada pela chefia. Sem validação.", "alert-warning")
             return redirect(url_for(
                 "acumulo.recebimento",
                 ano=request.args.get("ano"), status=request.args.get("status"),
@@ -2003,7 +2028,7 @@ def arquivo(decl_id):
     if not decl or not decl.arquivo_declaracao:
         abort(404)
     return redirect(b2_presigned_get(decl.arquivo_declaracao, expires_seconds=600))
-    
+
 
 @bp_acumulo.route("/recebimento/export", methods=["GET"])
 @login_required
@@ -2023,10 +2048,13 @@ def recebimento_export():
         "positiva": "Positiva (com vínculo)",
         "negativa": "Negativa (sem vínculo)"
     }
-    STATUS_PT = {"pendente": "Pendente", "validado": "Validado", "inconforme": "Inconforme"}
+    STATUS_PT = {"pendente": "Pendente",
+                 "validado": "Validado", "inconforme": "Inconforme"}
     MEIO_PT = {"digital": "Digital", "presencial": "Presencial"}
-    EMPREG_TIPO_PT = {"publico": "Público", "privado": "Privado", "cooperativa": "Cooperativa", "profissional_liberal": "Profissional liberal"}
-    NATUREZA_PT = {"efetivo": "Efetivo", "contratado": "Contratado", "prestacao_servicos": "Prestação de serviços", "profissional_liberal": "Profissional liberal"}
+    EMPREG_TIPO_PT = {"publico": "Público", "privado": "Privado",
+                      "cooperativa": "Cooperativa", "profissional_liberal": "Profissional liberal"}
+    NATUREZA_PT = {"efetivo": "Efetivo", "contratado": "Contratado",
+                   "prestacao_servicos": "Prestação de serviços", "profissional_liberal": "Profissional liberal"}
     JORNADA_PT = {"escala": "Escala", "expediente": "Expediente"}
 
     def label(mapper, value):
@@ -2085,7 +2113,8 @@ def recebimento_export():
     # ---------------------------
     resumo_rows = (
         base_qry
-        .options(selectinload(D.vinculos))  # carrega todos vínculos das declarações em 1 SELECT
+        # carrega todos vínculos das declarações em 1 SELECT
+        .options(selectinload(D.vinculos))
         .order_by(D.data_entrega.desc(), D.id.desc())
         .all()
     )
@@ -2305,7 +2334,7 @@ def recebimento_export():
             .filter(
                 MOF.militar_id.in_(falt_ids),
                 MOF.data_fim.is_(None),
-                *( [MOF.obm_id == obm_id] if obm_id else [] )
+                *([MOF.obm_id == obm_id] if obm_id else [])
             )
             .order_by(O.sigla.asc())
             .all()
@@ -2314,7 +2343,8 @@ def recebimento_export():
             obm_map.setdefault(mid, []).append(sigla)
 
     ws_falt = wb.create_sheet(f"Não enviados {ano}")
-    ws_falt.append(["Militar (nome completo)", "Matrícula", "Posto/Grad.", "OBM(s)"])
+    ws_falt.append(["Militar (nome completo)",
+                   "Matrícula", "Posto/Grad.", "OBM(s)"])
     for r in faltantes:
         ws_falt.append([
             r.nome_completo,
@@ -2696,7 +2726,7 @@ def novo_generico(pessoa_tipo, pessoa_id):
     if date.today() > _prazo_envio_ate() and not _usuario_ja_tem_declaracao(current_user.id, ANO_ATUAL):
         flash('O prazo para envio da declaração deste ano está encerrado.', 'warning')
         return redirect(url_for('home'))
-    
+
     pessoa_tipo = (pessoa_tipo or "").lower().strip()
     if pessoa_tipo not in {"militar", "aluno"}:
         abort(404)
