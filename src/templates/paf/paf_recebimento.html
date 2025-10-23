@@ -152,6 +152,22 @@
             {% endfor %}
           </select>
 
+          {% set sort_val = sort or 'chegada' %}
+          {% set dir_val = dir or 'desc' %}
+          <select class="form-select form-select-sm" name="sort" title="Ordenar por">
+            <option value="chegada" {{ 'selected' if sort_val=='chegada' else '' }}>Ordem de chegada</option>
+            <option value="nome" {{ 'selected' if sort_val=='nome' else '' }}>Nome</option>
+            <option value="pg" {{ 'selected' if sort_val=='pg' else '' }}>PG</option>
+            <option value="obm" {{ 'selected' if sort_val=='obm' else '' }}>OBM</option>
+            <option value="status" {{ 'selected' if sort_val=='status' else '' }}>Status</option>
+            <option value="paf" {{ 'selected' if sort_val=='paf' else '' }}>#PAF</option>
+          </select>
+
+          <select class="form-select form-select-sm" name="dir" title="Direção">
+            <option value="asc" {{ 'selected' if dir_val=='asc' else '' }}>Asc</option>
+            <option value="desc" {{ 'selected' if dir_val=='desc' else '' }}>Desc</option>
+          </select>
+
           <button class="btn btn-sm btn-primary" type="submit">
             <i class="bi bi-funnel me-1"></i> Filtrar
           </button>
@@ -220,6 +236,16 @@
       'aguardando_drh':'badge text-bg-secondary',
       'validado_drh':'badge text-bg-success'
       } %}
+
+      <div class="small-muted mb-2">
+        Ordenado por: <strong>
+          {{ 'ordem de chegada' if sort_val=='chegada'
+          else ('nome' if sort_val=='nome'
+          else ('PG' if sort_val=='pg'
+          else ('OBM' if sort_val=='obm'
+          else ('status' if sort_val=='status' else '#PAF'))) ) }}
+        </strong> ({{ 'desc' if dir_val=='desc' else 'asc' }})
+      </div>
 
       <!-- Tabela -->
       <div class="glass-card p-3 p-md-4">

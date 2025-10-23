@@ -411,6 +411,11 @@ def recebimento():
     obm_id = request.args.get("obm_id", type=int)
     pg_id = request.args.get("pg_id", type=int)   # <<< NOVO
 
+    # chegada|nome|pg|obm|status|paf
+    sort = (request.args.get("sort") or "chegada").lower()
+    dir_ = (request.args.get("dir") or "desc").lower()       # asc|desc
+    dir_desc = (dir_ == "desc")
+
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
     PFP = PafFeriasPlano
 
@@ -564,11 +569,37 @@ def recebimento():
     elif status != "todos":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status == status)
 
-    rows = rows_q.order_by(M.nome_completo.asc()).all()
+    # NOVO: chave "ordem de chegada" = recebido_em > created_at > updated_at
+    chegada_expr = func.coalesce(
+        ultimo_paf_sq.c.recebido_em,
+        ultimo_paf_sq.c.created_at,
+        ultimo_paf_sq.c.updated_at,
+    )
+
+    # NOVO: mapear sort -> coluna
+    if sort == "chegada":
+        ob = chegada_expr.desc().nullslast() if dir_desc else chegada_expr.asc().nullsfirst()
+    elif sort == "nome":
+        ob = M.nome_completo.desc() if dir_desc else M.nome_completo.asc()
+    elif sort == "pg":
+        ob = PG.sigla.desc().nullslast() if dir_desc else PG.sigla.asc().nullsfirst()
+    elif sort == "obm":
+        ob = O.sigla.desc() if dir_desc else O.sigla.asc()
+    elif sort == "status":
+        ob = ultimo_paf_sq.c.paf_status.desc().nullslast(
+        ) if dir_desc else ultimo_paf_sq.c.paf_status.asc().nullsfirst()
+    elif sort == "paf":
+        ob = ultimo_paf_sq.c.paf_id.desc().nullslast(
+        ) if dir_desc else ultimo_paf_sq.c.paf_id.asc().nullsfirst()
+    else:
+        # fallback
+        ob = M.nome_completo.asc()
+
+    rows = rows_q.order_by(ob, M.nome_completo.asc()
+                           ).all()  # 2º critério estável
 
     obms = database.session.query(Obm).order_by(Obm.sigla).all()
-    postos = database.session.query(PostoGrad).order_by(
-        PostoGrad.id).all()  # <<< NOVO
+    postos = database.session.query(PostoGrad).order_by(PostoGrad.id).all()
 
     return render_template(
         "paf/paf_recebimento.html",
@@ -582,6 +613,8 @@ def recebimento():
         postos=postos,        # <<< NOVO (popular select)
         is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,
         kpi=kpi,
+        sort=sort,
+        dir=dir_,
     )
 
 
