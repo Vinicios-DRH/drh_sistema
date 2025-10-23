@@ -409,10 +409,10 @@ def capacidade():
 @login_required
 def recebimento():
     ano = request.args.get("ano", type=int) or _ano_atual_manaus()
-    # pendente, aprovado_chefe, reprovado_chefe, aguardando_drh, validado_drh, nao_enviou, todos
     status = (request.args.get("status") or "todos").lower()
     q = (request.args.get("q") or "").strip()
     obm_id = request.args.get("obm_id", type=int)
+    pg_id = request.args.get("pg_id", type=int)   # <<< NOVO
 
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
     PFP = PafFeriasPlano
@@ -421,12 +421,11 @@ def recebimento():
     IS_DRH_LIKE = _is_drh_like()
     USER_OBMS = _user_obm_ids()
 
-    # ---- SUBQUERY: último PAF do ano por militar ----
+    # --- subqueries (como já estavam) ---
     rn = func.row_number().over(
         partition_by=D.militar_id,
         order_by=(D.updated_at.desc().nullslast(), D.id.desc())
     ).label("rn")
-
     ultimo_paf_sq = (
         database.session.query(
             D.militar_id.label("m_id"),
@@ -435,8 +434,8 @@ def recebimento():
             D.opcao_1, D.opcao_2, D.opcao_3,
             D.mes_definido,
             D.recebido_em, D.created_at, D.updated_at,
-            D.justificativa,     # << adicionar
-            D.observacoes,       # << adicionar
+            D.justificativa,
+            D.observacoes,
             rn
         )
         .filter(D.ano_referencia == ano)
@@ -447,7 +446,6 @@ def recebimento():
         partition_by=PFP.militar_id,
         order_by=(PFP.updated_at.desc().nullslast(), PFP.id.desc())
     ).label("rn")
-
     ultimo_plano_sq = (
         database.session.query(
             PFP.militar_id.label("m_id"),
@@ -469,30 +467,39 @@ def recebimento():
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
     )
 
-    # Filtro por OBM selecionada (sempre por subárvore)
+    # Filtro por OBM (subárvore)
     if obm_id:
         base_q = base_q.filter(MOF.obm_id.in_(_obm_subtree_ids(obm_id)))
 
-    # Escopo do usuário: Chefia/Diretor restringe às próprias OBMs; DRH-like e SUPER veem tudo
+    # Filtro por Posto/Graduação (NOVO)
+    if pg_id:
+        base_q = base_q.filter(M.posto_grad_id == pg_id)
+
+    # Escopo do usuário
     if not (IS_DRH_LIKE or IS_SUPER):
         if USER_OBMS:
             base_q = base_q.filter(MOF.obm_id.in_(USER_OBMS))
         else:
-            base_q = base_q.filter(literal(False))  # sem OBM vinculada → nada
+            base_q = base_q.filter(literal(False))
 
     # Busca livre
     if q:
         ilike = f"%{q}%"
-        base_q = (base_q.join(PG, PG.id == M.posto_grad_id, isouter=True)
-                        .join(O, O.id == MOF.obm_id)
-                        .filter(or_(M.nome_completo.ilike(ilike),
-                                    M.matricula.ilike(ilike),
-                                    PG.sigla.ilike(ilike),
-                                    O.sigla.ilike(ilike))))
+        base_q = (
+            base_q
+            .join(PG, PG.id == M.posto_grad_id, isouter=True)
+            .join(O, O.id == MOF.obm_id)
+            .filter(or_(
+                M.nome_completo.ilike(ilike),
+                M.matricula.ilike(ilike),
+                PG.sigla.ilike(ilike),
+                O.sigla.ilike(ilike)
+            ))
+        )
 
     base_cte = base_q.distinct().cte("base_militares")
 
-    # ---- KPIs (agregações) ----
+    # ---- KPIs (inalterado) ----
     kpi_row = (
         database.session.query(
             func.count().label("total_militares"),
@@ -508,8 +515,7 @@ def recebimento():
                      "reprovado_chefe", 1), else_=0)).label("reprovados"),
         )
         .select_from(base_cte)
-        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id,
-                                       ultimo_paf_sq.c.rn == 1))
+        .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id, ultimo_paf_sq.c.rn == 1))
     ).one()
 
     kpi = dict(
@@ -521,13 +527,12 @@ def recebimento():
         reprovados=int(kpi_row.reprovados or 0),
     )
 
-    # ---- Linhas (1 por militar) ----
+    # ---- Linhas (inalterado, já faz outerjoin em PG para exibir sigla) ----
     rows_q = (
         database.session.query(
             M,
             PG.sigla.label("pg_sigla"),
             O.sigla.label("obm_sigla"),
-            # PAF
             ultimo_paf_sq.c.paf_id,
             ultimo_paf_sq.c.paf_status,
             ultimo_paf_sq.c.opcao_1,
@@ -537,7 +542,6 @@ def recebimento():
             ultimo_paf_sq.c.recebido_em,
             ultimo_paf_sq.c.created_at,
             ultimo_paf_sq.c.updated_at,
-            # PLANO
             ultimo_plano_sq.c.plano_id,
             ultimo_plano_sq.c.plano_status,
             ultimo_plano_sq.c.direito_total_dias,
@@ -555,7 +559,6 @@ def recebimento():
         .outerjoin(ultimo_plano_sq, and_(ultimo_plano_sq.c.m_id == M.id, ultimo_plano_sq.c.rn == 1))
     )
 
-    # Filtro de status
     if status == "nao_enviou":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_id.is_(None))
     elif status == "pendente":
@@ -567,6 +570,8 @@ def recebimento():
     rows = rows_q.order_by(M.nome_completo.asc()).all()
 
     obms = database.session.query(Obm).order_by(Obm.sigla).all()
+    postos = database.session.query(PostoGrad).order_by(
+        PostoGrad.id).all()  # <<< NOVO
 
     return render_template(
         "paf/paf_recebimento.html",
@@ -575,7 +580,9 @@ def recebimento():
         q=q,
         status=status,
         obm_id=obm_id,
+        pg_id=pg_id,          # <<< NOVO (para marcar selecionado)
         obms=obms,
+        postos=postos,        # <<< NOVO (popular select)
         is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,
         kpi=kpi,
     )
