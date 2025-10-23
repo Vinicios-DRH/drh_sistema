@@ -9,12 +9,15 @@ from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, P
 from zoneinfo import ZoneInfo
 
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
+MILITARES_40_IDS = {513, 768, 946, 1, 251, 506, 410, 1026,
+                    356, 798, 702, 463, 387, 888, 902, 948, 749, 612}
 
 
 def _ocupacao_nome() -> str:
     # tenta via relação user_funcao.ocupacao (ou nome); fallback para campos soltos
     try:
-        fu = getattr(current_user, "user_funcao", None) or getattr(current_user, "funcao_user", None)
+        fu = getattr(current_user, "user_funcao", None) or getattr(
+            current_user, "funcao_user", None)
         if isinstance(fu, (list, tuple)):
             for f in fu:
                 oc = getattr(f, "ocupacao", None) or getattr(f, "nome", None)
@@ -38,7 +41,8 @@ def _is_super_user() -> bool:
 
 
 def _user_obm_ids() -> set[int]:
-    ids = {getattr(current_user, "obm_id_1", None), getattr(current_user, "obm_id_2", None)}
+    ids = {getattr(current_user, "obm_id_1", None),
+           getattr(current_user, "obm_id_2", None)}
     ids.discard(None)
     # se existir relação many-to-many, agrega
     obms_rel = getattr(current_user, "obms", None)
@@ -77,9 +81,11 @@ def _obm_subtree_ids(root_id: int) -> list[int]:
     if not parent_col:
         return [root_id]
     # WITH RECURSIVE
-    tree = select(Obm.id).where(Obm.id == root_id).cte("obm_tree", recursive=True)
+    tree = select(Obm.id).where(Obm.id == root_id).cte(
+        "obm_tree", recursive=True)
     O2 = aliases(Obm)
-    tree = tree.union_all(select(O2.id).where(getattr(O2, parent_col) == tree.c.id))
+    tree = tree.union_all(select(O2.id).where(
+        getattr(O2, parent_col) == tree.c.id))
     ids = [r[0] for r in database.session.execute(select(tree.c.id)).all()]
     return ids or [root_id]
 
@@ -187,7 +193,7 @@ def novo():
         paf = NovoPaf(
             militar_id=militar.id,
             ano_referencia=ano,
-            opcao_1=o1, opcao_2=o2, opcao_3=o3, 
+            opcao_1=o1, opcao_2=o2, opcao_3=o3,
             status="enviado",
             justificativa=justificativa_usuario,
             updated_at=agora_manaus,
@@ -199,7 +205,7 @@ def novo():
         flash("Solicitação enviada ao seu chefe para avaliação.", "success")
         return redirect(url_for("paf.minhas", ano=ano))
 
-    return render_template("paf/paf_novo.html", militar=militar, ano=ano)
+    return render_template("paf/paf_novo.html", militar=militar, ano=ano, militares_40=list(MILITARES_40_IDS))
 
 
 @bp_paf.route("/minhas")
@@ -243,8 +249,10 @@ def aprovar(paf_id):
         flash("Você não pode aprovar este PAF.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    acao = (request.form.get("acao") or "").lower()            # "aprovar" | "reprovar"
-    motivo = (request.form.get("justificativa") or "").strip() # texto do modal na reprovação
+    # "aprovar" | "reprovar"
+    acao = (request.form.get("acao") or "").lower()
+    # texto do modal na reprovação
+    motivo = (request.form.get("justificativa") or "").strip()
     agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
 
     if acao == "aprovar":
@@ -360,7 +368,8 @@ def capacidade():
             lim = request.form.get(f"limite_{m}", type=int)
             if lim is None:
                 continue
-            row = database.session.query(PafCapacidade).filter_by(ano=ano, mes=m).first()
+            row = database.session.query(
+                PafCapacidade).filter_by(ano=ano, mes=m).first()
             if not row:
                 row = PafCapacidade(ano=ano, mes=m, limite=max(lim, 0))
                 database.session.add(row)
@@ -399,17 +408,18 @@ def capacidade():
 @bp_paf.route("/recebimento", methods=["GET"])
 @login_required
 def recebimento():
-    ano     = request.args.get("ano", type=int) or _ano_atual_manaus()
-    status  = (request.args.get("status") or "todos").lower()  # pendente, aprovado_chefe, reprovado_chefe, aguardando_drh, validado_drh, nao_enviou, todos
-    q       = (request.args.get("q") or "").strip()
-    obm_id  = request.args.get("obm_id", type=int)
+    ano = request.args.get("ano", type=int) or _ano_atual_manaus()
+    # pendente, aprovado_chefe, reprovado_chefe, aguardando_drh, validado_drh, nao_enviou, todos
+    status = (request.args.get("status") or "todos").lower()
+    q = (request.args.get("q") or "").strip()
+    obm_id = request.args.get("obm_id", type=int)
 
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
     PFP = PafFeriasPlano
 
-    IS_SUPER    = _is_super_user()
+    IS_SUPER = _is_super_user()
     IS_DRH_LIKE = _is_drh_like()
-    USER_OBMS   = _user_obm_ids()
+    USER_OBMS = _user_obm_ids()
 
     # ---- SUBQUERY: último PAF do ano por militar ----
     rn = func.row_number().over(
@@ -486,11 +496,16 @@ def recebimento():
     kpi_row = (
         database.session.query(
             func.count().label("total_militares"),
-            func.sum(case((ultimo_paf_sq.c.paf_id.is_(None), 1), else_=0)).label("nao_enviaram"),
-            func.sum(case((ultimo_paf_sq.c.paf_status.in_(["pendente","enviado"]), 1), else_=0)).label("pendentes_chefe"),
-            func.sum(case((ultimo_paf_sq.c.paf_status == "aguardando_drh", 1), else_=0)).label("aguardando_drh"),
-            func.sum(case((ultimo_paf_sq.c.paf_status == "validado_drh", 1), else_=0)).label("validados_drh"),
-            func.sum(case((ultimo_paf_sq.c.paf_status == "reprovado_chefe", 1), else_=0)).label("reprovados"),
+            func.sum(case((ultimo_paf_sq.c.paf_id.is_(None), 1), else_=0)).label(
+                "nao_enviaram"),
+            func.sum(case((ultimo_paf_sq.c.paf_status.in_(
+                ["pendente", "enviado"]), 1), else_=0)).label("pendentes_chefe"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "aguardando_drh", 1), else_=0)).label(
+                "aguardando_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "validado_drh", 1), else_=0)).label(
+                "validados_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status ==
+                     "reprovado_chefe", 1), else_=0)).label("reprovados"),
         )
         .select_from(base_cte)
         .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id,
@@ -498,12 +513,12 @@ def recebimento():
     ).one()
 
     kpi = dict(
-        total       = int(kpi_row.total_militares or 0),
-        nao_enviaram= int(kpi_row.nao_enviaram or 0),
-        pendentes   = int(kpi_row.pendentes_chefe or 0),
-        aguardando  = int(kpi_row.aguardando_drh or 0),
-        validados   = int(kpi_row.validados_drh or 0),
-        reprovados  = int(kpi_row.reprovados or 0),
+        total=int(kpi_row.total_militares or 0),
+        nao_enviaram=int(kpi_row.nao_enviaram or 0),
+        pendentes=int(kpi_row.pendentes_chefe or 0),
+        aguardando=int(kpi_row.aguardando_drh or 0),
+        validados=int(kpi_row.validados_drh or 0),
+        reprovados=int(kpi_row.reprovados or 0),
     )
 
     # ---- Linhas (1 por militar) ----
@@ -544,7 +559,8 @@ def recebimento():
     if status == "nao_enviou":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_id.is_(None))
     elif status == "pendente":
-        rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]))
+        rows_q = rows_q.filter(
+            ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]))
     elif status != "todos":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status == status)
 
@@ -605,18 +621,22 @@ def detalhe(paf_id):
 def date_from_str(s):
     return datetime.strptime(s, "%Y-%m-%d").date() if s else None
 
+
 def end_inclusive(start_date, days):
     return start_date + timedelta(days=days-1)
 
-def valida_combo(direito, q1,q2,q3):
-    vals = [q for q in [q1,q2,q3] if q]
+
+def valida_combo(direito, q1, q2, q3):
+    vals = [q for q in [q1, q2, q3] if q]
     s = sum(vals)
     if direito == 40:
-        return (vals == [20,20]) or (sorted(vals)==[20,20])
+        return (vals == [20, 20]) or (sorted(vals) == [20, 20])
     # 30
-    if s != 30: return False
+    if s != 30:
+        return False
     vals_sorted = sorted(vals)
-    return (vals_sorted==[30]) or (vals_sorted==[10,20]) or (vals_sorted==[15,15]) or (vals_sorted==[10,10,10])
+    return (vals_sorted == [30]) or (vals_sorted == [10, 20]) or (vals_sorted == [15, 15]) or (vals_sorted == [10, 10, 10])
+
 
 @bp_paf.route("/salvar-plano", methods=["POST"])
 @login_required
@@ -626,14 +646,16 @@ def salvar_plano():
         flash("Não foi possível localizar seus dados.", "danger")
         return redirect(url_for("home"))
 
-    ano = request.form.get("ano_referencia", type=int) or (datetime.now(ZoneInfo("America/Manaus")).year+1)
-    direito = request.form.get("direito_total_dias", type=int) or 30
+    ano = request.form.get("ano_referencia", type=int) or (
+        datetime.now(ZoneInfo("America/Manaus")).year + 1)
 
-    # também salva as 3 opções de pagamento, se vierem no POST
+    # >>> NÃO confiar no form: derive no servidor
+    direito = 40 if militar.id in MILITARES_40_IDS else 30
+
+    # também salva as 3 opções de pagamento (se vierem)
     o1 = request.form.get("opcao_1", type=int)
     o2 = request.form.get("opcao_2", type=int)
     o3 = request.form.get("opcao_3", type=int)
-
     if o1 and o2 and o3:
         ja_tem = database.session.query(
             database.session.query(NovoPaf.id)
@@ -653,67 +675,81 @@ def salvar_plano():
             ))
             database.session.commit()
 
-    # lê período 1
+    # períodos
+    def _date(name):
+        val = request.form.get(name)
+        return date_from_str(val)
+
     q1 = request.form.get("qtd1", type=int)
-    i1 = date_from_str(request.form.get("inicio1"))
-    f1 = date_from_str(request.form.get("fim1"))
+    i1 = _date("inicio1")
+    f1 = _date("fim1")
     m1 = request.form.get("mes1", type=int)
 
-    # período 2
     q2 = request.form.get("qtd2", type=int)
-    i2 = date_from_str(request.form.get("inicio2"))
-    f2 = date_from_str(request.form.get("fim2"))
+    i2 = _date("inicio2")
+    f2 = _date("fim2")
     m2 = request.form.get("mes2", type=int)
 
-    # período 3
     q3 = request.form.get("qtd3", type=int)
-    i3 = date_from_str(request.form.get("inicio3"))
-    f3 = date_from_str(request.form.get("fim3"))
+    i3 = _date("inicio3")
+    f3 = _date("fim3")
     m3 = request.form.get("mes3", type=int)
 
-    # validações básicas
+    # obrigatórios do P1
     if not q1 or not i1:
         flash("Informe quantidade e data de início do 1º período.", "warning")
         return redirect(request.referrer or url_for("paf.novo"))
 
-    # recalcula fim para garantir consistência
-    f1_calc = end_inclusive(i1, q1)
-    if f1 != f1_calc: f1 = f1_calc
-    if not m1: m1 = i1.month
+    # normaliza fim e mês
+    f1 = end_inclusive(i1, q1)
+    if not m1:
+        m1 = i1.month
 
     if q2 and i2:
-        f2_calc = end_inclusive(i2, q2)
-        if f2 != f2_calc: f2 = f2_calc
-        if not m2: m2 = i2.month
+        f2 = end_inclusive(i2, q2)
+        if not m2:
+            m2 = i2.month
     else:
-        q2=i2=f2=m2=None
+        q2 = i2 = f2 = m2 = None
 
     if q3 and i3:
-        f3_calc = end_inclusive(i3, q3)
-        if f3 != f3_calc: f3 = f3_calc
-        if not m3: m3 = i3.month
+        f3 = end_inclusive(i3, q3)
+        if not m3:
+            m3 = i3.month
     else:
-        q3=i3=f3=m3=None
+        q3 = i3 = f3 = m3 = None
 
-    # regras de combinação
-    if not valida_combo(direito, q1,q2,q3):
-        flash("Combinação de períodos inválida para o seu direito de dias.", "danger")
-        return redirect(request.referrer or url_for("paf.novo"))
+    # ======= REGRAS NO SERVIDOR =======
+    if direito == 40:
+        # Somente 20 + 20; nada de 3º período
+        if not (q1 == 20 and q2 == 20 and q3 in (None, 0)):
+            flash(
+                "Para 40 dias, os períodos devem ser exatamente 20 + 20, sem 3º período.", "danger")
+            return redirect(request.referrer or url_for("paf.novo"))
 
-    # regra dos 40 dias: gap 6 meses entre inícios
-    if direito == 40 and (not q2 or not i2 or q1!=20 or q2!=20):
-        flash("Para 40 dias, os períodos devem ser 20 + 20 e com 6 meses de intervalo.", "danger")
-        return redirect(request.referrer or url_for("paf.novo"))
-    if direito == 40 and i1 and i2:
-        min_i2 = (i1.replace(day=1) + timedelta(days=31*6))  # aproxima 6 meses
-        # versão exata (sem aproximação) se preferir usar relativedelta
+        if not i2:
+            flash("Informe o início do 2º período (obrigatório para 40 dias).", "warning")
+            return redirect(request.referrer or url_for("paf.novo"))
+
+        # Gap de 6 meses entre inícios
         from dateutil.relativedelta import relativedelta
         if i2 < (i1 + relativedelta(months=+6)):
-            flash("Precisa de 6 meses entre o início do 1º e 2º períodos.", "danger")
+            flash(
+                "Precisa de 6 meses entre o início do 1º e 2º períodos (40 dias).", "danger")
+            return redirect(request.referrer or url_for("paf.novo"))
+    else:
+        # 30 dias: combinações válidas
+        def valid_combo_30(a, b, c):
+            arr = sorted([x for x in (a, b, c) if x], key=int)
+            key = "+".join(str(x) for x in arr)
+            return key in ("30", "10+20", "15+15", "10+10+10")
+        if not valid_combo_30(q1, q2, q3):
+            flash("Combinação de períodos inválida para 30 dias.", "danger")
             return redirect(request.referrer or url_for("paf.novo"))
 
     # 1 por militar/ano
-    existe = database.session.query(PafFeriasPlano.id).filter_by(militar_id=militar.id, ano_referencia=ano).first()
+    existe = database.session.query(PafFeriasPlano.id)\
+        .filter_by(militar_id=militar.id, ano_referencia=ano).first()
     if existe:
         flash("Você já cadastrou um plano de férias para este ano.", "warning")
         return redirect(url_for("paf.minhas", ano=ano))

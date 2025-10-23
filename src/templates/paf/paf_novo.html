@@ -3,26 +3,70 @@
 {% block head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  :root{
-    --brand-red:#B5121B; --brand-red-600:#9e1119;
-    --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
-    --ink-200:#e8eef6;
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #9e1119;
+    --glass-bg: rgba(255, 255, 255, .06);
+    --glass-brd: rgba(255, 255, 255, .16);
+    --ink-200: #e8eef6;
   }
-  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
-  .brand-header{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
-    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
+
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
-  .glass-card{background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:16px;
-    color:var(--ink-200); box-shadow:0 10px 30px rgba(0,0,0,.35);} 
-  .btn-primary{background:var(--brand-red); border-color:var(--brand-red);} 
-  .btn-primary:hover{background:var(--brand-red-600); border-color:var(--brand-red-600);} 
-  .btn-outline-primary{color:var(--brand-red); border-color:var(--brand-red);} 
-  .btn-outline-primary:hover{color:#fff; background:var(--brand-red);} 
-  .small-muted{color:#94a3b8;} 
-  .chip{display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .55rem; font-size:.78rem;
-    border-radius:999px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.06)}
+
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid var(--glass-brd);
+    border-radius: 16px;
+    color: var(--ink-200);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-brd);
+    border-radius: 16px;
+    color: var(--ink-200);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .btn-primary {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
+
+  .btn-outline-primary {
+    color: var(--brand-red);
+    border-color: var(--brand-red);
+  }
+
+  .btn-outline-primary:hover {
+    color: #fff;
+    background: var(--brand-red);
+  }
+
+  .small-muted {
+    color: #94a3b8;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .55rem;
+    font-size: .78rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-brd);
+    background: rgba(255, 255, 255, .06)
+  }
 </style>
 {% endblock %}
 
@@ -34,7 +78,8 @@
     <div class="brand-header p-3 p-md-4 mb-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+            alt="CBMAM">
           <div>
             <h1 class="h5 m-0">Solicitar PAF — {{ ano }}</h1>
             <div class="small opacity-75">
@@ -54,14 +99,13 @@
     <div class="row g-3">
       <div class="col-12 col-lg-7">
         <!-- Form -->
-        <form class="glass-card p-3 p-md-4"
-              method="post"
-              id="form-paf"
-              action="{{ url_for('paf.salvar_plano') }}">
-          <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento</h2>
+        <form class="glass-card p-3 p-md-4" method="post" id="form-paf" action="{{ url_for('paf.salvar_plano') }}">
+          <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções do PAF 2026</h2>
 
           {# meses por extenso #}
-          {% set meses_full = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+          {% set meses_full =
+          ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+          %}
 
           <div class="row g-3">
             <div class="col-12 col-md-4">
@@ -69,9 +113,9 @@
               <select class="form-select mes" name="opcao_1" required>
                 <option value="">Selecione...</option>
                 {% for m in range(1,13) %}
-                  <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
-                    {{ meses_full[m-1] }}
-                  </option>
+                <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
+                  {{ meses_full[m-1] }}
+                </option>
                 {% endfor %}
               </select>
             </div>
@@ -80,9 +124,9 @@
               <select class="form-select mes" name="opcao_2" required>
                 <option value="">Selecione...</option>
                 {% for m in range(1,13) %}
-                  <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
-                    {{ meses_full[m-1] }}
-                  </option>
+                <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
+                  {{ meses_full[m-1] }}
+                </option>
                 {% endfor %}
               </select>
             </div>
@@ -91,9 +135,9 @@
               <select class="form-select mes" name="opcao_3" required>
                 <option value="">Selecione...</option>
                 {% for m in range(1,13) %}
-                  <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
-                    {{ meses_full[m-1] }}
-                  </option>
+                <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
+                  {{ meses_full[m-1] }}
+                </option>
                 {% endfor %}
               </select>
             </div>
@@ -112,7 +156,7 @@
               Planejamento dos Períodos de Férias — <span id="ano-ref"></span>
             </h2>
             <div class="small-muted">
-              Direito total: 
+              Direito total:
               <span class="chip"><i class="bi bi-sun me-1"></i><span id="lbl-direito"></span> dias</span>
             </div>
           </div>
@@ -147,7 +191,7 @@
                     <select class="form-select" id="mes1" name="mes1" required>
                       <option value="">Selecione...</option>
                       {% for m in range(1,13) %}
-                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      <option value="{{m}}">{{ meses_full[m-1] }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -180,7 +224,7 @@
                     <select class="form-select" id="mes2" name="mes2">
                       <option value="">Selecione...</option>
                       {% for m in range(1,13) %}
-                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      <option value="{{m}}">{{ meses_full[m-1] }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -219,7 +263,7 @@
                     <select class="form-select" id="mes3" name="mes3">
                       <option value="">Selecione...</option>
                       {% for m in range(1,13) %}
-                        <option value="{{m}}">{{ meses_full[m-1] }}</option>
+                      <option value="{{m}}">{{ meses_full[m-1] }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -260,7 +304,8 @@
             <li>Você escolhe três meses distintos para pagamento das férias.</li>
             <li>Se o 1º mês estiver cheio, tenta-se o 2º; se também estiver, usa-se o 3º.</li>
             <li>Se todos estiverem cheios, a DRH definirá o mês.</li>
-            <li>Períodos de usufruto: 30 dias (1 período); 20+10, 10+20, 15+15 ou 10+10+10 (para 30 dias). Para 40 dias: 20+20 com 6 meses entre os inícios.</li>
+            <li>Períodos de usufruto: 30 dias (1 período); 20+10, 10+20, 15+15 ou 10+10+10 (para 30 dias). Para 40 dias:
+              20+20 com 6 meses entre os inícios.</li>
           </ul>
           <div class="small-muted">Resumo escolhido (pagamento):</div>
           <div class="mt-2" id="resumo-opcoes">
@@ -276,54 +321,59 @@
 </section>
 
 <script>
-(() => {
-  // ===== Script A: validação das 3 opções de mês (original) =====
-  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const selects = Array.from(document.querySelectorAll('select.mes'));
-  const msgDup  = document.getElementById('msg-duplicado');
-  const btn     = document.getElementById('btn-submit');
+  window.MILITARES_40 = {{ (militares_40 or[])| tojson }};
+</script>
 
-  const lbl1 = document.querySelector('#resumo-opcoes .mes1');
-  const lbl2 = document.querySelector('#resumo-opcoes .mes2');
-  const lbl3 = document.querySelector('#resumo-opcoes .mes3');
+<script>
+  (() => {
+    // ===== Script A: validação das 3 opções de mês (original) =====
+    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const selects = Array.from(document.querySelectorAll('select.mes'));
+    const msgDup = document.getElementById('msg-duplicado');
+    const btn = document.getElementById('btn-submit');
 
-  function updateResumo(){
-    const [v1,v2,v3] = selects.map(s => parseInt(s.value||0));
-    lbl1.textContent = v1 ? meses[v1-1] : "—";
-    lbl2.textContent = v2 ? meses[v2-1] : "—";
-    lbl3.textContent = v3 ? meses[v3-1] : "—";
-  }
+    const lbl1 = document.querySelector('#resumo-opcoes .mes1');
+    const lbl2 = document.querySelector('#resumo-opcoes .mes2');
+    const lbl3 = document.querySelector('#resumo-opcoes .mes3');
 
-  function lockDuplicates(){
-    const chosen = new Set(selects.map(s => s.value).filter(Boolean));
-    selects.forEach(sel => {
-      Array.from(sel.options).forEach(opt => {
-        if (!opt.value) return;
-        const isMine = sel.value === opt.value;
-        opt.disabled = !isMine && chosen.has(opt.value);
+    function updateResumo() {
+      const [v1, v2, v3] = selects.map(s => parseInt(s.value || 0));
+      lbl1.textContent = v1 ? meses[v1 - 1] : "—";
+      lbl2.textContent = v2 ? meses[v2 - 1] : "—";
+      lbl3.textContent = v3 ? meses[v3 - 1] : "—";
+    }
+
+    function lockDuplicates() {
+      const chosen = new Set(selects.map(s => s.value).filter(Boolean));
+      selects.forEach(sel => {
+        Array.from(sel.options).forEach(opt => {
+          if (!opt.value) return;
+          const isMine = sel.value === opt.value;
+          opt.disabled = !isMine && chosen.has(opt.value);
+        });
       });
-    });
-  }
+    }
 
-  function validateDistinct(){
-    const vals = selects.map(s => s.value).filter(Boolean);
-    const ok = new Set(vals).size === vals.length;
-    msgDup?.classList.toggle('d-none', ok);
-    btn.disabled = !ok || vals.length < 3;
-    return ok;
-  }
+    function validateDistinct() {
+      const vals = selects.map(s => s.value).filter(Boolean);
+      const ok = new Set(vals).size === vals.length;
+      msgDup?.classList.toggle('d-none', ok);
+      btn.disabled = !ok || vals.length < 3;
+      return ok;
+    }
 
-  function onChange(){
-    lockDuplicates();
-    updateResumo();
-    validateDistinct();
-  }
+    function onChange() {
+      lockDuplicates();
+      updateResumo();
+      validateDistinct();
+    }
 
-  selects.forEach(s => s.addEventListener('change', onChange));
-  onChange(); // init
+    selects.forEach(s => s.addEventListener('change', onChange));
+    onChange(); // init
 
-  // ===== Script B: Planejamento de Períodos de Férias =====
-  const ANO_REF = {{ ano|int }};
+    // ===== Script B: Planejamento de Períodos de Férias =====
+    const ANO_REF = {{ ano| int
+  }};
   const lblAno = document.getElementById('ano-ref');
   const lblDireito = document.getElementById('lbl-direito');
   const diasRestantes = document.getElementById('dias-restantes');
@@ -346,17 +396,17 @@
   document.getElementById('ano_referencia').value = ANO_REF;
   document.getElementById('direito_total_dias').value = direito;
 
-  const pad = v => String(v).padStart(2,'0');
-  const dateISO = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
-  const addDaysISO = (iso, n) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-  const endDateInclusive = (startISO, dias) => startISO && dias ? addDaysISO(startISO, Number(dias)-1) : "";
-  const monthFromISO = iso => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); return (d.getMonth()+1).toString(); };
-  const addMonthsISO = (iso, months) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); const day=d.getDate(); d.setMonth(d.getMonth()+months); while(d.getDate()<day) d.setDate(d.getDate()-1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  const pad = v => String(v).padStart(2, '0');
+  const dateISO = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+  const addDaysISO = (iso, n) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const endDateInclusive = (startISO, dias) => startISO && dias ? addDaysISO(startISO, Number(dias) - 1) : "";
+  const monthFromISO = iso => { if (!iso) return ""; const d = new Date(iso + "T00:00:00"); return (d.getMonth() + 1).toString(); };
+  const addMonthsISO = (iso, months) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00"); const day = d.getDate(); d.setMonth(d.getMonth() + months); while (d.getDate() < day) d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 
   // limita datas ao ano de referência
-  [inicio1,inicio2,inicio3].forEach(inp => { if(!inp) return; inp.min = dateISO(ANO_REF,1,1); inp.max = dateISO(ANO_REF,12,31); });
+  [inicio1, inicio2, inicio3].forEach(inp => { if (!inp) return; inp.min = dateISO(ANO_REF, 1, 1); inp.max = dateISO(ANO_REF, 12, 31); });
 
-  function setOptionsPreserve(select, vals){
+  function setOptionsPreserve(select, vals) {
     const current = select.value;
     const optionsHtml = '<option value="">Selecione...</option>' +
       vals.map(v => `<option value="${v}">${v} dias</option>`).join('');
@@ -366,24 +416,24 @@
       select.value = current;
     }
   }
-  function recomputeFimEMes(inicioEl, qtdEl, fimEl, mesEl){
-    const d = inicioEl.value; const q = parseInt(qtdEl.value||0);
-    fimEl.value = (d && q) ? endDateInclusive(d,q) : "";
-    if(d) mesEl.value = monthFromISO(d);
+  function recomputeFimEMes(inicioEl, qtdEl, fimEl, mesEl) {
+    const d = inicioEl.value; const q = parseInt(qtdEl.value || 0);
+    fimEl.value = (d && q) ? endDateInclusive(d, q) : "";
+    if (d) mesEl.value = monthFromISO(d);
   }
-  function calcRestante(){
-    const v1 = parseInt(qtd1.value||0), v2 = parseInt(qtd2.value||0), v3 = parseInt(qtd3.value||0);
-    return direito - (v1+v2+v3);
+  function calcRestante() {
+    const v1 = parseInt(qtd1.value || 0), v2 = parseInt(qtd2.value || 0), v3 = parseInt(qtd3.value || 0);
+    return direito - (v1 + v2 + v3);
   }
-  function validCombo30(v1,v2,v3){
-    const arr = [v1||0,v2||0,v3||0].filter(Boolean).sort((a,b)=>a-b).join('+');
-    return (arr==='30' || arr==='10+20' || arr==='15+15' || arr==='10+10+10');
+  function validCombo30(v1, v2, v3) {
+    const arr = [v1 || 0, v2 || 0, v3 || 0].filter(Boolean).sort((a, b) => a - b).join('+');
+    return (arr === '30' || arr === '10+20' || arr === '15+15' || arr === '10+10+10');
   }
 
-  function enforceRules(){
-    const v1 = parseInt(qtd1.value||0);
-    const v2 = parseInt(qtd2.value||0);
-    const v3 = parseInt(qtd3.value||0);
+  function enforceRules() {
+    const v1 = parseInt(qtd1.value || 0);
+    const v2 = parseInt(qtd2.value || 0);
+    const v3 = parseInt(qtd3.value || 0);
 
     if (direito === 40) {
       // 20 + 20, sem 3º
@@ -392,37 +442,37 @@
       setOptionsPreserve(qtd3, []);
       boxP2.classList.remove('d-none');
       boxP3.classList.add('d-none');
-      qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+      qtd3.value = ''; inicio3.value = ''; fim3.value = ''; mes3.value = '';
 
       if (inicio1.value) { inicio2.min = addMonthsISO(inicio1.value, 6); }
-      else { inicio2.min = dateISO(ANO_REF,1,1); }
+      else { inicio2.min = dateISO(ANO_REF, 1, 1); }
 
       gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
     } else {
       // 30 dias
-      setOptionsPreserve(qtd1, [10,15,20,30]);
+      setOptionsPreserve(qtd1, [10, 15, 20, 30]);
 
       if (v1 === 30) {
         setOptionsPreserve(qtd2, []); setOptionsPreserve(qtd3, []);
         boxP2.classList.add('d-none'); boxP3.classList.add('d-none');
-        qtd2.value=''; inicio2.value=''; fim2.value=''; mes2.value='';
-        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+        qtd2.value = ''; inicio2.value = ''; fim2.value = ''; mes2.value = '';
+        qtd3.value = ''; inicio3.value = ''; fim3.value = ''; mes3.value = '';
       } else if (v1 === 20) {
         setOptionsPreserve(qtd2, [10]); setOptionsPreserve(qtd3, []);
         boxP2.classList.remove('d-none'); boxP3.classList.add('d-none');
-        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+        qtd3.value = ''; inicio3.value = ''; fim3.value = ''; mes3.value = '';
       } else if (v1 === 15) {
         setOptionsPreserve(qtd2, [15]); setOptionsPreserve(qtd3, []);
         boxP2.classList.remove('d-none'); boxP3.classList.add('d-none');
-        qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+        qtd3.value = ''; inicio3.value = ''; fim3.value = ''; mes3.value = '';
       } else if (v1 === 10) {
-        setOptionsPreserve(qtd2, [10,20]);
+        setOptionsPreserve(qtd2, [10, 20]);
         boxP2.classList.remove('d-none');
 
         if (v2 === 20) {
           setOptionsPreserve(qtd3, []);
           boxP3.classList.add('d-none');
-          qtd3.value=''; inicio3.value=''; fim3.value=''; mes3.value='';
+          qtd3.value = ''; inicio3.value = ''; fim3.value = ''; mes3.value = '';
         } else if (v2 === 10) {
           setOptionsPreserve(qtd3, [10]);
           boxP3.classList.remove('d-none');
@@ -436,13 +486,13 @@
       }
 
       gapMsg?.classList.add('d-none');
-      inicio2.min = dateISO(ANO_REF,1,1);
+      inicio2.min = dateISO(ANO_REF, 1, 1);
     }
 
     // recalcula fim e mês automaticamente
-    recomputeFimEMes(inicio1,qtd1,fim1,mes1);
-    recomputeFimEMes(inicio2,qtd2,fim2,mes2);
-    recomputeFimEMes(inicio3,qtd3,fim3,mes3);
+    recomputeFimEMes(inicio1, qtd1, fim1, mes1);
+    recomputeFimEMes(inicio2, qtd2, fim2, mes2);
+    recomputeFimEMes(inicio3, qtd3, fim3, mes3);
 
     const rest = calcRestante();
     diasRestantes.textContent = String(rest);
@@ -454,44 +504,44 @@
       return;
     }
 
-    const comboOK = (direito===40) ? (v1===20 && v2===20 && !v3) : validCombo30(v1,v2,v3);
-    msgErro.classList.toggle('d-none', (comboOK && rest===0));
+    const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3) : validCombo30(v1, v2, v3);
+    msgErro.classList.toggle('d-none', (comboOK && rest === 0));
   }
 
-  [qtd1,qtd2,qtd3,inicio1,inicio2,inicio3].forEach(e => e && e.addEventListener('change', () => {
-    if(e===inicio1) mes1.value = monthFromISO(inicio1.value);
-    if(e===inicio2) mes2.value = monthFromISO(inicio2.value);
-    if(e===inicio3) mes3.value = monthFromISO(inicio3.value);
+  [qtd1, qtd2, qtd3, inicio1, inicio2, inicio3].forEach(e => e && e.addEventListener('change', () => {
+    if (e === inicio1) mes1.value = monthFromISO(inicio1.value);
+    if (e === inicio2) mes2.value = monthFromISO(inicio2.value);
+    if (e === inicio3) mes3.value = monthFromISO(inicio3.value);
     enforceRules();
   }));
 
-  [inicio1,inicio2].forEach(inp => inp && inp.addEventListener('change', () => {
-    if(direito!==40) return;
-    if(inicio1.value){
-      const minP2 = addMonthsISO(inicio1.value,6);
+  [inicio1, inicio2].forEach(inp => inp && inp.addEventListener('change', () => {
+    if (direito !== 40) return;
+    if (inicio1.value) {
+      const minP2 = addMonthsISO(inicio1.value, 6);
       inicio2.min = minP2;
-      if(inicio2.value && inicio2.value < minP2){ inicio2.value=''; fim2.value=''; mes2.value=''; }
+      if (inicio2.value && inicio2.value < minP2) { inicio2.value = ''; fim2.value = ''; mes2.value = ''; }
     }
     gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
   }));
 
   // expõe um validador global para o submit do formulário
-  window.validateFerias = function(){
+  window.validateFerias = function () {
     enforceRules();
     const rest = calcRestante();
-    const v1 = parseInt(qtd1.value||0), v2 = parseInt(qtd2.value||0), v3 = parseInt(qtd3.value||0);
+    const v1 = parseInt(qtd1.value || 0), v2 = parseInt(qtd2.value || 0), v3 = parseInt(qtd3.value || 0);
     let ok = true;
-    if(direito===40){
-      ok = (v1===20 && v2===20 && !v3 && inicio1.value && inicio2.value);
-      if(ok && inicio1.value && inicio2.value){
-        const minP2 = addMonthsISO(inicio1.value,6);
-        if(inicio2.value < minP2) ok = false;
+    if (direito === 40) {
+      ok = (v1 === 20 && v2 === 20 && !v3 && inicio1.value && inicio2.value);
+      if (ok && inicio1.value && inicio2.value) {
+        const minP2 = addMonthsISO(inicio1.value, 6);
+        if (inicio2.value < minP2) ok = false;
       }
     } else {
-      ok = validCombo30(v1,v2,v3);
+      ok = validCombo30(v1, v2, v3);
     }
-    ok = ok && rest===0 && !!inicio1.value && !!mes1.value;
-    if(!ok){ msgErro.classList.remove('d-none'); }
+    ok = ok && rest === 0 && !!inicio1.value && !!mes1.value;
+    if (!ok) { msgErro.classList.remove('d-none'); }
     return ok;
   }
 
@@ -507,13 +557,13 @@
     // meses distintos
     if (!validateDistinct()) { e.preventDefault(); return; }
     // períodos de férias válidos
-    if (typeof window.validateFerias === 'function'){
+    if (typeof window.validateFerias === 'function') {
       if (!window.validateFerias()) { e.preventDefault(); return; }
     }
     // UX
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
   });
-})();
+}) ();
 </script>
 {% endblock %}

@@ -117,6 +117,7 @@ def br_currency(value):
 #     from dotenv import load_dotenv
 #     load_dotenv() 
 
+
 # Importa rotas depois
 from src import routes
 from src.routes_acumulo import bp_acumulo
