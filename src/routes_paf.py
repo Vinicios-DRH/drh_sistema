@@ -245,30 +245,27 @@ def aprovar(paf_id):
         flash("Registro não encontrado.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    if not _eh_chefe_do(paf.militar_id):
-        flash("Você não pode aprovar este PAF.", "danger")
+    # permitir chefe do militar OU DRH-like OU super
+    if not (_eh_chefe_do(paf.militar_id) or _is_drh_like() or _is_super_user()):
+        flash("Você não pode aprovar/reprovar este PAF.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    # "aprovar" | "reprovar"
     acao = (request.form.get("acao") or "").lower()
-    # texto do modal na reprovação
     motivo = (request.form.get("justificativa") or "").strip()
     agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
 
     if acao == "aprovar":
-        # Aprovado pela chefia — NÃO mexe em paf.justificativa (vem do usuário)
         paf.status = "aprovado_chefe"
         paf.aprovado_por_user_id = current_user.id
         paf.aprovado_em = agora_manaus
 
     elif acao == "reprovar":
-        # Obriga motivo e salva em OBSERVACOES (justificativa da chefia)
         if not motivo:
             flash("Informe a justificativa da reprovação.", "warning")
             return redirect(request.referrer or url_for("paf.minhas"))
-
+        # (mantém o mesmo status; mude se quiser diferenciar)
         paf.status = "reprovado_chefe"
-        paf.observacoes = motivo                  # << justificativa do chefe
+        paf.observacoes = motivo
         paf.aprovado_por_user_id = current_user.id
         paf.aprovado_em = agora_manaus
 

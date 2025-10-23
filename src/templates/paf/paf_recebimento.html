@@ -288,14 +288,14 @@
                 </td>
 
                 <td class="text-nowrap">
-                  {% if is_drh %}
                   {% if paf_id %}
+
+                  {# Ação principal muda conforme o perfil #}
+                  {% if is_drh %}
                   <a class="btn btn-sm btn-outline-primary" href="{{ url_for('paf.validar', paf_id=paf_id) }}">
                     <i class="bi bi-clipboard-check me-1"></i> Validar
                   </a>
-                  {% else %}<span class="small-muted">—</span>{% endif %}
                   {% else %}
-                  {% if paf_id %}
                   <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline">
                     <input type="hidden" name="acao" value="aprovar">
                     <button class="btn btn-sm btn-success" type="submit" {{ 'disabled' if st in
@@ -303,16 +303,19 @@
                       <i class="bi bi-send-check me-1"></i> Encaminhar DRH
                     </button>
                   </form>
+                  {% endif %}
 
+                  {# Reprovar: visível para todos os perfis habilitados #}
                   <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-open-reprovar"
                     data-paf-id="{{ paf_id }}" {{ 'disabled' if st in ['reprovado_chefe','validado_drh'] else '' }}>
                     <i class="bi bi-x-circle me-1"></i> Reprovar
                   </button>
+
                   {% else %}
                   <span class="small-muted">—</span>
                   {% endif %}
-                  {% endif %}
                 </td>
+
                 <td>
                   {% if observacoes is defined and observacoes %}
                   <div class="small text-danger mt-1">
