@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from encodings import aliases
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select
 from src import database
@@ -144,6 +144,31 @@ def _alocar_automaticamente(paf: NovoPaf) -> bool:
             paf.validado_em = func.now()
             return True
     return False
+
+
+def _pode_editar_paf(paf) -> bool:
+    # super sempre pode
+    try:
+        if _is_super_user():
+            current_app.logger.warning(
+                "[PAF EDITAR] SUPER liberado (paf_id=%s)", getattr(paf, "id", None))
+            return True
+    except Exception:
+        pass
+
+    uid = getattr(current_user, "id", None)
+
+    # compara direto no relacionamento já ligado ao PAF
+    try:
+        paf_owner_uid = int(
+            getattr(getattr(paf, "militar", None), "usuario_id", 0) or 0)
+        cur_uid = int(uid or 0)
+        current_app.logger.warning("[PAF EDITAR] owner check: paf.militar.usuario_id=%s  current_user.id=%s  paf_id=%s",
+                                   paf_owner_uid, cur_uid, getattr(paf, "id", None))
+        return paf_owner_uid == cur_uid
+    except Exception as e:
+        current_app.logger.warning("[PAF EDITAR] owner check exception: %r", e)
+        return False
 
 
 @bp_paf.route("/novo", methods=["GET", "POST"])
@@ -616,6 +641,135 @@ def recebimento():
         sort=sort,
         dir=dir_,
     )
+
+
+@bp_paf.route("/editar/<int:paf_id>", methods=["GET", "POST"])
+@login_required
+def editar(paf_id):
+    paf = database.session.get(NovoPaf, paf_id)
+    if not paf:
+        flash("Registro não encontrado.", "danger")
+        return redirect(url_for("paf.minhas"))
+
+    if not _pode_editar_paf(paf):
+        flash("Você não pode editar este PAF.", "danger")
+        return redirect(url_for("paf.minhas"))
+    
+    # Somente quando reprovado
+    if (paf.status or "").lower() not in ("reprovado_chefe",):
+        flash("Este PAF não está disponível para edição.", "warning")
+        return redirect(url_for("paf.minhas"))
+
+    # Carrega plano mais recente do ano (se existir) para pré-preencher
+    PFP = PafFeriasPlano
+    plano = (
+        database.session.query(PFP)
+        .filter(
+            PFP.militar_id == paf.militar_id,
+            PFP.ano_referencia == paf.ano_referencia
+        )
+        .order_by(PFP.updated_at.desc().nullslast(), PFP.id.desc())
+        .first()
+    )
+
+    if request.method == "POST":
+        # --- Meses (pagamento) ---
+        try:
+            paf.opcao_1 = int(request.form.get("opcao_1"))
+            paf.opcao_2 = int(request.form.get("opcao_2"))
+            paf.opcao_3 = int(request.form.get("opcao_3"))
+        except (TypeError, ValueError):
+            flash("Selecione as três opções de pagamento.", "warning")
+            return redirect(request.url)
+
+        if len({paf.opcao_1, paf.opcao_2, paf.opcao_3}) < 3:
+            flash("As três opções de pagamento devem ser diferentes.", "warning")
+            return redirect(request.url)
+
+        paf.justificativa = (request.form.get("observacoes") or "").strip()
+
+        # --- Plano de férias ---
+        if not plano:
+            plano = PFP(
+                militar_id=paf.militar_id,
+                ano_referencia=paf.ano_referencia,
+                # >>> seta usuario_id porque é NOT NULL na model
+                usuario_id=getattr(current_user, "id", None) or 0,
+            )
+            database.session.add(plano)
+        else:
+            # garante usuario_id preenchido, se por acaso vier nulo de versões antigas
+            if not getattr(plano, "usuario_id", None):
+                plano.usuario_id = getattr(current_user, "id", None) or 0
+
+        def _parse_date(s):
+            if not s:
+                return None
+            from datetime import datetime
+            try:
+                return datetime.strptime(s, "%Y-%m-%d").date()
+            except ValueError:
+                return None
+
+        plano.direito_total_dias = request.form.get(
+            "direito_total_dias", type=int) or plano.direito_total_dias
+
+        # P1
+        plano.qtd_dias_p1 = request.form.get("qtd1", type=int)
+        plano.inicio_p1 = _parse_date(request.form.get("inicio1"))
+        plano.fim_p1 = _parse_date(request.form.get("fim1"))
+
+        # P2
+        plano.qtd_dias_p2 = request.form.get("qtd2", type=int)
+        plano.inicio_p2 = _parse_date(request.form.get("inicio2"))
+        plano.fim_p2 = _parse_date(request.form.get("fim2"))
+
+        # P3
+        plano.qtd_dias_p3 = request.form.get("qtd3", type=int)
+        plano.inicio_p3 = _parse_date(request.form.get("inicio3"))
+        plano.fim_p3 = _parse_date(request.form.get("fim3"))
+
+        # Reenvia para a esteira
+        paf.status = "pendente"
+        paf.aprovado_por_user_id = None
+        paf.aprovado_em = None
+        paf.validado_por_user_id = None
+        paf.validado_em = None
+
+        database.session.commit()
+        flash("Alterações salvas e reenviadas para aprovação.", "success")
+        return redirect(url_for("paf.minhas"))
+
+    # GET — renderiza
+    ctx = dict(
+        paf=paf,
+        ano=paf.ano_referencia,
+        militar=paf.militar,
+        posto_grad_sigla=(
+            paf.militar.posto_grad.sigla if paf.militar and paf.militar.posto_grad else ""),
+        opcao_1=paf.opcao_1,
+        opcao_2=paf.opcao_2,
+        opcao_3=paf.opcao_3,
+        observacoes=paf.justificativa or "",
+        qtd1=(plano.qtd_dias_p1 if plano else None),
+        inicio1=(plano.inicio_p1.strftime("%Y-%m-%d")
+                 if (plano and plano.inicio_p1) else ""),
+        fim1=(plano.fim_p1.strftime("%Y-%m-%d")
+              if (plano and plano.fim_p1) else ""),
+        qtd2=(plano.qtd_dias_p2 if plano else None),
+        inicio2=(plano.inicio_p2.strftime("%Y-%m-%d")
+                 if (plano and plano.inicio_p2) else ""),
+        fim2=(plano.fim_p2.strftime("%Y-%m-%d")
+              if (plano and plano.fim_p2) else ""),
+        qtd3=(plano.qtd_dias_p3 if plano else None),
+        inicio3=(plano.inicio_p3.strftime("%Y-%m-%d")
+                 if (plano and plano.inicio_p3) else ""),
+        fim3=(plano.fim_p3.strftime("%Y-%m-%d")
+              if (plano and plano.fim_p3) else ""),
+        militares_40=list(MILITARES_40_IDS),
+        motivo_reprovacao=paf.observacoes or "",
+    )
+    return render_template("paf/paf_editar.html", **ctx)
 
 
 @bp_paf.route("/detalhe/<int:paf_id>", methods=["GET"])
