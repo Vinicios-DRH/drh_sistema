@@ -651,9 +651,9 @@ def editar(paf_id):
         flash("Registro não encontrado.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    if not _pode_editar_paf(paf):
-        flash("Você não pode editar este PAF.", "danger")
-        return redirect(url_for("paf.minhas"))
+    # if not _pode_editar_paf(paf):
+    #     flash("Você não pode editar este PAF.", "danger")
+    #     return redirect(url_for("paf.minhas"))
     
     # Somente quando reprovado
     if (paf.status or "").lower() not in ("reprovado_chefe",):

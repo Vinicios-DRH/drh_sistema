@@ -326,6 +326,10 @@
 
 <script>
   (() => {
+    const LIM_ANO = 2026;
+    const LIM_MIN = `${LIM_ANO}-01-01`;
+    const LIM_MAX = `${LIM_ANO}-12-31`;
+
     // ===== Script A: validação das 3 opções de mês (original) =====
     const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const selects = Array.from(document.querySelectorAll('select.mes'));
@@ -405,6 +409,53 @@
 
   // limita datas ao ano de referência
   [inicio1, inicio2, inicio3].forEach(inp => { if (!inp) return; inp.min = dateISO(ANO_REF, 1, 1); inp.max = dateISO(ANO_REF, 12, 31); });
+
+  // aplica min/max aos date inputs (se existirem)
+  [inicio1, inicio2, inicio3, fim1, fim2, fim3].forEach(inp => {
+    if (!inp) return;
+    inp.setAttribute('min', LIM_MIN);
+    inp.setAttribute('max', LIM_MAX);
+  });
+
+  // util: verifica se iso-date está dentro do limite
+  const inLimit = iso => {
+    if (!iso) return true; // vazio não é verificação aqui
+    return iso >= LIM_MIN && iso <= LIM_MAX;
+  };
+
+  // mostra mensagem simples (pode customizar)
+  function showYearError(show) {
+    if (!msgErro.parentNode) {
+      msgErro.id = 'msg-erro-ferias';
+      msgErro.className = 'mt-2 text-danger';
+      msgErro.innerHTML = '<i class="bi bi-x-circle me-1"></i> Datas devem ficar até 31/12/2026.';
+      const bloco = document.getElementById('bloco-ferias');
+      bloco && bloco.appendChild(msgErro);
+    }
+    msgErro.style.display = show ? 'block' : 'none';
+  }
+
+   // checa todos os campos de data atuais e também confere fim calculado
+  function checkYearLimits() {
+    const dates = [inicio1?.value, inicio2?.value, inicio3?.value, fim1?.value, fim2?.value, fim3?.value];
+    const invalid = dates.some(d => d && !inLimit(d));
+    // desabilita o botão de submit se inválido
+    if (btn) btn.disabled = invalid;
+    showYearError(invalid);
+    return !invalid;
+  }
+
+   // adiciona listeners para checar dinamicamente
+  [inicio1, inicio2, inicio3, fim1, fim2, fim3].forEach(el => {
+    if (!el) return;
+    el.addEventListener('change', () => {
+      // se o fim for maior que LIM_MAX, limpa o fim e força o usuário ajustar
+      if (el === inicio1 && fim1 && fim1.value && !inLimit(fim1.value)) fim1.value = '';
+      if (el === inicio2 && fim2 && fim2.value && !inLimit(fim2.value)) fim2.value = '';
+      if (el === inicio3 && fim3 && fim3.value && !inLimit(fim3.value)) fim3.value = '';
+      checkYearLimits();
+    });
+  });
 
   function setOptionsPreserve(select, vals) {
     const current = select.value;
@@ -551,19 +602,23 @@
   qtd2.addEventListener('change', enforceRules);
   qtd3.addEventListener('change', enforceRules);
 
-  // ===== Hook no submit do formulário (integra tudo) =====
+  // hook no submit: impede envio se passar do limite
   const form = document.getElementById('form-paf');
   form?.addEventListener('submit', (e) => {
-    // meses distintos
-    if (!validateDistinct()) { e.preventDefault(); return; }
-    // períodos de férias válidos
-    if (typeof window.validateFerias === 'function') {
-      if (!window.validateFerias()) { e.preventDefault(); return; }
+    if (!checkYearLimits()) {
+      e.preventDefault();
+      alert('Alguma data ultrapassa 31/12/2026. Ajuste antes de enviar.');
+      return;
     }
-    // UX
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    // se preferir, aqui já desabilita o botão e mostra spinner (UX)
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    }
   });
+
+  // inicial check
+  checkYearLimits();
 }) ();
 </script>
 {% endblock %}
