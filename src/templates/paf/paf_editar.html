@@ -101,7 +101,8 @@
                     <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento</h2>
 
                     {% set meses_full =
-                    ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+                    ["Janeiro",
+                    "Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
                     %}
 
                     <div class="row g-3">
@@ -109,7 +110,7 @@
                             <label class="form-label">Primeira opção</label>
                             <select class="form-select mes" name="opcao_1" required>
                                 <option value="">Selecione...</option>
-                                {% for m in range(1,13) %}
+                                {% for m in range(2,13) %}
                                 <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
                                     {{ meses_full[m-1] }}
                                 </option>
@@ -120,7 +121,7 @@
                             <label class="form-label">Segunda opção</label>
                             <select class="form-select mes" name="opcao_2" required>
                                 <option value="">Selecione...</option>
-                                {% for m in range(1,13) %}
+                                {% for m in range(2,13) %}
                                 <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
                                     {{ meses_full[m-1] }}
                                 </option>
@@ -131,7 +132,7 @@
                             <label class="form-label">Terceira opção</label>
                             <select class="form-select mes" name="opcao_3" required>
                                 <option value="">Selecione...</option>
-                                {% for m in range(1,13) %}
+                                {% for m in range(2,13) %}
                                 <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
                                     {{ meses_full[m-1] }}
                                 </option>
@@ -245,7 +246,8 @@
                                 <div class="col-12">
                                     <div id="p2-gap-msg" class="small text-warning d-none mt-2">
                                         <i class="bi bi-exclamation-triangle me-1"></i>
-                                        Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º períodos.
+                                        Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º
+                                        períodos.
                                     </div>
                                 </div>
                             </div>
@@ -291,7 +293,8 @@
 
                         <!-- Resumo/erros -->
                         <div class="col-12">
-                            <div class="small-muted">Restando: <span id="dias-restantes">{{ direito_total_dias or 30 }}</span> dias</div>
+                            <div class="small-muted">Restando: <span id="dias-restantes">{{ direito_total_dias or 30
+                                    }}</span> dias</div>
                             <div id="msg-erro-ferias" class="mt-2 text-danger d-none">
                                 <i class="bi bi-x-circle me-1"></i>
                                 Verifique os períodos: combinação inválida para o direito total.
@@ -319,7 +322,8 @@
                     <h2 class="h6 m-0 mb-2"><i class="bi bi-info-circle me-1"></i> Dica</h2>
                     <div class="small-muted">
                         Revise as três opções de pagamento e ajuste os períodos conforme a orientação da chefia.
-                    </div><div class="small-muted">
+                    </div>
+                    <div class="small-muted">
                         Você só pode escolher os dias de usufruto até o dia 31/12/2026.
                     </div>
                 </div>
@@ -372,9 +376,9 @@
             return ok;
         }
 
-        function onChange() { 
-            lockDuplicates(); 
-            validateDistinct(); 
+        function onChange() {
+            lockDuplicates();
+            validateDistinct();
         }
 
         selects.forEach(s => s.addEventListener('change', onChange));
@@ -382,25 +386,25 @@
 
         // ===== LÓGICA DINÂMICA DOS PERÍODOS (igual ao template novo) =====
         const pad = v => String(v).padStart(2, '0');
-        const addDaysISO = (iso, n) => { 
-            if (!iso) return ""; 
-            const d = new Date(iso + "T00:00:00"); 
-            d.setDate(d.getDate() + n); 
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; 
+        const addDaysISO = (iso, n) => {
+            if (!iso) return "";
+            const d = new Date(iso + "T00:00:00");
+            d.setDate(d.getDate() + n);
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         };
-        
+
         const endDateInclusive = (startISO, dias) => {
             if (!startISO || !dias) return "";
-            
+
             const dataFim = addDaysISO(startISO, Number(dias) - 1);
             const dataMax = new Date(DATA_MAXIMA);
             const dataFimObj = new Date(dataFim + "T00:00:00");
-            
+
             // Se a data fim ultrapassar 2026, ajusta para 31/12/2026
             if (dataFimObj > dataMax) {
                 return DATA_MAXIMA;
             }
-            
+
             return dataFim;
         };
 
@@ -441,7 +445,7 @@
         }
 
         function recomputeFimEMes(inicioEl, qtdEl, fimEl, mesEl) {
-            const d = inicioEl.value; 
+            const d = inicioEl.value;
             const q = parseInt(qtdEl.value || 0);
             fimEl.value = (d && q) ? endDateInclusive(d, q) : "";
             if (d) mesEl.value = monthFromISO(d);
@@ -459,15 +463,15 @@
                 setOptionsPreserve(qtd3, []);
                 boxP2.classList.remove('d-none');
                 boxP3.classList.add('d-none');
-                qtd3.value = ''; 
-                inicio3.value = ''; 
-                fim3.value = ''; 
+                qtd3.value = '';
+                inicio3.value = '';
+                fim3.value = '';
                 mes3.value = '';
 
-                if (inicio1.value) { 
-                    inicio2.min = addMonthsISO(inicio1.value, 6); 
-                } else { 
-                    inicio2.min = DATA_MINIMA; 
+                if (inicio1.value) {
+                    inicio2.min = addMonthsISO(inicio1.value, 6);
+                } else {
+                    inicio2.min = DATA_MINIMA;
                 }
 
                 gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
@@ -476,35 +480,35 @@
                 setOptionsPreserve(qtd1, [10, 15, 20, 30]);
 
                 if (v1 === 30) {
-                    setOptionsPreserve(qtd2, []); 
+                    setOptionsPreserve(qtd2, []);
                     setOptionsPreserve(qtd3, []);
-                    boxP2.classList.add('d-none'); 
+                    boxP2.classList.add('d-none');
                     boxP3.classList.add('d-none');
-                    qtd2.value = ''; 
-                    inicio2.value = ''; 
-                    fim2.value = ''; 
+                    qtd2.value = '';
+                    inicio2.value = '';
+                    fim2.value = '';
                     mes2.value = '';
-                    qtd3.value = ''; 
-                    inicio3.value = ''; 
-                    fim3.value = ''; 
+                    qtd3.value = '';
+                    inicio3.value = '';
+                    fim3.value = '';
                     mes3.value = '';
                 } else if (v1 === 20) {
-                    setOptionsPreserve(qtd2, [10]); 
+                    setOptionsPreserve(qtd2, [10]);
                     setOptionsPreserve(qtd3, []);
-                    boxP2.classList.remove('d-none'); 
+                    boxP2.classList.remove('d-none');
                     boxP3.classList.add('d-none');
-                    qtd3.value = ''; 
-                    inicio3.value = ''; 
-                    fim3.value = ''; 
+                    qtd3.value = '';
+                    inicio3.value = '';
+                    fim3.value = '';
                     mes3.value = '';
                 } else if (v1 === 15) {
-                    setOptionsPreserve(qtd2, [15]); 
+                    setOptionsPreserve(qtd2, [15]);
                     setOptionsPreserve(qtd3, []);
-                    boxP2.classList.remove('d-none'); 
+                    boxP2.classList.remove('d-none');
                     boxP3.classList.add('d-none');
-                    qtd3.value = ''; 
-                    inicio3.value = ''; 
-                    fim3.value = ''; 
+                    qtd3.value = '';
+                    inicio3.value = '';
+                    fim3.value = '';
                     mes3.value = '';
                 } else if (v1 === 10) {
                     setOptionsPreserve(qtd2, [10, 20]);
@@ -513,9 +517,9 @@
                     if (v2 === 20) {
                         setOptionsPreserve(qtd3, []);
                         boxP3.classList.add('d-none');
-                        qtd3.value = ''; 
-                        inicio3.value = ''; 
-                        fim3.value = ''; 
+                        qtd3.value = '';
+                        inicio3.value = '';
+                        fim3.value = '';
                         mes3.value = '';
                     } else if (v2 === 10) {
                         setOptionsPreserve(qtd3, [10]);
@@ -525,9 +529,9 @@
                         boxP3.classList.add('d-none');
                     }
                 } else {
-                    setOptionsPreserve(qtd2, []); 
+                    setOptionsPreserve(qtd2, []);
                     setOptionsPreserve(qtd3, []);
-                    boxP2.classList.add('d-none'); 
+                    boxP2.classList.add('d-none');
                     boxP3.classList.add('d-none');
                 }
 
@@ -570,10 +574,10 @@
                 if (inicio1.value) {
                     const minP2 = addMonthsISO(inicio1.value, 6);
                     inicio2.min = minP2;
-                    if (inicio2.value && inicio2.value < minP2) { 
-                        inicio2.value = ''; 
-                        fim2.value = ''; 
-                        mes2.value = ''; 
+                    if (inicio2.value && inicio2.value < minP2) {
+                        inicio2.value = '';
+                        fim2.value = '';
+                        mes2.value = '';
                     }
                 }
                 gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
@@ -586,7 +590,7 @@
             const rest = calcRestante();
             const v1 = parseInt(qtd1.value || 0), v2 = parseInt(qtd2.value || 0), v3 = parseInt(qtd3.value || 0);
             let ok = true;
-            
+
             if (direito === 40) {
                 ok = (v1 === 20 && v2 === 20 && !v3 && inicio1.value && inicio2.value);
                 if (ok && inicio1.value && inicio2.value) {
@@ -597,9 +601,9 @@
                 ok = validCombo30(v1, v2, v3);
             }
             ok = ok && rest === 0 && !!inicio1.value && !!mes1.value;
-            
-            if (!ok) { 
-                msgErro.classList.remove('d-none'); 
+
+            if (!ok) {
+                msgErro.classList.remove('d-none');
             }
             return ok;
         }
