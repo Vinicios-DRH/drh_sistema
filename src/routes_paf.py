@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
 MILITARES_40_IDS = {513, 768, 946, 1, 251, 506, 410, 1026,
-                    356, 798, 702, 463, 387, 888, 902, 948, 749, 612}
+                    356, 798, 702, 463, 387, 888, 902, 948, 749, 768, 612}
 
 
 def _ocupacao_nome() -> str:
