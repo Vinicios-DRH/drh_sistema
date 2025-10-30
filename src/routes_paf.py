@@ -924,7 +924,7 @@ def salvar_plano():
 
         # Gap de 6 meses entre inícios
         from dateutil.relativedelta import relativedelta
-        if i2 < (i1 + relativedelta(months=+6)):
+        if i2 < (i1 + relativedelta(months=+4)):
             flash(
                 "Precisa de 6 meses entre o início do 1º e 2º períodos (40 dias).", "danger")
             return redirect(request.referrer or url_for("paf.novo"))
