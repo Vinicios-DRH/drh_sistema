@@ -7,6 +7,10 @@ from src import database
 from src.formatar_cpf import get_militar_por_user
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from zoneinfo import ZoneInfo
+from functools import lru_cache
+from math import ceil
+from sqlalchemy.orm import aliased
+
 
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
 MILITARES_40_IDS = {513, 768, 946, 1, 251, 506, 410, 1026,
@@ -169,6 +173,14 @@ def _pode_editar_paf(paf) -> bool:
     except Exception as e:
         current_app.logger.warning("[PAF EDITAR] owner check exception: %r", e)
         return False
+
+
+# cache simples em memória para itens raramente mutáveis (ajuste TTL se quiser)
+@lru_cache(maxsize=1)
+def _cached_obms_postos():
+    obms = database.session.query(Obm.id, Obm.sigla).order_by(Obm.sigla).all()
+    postos = database.session.query(PostoGrad.id, PostoGrad.sigla).order_by(PostoGrad.id).all()
+    return obms, postos
 
 
 @bp_paf.route("/novo", methods=["GET", "POST"])
@@ -434,12 +446,14 @@ def recebimento():
     status = (request.args.get("status") or "todos").lower()
     q = (request.args.get("q") or "").strip()
     obm_id = request.args.get("obm_id", type=int)
-    pg_id = request.args.get("pg_id", type=int)   # <<< NOVO
+    pg_id = request.args.get("pg_id", type=int)
 
-    # chegada|nome|pg|obm|status|paf
     sort = (request.args.get("sort") or "chegada").lower()
-    dir_ = (request.args.get("dir") or "desc").lower()       # asc|desc
+    dir_ = (request.args.get("dir") or "desc").lower()
     dir_desc = (dir_ == "desc")
+
+    page = max(1, request.args.get("page", type=int) or 1)
+    per_page = min(100, request.args.get("per_page", type=int) or 50)  # ajuste default
 
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
     PFP = PafFeriasPlano
@@ -448,7 +462,7 @@ def recebimento():
     IS_DRH_LIKE = _is_drh_like()
     USER_OBMS = _user_obm_ids()
 
-    # --- subqueries (como já estavam) ---
+    # --- subqueries (idem) ---
     rn = func.row_number().over(
         partition_by=D.militar_id,
         order_by=(D.updated_at.desc().nullslast(), D.id.desc())
@@ -494,22 +508,19 @@ def recebimento():
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
     )
 
-    # Filtro por OBM (subárvore)
     if obm_id:
+        # se _obm_subtree_ids for custoso, considere cachear resultados por obm_id
         base_q = base_q.filter(MOF.obm_id.in_(_obm_subtree_ids(obm_id)))
 
-    # Filtro por Posto/Graduação (NOVO)
     if pg_id:
         base_q = base_q.filter(M.posto_grad_id == pg_id)
 
-    # Escopo do usuário
     if not (IS_DRH_LIKE or IS_SUPER):
         if USER_OBMS:
             base_q = base_q.filter(MOF.obm_id.in_(USER_OBMS))
         else:
             base_q = base_q.filter(literal(False))
 
-    # Busca livre
     if q:
         ilike = f"%{q}%"
         base_q = (
@@ -526,20 +537,15 @@ def recebimento():
 
     base_cte = base_q.distinct().cte("base_militares")
 
-    # ---- KPIs (inalterado) ----
+    # --- KPIs: manter, mas execute apenas sobre base_cte (já estava assim) ---
     kpi_row = (
         database.session.query(
             func.count().label("total_militares"),
-            func.sum(case((ultimo_paf_sq.c.paf_id.is_(None), 1), else_=0)).label(
-                "nao_enviaram"),
-            func.sum(case((ultimo_paf_sq.c.paf_status.in_(
-                ["pendente", "enviado"]), 1), else_=0)).label("pendentes_chefe"),
-            func.sum(case((ultimo_paf_sq.c.paf_status == "aguardando_drh", 1), else_=0)).label(
-                "aguardando_drh"),
-            func.sum(case((ultimo_paf_sq.c.paf_status == "validado_drh", 1), else_=0)).label(
-                "validados_drh"),
-            func.sum(case((ultimo_paf_sq.c.paf_status ==
-                     "reprovado_chefe", 1), else_=0)).label("reprovados"),
+            func.sum(case((ultimo_paf_sq.c.paf_id.is_(None), 1), else_=0)).label("nao_enviaram"),
+            func.sum(case((ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]), 1), else_=0)).label("pendentes_chefe"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "aguardando_drh", 1), else_=0)).label("aguardando_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "validado_drh", 1), else_=0)).label("validados_drh"),
+            func.sum(case((ultimo_paf_sq.c.paf_status == "reprovado_chefe", 1), else_=0)).label("reprovados"),
         )
         .select_from(base_cte)
         .outerjoin(ultimo_paf_sq, and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id, ultimo_paf_sq.c.rn == 1))
@@ -554,30 +560,39 @@ def recebimento():
         reprovados=int(kpi_row.reprovados or 0),
     )
 
-    # ---- Linhas (inalterado, já faz outerjoin em PG para exibir sigla) ----
+    # ---- Linhas: selecionar apenas colunas necessárias (evita hydrate de objetos) ----
+    # colunas que o template espera:
+    cols = [
+        M,  # -> m (objeto ORM), o template usa m.nome_completo / m.matricula
+        PG.sigla.label("pg_sigla"),
+        O.sigla.label("obm_sigla"),
+        ultimo_paf_sq.c.paf_id,
+        ultimo_paf_sq.c.paf_status,
+        ultimo_paf_sq.c.opcao_1,
+        ultimo_paf_sq.c.opcao_2,
+        ultimo_paf_sq.c.opcao_3,
+        ultimo_paf_sq.c.mes_definido,
+        ultimo_paf_sq.c.recebido_em,
+        ultimo_paf_sq.c.created_at,
+        ultimo_paf_sq.c.updated_at,
+        ultimo_plano_sq.c.plano_id,
+        ultimo_plano_sq.c.plano_status,
+        ultimo_plano_sq.c.direito_total_dias.label("direito_total"),  # alias para casar com 'direito_total' do template
+        ultimo_plano_sq.c.qtd_dias_p1,
+        ultimo_plano_sq.c.inicio_p1,
+        ultimo_plano_sq.c.fim_p1,
+        ultimo_plano_sq.c.qtd_dias_p2,
+        ultimo_plano_sq.c.inicio_p2,
+        ultimo_plano_sq.c.fim_p2,
+        ultimo_plano_sq.c.qtd_dias_p3,
+        ultimo_plano_sq.c.inicio_p3,
+        ultimo_plano_sq.c.fim_p3,
+        ultimo_paf_sq.c.justificativa,
+        ultimo_paf_sq.c.observacoes,
+    ]
+
     rows_q = (
-        database.session.query(
-            M,
-            PG.sigla.label("pg_sigla"),
-            O.sigla.label("obm_sigla"),
-            ultimo_paf_sq.c.paf_id,
-            ultimo_paf_sq.c.paf_status,
-            ultimo_paf_sq.c.opcao_1,
-            ultimo_paf_sq.c.opcao_2,
-            ultimo_paf_sq.c.opcao_3,
-            ultimo_paf_sq.c.mes_definido,
-            ultimo_paf_sq.c.recebido_em,
-            ultimo_paf_sq.c.created_at,
-            ultimo_paf_sq.c.updated_at,
-            ultimo_plano_sq.c.plano_id,
-            ultimo_plano_sq.c.plano_status,
-            ultimo_plano_sq.c.direito_total_dias,
-            ultimo_plano_sq.c.qtd_dias_p1, ultimo_plano_sq.c.inicio_p1, ultimo_plano_sq.c.fim_p1,
-            ultimo_plano_sq.c.qtd_dias_p2, ultimo_plano_sq.c.inicio_p2, ultimo_plano_sq.c.fim_p2,
-            ultimo_plano_sq.c.qtd_dias_p3, ultimo_plano_sq.c.inicio_p3, ultimo_plano_sq.c.fim_p3,
-            ultimo_paf_sq.c.justificativa,
-            ultimo_paf_sq.c.observacoes,
-        )
+        database.session.query(*cols)
         .join(base_cte, base_cte.c.m_id == M.id)
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(O, O.id == MOF.obm_id)
@@ -589,19 +604,17 @@ def recebimento():
     if status == "nao_enviou":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_id.is_(None))
     elif status == "pendente":
-        rows_q = rows_q.filter(
-            ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]))
+        rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status.in_(["pendente", "enviado"]))
     elif status != "todos":
         rows_q = rows_q.filter(ultimo_paf_sq.c.paf_status == status)
 
-    # NOVO: chave "ordem de chegada" = recebido_em > created_at > updated_at
     chegada_expr = func.coalesce(
         ultimo_paf_sq.c.recebido_em,
         ultimo_paf_sq.c.created_at,
         ultimo_paf_sq.c.updated_at,
     )
 
-    # NOVO: mapear sort -> coluna
+    # mapear sort -> coluna
     if sort == "chegada":
         ob = chegada_expr.desc().nullslast() if dir_desc else chegada_expr.asc().nullsfirst()
     elif sort == "nome":
@@ -611,35 +624,44 @@ def recebimento():
     elif sort == "obm":
         ob = O.sigla.desc() if dir_desc else O.sigla.asc()
     elif sort == "status":
-        ob = ultimo_paf_sq.c.paf_status.desc().nullslast(
-        ) if dir_desc else ultimo_paf_sq.c.paf_status.asc().nullsfirst()
+        ob = ultimo_paf_sq.c.paf_status.desc().nullslast() if dir_desc else ultimo_paf_sq.c.paf_status.asc().nullsfirst()
     elif sort == "paf":
-        ob = ultimo_paf_sq.c.paf_id.desc().nullslast(
-        ) if dir_desc else ultimo_paf_sq.c.paf_id.asc().nullsfirst()
+        ob = ultimo_paf_sq.c.paf_id.desc().nullslast() if dir_desc else ultimo_paf_sq.c.paf_id.asc().nullsfirst()
     else:
-        # fallback
         ob = M.nome_completo.asc()
 
-    rows = rows_q.order_by(ob, M.nome_completo.asc()
-                           ).all()  # 2º critério estável
+    # total para paginação (rápido pois é COUNT sobre base_cte + filtros de status)
+    total_q = rows_q.statement.with_only_columns(func.count()).order_by(None)
 
-    obms = database.session.query(Obm).order_by(Obm.sigla).all()
-    postos = database.session.query(PostoGrad).order_by(PostoGrad.id).all()
+    total = database.session.execute(total_q).scalar() or 0
+
+    # paginação usando LIMIT/OFFSET
+    offset = (page - 1) * per_page
+    rows_page = rows_q.order_by(ob, M.nome_completo.asc()).limit(per_page).offset(offset).all()
+
+    # obms/postos cache
+    obms, postos = _cached_obms_postos()
+
+    total_pages = ceil(total / per_page) if per_page else 1
 
     return render_template(
         "paf/paf_recebimento.html",
-        linhas=rows,
+        linhas=rows_page,
         ano=ano,
         q=q,
         status=status,
         obm_id=obm_id,
-        pg_id=pg_id,          # <<< NOVO (para marcar selecionado)
+        pg_id=pg_id,
         obms=obms,
-        postos=postos,        # <<< NOVO (popular select)
+        postos=postos,
         is_drh=True if (IS_DRH_LIKE or IS_SUPER) else False,
         kpi=kpi,
         sort=sort,
         dir=dir_,
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=total_pages,
     )
 
 

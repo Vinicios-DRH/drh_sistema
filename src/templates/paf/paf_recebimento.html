@@ -366,7 +366,19 @@
         <div class="small-muted">Nenhum PAF encontrado para {{ ano }}.</div>
         {% endif %}
       </div>
-
+      <!-- Depois da tabela, antes do fechamento do card -->
+      <nav aria-label="Paginação PAF" class="mt-3">
+        <ul class="pagination pagination-sm">
+          <li class="page-item {{ 'disabled' if page<=1 else '' }}">
+            <a class="page-link" href="{{ url_for('paf.recebimento', page=page-1, per_page=per_page, q=q, obm_id=obm_id, pg_id=pg_id, status=status, sort=sort, dir=dir) }}">Anterior</a>
+          </li>
+          <li class="page-item disabled"><span class="page-link">Página {{ page }} / {{ total_pages }}</span></li>
+          <li class="page-item {{ 'disabled' if page>=total_pages else '' }}">
+            <a class="page-link" href="{{ url_for('paf.recebimento', page=page+1, per_page=per_page, q=q, obm_id=obm_id, pg_id=pg_id, status=status, sort=sort, dir=dir) }}">Próxima</a>
+          </li>
+        </ul>
+        <div class="small-muted">Mostrando {{ linhas|length }} de {{ total }} militares</div>
+      </nav>
   </div>
 
   <div id="modal-reprovar" class="modal-backdrop-custom" style="display:none;">
