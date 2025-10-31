@@ -112,7 +112,7 @@
               <label class="form-label">Primeira opção</label>
               <select class="form-select mes" name="opcao_1" required>
                 <option value="">Selecione...</option>
-                {% for m in range(5,13) %}
+                {% for m in range(8,13) %}
                 <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
                   {{ meses_full[m-1] }}
                 </option>
@@ -123,7 +123,7 @@
               <label class="form-label">Segunda opção</label>
               <select class="form-select mes" name="opcao_2" required>
                 <option value="">Selecione...</option>
-                {% for m in range(5,13) %}
+                {% for m in range(8,13) %}
                 <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
                   {{ meses_full[m-1] }}
                 </option>
@@ -134,7 +134,7 @@
               <label class="form-label">Terceira opção</label>
               <select class="form-select mes" name="opcao_3" required>
                 <option value="">Selecione...</option>
-                {% for m in range(5,13) %}
+                {% for m in range(8,13) %}
                 <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
                   {{ meses_full[m-1] }}
                 </option>
