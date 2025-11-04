@@ -541,25 +541,24 @@ class Motoristas(database.Model):
     __tablename__ = 'motoristas'
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
-                                 nullable=True)
-    categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'),
-                                   nullable=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=True)
+    categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'), nullable=True)
     siged = database.Column(database.String(200))
     boletim_geral = database.Column(database.String(200))
     created = database.Column(database.DateTime, default=datetime.utcnow)
     modified = database.Column(database.DateTime)
-    usuario_id = database.Column(
-        database.Integer, database.ForeignKey('user.id'))
+    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
     cnh_imagem = database.Column(database.String(255))
     desclassificar = database.Column(database.String(30))
+    desclassificar_por = database.Column(database.Integer, database.ForeignKey('user.id'))
+    desclassificar_em = database.Column(database.DateTime)
 
     # Relacionamentos
     militar = database.relationship('Militar', backref='motoristas', lazy=True)
-    categoria = database.relationship(
-        'Categoria', backref='motorista_categoria', lazy=True)
+    categoria = database.relationship('Categoria', backref='motorista_categoria', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
+    usuario_desclassificacao = database.relationship('User', foreign_keys=[desclassificar_por])
 
 
 class Viaturas(database.Model):

@@ -159,13 +159,56 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <!-- dentro do form, por exemplo onde está o botão salvar -->
+                            <div class="row">
+                                <div class="col-4">
+                                    <div class="d-grid my-3">
+                                        {{ form_motorista.botao_salvar_motorista(class="btn btn-outline-primary mt-2") }}
+                                    </div>
+                                </div>
 
-                            <div class="col-4">
-                                <div class="d-grid my-3">
-                                    {{ form_motorista.botao_salvar_motorista(class="btn btn-outline-primary
-                                    mt-2") }}
+                                <!-- Botão desclassificar -->
+                                <div class="col-4">
+                                    <div class="d-grid my-3">
+                                        <!-- abre o modal -->
+                                        <button type="button" class="btn btn-outline-danger mt-2" data-bs-toggle="modal" data-bs-target="#confirmDesclassificarModal">
+                                            🚫 Desclassificar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Modal de confirmação -->
+                            <div class="modal fade" id="confirmDesclassificarModal" tabindex="-1" aria-labelledby="confirmDesclassificarModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                <form method="POST" id="desclassificarForm" class="p-0">  <!-- vai submeter o mesmo form por POST -->
+                                    {{ form_motorista.csrf_token }}
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="confirmDesclassificarModalLabel">Confirmar desclassificação</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Tem certeza que deseja desclassificar este motorista?</p>
+
+                                    <div class="mb-3">
+                                        <label for="motivoDesclassificacao" class="form-label">Motivo (opcional)</label>
+                                        <textarea id="motivoDesclassificacao" name="motivo_desclassificacao" class="form-control" rows="3" placeholder="Motivo da desclassificação..."></textarea>
+                                    </div>
+
+                                    <!-- campo escondido que indica a ação -->
+                                    <input type="hidden" name="action" value="desclassificar">
+                                    </div>
+                                    <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <!-- submit do form: será tratado na rota -->
+                                    <button type="submit" class="btn btn-danger">Confirmar desclassificar</button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                            </div>
+
                         </form>
                     </div>
                 </div>

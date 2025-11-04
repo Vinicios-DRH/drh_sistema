@@ -2679,12 +2679,9 @@ def adicionar_motorista():
 def motoristas():
     form_filtro = FormFiltroMotorista()
 
-    form_filtro.obm_id.choices = [
-        ('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in
-                                                                                PostoGrad.query.all()]
-    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for
-                                                                                  categoria in Categoria.query.all()]
+    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -2693,13 +2690,13 @@ def motoristas():
     posto_grad_id = request.args.get('posto_grad_id', '', type=str)
     categoria_id = request.args.get('categoria_id', '', type=str)
 
-    # Query base
-    query = Motoristas.query.join(Militar)
+    # Query base — junta Militar e Motoristas
+    # IMPORTANTE: exclui motoristas desclassificados (desclassificar == 'SIM')
+    query = Motoristas.query.join(Militar).filter(Motoristas.desclassificar != 'SIM')
 
     # Filtro por OBM
     if obm_id:
-        subquery = MilitarObmFuncao.query.filter_by(
-            obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
         query = query.filter(Motoristas.militar_id.in_(subquery))
 
     # Filtro por Posto/Graduação
@@ -2714,39 +2711,42 @@ def motoristas():
     if search:
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
+    # Apenas registros ativos (se você usa modified para histórico)
+    query = query.filter(Motoristas.modified.is_(None))
+
     # Paginação
-    motoristas_paginados = query.filter(Motoristas.modified.is_(None)).order_by(Militar.nome_completo.asc()).paginate(
-        page=page, per_page=per_page)
+    motoristas_paginados = query.order_by(Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
 
-    # Contagem de motoristas
+    # Contagem de militares (total geral) e motoristas válidos (exclui desclassificados)
     total_militares = Militar.query.count()
-    total_motoristas = Motoristas.query.filter(
-        Motoristas.modified.is_(None)).count()
+    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').count()
 
-    # Gráfico: Percentual de militares que são motoristas
+    # Gráfico: Percentual de militares que são motoristas (exclui desclassificados)
     labels_motoristas = ['Motoristas', 'Não são motoristas']
     values_motoristas = [total_motoristas, total_militares - total_motoristas]
-    fig_motoristas = go.Figure(
-        data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
+    fig_motoristas = go.Figure(data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
     grafico_motoristas = pio.to_json(fig_motoristas)
 
-    # Gráfico: Motoristas por categoria
-    categorias = database.session.query(Categoria.sigla, database.func.count(Motoristas.id)).join(Motoristas).group_by(
-        Categoria.sigla).all()
+    # Gráfico: Motoristas por categoria (exclui desclassificados)
+    categorias = database.session.query(
+        Categoria.sigla,
+        database.func.count(Motoristas.id)
+    ).join(Motoristas).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Categoria.sigla).all()
     labels_categorias = [c[0] for c in categorias]
     values_categorias = [c[1] for c in categorias]
-    fig_categorias = go.Figure(
-        data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
     grafico_categorias = pio.to_json(fig_categorias)
 
-    # Gráfico: Motoristas por OBM
-    obms = database.session.query(Obm.sigla, database.func.count(Motoristas.id)).join(MilitarObmFuncao,
-                                                                                      Obm.id == MilitarObmFuncao.obm_id).join(
-        Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id).group_by(Obm.sigla).all()
+    # Gráfico: Motoristas por OBM (exclui desclassificados)
+    obms = database.session.query(
+        Obm.sigla,
+        database.func.count(Motoristas.id)
+    ).join(MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id).join(
+        Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id
+    ).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Obm.sigla).all()
     labels_obms = [obm[0] for obm in obms]
     values_obms = [obm[1] for obm in obms]
-    fig_obms = go.Figure(
-        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
     grafico_obms = pio.to_json(fig_obms)
 
     return render_template(
@@ -2780,63 +2780,198 @@ def atualizar_motorista(motorista_id):
     # Preenche dados exibidos
     form_motorista.matricula.data = motorista.militar.matricula
     form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
-    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
-        0].obm.sigla if motorista.militar.obm_funcoes else None
+    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[0].obm.sigla if motorista.militar.obm_funcoes else None
 
-    if form_motorista.validate_on_submit():
-        try:
-            # Marca o antigo como modificado (histórico)
-            motorista.modified = datetime.utcnow()
-            database.session.commit()
+    if request.method == 'POST':
+        # Ação específica: desclassificar (vindo do modal)
+        if request.form.get('action') == 'desclassificar':
+            motivo = request.form.get('motivo_desclassificacao', None)
+            try:
+                # Marca o antigo como modificado (histórico)
+                motorista.modified = datetime.utcnow()
+                database.session.commit()
 
-            # Novo registro com os dados atualizados
-            novo_motorista = Motoristas(
-                militar_id=motorista.militar_id,
-                categoria_id=form_motorista.categoria_id.data,
-                boletim_geral=form_motorista.boletim_geral.data,
-                siged=form_motorista.siged.data,
-                usuario_id=current_user.id,
-                vencimento_cnh=form_motorista.vencimento_cnh.data,
-                created=datetime.utcnow()
-            )
-
-            # Verifica se imagem foi enviada
-            if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
-                file = form_motorista.cnh_imagem.data
-                ext = file.filename.split('.')[-1]
-                timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                nome_formatado = motorista.militar.nome_completo.replace(
-                    " ", "_")
-                nome_arquivo = secure_filename(
-                    f"{nome_formatado}_cnh_{timestamp}.{ext}")
-                file_bytes = file.read()
-
-                # Upload para o root do bucket
-                app.supabase.storage.from_('motoristas').upload(
-                    path=nome_arquivo,  # apenas o nome do arquivo
-                    file=file_bytes,
-                    file_options={"content-type": file.mimetype}
+                # Novo registro marcando desclassificado
+                novo_motorista = Motoristas(
+                    militar_id=motorista.militar_id,
+                    categoria_id=motorista.categoria_id,  # mantém a categoria atual
+                    boletim_geral=motorista.boletim_geral,
+                    siged=motorista.siged,
+                    usuario_id=current_user.id,
+                    vencimento_cnh=motorista.vencimento_cnh,
+                    created=datetime.utcnow(),
+                    desclassificar='SIM'
                 )
 
-                # Salva apenas o nome no banco
-                novo_motorista.cnh_imagem = nome_arquivo
+                # opcional: salvar motivo concatenado (ou use outra coluna se preferir)
+                if motivo:
+                    # limite para evitar overflow da coluna (sua coluna é String(30) — cuidado!)
+                    # nesse exemplo eu salvo apenas uma flag e concateno motivo em outra tabela/coluna seria ideal.
+                    novo_motorista.desclassificar = 'SIM'
+                    # se quiser armazenar motivo curto (<=30): usar outra coluna; aqui guardo prefixo do motivo se couber
+                    # novo_motorista.desclassificar = (motivo[:30])  # *substitui* a flag se preferir
+                    # Para não perder a info, recomendo criar uma coluna `desclassificar_motivo` (ver migração abaixo)
+                # Salva novo registro
+                database.session.add(novo_motorista)
+                database.session.commit()
 
-            # Salva novo registro no banco
-            database.session.add(novo_motorista)
-            database.session.commit()
+                flash('Motorista desclassificado com sucesso!', 'warning')
+                return redirect(url_for('motoristas'))
 
-            flash('Motorista atualizado com sucesso!', 'success')
-            return redirect(url_for('motoristas'))
+            except Exception as e:
+                database.session.rollback()
+                flash(f'Erro ao desclassificar motorista: {str(e)}', 'danger')
+                print("Erro ao desclassificar motorista:", e)
+                # cai para re-render do template com flash
 
-        except Exception as e:
-            database.session.rollback()
-            flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
-            print("Erro ao atualizar motorista:", e)
+        # Caso seja submissão normal (salvar/editar)
+        if form_motorista.validate_on_submit():
+            try:
+                # Marca antigo como modificado (histórico)
+                motorista.modified = datetime.utcnow()
+                database.session.commit()
+
+                novo_motorista = Motoristas(
+                    militar_id=motorista.militar_id,
+                    categoria_id=motorista.categoria_id,
+                    boletim_geral=motorista.boletim_geral,
+                    siged=motorista.siged,
+                    usuario_id=current_user.id,
+                    vencimento_cnh=motorista.vencimento_cnh,
+                    created=datetime.utcnow(),
+                    desclassificar='SIM',
+                    desclassificar_por=current_user.id,
+                    desclassificar_em=datetime.utcnow()
+                )
+
+                # Verifica se imagem foi enviada
+                if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
+                    file = form_motorista.cnh_imagem.data
+                    ext = file.filename.split('.')[-1]
+                    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                    nome_formatado = motorista.militar.nome_completo.replace(" ", "_")
+                    nome_arquivo = secure_filename(f"{nome_formatado}_cnh_{timestamp}.{ext}")
+                    file_bytes = file.read()
+
+                    # Upload para o root do bucket
+                    app.supabase.storage.from_('motoristas').upload(
+                        path=nome_arquivo,
+                        file=file_bytes,
+                        file_options={"content-type": file.mimetype}
+                    )
+
+                    # Salva apenas o nome no banco
+                    novo_motorista.cnh_imagem = nome_arquivo
+
+                # Salva novo registro no banco
+                database.session.add(novo_motorista)
+                database.session.commit()
+
+                flash('Motorista atualizado com sucesso!', 'success')
+                return redirect(url_for('motoristas'))
+
+            except Exception as e:
+                database.session.rollback()
+                flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
+                print("Erro ao atualizar motorista:", e)
 
     return render_template(
         'atualizar_motorista.html',
         form_motorista=form_motorista,
         motorista=motorista
+    )
+
+
+@app.route('/motoristas-desclassificados', methods=['GET', 'POST'])
+@login_required
+def motoristas_desclassificados():
+    form_filtro = FormFiltroMotorista()
+
+    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    search = request.args.get('search', '', type=str)
+    obm_id = request.args.get('obm_id', '', type=str)
+    posto_grad_id = request.args.get('posto_grad_id', '', type=str)
+    categoria_id = request.args.get('categoria_id', '', type=str)
+
+    # Query base: apenas desclassificados atuais (registros não modificados e desclassificar == 'SIM')
+    query = Motoristas.query.join(Militar).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None))
+
+    # Filtro por OBM
+    if obm_id:
+        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        query = query.filter(Motoristas.militar_id.in_(subquery))
+
+    # Filtro por Posto/Graduação
+    if posto_grad_id:
+        query = query.filter(Militar.posto_grad_id == posto_grad_id)
+
+    # Filtro por Categoria
+    if categoria_id:
+        query = query.filter(Motoristas.categoria_id == categoria_id)
+
+    # Filtro por Nome
+    if search:
+        query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
+
+    # Paginação
+    motoristas_paginados = query.order_by(Motoristas.desclassificar_em.desc().nullslast(), Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
+
+    # Contagem total de desclassificados (para resumo)
+    total_desclassificados = Motoristas.query.filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).count()
+
+    # Gráfico 1: Desclassificados por categoria
+    categorias = database.session.query(
+        Categoria.sigla,
+        database.func.count(Motoristas.id)
+    ).join(Motoristas).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).group_by(Categoria.sigla).all()
+    labels_categorias = [c[0] for c in categorias]
+    values_categorias = [c[1] for c in categorias]
+    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    grafico_categorias = pio.to_json(fig_categorias)
+
+    # Gráfico 2: Desclassificados por OBM
+    obms = database.session.query(
+        Obm.sigla,
+        database.func.count(Motoristas.id)
+    ).join(MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id).join(
+        Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id
+    ).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).group_by(Obm.sigla).all()
+    labels_obms = [o[0] for o in obms]
+    values_obms = [o[1] for o in obms]
+    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    grafico_obms = pio.to_json(fig_obms)
+
+    # Gráfico 3: Evolução mensal de desclassificados (últimos 12 meses)
+    # Usa date_trunc para agrupar por mês; funciona em PostgreSQL (Supabase)
+    mensal = database.session.query(
+        database.func.date_trunc('month', Motoristas.desclassificar_em).label('mes'),
+        database.func.count(Motoristas.id)
+    ).filter(
+        Motoristas.desclassificar == 'SIM',
+        Motoristas.modified.is_(None),
+        Motoristas.desclassificar_em.isnot(None)
+    ).group_by('mes').order_by('mes').all()
+
+    meses = [row[0].strftime('%Y-%m') for row in mensal] if mensal else []
+    valores_mensais = [row[1] for row in mensal] if mensal else []
+    fig_mensal = go.Figure(data=[go.Bar(x=meses, y=valores_mensais)])
+    fig_mensal.update_layout(xaxis_title='Mês', yaxis_title='Desclassificados')
+    grafico_mensal = pio.to_json(fig_mensal)
+
+    return render_template(
+        'motoristas_desclassificados.html',
+        motoristas=motoristas_paginados,
+        search=search,
+        form_filtro=form_filtro,
+        total_desclassificados=total_desclassificados,
+        grafico_categorias=grafico_categorias,
+        grafico_obms=grafico_obms,
+        grafico_mensal=grafico_mensal
     )
 
 

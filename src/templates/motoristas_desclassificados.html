@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<section class="bg-light py-3 py-md-5 mt-2">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12">
+        <div class="card border border-light-subtle rounded-3 shadow-sm">
+          <div class="card-body p-3 p-md-4 p-xl-5">
+            <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Motoristas Desclassificados</h2>
+
+            <!-- Busca -->
+            <form method="GET" action="{{ url_for('motoristas_desclassificados') }}" class="mb-4">
+              <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Buscar por nome..." value="{{ search }}">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+              </div>
+            </form>
+
+            <div class="mb-3">
+              <strong>Total desclassificados:</strong> {{ total_desclassificados }}
+            </div>
+
+            <!-- Tabela de desclassificados -->
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Nome Completo</th>
+                    <th>Matrícula</th>
+                    <th>Posto/Graduação</th>
+                    <th>Categoria</th>
+                    <th>Boletim Geral</th>
+                    <th>SIGED</th>
+                    <th>Desclassificado em</th>
+                    <th>Por</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for motorista in motoristas.items %}
+                  <tr>
+                    <td>
+                      <a href="{{ url_for('atualizar_motorista', motorista_id=motorista.id) }}">
+                        {{ motorista.militar.nome_completo }}
+                      </a>
+                    </td>
+                    <td>{{ motorista.militar.matricula }}</td>
+                    <td>{{ motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else '' }}</td>
+                    <td>{{ motorista.categoria.sigla if motorista.categoria else '' }}</td>
+                    <td>{{ motorista.boletim_geral }}</td>
+                    <td>{{ motorista.siged }}</td>
+                    <td>
+                      {% if motorista.desclassificar_en %}
+                        {{ motorista.desclassificar_em.strftime('%d/%m/%Y %H:%M') }}
+                      {% else %}
+                        {% if motorista.desclassificar_em %}
+                          {{ motorista.desclassificar_em.strftime('%d/%m/%Y %H:%M') }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if motorista.usuario_desclassificacao %}
+                        {{ motorista.usuario_desclassificacao.nome }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="8" class="text-center">Nenhum desclassificado encontrado.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Paginação -->
+            <nav aria-label="Paginação">
+              <ul class="pagination justify-content-center">
+                {% if motoristas.has_prev %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('motoristas_desclassificados', page=motoristas.prev_num, search=search) }}" aria-label="Anterior">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                {% for page_num in motoristas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                  {% if page_num %}
+                    <li class="page-item {% if page_num == motoristas.page %}active{% endif %}">
+                      <a class="page-link" href="{{ url_for('motoristas_desclassificados', page=page_num, search=search) }}">{{ page_num }}</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                  {% endif %}
+                {% endfor %}
+
+                {% if motoristas.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('motoristas_desclassificados', page=motoristas.next_num, search=search) }}" aria-label="Próximo">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+              </ul>
+            </nav>
+
+            <!-- Gráficos -->
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <h5 class="text-center">Desclassificados por Categoria</h5>
+                <div id="grafico_categorias"></div>
+              </div>
+              <div class="col-md-6">
+                <h5 class="text-center">Desclassificados por OBM</h5>
+                <div id="grafico_obms"></div>
+              </div>
+              <div class="col-12 mt-4">
+                <h5 class="text-center">Evolução Mensal</h5>
+                <div id="grafico_mensal"></div>
+              </div>
+            </div>
+
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <script>
+              Plotly.newPlot('grafico_categorias', {{ grafico_categorias|safe }});
+              Plotly.newPlot('grafico_obms', {{ grafico_obms|safe }});
+              Plotly.newPlot('grafico_mensal', {{ grafico_mensal|safe }});
+            </script>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
