@@ -97,48 +97,33 @@
         <div class="row g-3">
             <div class="col-12 col-lg-7">
                 <form class="glass-card p-3 p-md-4" method="post" action="{{ url_for('paf.editar', paf_id=paf.id) }}"
-                    id="form-paf">
-                    <h2 class="h6 m-0 mb-3"><i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento</h2>
+                    id="form-paf" novalidate>
 
-                    {% set meses_full =
-                    ["Janeiro",
-                    "Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-                    %}
+                    <h2 class="h6 m-0 mb-3">
+                        <i class="bi bi-calendar2-check me-1"></i> Suas opções de recebimento
+                    </h2>
+
+                    {% set meses_full = [
+                        "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                        "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+                    ] %}
 
                     <div class="row g-3">
+                        {# opções de pagamento (mantive meses 8..12 como estava) #}
+                        {% for idx in [1,2,3] %}
+                            {% if idx == 1 %}{% set selected_val = opcao_1|default(0) %}
+                            {% elif idx == 2 %}{% set selected_val = opcao_2|default(0) %}
+                            {% else %}{% set selected_val = opcao_3|default(0) %}{% endif %}
                         <div class="col-12 col-md-4">
-                            <label class="form-label">Primeira opção</label>
-                            <select class="form-select mes" name="opcao_1" required>
+                            <label class="form-label">{{ idx }}ª opção</label>
+                            <select class="form-select mes" name="opcao_{{ idx }}" required>
                                 <option value="">Selecione...</option>
                                 {% for m in range(8,13) %}
-                                <option value="{{m}}" {{ 'selected' if (opcao_1|default('')|int)==m else '' }}>
-                                    {{ meses_full[m-1] }}
-                                </option>
+                                <option value="{{ m }}" {% if selected_val|int == m %}selected{% endif %}>{{ meses_full[m-1] }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label">Segunda opção</label>
-                            <select class="form-select mes" name="opcao_2" required>
-                                <option value="">Selecione...</option>
-                                {% for m in range(8,13) %}
-                                <option value="{{m}}" {{ 'selected' if (opcao_2|default('')|int)==m else '' }}>
-                                    {{ meses_full[m-1] }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label">Terceira opção</label>
-                            <select class="form-select mes" name="opcao_3" required>
-                                <option value="">Selecione...</option>
-                                {% for m in range(8,13) %}
-                                <option value="{{m}}" {{ 'selected' if (opcao_3|default('')|int)==m else '' }}>
-                                    {{ meses_full[m-1] }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% endfor %}
                     </div>
 
                     <div class="mt-3 small text-danger d-none" id="msg-duplicado">
@@ -147,154 +132,84 @@
                     </div>
 
                     <hr class="my-4">
+
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                         <h2 class="h6 m-0">
                             <i class="bi bi-calendar3-range me-1"></i>
                             Planejamento dos Períodos de Férias — {{ ano }}
                         </h2>
                         <div class="small-muted">
-                            Direito total:
-                            <span class="chip"><i class="bi bi-sun me-1"></i>
-                                <span id="lbl-direito">{{ direito_total_dias or 30 }}</span> dias
-                            </span>
+                            {% if militar.id in militares_40 %}
+                                Direito total:
+                                <span class="chip text-warning"><i class="bi bi-sun me-1"></i><span id="lbl-direito">40</span> dias</span>
+                            {% else %}
+                                Direito total:
+                                <span class="chip"><i class="bi bi-sun me-1"></i><span id="lbl-direito">30</span> dias</span>
+                            {% endif %}
                         </div>
                     </div>
 
                     <input type="hidden" name="ano_referencia" value="{{ ano }}">
-                    <input type="hidden" name="direito_total_dias" id="direito_total_dias"
-                        value="{{ direito_total_dias or 30 }}">
+                    <input type="hidden" name="direito_total_dias" id="direito_total_dias" value="{% if militar.id in militares_40 %}40{% else %}30{% endif %}">
 
                     <div class="row g-3" id="bloco-ferias">
-                        <!-- Período 1 -->
+                        {% for p in [1,2,3] %}
+                            {% if p == 1 %}
+                                {% set q_sel = qtd1|default(None) %}
+                                {% set inicio_sel = inicio1|default('') %}
+                                {% set fim_sel = fim1|default('') %}
+                            {% elif p == 2 %}
+                                {% set q_sel = qtd2|default(None) %}
+                                {% set inicio_sel = inicio2|default('') %}
+                                {% set fim_sel = fim2|default('') %}
+                            {% else %}
+                                {% set q_sel = qtd3|default(None) %}
+                                {% set inicio_sel = inicio3|default('') %}
+                                {% set fim_sel = fim3|default('') %}
+                            {% endif %}
+                        <div class="col-12" id="periodo-box-{{p}}">
+                            <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <strong>{{ p }}º Período</strong>
+                                    <span class="small-muted" id="p{{p}}-restante"></span>
+                                </div>
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label">Quantidade de dias</label>
+                                        <select class="form-select" id="qtd{{p}}" name="qtd{{p}}">
+                                            {% if militar.id in militares_40 %}
+                                                {# para 40 dias permitimos apenas 20 em p1/p2; p3 ficará escondido pelo JS #}
+                                                {% for d in [20] %}
+                                                <option value="{{ d }}" {% if q_sel is not none and q_sel|int == d %}selected{% endif %}>{{ d }} dias</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for d in [10,15,20,30] %}
+                                                <option value="{{ d }}" {% if q_sel is not none and q_sel|int == d %}selected{% endif %}>{{ d }} dias</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Início</label>
+                                        <input type="date" class="form-control" id="inicio{{p}}" name="inicio{{p}}"
+                                            value="{{ inicio_sel }}" min="2024-01-01" max="2026-12-31">
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label">Fim</label>
+                                        <input type="date" class="form-control" id="fim{{p}}" name="fim{{p}}"
+                                            value="{{ fim_sel }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                         <div class="col-12">
-                            <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <strong>1º Período</strong>
-                                    <span class="small-muted" id="p1-restante"></span>
-                                </div>
-                                <div class="row g-3 align-items-end">
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Quantidade de dias</label>
-                                        <select class="form-select" id="qtd1" name="qtd1" required>
-                                            {% for d in [10,15,20,30] %}
-                                            <option value="{{d}}" {{ 'selected' if (qtd1|default('')|int)==d else '' }}>
-                                                {{ d }} dias</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data início</label>
-                                        <input type="date" class="form-control" id="inicio1" name="inicio1"
-                                            value="{{ inicio1 }}" min="2024-01-01" max="2026-12-31">
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data fim</label>
-                                        <input type="date" class="form-control" id="fim1" name="fim1" value="{{ fim1 }}"
-                                            readonly>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Mês de usufruto</label>
-                                        <select class="form-select" id="mes1" name="mes1">
-                                            <option value="">Selecione...</option>
-                                            {% for m in range(1,13) %}
-                                            <option value="{{m}}">{{ meses_full[m-1] }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
+                            <div id="p2-gap-msg" class="small text-warning mt-2 d-none">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º períodos.
                             </div>
-                        </div>
-
-                        <!-- Período 2 -->
-                        <div class="col-12" id="box-p2">
-                            <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <strong>2º Período</strong>
-                                    <span class="small-muted" id="p2-restante"></span>
-                                </div>
-                                <div class="row g-3 align-items-end">
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Quantidade de dias</label>
-                                        <select class="form-select" id="qtd2" name="qtd2">
-                                            <option value="">Selecione...</option>
-                                            {% for d in [10,15,20] %}
-                                            <option value="{{d}}" {{ 'selected' if (qtd2|default('')|int)==d else '' }}>
-                                                {{ d }} dias</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data início</label>
-                                        <input type="date" class="form-control" id="inicio2" name="inicio2"
-                                            value="{{ inicio2 }}" min="2024-01-01" max="2026-12-31">
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data fim</label>
-                                        <input type="date" class="form-control" id="fim2" name="fim2" value="{{ fim2 }}"
-                                            readonly>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Mês de usufruto</label>
-                                        <select class="form-select" id="mes2" name="mes2">
-                                            <option value="">Selecione...</option>
-                                            {% for m in range(1,13) %}
-                                            <option value="{{m}}">{{ meses_full[m-1] }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div id="p2-gap-msg" class="small text-warning d-none mt-2">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
-                                        Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º
-                                        períodos.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Período 3 -->
-                        <div class="col-12" id="box-p3">
-                            <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <strong>3º Período</strong>
-                                </div>
-                                <div class="row g-3 align-items-end">
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Quantidade de dias</label>
-                                        <select class="form-select" id="qtd3" name="qtd3">
-                                            <option value="">Selecione...</option>
-                                            <option value="10" {{ 'selected' if (qtd3|default('')|int)==10 else '' }}>10
-                                                dias</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data início</label>
-                                        <input type="date" class="form-control" id="inicio3" name="inicio3"
-                                            value="{{ inicio3 }}" min="2024-01-01" max="2026-12-31">
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Data fim</label>
-                                        <input type="date" class="form-control" id="fim3" name="fim3" value="{{ fim3 }}"
-                                            readonly>
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Mês de usufruto</label>
-                                        <select class="form-select" id="mes3" name="mes3">
-                                            <option value="">Selecione...</option>
-                                            {% for m in range(1,13) %}
-                                            <option value="{{m}}">{{ meses_full[m-1] }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Resumo/erros -->
-                        <div class="col-12">
-                            <div class="small-muted">Restando: <span id="dias-restantes">{{ direito_total_dias or 30
-                                    }}</span> dias</div>
                             <div id="msg-erro-ferias" class="mt-2 text-danger d-none">
                                 <i class="bi bi-x-circle me-1"></i>
                                 Verifique os períodos: combinação inválida para o direito total.
@@ -302,328 +217,287 @@
                         </div>
                     </div>
 
-                    <div class="mt-3">
-                        <label class="form-label">Observações (opcional)</label>
-                        <textarea class="form-control" rows="3"
-                            name="observacoes">{{ observacoes|default('') }}</textarea>
+                    <div class="mt-4">
+                        <label class="form-label">Justificativa / Observações</label>
+                        <textarea class="form-control" name="observacoes" rows="3">{{ observacoes }}</textarea>
                     </div>
 
-                    <div class="d-flex align-items-center gap-2 mt-4">
-                        <a href="{{ url_for('paf.minhas') }}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button class="btn btn-primary" type="submit" id="btn-submit">
-                            <span class="me-1"><i class="bi bi-send"></i></span> Salvar e reenviar
+                    <div class="mt-4 text-end">
+                        <button class="btn btn-primary px-4" type="submit" id="btn-submit">
+                            <i class="bi bi-send-check me-1"></i> Reenviar PAF
                         </button>
                     </div>
                 </form>
             </div>
-
             <div class="col-12 col-lg-5">
                 <div class="glass-card p-3 p-md-4">
-                    <h2 class="h6 m-0 mb-2"><i class="bi bi-info-circle me-1"></i> Dica</h2>
-                    <div class="small-muted">
-                        Revise as três opções de pagamento e ajuste os períodos conforme a orientação da chefia.
-                    </div>
-                    <div class="small-muted">
-                        Você só pode escolher os dias de usufruto até o dia 31/12/2026.
-                    </div>
+                    <h6 class="mb-3"><i class="bi bi-info-circle me-1"></i> Instruções para preenchimento</h6>
+                    <ul class="small-muted ps-3">
+                        <li>Selecione <strong>três opções diferentes</strong> de meses para recebimento do pagamento das férias.</li>
+                        <li>Informe a <strong>quantidade de dias</strong> e as <strong>datas de início</strong> dos períodos desejados.</li>
+                        <li>O sistema calcula automaticamente a data de término.</li>
+                        <li>Militares com <strong>40 dias</strong> têm direito a <strong>dois períodos de 20 dias</strong> cada.</li>
+                        <li>Deve haver <strong>intervalo mínimo de 6 meses</strong> entre o fim do 1º e o início do 2º período.</li>
+                        <li>Revise as informações antes de reenviar o PAF.</li>
+                    </ul>
                 </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </section>
 
 <script>
-    (() => {
-        // Configuração de datas permitidas
-        const DATA_MINIMA = '2024-01-01';
-        const DATA_MAXIMA = '2026-12-31';
+(function () {
+    // dados do servidor
+    const MILITARES_40 = {{ militares_40|tojson }};
+    const MILITAR_ID = {{ (militar.id if militar else 'null') }};
+    const direito = parseInt(document.getElementById('direito_total_dias').value) || 30;
+    const DATA_MIN = '2024-01-01';
+    const DATA_MAX = '2026-12-31';
 
-        // Elementos do DOM
-        const selects = Array.from(document.querySelectorAll('select.mes'));
-        const msgDup = document.getElementById('msg-duplicado');
-        const btn = document.getElementById('btn-submit');
-        const msgErro = document.getElementById('msg-erro-ferias');
-        const gapMsg = document.getElementById('p2-gap-msg');
-        const diasRestantes = document.getElementById('dias-restantes');
+    // elementos
+    const selectsMes = document.querySelectorAll('.mes');
+    const msgDup = document.getElementById('msg-duplicado');
+    const btn = document.getElementById('btn-submit');
+    const msgErro = document.getElementById('msg-erro-ferias');
+    const p2GapMsg = document.getElementById('p2-gap-msg');
 
-        // Elementos dos períodos
-        const qtd1 = document.getElementById('qtd1'), inicio1 = document.getElementById('inicio1'), fim1 = document.getElementById('fim1'), mes1 = document.getElementById('mes1');
-        const qtd2 = document.getElementById('qtd2'), inicio2 = document.getElementById('inicio2'), fim2 = document.getElementById('fim2'), mes2 = document.getElementById('mes2');
-        const qtd3 = document.getElementById('qtd3'), inicio3 = document.getElementById('inicio3'), fim3 = document.getElementById('fim3'), mes3 = document.getElementById('mes3');
-        const boxP2 = document.getElementById('box-p2');
-        const boxP3 = document.getElementById('box-p3');
+    const qtd1 = document.getElementById('qtd1'), inicio1 = document.getElementById('inicio1'), fim1 = document.getElementById('fim1');
+    const qtd2 = document.getElementById('qtd2'), inicio2 = document.getElementById('inicio2'), fim2 = document.getElementById('fim2');
+    const qtd3 = document.getElementById('qtd3'), inicio3 = document.getElementById('inicio3'), fim3 = document.getElementById('fim3');
 
-        // Direito total de férias
-        const direito = parseInt(document.getElementById('direito_total_dias').value) || 30;
+    const boxP2 = document.getElementById('periodo-box-2');
+    const boxP3 = document.getElementById('periodo-box-3');
 
-        // ===== VALIDAÇÃO DAS OPÇÕES DE MÊS =====
-        function lockDuplicates() {
-            const chosen = new Set(selects.map(s => s.value).filter(Boolean));
-            selects.forEach(sel => {
-                Array.from(sel.options).forEach(opt => {
-                    if (!opt.value) return;
-                    const isMine = sel.value === opt.value;
-                    opt.disabled = !isMine && chosen.has(opt.value);
-                });
-            });
-        }
+    // utilitários de data
+    const pad = v => String(v).padStart(2, '0');
+    const addDaysISO = (iso, n) => {
+        if (!iso) return "";
+        const d = new Date(iso + "T00:00:00");
+        d.setDate(d.getDate() + n);
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    };
+    const endDateInclusive = (startISO, dias) => {
+        if (!startISO || !dias) return "";
+        const fim = addDaysISO(startISO, Number(dias)-1);
+        // se fim > DATA_MAX, retorna DATA_MAX (mas form validation deve impedir envio)
+        if (fim > DATA_MAX) return DATA_MAX;
+        return fim;
+    };
+    function validarIntervaloFerias() {
+        if (!MILITARES_40.includes(MILITAR_ID)) return true; // só aplica a quem tem 40 dias
+        if (!inicio1.value || !fim1.value || !inicio2.value) return true;
 
-        function validateDistinct() {
-            const vals = selects.map(s => s.value).filter(Boolean);
-            const ok = new Set(vals).size === vals.length;
-            msgDup?.classList.toggle('d-none', ok);
-            return ok;
-        }
+        const fimPrimeiro = new Date(fim1.value + "T00:00:00");
+        const inicioSegundo = new Date(inicio2.value + "T00:00:00");
 
-        function onChange() {
-            lockDuplicates();
-            validateDistinct();
-        }
+        const diffMeses = (inicioSegundo.getFullYear() - fimPrimeiro.getFullYear()) * 12 +
+                            (inicioSegundo.getMonth() - fimPrimeiro.getMonth());
 
-        selects.forEach(s => s.addEventListener('change', onChange));
-        onChange();
+        const ok = diffMeses >= 6;
+        p2GapMsg.classList.toggle('d-none', ok);
+        return ok;
+    }
+    const monthFromISO = iso => {
+        if (!iso) return "";
+        const d = new Date(iso + "T00:00:00");
+        return (d.getMonth()+1).toString();
+    };
+    const addMonthsISO = (iso, months) => {
+        if (!iso) return "";
+        const d = new Date(iso + "T00:00:00");
+        const day = d.getDate();
+        d.setMonth(d.getMonth() + months);
+        // ajusta mês com dias
+        while (d.getDate() < day) d.setDate(d.getDate() - 1);
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    };
 
-        // ===== LÓGICA DINÂMICA DOS PERÍODOS (igual ao template novo) =====
-        const pad = v => String(v).padStart(2, '0');
-        const addDaysISO = (iso, n) => {
-            if (!iso) return "";
-            const d = new Date(iso + "T00:00:00");
-            d.setDate(d.getDate() + n);
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        };
-
-        const endDateInclusive = (startISO, dias) => {
-            if (!startISO || !dias) return "";
-
-            const dataFim = addDaysISO(startISO, Number(dias) - 1);
-            const dataMax = new Date(DATA_MAXIMA);
-            const dataFimObj = new Date(dataFim + "T00:00:00");
-
-            // Se a data fim ultrapassar 2026, ajusta para 31/12/2026
-            if (dataFimObj > dataMax) {
-                return DATA_MAXIMA;
-            }
-
-            return dataFim;
-        };
-
-        const monthFromISO = iso => {
-            if (!iso) return "";
-            const d = new Date(iso + "T00:00:00");
-            return (d.getMonth() + 1).toString();
-        };
-
-        const addMonthsISO = (iso, months) => {
-            if (!iso) return "";
-            const d = new Date(iso + "T00:00:00");
-            const day = d.getDate();
-            d.setMonth(d.getMonth() + months);
-            while (d.getDate() < day) d.setDate(d.getDate() - 1);
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        };
-
-        function setOptionsPreserve(select, vals) {
-            const current = select.value;
-            const optionsHtml = '<option value="">Selecione...</option>' +
-                vals.map(v => `<option value="${v}">${v} dias</option>`).join('');
-            select.innerHTML = optionsHtml;
-            // preserva seleção se ainda for válida
-            if (current && vals.map(String).includes(String(parseInt(current)))) {
-                select.value = current;
-            }
-        }
-
-        function calcRestante() {
-            const v1 = parseInt(qtd1.value || 0), v2 = parseInt(qtd2.value || 0), v3 = parseInt(qtd3.value || 0);
-            return direito - (v1 + v2 + v3);
-        }
-
-        function validCombo30(v1, v2, v3) {
-            const arr = [v1 || 0, v2 || 0, v3 || 0].filter(Boolean).sort((a, b) => a - b).join('+');
-            return (arr === '30' || arr === '10+20' || arr === '15+15' || arr === '10+10+10');
-        }
-
-        function recomputeFimEMes(inicioEl, qtdEl, fimEl, mesEl) {
-            const d = inicioEl.value;
-            const q = parseInt(qtdEl.value || 0);
-            fimEl.value = (d && q) ? endDateInclusive(d, q) : "";
-            if (d) mesEl.value = monthFromISO(d);
-        }
-
-        function enforceRules() {
-            const v1 = parseInt(qtd1.value || 0);
-            const v2 = parseInt(qtd2.value || 0);
-            const v3 = parseInt(qtd3.value || 0);
-
-            if (direito === 40) {
-                // 20 + 20, sem 3º
-                setOptionsPreserve(qtd1, [20]);
-                setOptionsPreserve(qtd2, [20]);
-                setOptionsPreserve(qtd3, []);
-                boxP2.classList.remove('d-none');
-                boxP3.classList.add('d-none');
-                qtd3.value = '';
-                inicio3.value = '';
-                fim3.value = '';
-                mes3.value = '';
-
-                if (inicio1.value) {
-                    inicio2.min = addMonthsISO(inicio1.value, 6);
-                } else {
-                    inicio2.min = DATA_MINIMA;
-                }
-
-                gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
-            } else {
-                // 30 dias
-                setOptionsPreserve(qtd1, [10, 15, 20, 30]);
-
-                if (v1 === 30) {
-                    setOptionsPreserve(qtd2, []);
-                    setOptionsPreserve(qtd3, []);
-                    boxP2.classList.add('d-none');
-                    boxP3.classList.add('d-none');
-                    qtd2.value = '';
-                    inicio2.value = '';
-                    fim2.value = '';
-                    mes2.value = '';
-                    qtd3.value = '';
-                    inicio3.value = '';
-                    fim3.value = '';
-                    mes3.value = '';
-                } else if (v1 === 20) {
-                    setOptionsPreserve(qtd2, [10]);
-                    setOptionsPreserve(qtd3, []);
-                    boxP2.classList.remove('d-none');
-                    boxP3.classList.add('d-none');
-                    qtd3.value = '';
-                    inicio3.value = '';
-                    fim3.value = '';
-                    mes3.value = '';
-                } else if (v1 === 15) {
-                    setOptionsPreserve(qtd2, [15]);
-                    setOptionsPreserve(qtd3, []);
-                    boxP2.classList.remove('d-none');
-                    boxP3.classList.add('d-none');
-                    qtd3.value = '';
-                    inicio3.value = '';
-                    fim3.value = '';
-                    mes3.value = '';
-                } else if (v1 === 10) {
-                    setOptionsPreserve(qtd2, [10, 20]);
-                    boxP2.classList.remove('d-none');
-
-                    if (v2 === 20) {
-                        setOptionsPreserve(qtd3, []);
-                        boxP3.classList.add('d-none');
-                        qtd3.value = '';
-                        inicio3.value = '';
-                        fim3.value = '';
-                        mes3.value = '';
-                    } else if (v2 === 10) {
-                        setOptionsPreserve(qtd3, [10]);
-                        boxP3.classList.remove('d-none');
-                    } else {
-                        setOptionsPreserve(qtd3, []);
-                        boxP3.classList.add('d-none');
-                    }
-                } else {
-                    setOptionsPreserve(qtd2, []);
-                    setOptionsPreserve(qtd3, []);
-                    boxP2.classList.add('d-none');
-                    boxP3.classList.add('d-none');
-                }
-
-                gapMsg?.classList.add('d-none');
-                inicio2.min = DATA_MINIMA;
-            }
-
-            // recalcula fim e mês automaticamente
-            recomputeFimEMes(inicio1, qtd1, fim1, mes1);
-            recomputeFimEMes(inicio2, qtd2, fim2, mes2);
-            recomputeFimEMes(inicio3, qtd3, fim3, mes3);
-
-            const rest = calcRestante();
-            diasRestantes.textContent = String(rest);
-
-            // valida combinação
-            const anyChosen = Boolean(v1 || v2 || v3);
-            if (!anyChosen) {
-                msgErro.classList.add('d-none');
-                return;
-            }
-
-            const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3) : validCombo30(v1, v2, v3);
-            msgErro.classList.toggle('d-none', (comboOK && rest === 0));
-        }
-
-        // Event listeners para a lógica dinâmica
-        [qtd1, qtd2, qtd3, inicio1, inicio2, inicio3].forEach(e => {
-            if (e) e.addEventListener('change', () => {
-                if (e === inicio1) mes1.value = monthFromISO(inicio1.value);
-                if (e === inicio2) mes2.value = monthFromISO(inicio2.value);
-                if (e === inicio3) mes3.value = monthFromISO(inicio3.value);
-                enforceRules();
-            });
+    // bloqueio de meses duplicados (meses de pagamento)
+    function updateMonthLocks() {
+        const chosen = new Set(Array.from(selectsMes).map(s => s.value).filter(Boolean));
+        selectsMes.forEach(sel => {
+        Array.from(sel.options).forEach(opt => {
+            if (!opt.value) return;
+            const mine = sel.value === opt.value;
+            opt.disabled = !mine && chosen.has(opt.value);
         });
-
-        [inicio1, inicio2].forEach(inp => {
-            if (inp) inp.addEventListener('change', () => {
-                if (direito !== 40) return;
-                if (inicio1.value) {
-                    const minP2 = addMonthsISO(inicio1.value, 6);
-                    inicio2.min = minP2;
-                    if (inicio2.value && inicio2.value < minP2) {
-                        inicio2.value = '';
-                        fim2.value = '';
-                        mes2.value = '';
-                    }
-                }
-                gapMsg?.classList.toggle('d-none', !(inicio1.value && inicio2.value));
-            });
         });
+    }
+    function validateDistinctMonths() {
+        const vals = Array.from(selectsMes).map(s => s.value).filter(Boolean);
+        const ok = (new Set(vals).size === vals.length) && vals.length === 3;
+        msgDup.classList.toggle('d-none', ok);
+        return ok;
+    }
+    selectsMes.forEach(s => s.addEventListener('change', () => { updateMonthLocks(); validateDistinctMonths(); }));
+    updateMonthLocks();
+    validateDistinctMonths();
 
-        // Validação final para submit
-        function validateFerias() {
-            enforceRules();
-            const rest = calcRestante();
-            const v1 = parseInt(qtd1.value || 0), v2 = parseInt(qtd2.value || 0), v3 = parseInt(qtd3.value || 0);
-            let ok = true;
+    // função para preencher options preservando seleção
+    function setOptionsPreserve(selectEl, vals) {
+        const cur = selectEl.value;
+        let html = '<option value="">Selecione...</option>';
+        vals.forEach(v => { html += `<option value="${v}">${v} dias</option>`; });
+        selectEl.innerHTML = html;
+        if (cur && vals.map(String).includes(String(parseInt(cur)))) selectEl.value = cur;
+    }
 
-            if (direito === 40) {
-                ok = (v1 === 20 && v2 === 20 && !v3 && inicio1.value && inicio2.value);
-                if (ok && inicio1.value && inicio2.value) {
-                    const minP2 = addMonthsISO(inicio1.value, 6);
-                    if (inicio2.value < minP2) ok = false;
-                }
+    // Enforce regras: 40 dias -> só 20+20, oculta p3; 30 dias -> combos possíveis
+    function enforceRules() {
+        const v1 = parseInt(qtd1?.value || 0), v2 = parseInt(qtd2?.value || 0), v3 = parseInt(qtd3?.value || 0);
+
+        if (direito === 40) {
+        // apenas 20 em p1/p2, oculta p3
+        if (qtd1) setOptionsPreserve(qtd1, [20]);
+        if (qtd2) setOptionsPreserve(qtd2, [20]);
+        if (qtd3) setOptionsPreserve(qtd3, []);
+        boxP3 && boxP3.classList.add('d-none');
+        // exige início para p1 e p2 e intervalo de 6 meses entre inicios (verificação separada)
+        p2GapMsg && p2GapMsg.classList.toggle('d-none', !(inicio1.value && inicio2.value));
+        } else {
+        // 30 dias: permite 10,15,20,30 e p3 pode aparecer dependendo das escolhas
+        if (qtd1) setOptionsPreserve(qtd1, [10,15,20,30]);
+        // decide q2/q3 options conforme v1
+        if (v1 === 30) {
+            setOptionsPreserve(qtd2, []);
+            setOptionsPreserve(qtd3, []);
+            boxP2 && boxP2.classList.add('d-none');
+            boxP3 && boxP3.classList.add('d-none');
+        } else if (v1 === 20) {
+            setOptionsPreserve(qtd2, [10]);
+            setOptionsPreserve(qtd3, []);
+            boxP2 && boxP2.classList.remove('d-none');
+            boxP3 && boxP3.classList.add('d-none');
+        } else if (v1 === 15) {
+            setOptionsPreserve(qtd2, [15]);
+            setOptionsPreserve(qtd3, []);
+            boxP2 && boxP2.classList.remove('d-none');
+            boxP3 && boxP3.classList.add('d-none');
+        } else if (v1 === 10) {
+            setOptionsPreserve(qtd2, [10,20]);
+            boxP2 && boxP2.classList.remove('d-none');
+            if (v2 === 20) {
+            setOptionsPreserve(qtd3, []);
+            boxP3 && boxP3.classList.add('d-none');
+            } else if (v2 === 10) {
+            setOptionsPreserve(qtd3, [10]);
+            boxP3 && boxP3.classList.remove('d-none');
             } else {
-                ok = validCombo30(v1, v2, v3);
+            setOptionsPreserve(qtd3, []);
+            boxP3 && boxP3.classList.add('d-none');
             }
-            ok = ok && rest === 0 && !!inicio1.value && !!mes1.value;
-
-            if (!ok) {
-                msgErro.classList.remove('d-none');
-            }
-            return ok;
+        } else {
+            setOptionsPreserve(qtd2, []);
+            setOptionsPreserve(qtd3, []);
+            boxP2 && boxP2.classList.add('d-none');
+            boxP3 && boxP3.classList.add('d-none');
+        }
+        p2GapMsg && p2GapMsg.classList.add('d-none');
         }
 
-        // Inicialização
+        // recalcula fim automaticamente
+        if (inicio1 && qtd1 && fim1) fim1.value = endDateInclusive(inicio1.value, qtd1.value);
+        if (inicio2 && qtd2 && fim2) fim2.value = endDateInclusive(inicio2.value, qtd2.value);
+        if (inicio3 && qtd3 && fim3) fim3.value = endDateInclusive(inicio3.value, qtd3.value);
+
+        // atualiza dias restantes exibidos (se existir)
+        const restEl = document.getElementById('p1-restante'); // placeholder; not used extensively here
+        // mostra/oculta erro principal conforme combinação válida
+        const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3) : validCombo30(v1, v2, v3);
+        const rest = direito - ( (v1||0) + (v2||0) + (v3||0) );
+        // comboOK true and rest == 0 => OK
+        const ok = comboOK && rest === 0;
+        msgErro && msgErro.classList.toggle('d-none', ok);
+    }
+
+    function validCombo30(v1, v2, v3) {
+        // aceita: '30' , '20+10', '10+20', '15+15', '10+10+10'
+        const arr = [v1||0, v2||0, v3||0].filter(Boolean);
+        if (arr.length === 1 && arr[0] === 30) return true;
+        if (arr.length === 2 && ((arr[0] === 20 && arr[1] === 10) || (arr[0] === 10 && arr[1] === 20) || (arr[0] === 15 && arr[1] === 15))) return true;
+        if (arr.length === 3 && arr[0] === 10 && arr[1] === 10 && arr[2] === 10) return true;
+        return false;
+    }
+
+    // listeners para recalcular fim, validar e aplicar regras
+    [qtd1,qtd2,qtd3,inicio1,inicio2,inicio3].forEach(el=>{
+        if(!el) return;
+        el.addEventListener('change', () => {
+        // limita datas ao range
+        if ((el.type === 'date') && el.value) {
+            if (el.value < DATA_MIN) el.value = DATA_MIN;
+            if (el.value > DATA_MAX) el.value = DATA_MAX;
+        }
+        // se for início, atualiza mês hidden if present (not used here)
+        if (el === inicio1 && inicio1.value && (direito === 40)) {
+            // ajusta min do inicio2 para 6 meses depois
+            inicio2.min = addMonthsISO(inicio1.value, 6);
+        }
         enforceRules();
-        qtd1.addEventListener('change', enforceRules);
-        qtd2.addEventListener('change', enforceRules);
-        qtd3.addEventListener('change', enforceRules);
-
-        // Submit guard
-        document.getElementById('form-paf')?.addEventListener('submit', (e) => {
-            if (!validateDistinct() || !validateFerias()) {
-                e.preventDefault();
-                alert('Por favor, corrija os erros antes de enviar.');
-                return;
-            }
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
         });
-    })();
+    });
+
+    // checa intervalo 6 meses para 40 dias
+    function checkSixMonthsInterval() {
+        if (direito !== 40) return true;
+        if (!inicio1.value || !inicio2.value) return false;
+        const min2 = addMonthsISO(inicio1.value, 6);
+        return inicio2.value >= min2;
+    }
+
+    // validação final antes do submit
+    document.getElementById('form-paf').addEventListener('submit', (e) => {
+        // meses distintos
+        const monthsOk = validateDistinctMonths();
+        if (!monthsOk) { e.preventDefault(); alert('Escolha três meses distintos para pagamento.'); return; }
+
+        // combinação de períodos
+        const v1 = parseInt(qtd1?.value || 0), v2 = parseInt(qtd2?.value || 0), v3 = parseInt(qtd3?.value || 0);
+        const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3 && inicio1.value && inicio2.value && checkSixMonthsInterval()) : validCombo30(v1,v2,v3);
+        const rest = direito - ((v1||0)+(v2||0)+(v3||0));
+        if (!comboOK || rest !== 0) {
+        e.preventDefault();
+        msgErro.classList.remove('d-none');
+        alert('Combinação de períodos inválida para o seu direito (veja mensagens).');
+        return;
+        }
+        // data limites
+        const allDates = [inicio1?.value, inicio2?.value, inicio3?.value, fim1?.value, fim2?.value, fim3?.value].filter(Boolean);
+        if (allDates.some(d => d < DATA_MIN || d > DATA_MAX)) {
+        e.preventDefault();
+        alert('Alguma data está fora do intervalo permitido (2024-01-01 até 2026-12-31).');
+        return;
+        }
+
+        // se ok, UX
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    });
+
+    [inicio1, fim1, inicio2].forEach(el => el.addEventListener('change', validarIntervaloFerias));
+
+    document.getElementById('form-paf').addEventListener('submit', function(e) {
+    if (!validarIntervaloFerias()) {
+        e.preventDefault();
+        window.scrollTo({ top: p2GapMsg.offsetTop - 120, behavior: 'smooth' });
+    }
+    });
+
+    // init: se militar tem direito 40, força visibilidade dos boxes
+    (function init() {
+        // se militar é da lista 40, mostra p1/p2 e esconde p3
+        if (MILITAR_ID !== null && MILITARES_40.includes(Number(MILITAR_ID))) {
+        // ensure p3 hidden
+        if (boxP3) boxP3.classList.add('d-none');
+        } else {
+        // p3 pode estar visível dependendo do valor
+        // nothing special here, enforceRules will set it
+        }
+        enforceRules();
+    }());
+
+})();
 </script>
 {% endblock %}
