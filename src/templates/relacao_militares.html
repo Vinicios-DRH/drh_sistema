@@ -65,7 +65,7 @@
 
 {% block body %}
 <section class="py-3 py-md-4">
-    <div class="container-xxl">
+    <div class="container-fluid px-3 px-md-4">
 
         <!-- Cabeçalho -->
         <div class="brand-header p-3 p-md-4 mb-3 mt-2">
@@ -188,16 +188,16 @@
 <script>
     $(function () {
         const dt = $('#tabela-militares').DataTable({
-            responsive: true,
+            rresponsive: false,      // evita “child rows”
+            scrollX: true,          // habilita largura total + scroll horizontal se precisar
+            autoWidth: false,       // deixa o browser calcular melhor as larguras
             fixedHeader: true,
             paging: true,
             pageLength: 20,
             lengthMenu: [10, 20, 30, 50, 100],
             ordering: true,
             info: true,
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json'
-            },
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
             dom: '<"dt-toolbar d-flex flex-wrap gap-2 align-items-center"Bf>rt<"d-flex justify-content-between align-items-center mt-2"lip>',
             buttons: [
                 {
@@ -233,11 +233,10 @@
                 }
             ],
             columnDefs: [
-                // prioridade de responsividade (mantém nome/matricula visíveis)
-                { targets: 0, responsivePriority: 1 }, // Nome
-                { targets: 2, responsivePriority: 2 }, // Posto/Grad
-                { targets: 3, responsivePriority: 3 }, // Quadro
-                { targets: 4, responsivePriority: 4 }, // CPF
+                { targets: 0, responsivePriority: 1 },
+                { targets: 2, responsivePriority: 2 },
+                { targets: 3, responsivePriority: 3 },
+                { targets: 4, responsivePriority: 4 },
                 { targets: [10, 11, 12, 13], responsivePriority: 5 }
             ]
         });
