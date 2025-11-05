@@ -1662,6 +1662,7 @@ def militares_inativos():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'DIRETOR DRH')
 def tabela_militares():
+    today = date.today()
     try:
         page = request.args.get('page', 1, type=int)
         search = request.args.get('search', '', type=str)
@@ -1716,24 +1717,46 @@ def tabela_militares():
         filtrados_sq = query.with_entities(Militar.id).distinct().subquery()
 
         # contagem de agregados dentre os filtrados
-        agregados_count = (
-            database.session.query(func.count())
-            .select_from(MilitaresAgregados)
-            .join(filtrados_sq, MilitaresAgregados.militar_id == filtrados_sq.c.id)
-            .scalar()
-        ) or 0
+        agregados_ids = [
+            x[0]
+            for x in (
+                database.session.query(MilitaresAgregados.militar_id)
+                .join(filtrados_sq, MilitaresAgregados.militar_id == filtrados_sq.c.id)
+                .filter(
+                    MilitaresAgregados.inicio_periodo <= today,
+                    or_(
+                        MilitaresAgregados.fim_periodo_agregacao == None,
+                        MilitaresAgregados.fim_periodo_agregacao >= today,
+                    )
+                )
+                .distinct()
+                .all()
+            )
+        ]
+        agregados_count = len(agregados_ids)
 
         # contagem de "à disposição" dentre os filtrados
-        adisposicao_count = (
-            database.session.query(func.count())
-            .select_from(MilitaresADisposicao)
-            .join(filtrados_sq, MilitaresADisposicao.militar_id == filtrados_sq.c.id)
-            .scalar()
-        ) or 0
+        adisposicao_ids = [
+            x[0]
+            for x in (
+                database.session.query(MilitaresADisposicao.militar_id)
+                .join(filtrados_sq, MilitaresADisposicao.militar_id == filtrados_sq.c.id)
+                .filter(
+                    MilitaresADisposicao.inicio_periodo <= today,
+                    or_(
+                        MilitaresADisposicao.fim_periodo_disposicao == None,
+                        MilitaresADisposicao.fim_periodo_disposicao >= today,
+                    )
+                )
+                .distinct()
+                .all()
+            )
+        ]
+        adisposicao_count = len(adisposicao_ids)
 
         militares_filtrados_count = query.distinct(Militar.id).count()
         query = query.order_by(Militar.nome_completo.asc())
-        
+
         # Retorna todos os resultados
         militares_filtrados = query.all()
 
@@ -1760,6 +1783,13 @@ def tabela_militares():
             
             inclusao_fmt = militar.inclusao.strftime('%d/%m/%Y') if militar.inclusao else 'N/A'
 
+            if militar.id in adisposicao_ids:
+                situacao_exibe = 'À DISPOSIÇÃO'
+            elif militar.id in agregados_ids:
+                situacao_exibe = 'AGREGADO'
+            else:
+                situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
+
             militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
@@ -1771,7 +1801,7 @@ def tabela_militares():
                 'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
-                'situacao': militar.situacao.condicao if militar.situacao else 'N/A',
+                'situacao': situacao_exibe,             # <-- aqui
                 'destino': destino_txt,
                 'inclusao': inclusao_fmt,
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
@@ -1785,6 +1815,8 @@ def tabela_militares():
             militares_filtrados_count=len(militares_filtrados_data),
             agregados_count=agregados_count,
             adisposicao_count=adisposicao_count,
+            adisposicao_ids=adisposicao_ids,   # opcional
+            agregados_ids=agregados_ids,       # opcional
         )
 
     except Exception as e:
