@@ -86,6 +86,20 @@
 </style>
 {% endblock %}
 
+{% macro qs_with_page(p) -%}
+  {# reconstrói querystring mantendo filtros + page #}
+  {% set params = [] %}
+  {% if request.args.get('search') %}{% set _ = params.append('search=' ~ request.args.get('search')) %}{% endif %}
+  {% for v in request.args.getlist('obm_ids') %}{% set _ = params.append('obm_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('funcao_ids') %}{% set _ = params.append('funcao_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('posto_grad_ids') %}{% set _ = params.append('posto_grad_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('quadro_ids') %}{% set _ = params.append('quadro_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('especialidade_ids') %}{% set _ = params.append('especialidade_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
+  {% for v in request.args.getlist('situacao_ids') %}{% set _ = params.append('situacao_ids=' ~ v) %}{% endfor %}
+  {% set _ = params.append('page=' ~ p) %}
+  {{ params|join('&') }}
+{%- endmacro %}
 
 {% block body %}
 <section class="py-3 py-md-4 page-wrapper">
@@ -214,17 +228,16 @@
             <nav class="d-flex justify-content-center mt-3">
                 <ul class="pagination mb-0">
                     <li class="page-item {{ 'disabled' if not has_prev }}">
-                    <a class="page-link" href="{{ url_for('militares', page=prev_page, search=request.args.get('search', '')) }}" aria-label="Anterior">
+                    <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(prev_page) }}" aria-label="Anterior">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                     </li>
 
-                    {# páginas 1, ..., (p-1,p,p+1), ..., last #}
                     {% set last_out = 0 %}
                     {% for p in range(1, pages + 1) %}
                     {% if p == 1 or p == pages or (p >= page - 1 and p <= page + 1) %}
                         <li class="page-item {{ 'active' if p == page }}">
-                        <a class="page-link" href="{{ url_for('militares', page=p, search=request.args.get('search', '')) }}">{{ p }}</a>
+                        <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(p) }}">{{ p }}</a>
                         </li>
                         {% set last_out = p %}
                     {% elif last_out != 'dots' %}
@@ -234,7 +247,7 @@
                     {% endfor %}
 
                     <li class="page-item {{ 'disabled' if not has_next }}">
-                    <a class="page-link" href="{{ url_for('militares', page=next_page, search=request.args.get('search', '')) }}" aria-label="Próxima">
+                    <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(next_page) }}" aria-label="Próxima">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                     </li>
@@ -252,49 +265,85 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3 p-md-4 p-xl-5">
-                <form class="row g-3" id="formFiltros" method="POST" action="{{ url_for('tabela_militares') }}">
+                <form class="row g-3" id="formFiltros" method="get" action="{{ url_for('tabela_militares') }}">
+                    <!-- OBMs -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.obm_ids_1.label(class="form-control-label") }}
-                            {{ form_militar.obm_ids_1(class="form-control") }}
-                        </div>
+                        <label class="form-label">OBMs</label>
+                        <select name="obm_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.obm_id_1.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('obm_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
+                        <div class="form-text">Segure Ctrl (Win) / ⌘ (Mac) para múltiplas seleções.</div>
                     </div>
+
+                    <!-- Funções -->    
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.posto_grad_id.label(class="form-control-label") }}
-                            {{ form_militar.posto_grad_id(class="form-control") }}
-                        </div>
+                        <label class="form-label">Funções</label>
+                        <select name="funcao_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.funcao_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('funcao_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
+                    <!-- Posto/Grad -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.quadro_id.label(class="form-control-label") }}
-                            {{ form_militar.quadro_id(class="form-control") }}
-                        </div>
+                        <label class="form-label">Posto/Grad</label>
+                        <select name="posto_grad_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.posto_grad_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('posto_grad_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
+                    <!-- Quadro -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.especialidade_id.label(class="form-control-label") }}
-                            {{ form_militar.especialidade_id(class="form-control") }}
-                        </div>
+                        <label class="form-label">Quadro</label>
+                        <select name="quadro_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.quadro_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('quadro_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
+                    <!-- Especialidade -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.localidade_id.label(class="form-control-label") }}
-                            {{ form_militar.localidade_id(class="form-control") }}
-                        </div>
+                        <label class="form-label">Especialidade</label>
+                        <select name="especialidade_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.especialidade_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('especialidade_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
+                    <!-- Localidade -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.situacao_id.label(class="form-control-label") }}
-                            {{ form_militar.situacao_id(class="form-control") }}
-                        </div>
+                        <label class="form-label">Localidade</label>
+                        <select name="localidade_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.localidade_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('localidade_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
+                    <!-- Situação -->
                     <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form_militar.funcao_ids_1.label(class="form-control-label") }}
-                            {{ form_militar.funcao_ids_1(class="form-control") }}
-                        </div>
+                        <label class="form-label">Situação</label>
+                        <select name="situacao_ids" class="form-select" multiple>
+                        {% for val, label in form_militar.situacao_id.choices if val != '' %}
+                            {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
+                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                        {% endfor %}
+                        </select>
                     </div>
+
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-primary" id="btnEnviarFiltros">Filtrar</button>
@@ -304,4 +353,22 @@
         </div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const hasFilters =
+      {{ (request.args.getlist('obm_ids') or
+          request.args.getlist('funcao_ids') or
+          request.args.getlist('posto_grad_ids') or
+          request.args.getlist('quadro_ids') or
+          request.args.getlist('especialidade_ids') or
+          request.args.getlist('localidade_ids') or
+          request.args.getlist('situacao_ids')) and 'true' or 'false' }};
+    if (hasFilters) {
+      const modal = new bootstrap.Modal(document.getElementById('filtrarMilitar'));
+      modal.show();
+    }
+  });
+</script>
+
 {% endblock %}

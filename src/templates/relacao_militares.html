@@ -77,7 +77,9 @@
                         <h1 class="h5 mb-1">Relação de Militares</h1>
                         <div class="small text-light opacity-75">
                             Total no sistema: <strong>{{ total_militares }}</strong> •
-                            Após filtros: <strong>{{ militares_filtrados_count }}</strong>
+                            Após filtros: <strong>{{ militares_filtrados_count }}</strong> •
+                            <span class="badge bg-warning text-dark">Agregados: {{ agregados_count }}</span>
+                            <span class="badge bg-info text-dark">À disposição: {{ adisposicao_count }}</span>
                         </div>
                     </div>
                 </div>
@@ -114,11 +116,11 @@
                         <tr>
                             <th>Nome Completo</th>
                             <th>Nome de Guerra</th>
+                            <th>Posto/Graduação</th>
+                            <th>Quadro</th>
                             <th>CPF</th>
                             <th>RG</th>
                             <th>Matrícula</th>
-                            <th>Posto/Graduação</th>
-                            <th>Quadro</th>
                             <th>Inclusão</th>
                             <th>Especialidade</th>
                             <th>Localidade</th>
@@ -135,17 +137,16 @@
                         {% for militar in militares %}
                         <tr>
                             <td>
-                                <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
-                                    class="text-decoration-none">
+                                <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}" class="text-decoration-none">
                                     {{ militar.nome_completo }}
                                 </a>
                             </td>
                             <td>{{ militar.nome_guerra }}</td>
+                            <td>{{ militar.posto_grad }}</td>
+                            <td>{{ militar.quadro }}</td>
                             <td>{{ militar.cpf }}</td>
                             <td>{{ militar.rg }}</td>
                             <td>{{ militar.matricula }}</td>
-                            <td>{{ militar.posto_grad }}</td>
-                            <td>{{ militar.quadro }}</td>
                             <td>{{ militar.inclusao }}</td>
                             <td>{{ militar.especialidade }}</td>
                             <td>{{ militar.localidade }}</td>
@@ -159,7 +160,7 @@
                         {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="14" class="text-center">Nenhum dado encontrado.</td>
+                            <td colspan="16" class="text-center">Nenhum dado encontrado.</td>
                         </tr>
                         {% endif %}
                     </tbody>
@@ -233,9 +234,11 @@
             ],
             columnDefs: [
                 // prioridade de responsividade (mantém nome/matricula visíveis)
-                { targets: 0, responsivePriority: 1 },
-                { targets: 4, responsivePriority: 2 },
-                { targets: [10, 11, 12, 13], responsivePriority: 3 }
+                { targets: 0, responsivePriority: 1 }, // Nome
+                { targets: 2, responsivePriority: 2 }, // Posto/Grad
+                { targets: 3, responsivePriority: 3 }, // Quadro
+                { targets: 4, responsivePriority: 4 }, // CPF
+                { targets: [10, 11, 12, 13], responsivePriority: 5 }
             ]
         });
 

@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (FieldList, FloatField, FormField, HiddenField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField, FileField, DecimalField, TextAreaField, TimeField)
+                     MultipleFileField, FileField, DecimalField, TextAreaField, TimeField, SelectMultipleField)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired, Regexp
 from src.models import Militar, User, SituacaoConvocacao
 
@@ -148,6 +148,22 @@ class FormMilitar(FlaskForm):
         usuario = Militar.query.filter_by(cpf=cpf.data).first()
         if usuario:
             raise ValidationError('Militar já cadastrado.')
+
+
+def _coerce_int(v):
+    try:
+        return int(v) if v not in (None, '', []) else None
+    except:
+        return None
+
+class FormFiltroMilitar(FlaskForm):
+    obm_id_1 = SelectMultipleField('OBMs', choices=[], coerce=_coerce_int, validators=[Optional()])
+    funcao_id = SelectMultipleField('Funções', choices=[], coerce=_coerce_int, validators=[Optional()])
+    posto_grad_id = SelectMultipleField('Posto/Grad', choices=[], coerce=_coerce_int, validators=[Optional()])
+    quadro_id = SelectMultipleField('Quadro', choices=[], coerce=_coerce_int, validators=[Optional()])
+    especialidade_id = SelectMultipleField('Especialidade', choices=[], coerce=_coerce_int, validators=[Optional()])
+    localidade_id = SelectMultipleField('Localidade', choices=[], coerce=_coerce_int, validators=[Optional()])
+    situacao_id = SelectMultipleField('Situação', choices=[], coerce=_coerce_int, validators=[Optional()])
 
 
 class FormLogin(FlaskForm):

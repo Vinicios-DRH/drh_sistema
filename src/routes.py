@@ -21,7 +21,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormMilitarInativo,
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormFiltroMilitar, FormMilitarInativo,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
@@ -1482,49 +1482,43 @@ def status_documento(doc_id):
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares():
-    form_militar = FormMilitar()
+    f = FormFiltroMilitar()
 
-    form_militar.obm_ids_1.choices = [
-        ('', '-- Selecione OBM --')
-    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_militar.obm_ids_2.choices = [
-        ('', '-- Selecione OBM --')
-    ] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_militar.posto_grad_id.choices = [
-        ('', '-- Selecione Posto/Grad --')
-    ] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_militar.quadro_id.choices = [
-        ('', '-- Selecione Quadro --')
-    ] + [(quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
-    form_militar.especialidade_id.choices = [
-        ('', '-- Selecione Especialidade --')
-    ] + [(especialidade.id, especialidade.ocupacao) for especialidade in
-         Especialidade.query.all()]
-    form_militar.localidade_id.choices = [
-        ('', '-- Selecione Localidade --')
-    ] + [(localidade.id, localidade.sigla) for localidade in
-         Localidade.query.all()]
-    form_militar.situacao_id.choices = [
-        ('', '-- Selecione Situação --')
-    ] + [(situacao.id, situacao.condicao) for situacao in Situacao.query.all()]
-    form_militar.funcao_ids_1.choices = [
-        ('', '-- Selecione Função --')] + [(funcao.id, funcao.ocupacao) for
-                                           funcao in Funcao.query.all()]
+    # choices
+    f.obm_id_1.choices          = [(o.id, o.sigla) for o in Obm.query.order_by(Obm.sigla).all()]
+    f.funcao_id.choices       = [(x.id, x.ocupacao) for x in Funcao.query.order_by(Funcao.ocupacao).all()]
+    f.posto_grad_id.choices = [(p.id, p.sigla) for p in PostoGrad.query.order_by(PostoGrad.sigla.asc()).all()]
+    f.quadro_id.choices       = [(q.id, q.quadro) for q in Quadro.query.order_by(Quadro.quadro).all()]
+    f.especialidade_id.choices= [(e.id, e.ocupacao) for e in Especialidade.query.order_by(Especialidade.ocupacao).all()]
+    f.localidade_id.choices   = [(l.id, l.sigla) for l in Localidade.query.order_by(Localidade.sigla).all()]
+    f.situacao_id.choices     = [(s.id, s.condicao) for s in Situacao.query.order_by(Situacao.condicao).all()]
 
-    page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '', type=str)
+    # paginação & busca
+    page   = request.args.get('page', 1, type=int)
+    search = (request.args.get('search') or '').strip()
 
-    # Consulta paginada com pré-carregamento de relações
-    query = Militar.query.options(
-        selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
-        selectinload(Militar.obm_funcoes).selectinload(
-            MilitarObmFuncao.funcao),
-        selectinload(Militar.posto_grad),  # Pré-carrega a relação posto_grad
-        selectinload(Militar.quadro)
-    ).filter(Militar.inativo.is_(False))
+    # MULTI filtros (listas)
+    obm_ids          = request.args.getlist('obm_ids', type=int)
+    funcao_ids       = request.args.getlist('funcao_ids', type=int)
+    posto_grad_ids   = request.args.getlist('posto_grad_ids', type=int)
+    quadro_ids       = request.args.getlist('quadro_ids', type=int)
+    especialidade_ids= request.args.getlist('especialidade_ids', type=int)
+    localidade_ids   = request.args.getlist('localidade_ids', type=int)
+    situacao_ids     = request.args.getlist('situacao_ids', type=int)
+
+    # base
+    query = (Militar.query
+             .options(
+                 selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
+                 selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao),
+                 selectinload(Militar.posto_grad),
+                 selectinload(Militar.quadro)
+             )
+             .filter(Militar.inativo.is_(False))
+            )
 
     if search:
-        like = f"%{search.strip()}%"
+        like = f"%{search}%"
         query = query.filter(or_(
             Militar.nome_completo.ilike(like),
             Militar.nome_guerra.ilike(like),
@@ -1532,6 +1526,34 @@ def militares():
             Militar.rg.ilike(like),
             Militar.matricula.ilike(like),
         ))
+
+    # aplica filtros simples (FK direta)
+    if posto_grad_ids:
+        query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
+    if quadro_ids:
+        query = query.filter(Militar.quadro_id.in_(quadro_ids))
+    if especialidade_ids:
+        query = query.filter(Militar.especialidade_id.in_(especialidade_ids))
+    if localidade_ids:
+        query = query.filter(Militar.localidade_id.in_(localidade_ids))
+    if situacao_ids:
+        query = query.filter(Militar.situacao_id.in_(situacao_ids))
+
+    # filtros por OBM/Função ativos via join
+    if obm_ids or funcao_ids:
+        query = (query
+                 .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                 .filter(MilitarObmFuncao.data_fim.is_(None)))
+        if obm_ids:
+            query = query.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
+        if funcao_ids:
+            query = query.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
+        query = query.distinct(Militar.id)  # evita duplicados
+
+    # paginação
+    per_page = 100
+    militares_paginados = query.order_by(Militar.nome_completo.asc()) \
+                               .paginate(page=page, per_page=per_page)
 
     # Reduzir per_page melhora desempenho
     militares_paginados = query.paginate(page=page, per_page=100)
@@ -1582,14 +1604,10 @@ def militares():
     per_page = 100
     militares_paginados = query.paginate(page=page, per_page=per_page)
 
-    start = (page - 1) * per_page + 1 if militares_paginados.total > 0 else 0
-    end = min(page * per_page, militares_paginados.total)
-
-    has_novo_militar = 'novo_militar' in current_app.view_functions
     return render_template(
         'militares.html',
         militares=militares,
-        form_militar=form_militar,
+        form_militar=f,              # substitui aqui
         page=page,
         has_next=militares_paginados.has_next,
         has_prev=militares_paginados.has_prev,
@@ -1597,9 +1615,9 @@ def militares():
         prev_page=militares_paginados.prev_num,
         pages=militares_paginados.pages,
         total=militares_paginados.total,
-        start=start,
-        end=end,
-        has_novo_militar=has_novo_militar,
+        start=(page-1)*per_page+1 if militares_paginados.total else 0,
+        end=min(page*per_page, militares_paginados.total),
+        has_novo_militar=('novo_militar' in current_app.view_functions),
     )
 
 
@@ -1663,43 +1681,59 @@ def tabela_militares():
         if search:
             query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
-        if request.method == 'POST':
-            # Captura os filtros do formulário
-            filters = {
-                'obm_id': request.form.get('obm_ids_1'),
-                'funcao_id': request.form.get('funcao_ids_1'),
-                'posto_grad_id': request.form.get('posto_grad_id'),
-                'quadro_id': request.form.get('quadro_id'),
-                'especialidade': request.form.get('especialidade_id'),
-                'localidade': request.form.get('localidade_id'),
-                'situacao_id': request.form.get('situacao_id'),
-            }
+        vals = request.values  # une args + form
+        obm_ids           = vals.getlist('obm_ids', type=int)
+        funcao_ids        = vals.getlist('funcao_ids', type=int)
+        posto_grad_ids    = vals.getlist('posto_grad_ids', type=int)
+        quadro_ids        = vals.getlist('quadro_ids', type=int)
+        especialidade_ids = vals.getlist('especialidade_ids', type=int)
+        localidade_ids    = vals.getlist('localidade_ids', type=int)
+        situacao_ids      = vals.getlist('situacao_ids', type=int)
 
-            # Aplicar filtros
-            if filters['obm_id']:
-                query = query.join(MilitarObmFuncao).filter(
-                    MilitarObmFuncao.obm_id == filters['obm_id'],
-                    MilitarObmFuncao.data_fim.is_(None)
-                )
-            if filters['funcao_id']:
-                query = query.join(MilitarObmFuncao).filter(
-                    MilitarObmFuncao.funcao_id == filters['funcao_id'],
-                    MilitarObmFuncao.data_fim.is_(None)
-                )
-            for field, value in filters.items():
-                if value:
-                    if field == 'localidade':
-                        query = query.filter(Militar.localidade.has(id=value))
-                    elif field == 'especialidade':
-                        query = query.filter(
-                            Militar.especialidade.has(id=value))
-                    elif field not in ['obm_id', 'funcao_id']:
-                        query = query.filter(getattr(Militar, field) == value)
+        # FK diretas
+        if posto_grad_ids:
+            query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
+        if quadro_ids:
+            query = query.filter(Militar.quadro_id.in_(quadro_ids))
+        if especialidade_ids:
+            query = query.filter(Militar.especialidade_id.in_(especialidade_ids))
+        if localidade_ids:
+            query = query.filter(Militar.localidade_id.in_(localidade_ids))
+        if situacao_ids:
+            query = query.filter(Militar.situacao_id.in_(situacao_ids))
 
-        militares_filtrados_count = query.count()
+        # OBM/Função ativas
+        if obm_ids or funcao_ids:
+            query = (query
+                    .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                    .filter(MilitarObmFuncao.data_fim.is_(None)))
+            if obm_ids:
+                query = query.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
+            if funcao_ids:
+                query = query.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
+            query = query.distinct(Militar.id)
 
+        filtrados_sq = query.with_entities(Militar.id).distinct().subquery()
+
+        # contagem de agregados dentre os filtrados
+        agregados_count = (
+            database.session.query(func.count())
+            .select_from(MilitaresAgregados)
+            .join(filtrados_sq, MilitaresAgregados.militar_id == filtrados_sq.c.id)
+            .scalar()
+        ) or 0
+
+        # contagem de "à disposição" dentre os filtrados
+        adisposicao_count = (
+            database.session.query(func.count())
+            .select_from(MilitaresADisposicao)
+            .join(filtrados_sq, MilitaresADisposicao.militar_id == filtrados_sq.c.id)
+            .scalar()
+        ) or 0
+
+        militares_filtrados_count = query.distinct(Militar.id).count()
         query = query.order_by(Militar.nome_completo.asc())
-
+        
         # Retorna todos os resultados
         militares_filtrados = query.all()
 
@@ -1748,7 +1782,9 @@ def tabela_militares():
             'relacao_militares.html',
             militares=militares_filtrados_data,
             total_militares=total_militares,
-            militares_filtrados_count=len(militares_filtrados_data)
+            militares_filtrados_count=len(militares_filtrados_data),
+            agregados_count=agregados_count,
+            adisposicao_count=adisposicao_count,
         )
 
     except Exception as e:
