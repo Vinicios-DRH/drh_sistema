@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
 <style>
 
     /* ——— BG igual à ficha + containers de vidro ——— */
@@ -82,6 +85,30 @@
     }
     .table-hover > tbody > tr:hover > *{
         background-color: rgba(0,0,0,.04);
+    }
+
+    /* Modal mais clean */
+    .filter-card{
+        border:1px solid rgba(0,0,0,.06);
+        border-radius:14px;
+        padding:1rem;
+        background:#fff;
+    }
+    .filter-title{
+        font-weight:700;
+        font-size:.9rem;
+        margin-bottom:.5rem;
+    }
+    /* Select2 tema bootstrap */
+    .select2-container--bootstrap-5 .select2-selection{
+        border-radius:.5rem; min-height: calc(2.5rem + 2px);
+    }
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice{
+        border-radius:9999px; font-weight:600;
+    }
+    /* Rodapé do modal “gruda” embaixo */
+    .modal-xl .modal-footer{
+        position: sticky; bottom: -1rem; background: #fff; z-index: 2;
     }
 </style>
 {% endblock %}
@@ -268,80 +295,135 @@
                 <form class="row g-3" id="formFiltros" method="get" action="{{ url_for('tabela_militares') }}">
                     <!-- OBMs -->
                     <div class="col-md-4">
-                        <label class="form-label">OBMs</label>
-                        <select name="obm_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.obm_id_1.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">OBMs</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="obm_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="obm_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="obm_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.obm_id_1.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('obm_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
-                        <div class="form-text">Segure Ctrl (Win) / ⌘ (Mac) para múltiplas seleções.</div>
+                        </div>
                     </div>
 
-                    <!-- Funções -->    
+                    <!-- Funções -->
                     <div class="col-md-4">
-                        <label class="form-label">Funções</label>
-                        <select name="funcao_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.funcao_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Funções</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="funcao_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="funcao_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="funcao_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.funcao_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('funcao_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <!-- Posto/Grad -->
                     <div class="col-md-4">
-                        <label class="form-label">Posto/Grad</label>
-                        <select name="posto_grad_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.posto_grad_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Posto/Grad</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="posto_grad_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="posto_grad_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="posto_grad_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.posto_grad_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('posto_grad_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <!-- Quadro -->
                     <div class="col-md-4">
-                        <label class="form-label">Quadro</label>
-                        <select name="quadro_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.quadro_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Quadro</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="quadro_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="quadro_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="quadro_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.quadro_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('quadro_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <!-- Especialidade -->
                     <div class="col-md-4">
-                        <label class="form-label">Especialidade</label>
-                        <select name="especialidade_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.especialidade_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Especialidade</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="especialidade_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="especialidade_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="especialidade_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.especialidade_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('especialidade_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <!-- Localidade -->
                     <div class="col-md-4">
-                        <label class="form-label">Localidade</label>
-                        <select name="localidade_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.localidade_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Localidade</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="localidade_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="localidade_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="localidade_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.localidade_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('localidade_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <!-- Situação -->
                     <div class="col-md-4">
-                        <label class="form-label">Situação</label>
-                        <select name="situacao_ids" class="form-select" multiple>
-                        {% for val, label in form_militar.situacao_id.choices if val != '' %}
+                        <div class="filter-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="filter-title">Situação</span>
+                            <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" data-select-all="situacao_ids">Selecionar tudo</button>
+                            <button class="btn btn-outline-secondary" type="button" data-clear="situacao_ids">Limpar</button>
+                            </div>
+                        </div>
+                        <select name="situacao_ids" class="form-select js-multi" multiple>
+                            {% for val, label in form_militar.situacao_id.choices if val != '' %}
                             {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
                             <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                        {% endfor %}
+                            {% endfor %}
                         </select>
+                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -354,20 +436,39 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+  // Inicializa todos os multiselects com tema Bootstrap 5
   document.addEventListener('DOMContentLoaded', () => {
-    const hasFilters =
-      {{ (request.args.getlist('obm_ids') or
-          request.args.getlist('funcao_ids') or
-          request.args.getlist('posto_grad_ids') or
-          request.args.getlist('quadro_ids') or
-          request.args.getlist('especialidade_ids') or
-          request.args.getlist('localidade_ids') or
-          request.args.getlist('situacao_ids')) and 'true' or 'false' }};
-    if (hasFilters) {
-      const modal = new bootstrap.Modal(document.getElementById('filtrarMilitar'));
-      modal.show();
-    }
+    const modalEl = document.getElementById('filtrarMilitar');
+    const dropdownParent = modalEl; // necessário pro Select2 funcionar no modal
+
+    $('.js-multi').select2({
+      theme: 'bootstrap-5',
+      width: '100%',
+      placeholder: 'Selecione...',
+      allowClear: true,
+      closeOnSelect: false,    // <— permite clicar vários sem fechar
+      dropdownParent: $(dropdownParent)
+    });
+
+    // Botões "Selecionar tudo" / "Limpar" por campo
+    document.querySelectorAll('[data-select-all]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const name = btn.getAttribute('data-select-all');
+        const sel  = modalEl.querySelector(`select[name="${name}"]`);
+        [...sel.options].forEach(o=>o.selected=true);
+        $(sel).trigger('change');
+      });
+    });
+    document.querySelectorAll('[data-clear]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const name = btn.getAttribute('data-clear');
+        const sel  = modalEl.querySelector(`select[name="${name}"]`);
+        [...sel.options].forEach(o=>o.selected=false);
+        $(sel).val(null).trigger('change');
+      });
+    });
   });
 </script>
 
