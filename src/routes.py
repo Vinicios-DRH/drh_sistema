@@ -778,6 +778,7 @@ def verificar_arquivos():
 @checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def exibir_militar(militar_id):
     militar = Militar.query.get_or_404(militar_id)
+    database.session.expire_all()
 
     obm_funcao_tipo_1 = MilitarObmFuncao.query.filter_by(militar_id=militar_id, tipo=1) \
         .filter(MilitarObmFuncao.data_fim == None).first()
@@ -879,7 +880,7 @@ def exibir_militar(militar_id):
         'soldado_dois', 'soldado_um', 'cabo', 'terceiro_sgt',
         'segundo_sgt', 'primeiro_sgt', 'subtenente',
         'publicidade_segundo_tenente', 'publicidade_primeiro_tenente',
-        'pub_cap', 'pub_maj', 'pub_tc', 'pub_cel', 'pub_alteracao'
+        'pub_cap', 'pub_maj', 'pub_tc', 'pub_cel', 'pub_alteracao', 'situacao_militar_2',
     ]
 
     # Recupera as publicações do BG e define campos para publicação do militar
@@ -896,6 +897,14 @@ def exibir_militar(militar_id):
             if hasattr(form_militar, pub.tipo_bg):
                 # Se o boletim_geral existir, utiliza o valor; caso contrário, mantém como vazio
                 getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
+    
+    bg_sit2_ultima = PublicacaoBg.query.filter_by(
+        militar_id=militar.id, tipo_bg='situacao_militar_2'
+    ).order_by(PublicacaoBg.id.desc()).first()
+    bg_sit2_val = bg_sit2_ultima.boletim_geral if bg_sit2_ultima else ""
+
+    if hasattr(form_militar, 'situacao_militar_2'):
+        form_militar.situacao_militar_2.data = bg_sit2_val
 
     def parse_date(d):
         """Aceita date, string 'YYYY-MM-DD' ou 'DD/MM/YYYY'. Retorna date ou None."""
@@ -1028,6 +1037,34 @@ def exibir_militar(militar_id):
         militar.cel = form_militar.cel.data
         militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
         militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
+
+        situacao2_id_raw   = request.form.get('situacao2_id', '').strip()
+        agregacoes2_id_raw = request.form.get('agregacoes2_id', '').strip()
+        inicio_sit2_raw    = request.form.get('inicio_situacao2', '').strip()   # aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY'
+        fim_sit2_raw       = request.form.get('fim_situacao2', '').strip()
+        bg_sit2_texto      = request.form.get('situacao_militar_2', '').strip() # texto da publicação
+
+        # Normaliza IDs vazios -> None
+        militar.situacao2_id   = int(situacao2_id_raw)   if situacao2_id_raw   not in ('', None) else None
+        militar.agregacoes2_id = int(agregacoes2_id_raw) if agregacoes2_id_raw not in ('', None) else None
+
+        # Datas (usa seu parse_date que aceita 'YYYY-MM-DD' e 'DD/MM/YYYY')
+        militar.inicio_situacao2 = parse_date(inicio_sit2_raw)
+        militar.fim_situacao2    = parse_date(fim_sit2_raw)
+
+        # Publicação (segue a lógica do primeiro bloco: só cria nova se mudou)
+        if bg_sit2_texto:
+            pub_existente = PublicacaoBg.query.filter_by(
+                militar_id=militar.id, tipo_bg='situacao_militar_2'
+            ).order_by(PublicacaoBg.id.desc()).first()
+
+            if not pub_existente or pub_existente.boletim_geral != bg_sit2_texto:
+                nova_pub2 = PublicacaoBg(
+                    militar_id=militar.id,
+                    tipo_bg='situacao_militar_2',
+                    boletim_geral=bg_sit2_texto
+                )
+                database.session.add(nova_pub2)
 
         # Verifica se OBM 1 e Função 1 foram modificadas ou removidas (selecionada opção vazia)
         if form_militar.obm_ids_1.data and form_militar.funcao_ids_1.data and form_militar.obm_ids_1.data != '' and form_militar.funcao_ids_1.data != '':
@@ -1197,9 +1234,45 @@ def exibir_militar(militar_id):
                 f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
     documentos_militar = DocumentoMilitar.query.filter_by(
         militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
-    return render_template('exibir_militar.html', form_militar=form_militar,
-                           militar=militar,
-                           documentos_militar=documentos_militar)
+    return render_template(
+        'exibir_militar.html',
+        form_militar=form_militar,
+        militar=militar,
+        documentos_militar=documentos_militar,
+        bg_sit2_val=bg_sit2_val,
+    )
+
+
+@app.route('/inativar-militar/<int:militar_id>', methods=['POST'])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DRH')
+def inativar_militar(militar_id):
+    militar = Militar.query.get_or_404(militar_id)
+
+    if militar.inativo:
+        flash('Este militar já está inativo.', 'alert-warning')
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    militar.inativo = True
+
+    # (Opcional, mas recomendado) Encerrar vínculos ativos de OBM/Função
+    ativos = MilitarObmFuncao.query.filter_by(militar_id=militar_id, data_fim=None).all()
+    for rel in ativos:
+        rel.data_fim = datetime.now()
+
+    # (Opcional) guardar trilha de auditoria, se tiver colunas (ver seção 3)
+    militar.inativado_em = datetime.utcnow()
+    militar.inativado_por_id = current_user.id
+    militar.motivo_inativacao = request.form.get('motivo_inativacao') or None
+
+    try:
+        database.session.commit()
+        flash('Militar inativado com sucesso.', 'alert-success')
+    except Exception as e:
+        database.session.rollback()
+        flash(f'Erro ao inativar: {e}', 'alert-danger')
+
+    return redirect(url_for('militares'))
 
 
 @app.post("/exibir-militar/<int:militar_id>/enviar-doc")
@@ -1448,7 +1521,8 @@ def militares():
             MilitarObmFuncao.funcao),
         selectinload(Militar.posto_grad),  # Pré-carrega a relação posto_grad
         selectinload(Militar.quadro)
-    )
+    ).filter(Militar.inativo.is_(False))
+
     if search:
         like = f"%{search.strip()}%"
         query = query.filter(or_(
@@ -1581,7 +1655,7 @@ def tabela_militares():
             joinedload(Militar.situacao),
             joinedload(Militar.obm_funcoes),
             joinedload(Militar.destino)
-        )
+        ).filter(Militar.inativo.is_(False))
 
         total_militares = query.count()
 
@@ -1771,8 +1845,12 @@ def export_excel():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_a_disposicao():
-    militares_a_disposicao = MilitaresADisposicao.query.all()
-
+    militares_a_disposicao = (
+        MilitaresADisposicao.query
+        .join(Militar, MilitaresADisposicao.militar_id == Militar.id)
+        .filter(Militar.inativo.is_(False))
+        .all()
+    )
     return render_template('militares_a_disposicao.html', militares=militares_a_disposicao)
 
 
@@ -1780,8 +1858,12 @@ def militares_a_disposicao():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_agregados():
-    militares_agregados = MilitaresAgregados.query.all()
-
+    militares_agregados = (
+        MilitaresAgregados.query
+        .join(Militar, MilitaresAgregados.militar_id == Militar.id)
+        .filter(Militar.inativo.is_(False))
+        .all()
+    )
     return render_template('militares_agregados.html', militares=militares_agregados)
 
 
@@ -1789,8 +1871,12 @@ def militares_agregados():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def licenca_especial():
-    militares_le = LicencaEspecial.query.all()
-
+    militares_le = (
+        LicencaEspecial.query
+        .join(Militar, LicencaEspecial.militar_id == Militar.id)
+        .filter(Militar.inativo.is_(False))
+        .all()
+    )
     return render_template('licenca_especial.html', militares_le=militares_le)
 
 
@@ -1798,8 +1884,12 @@ def licenca_especial():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def lts():
-    militares_lts = LicencaParaTratamentoDeSaude.query.all()
-
+    militares_lts = (
+        LicencaParaTratamentoDeSaude.query
+        .join(Militar, LicencaParaTratamentoDeSaude.militar_id == Militar.id)
+        .filter(Militar.inativo.is_(False))
+        .all()
+    )
     return render_template('licenca_para_tratamento_de_saude.html', militares_lts=militares_lts)
 
 

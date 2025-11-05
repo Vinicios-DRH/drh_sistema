@@ -1596,6 +1596,7 @@ def recebimento():
         db.session.query(M.id.label("m_id"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(F, F.id == MOF.funcao_id, isouter=True)
+        .filter(M.inativo.is_(False))
     )
     if obm_id:
         base_q = base_q.filter(MOF.obm_id == obm_id)
@@ -1630,6 +1631,7 @@ def recebimento():
         db.session.query(M.id.label("m_id"), M.nome_completo.label("nome"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
         .join(F, F.id == MOF.funcao_id, isouter=True)
+        .filter(M.inativo.is_(False))
     )
     if obm_id:
         base_page_q = base_page_q.filter(MOF.obm_id == obm_id)

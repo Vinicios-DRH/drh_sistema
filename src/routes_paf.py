@@ -506,6 +506,7 @@ def recebimento():
     base_q = (
         database.session.query(M.id.label("m_id"))
         .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
+        .filter(M.inativo.is_(False))
     )
 
     if obm_id:

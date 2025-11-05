@@ -75,15 +75,21 @@ class Destino(database.Model):
 class Situacao(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     condicao = database.Column(database.String(50))
-    militar = database.relationship(
-        'Militar', backref='situacao_militar', lazy=True)
+
+    militares_situacao1 = database.relationship('Militar',
+        foreign_keys='Militar.situacao_id',
+        back_populates='situacao')
+
+    militares_situacao2 = database.relationship('Militar',
+        foreign_keys='Militar.situacao2_id',
+        back_populates='situacao2')
 
 
 class Agregacoes(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     tipo = database.Column(database.String(50))
-    militar = database.relationship(
-        'Militar', backref='agregacoes_militar', lazy=True)
+    militares_ag1 = database.relationship('Militar', foreign_keys='Militar.agregacoes_id',  back_populates='agregacoes')
+    militares_ag2 = database.relationship('Militar', foreign_keys='Militar.agregacoes2_id', back_populates='agregacoes2')
 
 
 class PublicacaoBg(database.Model):
@@ -453,6 +459,15 @@ class Militar(database.Model):
         database.Integer, database.ForeignKey('funcao_gratificada.id'))
     inativo = database.Column(database.Boolean, default=False)
 
+    situacao2_id  = database.Column(database.Integer, database.ForeignKey('situacao.id'))
+    agregacoes2_id = database.Column(database.Integer, database.ForeignKey('agregacoes.id'))
+    inicio_situacao2 = database.Column(database.Date)
+    fim_situacao2 = database.Column(database.Date)
+
+    inativado_em = database.Column(database.DateTime)
+    inativado_por_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    motivo_inativacao = database.Column(database.String(255))
+
     # ---- relationships
     publicacoes_bg = database.relationship(
         'PublicacaoBg', backref='militar_pub', lazy=True)
@@ -467,14 +482,21 @@ class Militar(database.Model):
         'Especialidade', backref='militares', foreign_keys=[especialidade_id])
     localidade = database.relationship(
         'Localidade', backref='militares_loc', foreign_keys=[localidade_id])
-    situacao = database.relationship(
-        'Situacao', backref='militares_situcao', foreign_keys=[situacao_id])
+    situacao  = database.relationship('Situacao',
+                             foreign_keys=[situacao_id],
+                             back_populates='militares_situacao1')
     pafs = database.relationship(
         'Paf', backref='militar', cascade="all, delete-orphan")
     viaturas = database.relationship(
         "ViaturaMilitar", back_populates="militar")
     
     destino = database.relationship('Destino', foreign_keys=[destino_id])
+
+    situacao2 = database.relationship('Situacao',
+                             foreign_keys=[situacao2_id],
+                             back_populates='militares_situacao2')
+    agregacoes  = database.relationship('Agregacoes', foreign_keys=[agregacoes_id],  back_populates='militares_ag1')
+    agregacoes2 = database.relationship('Agregacoes', foreign_keys=[agregacoes2_id], back_populates='militares_ag2')
 
 
 class MilitarObmFuncao(database.Model):

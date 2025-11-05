@@ -660,6 +660,72 @@
                     class="invalid-feedback">{% for e in form_militar.situacao_militar.errors %}{{e}}{% endfor %}</div>
                   {% endif %}</div>
               </div>
+
+              <!-- ========== SITUAÇÃO 2 (extra) ========== -->
+              <div id="situacao2" class="super-section">
+                <div class="section-header"><i class="bi bi-clipboard2-pulse"></i>
+                  <h2 class="h6 m-0">Situação 2</h2>
+                </div>
+
+                <div class="row g-3">
+                  <!-- Situação 2 -->
+                  <div class="col-md-4">
+                    <label for="situacao2_id" class="form-label">Situação Extra</label>
+                    <select id="situacao2_id" name="situacao2_id" class="form-select">
+                      <option value="">-- Selecione --</option>
+                      {% for val, label in form_militar.situacao_id.choices %}
+                        <option value="{{ val }}" {{ 'selected' if militar.situacao2_id==val else '' }}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Agregações 2 -->
+                  <div class="col-md-4">
+                    <label for="agregacoes2_id" class="form-label">Agregação Extra</label>
+                    <select id="agregacoes2_id" name="agregacoes2_id" class="form-select">
+                      <option value="">-- Selecione --</option>
+                      {% for val, label in form_militar.agregacoes_id.choices %}
+                        <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id==val else '' }}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Início/Fim -->
+                  <div class="col-md-3">
+                    <label for="inicio_situacao2" class="form-label">Início</label>
+                    <input
+                      type="date"
+                      id="inicio_situacao2"
+                      name="inicio_situacao2"
+                      class="form-control"
+                      value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}"
+                    >
+                  </div>
+                  <div class="col-md-3">
+                    <label for="fim_situacao2" class="form-label">Término</label>
+                    <input
+                      type="date"
+                      id="fim_situacao2"
+                      name="fim_situacao2"
+                      class="form-control"
+                      value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}"
+                    >
+                  </div>
+
+                  <!-- Publicação (texto vai para publicacaobg.tipo_bg='situacao_militar_2') -->
+                  <div class="col-md-6">
+                    <label for="situacao_militar_2" class="form-label">Publicação (BG) — Situação 2</label>
+                    <input
+                      type="text"
+                      id="situacao_militar_2"
+                      name="situacao_militar_2"
+                      class="form-control"
+                      placeholder="Ex.: BG nº 1234/2025, p. 45"
+                      value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}"
+                    >
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- ========== LTIP ========== -->
@@ -981,8 +1047,9 @@
             <!-- ========== AÇÕES ========== -->
             <div class="action-bar mt-2">
               {{ form_militar.botao_submit(class="btn btn-primary") }}
-              <button type="button" class="btn btn-outline-light" data-bs-toggle="modal"
-                data-bs-target="#excluirPost"><i class="bi bi-trash"></i> Excluir</button>
+              <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#inativarMilitarModal">
+                <i class="bi bi-person-slash"></i> Inativar
+              </button>
             </div>
           </form>
         </div>
@@ -991,22 +1058,30 @@
   </div>
 </section>
 
-<!-- Modal Excluir -->
-<div class="modal fade" id="excluirPost" tabindex="-1" aria-labelledby="modalExcluirLabel" aria-hidden="true">
+<!-- Modal Inativar -->
+<div class="modal fade" id="inativarMilitarModal" tabindex="-1" aria-labelledby="inativarMilitarLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content glass-card">
       <div class="modal-header">
-        <h1 class="modal-title fs-6" id="modalExcluirLabel"><i
-            class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Excluir Militar?</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h1 class="modal-title fs-6" id="inativarMilitarLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Inativar Militar?
+        </h1>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Essa ação não poderá ser desfeita e o militar será excluído permanentemente do sistema.
+        Esta ação <strong>não apaga</strong> os dados do militar; apenas marca como inativo para preservar o histórico.
+        Você pode reativar depois, se necessário.
+        <!-- (Opcional) Motivo -->
+        <div class="mt-3">
+          <label class="form-label">Motivo (opcional)</label>
+          <input type="text" name="motivo_inativacao" form="formInativarMilitar" class="form-control" placeholder="Ex.: desligamento, falecimento, transferência definitiva, etc.">
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <form method="POST" action="{{ url_for('excluir_militar', militar_id=militar.id) }}">
-          <button type="submit" class="btn btn-danger">Excluir</button>
+        <form id="formInativarMilitar" method="POST" action="{{ url_for('inativar_militar', militar_id=militar.id) }}">
+          {{ form_militar.csrf_token }}
+          <button type="submit" class="btn btn-warning"><i class="bi bi-person-slash"></i> Confirmar inativação</button>
         </form>
       </div>
     </div>
