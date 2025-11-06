@@ -897,7 +897,7 @@ def exibir_militar(militar_id):
             if hasattr(form_militar, pub.tipo_bg):
                 # Se o boletim_geral existir, utiliza o valor; caso contrário, mantém como vazio
                 getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
-    
+
     bg_sit2_ultima = PublicacaoBg.query.filter_by(
         militar_id=militar.id, tipo_bg='situacao_militar_2'
     ).order_by(PublicacaoBg.id.desc()).first()
@@ -1038,19 +1038,23 @@ def exibir_militar(militar_id):
         militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
         militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
 
-        situacao2_id_raw   = request.form.get('situacao2_id', '').strip()
+        situacao2_id_raw = request.form.get('situacao2_id', '').strip()
         agregacoes2_id_raw = request.form.get('agregacoes2_id', '').strip()
-        inicio_sit2_raw    = request.form.get('inicio_situacao2', '').strip()   # aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY'
-        fim_sit2_raw       = request.form.get('fim_situacao2', '').strip()
-        bg_sit2_texto      = request.form.get('situacao_militar_2', '').strip() # texto da publicação
+        # aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY'
+        inicio_sit2_raw = request.form.get('inicio_situacao2', '').strip()
+        fim_sit2_raw = request.form.get('fim_situacao2', '').strip()
+        bg_sit2_texto = request.form.get(
+            'situacao_militar_2', '').strip()  # texto da publicação
 
         # Normaliza IDs vazios -> None
-        militar.situacao2_id   = int(situacao2_id_raw)   if situacao2_id_raw   not in ('', None) else None
-        militar.agregacoes2_id = int(agregacoes2_id_raw) if agregacoes2_id_raw not in ('', None) else None
+        militar.situacao2_id = int(
+            situacao2_id_raw) if situacao2_id_raw not in ('', None) else None
+        militar.agregacoes2_id = int(
+            agregacoes2_id_raw) if agregacoes2_id_raw not in ('', None) else None
 
         # Datas (usa seu parse_date que aceita 'YYYY-MM-DD' e 'DD/MM/YYYY')
         militar.inicio_situacao2 = parse_date(inicio_sit2_raw)
-        militar.fim_situacao2    = parse_date(fim_sit2_raw)
+        militar.fim_situacao2 = parse_date(fim_sit2_raw)
 
         # Publicação (segue a lógica do primeiro bloco: só cria nova se mudou)
         if bg_sit2_texto:
@@ -1256,7 +1260,8 @@ def inativar_militar(militar_id):
     militar.inativo = True
 
     # (Opcional, mas recomendado) Encerrar vínculos ativos de OBM/Função
-    ativos = MilitarObmFuncao.query.filter_by(militar_id=militar_id, data_fim=None).all()
+    ativos = MilitarObmFuncao.query.filter_by(
+        militar_id=militar_id, data_fim=None).all()
     for rel in ativos:
         rel.data_fim = datetime.now()
 
@@ -1485,37 +1490,46 @@ def militares():
     f = FormFiltroMilitar()
 
     # choices
-    f.obm_id_1.choices          = [(o.id, o.sigla) for o in Obm.query.order_by(Obm.sigla).all()]
-    f.funcao_id.choices       = [(x.id, x.ocupacao) for x in Funcao.query.order_by(Funcao.ocupacao).all()]
-    f.posto_grad_id.choices = [(p.id, p.sigla) for p in PostoGrad.query.order_by(PostoGrad.sigla.asc()).all()]
-    f.quadro_id.choices       = [(q.id, q.quadro) for q in Quadro.query.order_by(Quadro.quadro).all()]
-    f.especialidade_id.choices= [(e.id, e.ocupacao) for e in Especialidade.query.order_by(Especialidade.ocupacao).all()]
-    f.localidade_id.choices   = [(l.id, l.sigla) for l in Localidade.query.order_by(Localidade.sigla).all()]
-    f.situacao_id.choices     = [(s.id, s.condicao) for s in Situacao.query.order_by(Situacao.condicao).all()]
+    f.obm_id_1.choices = [(o.id, o.sigla)
+                          for o in Obm.query.order_by(Obm.sigla).all()]
+    f.funcao_id.choices = [(x.id, x.ocupacao)
+                           for x in Funcao.query.order_by(Funcao.ocupacao).all()]
+    f.posto_grad_id.choices = [
+        (p.id, p.sigla) for p in PostoGrad.query.order_by(PostoGrad.sigla.asc()).all()]
+    f.quadro_id.choices = [(q.id, q.quadro)
+                           for q in Quadro.query.order_by(Quadro.quadro).all()]
+    f.especialidade_id.choices = [
+        (e.id, e.ocupacao) for e in Especialidade.query.order_by(Especialidade.ocupacao).all()]
+    f.localidade_id.choices = [
+        (l.id, l.sigla) for l in Localidade.query.order_by(Localidade.sigla).all()]
+    f.situacao_id.choices = [(s.id, s.condicao)
+                             for s in Situacao.query.order_by(Situacao.condicao).all()]
 
     # paginação & busca
-    page   = request.args.get('page', 1, type=int)
+    page = request.args.get('page', 1, type=int)
     search = (request.args.get('search') or '').strip()
 
     # MULTI filtros (listas)
-    obm_ids          = request.args.getlist('obm_ids', type=int)
-    funcao_ids       = request.args.getlist('funcao_ids', type=int)
-    posto_grad_ids   = request.args.getlist('posto_grad_ids', type=int)
-    quadro_ids       = request.args.getlist('quadro_ids', type=int)
-    especialidade_ids= request.args.getlist('especialidade_ids', type=int)
-    localidade_ids   = request.args.getlist('localidade_ids', type=int)
-    situacao_ids     = request.args.getlist('situacao_ids', type=int)
+    obm_ids = request.args.getlist('obm_ids', type=int)
+    funcao_ids = request.args.getlist('funcao_ids', type=int)
+    posto_grad_ids = request.args.getlist('posto_grad_ids', type=int)
+    quadro_ids = request.args.getlist('quadro_ids', type=int)
+    especialidade_ids = request.args.getlist('especialidade_ids', type=int)
+    localidade_ids = request.args.getlist('localidade_ids', type=int)
+    situacao_ids = request.args.getlist('situacao_ids', type=int)
 
     # base
     query = (Militar.query
              .options(
-                 selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.obm),
-                 selectinload(Militar.obm_funcoes).selectinload(MilitarObmFuncao.funcao),
+                 selectinload(Militar.obm_funcoes).selectinload(
+                     MilitarObmFuncao.obm),
+                 selectinload(Militar.obm_funcoes).selectinload(
+                     MilitarObmFuncao.funcao),
                  selectinload(Militar.posto_grad),
                  selectinload(Militar.quadro)
              )
              .filter(Militar.inativo.is_(False))
-            )
+             )
 
     if search:
         like = f"%{search}%"
@@ -1542,21 +1556,19 @@ def militares():
     # filtros por OBM/Função ativos via join
     if obm_ids or funcao_ids:
         query = (query
-                 .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-                 .filter(MilitarObmFuncao.data_fim.is_(None)))
+                .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                .filter(MilitarObmFuncao.data_fim.is_(None)))
         if obm_ids:
             query = query.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
         if funcao_ids:
             query = query.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
-        query = query.distinct(Militar.id)  # evita duplicados
+
+        query = query.distinct()
 
     # paginação
     per_page = 100
-    militares_paginados = query.order_by(Militar.nome_completo.asc()) \
-                               .paginate(page=page, per_page=per_page)
-
-    # Reduzir per_page melhora desempenho
-    militares_paginados = query.paginate(page=page, per_page=100)
+    query = query.order_by(Militar.nome_completo.asc())
+    militares_paginados = query.paginate(page=page, per_page=per_page)
 
     def fmt_cpf(cpf):
         d = re.sub(r'\D', '', cpf or '')
@@ -1600,9 +1612,6 @@ def militares():
             'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
         })
-
-    per_page = 100
-    militares_paginados = query.paginate(page=page, per_page=per_page)
 
     return render_template(
         'militares.html',
@@ -1683,13 +1692,13 @@ def tabela_militares():
             query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
         vals = request.values  # une args + form
-        obm_ids           = vals.getlist('obm_ids', type=int)
-        funcao_ids        = vals.getlist('funcao_ids', type=int)
-        posto_grad_ids    = vals.getlist('posto_grad_ids', type=int)
-        quadro_ids        = vals.getlist('quadro_ids', type=int)
+        obm_ids = vals.getlist('obm_ids', type=int)
+        funcao_ids = vals.getlist('funcao_ids', type=int)
+        posto_grad_ids = vals.getlist('posto_grad_ids', type=int)
+        quadro_ids = vals.getlist('quadro_ids', type=int)
         especialidade_ids = vals.getlist('especialidade_ids', type=int)
-        localidade_ids    = vals.getlist('localidade_ids', type=int)
-        situacao_ids      = vals.getlist('situacao_ids', type=int)
+        localidade_ids = vals.getlist('localidade_ids', type=int)
+        situacao_ids = vals.getlist('situacao_ids', type=int)
 
         # FK diretas
         if posto_grad_ids:
@@ -1697,7 +1706,8 @@ def tabela_militares():
         if quadro_ids:
             query = query.filter(Militar.quadro_id.in_(quadro_ids))
         if especialidade_ids:
-            query = query.filter(Militar.especialidade_id.in_(especialidade_ids))
+            query = query.filter(
+                Militar.especialidade_id.in_(especialidade_ids))
         if localidade_ids:
             query = query.filter(Militar.localidade_id.in_(localidade_ids))
         if situacao_ids:
@@ -1705,16 +1715,27 @@ def tabela_militares():
 
         # OBM/Função ativas
         if obm_ids or funcao_ids:
-            query = (query
-                    .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-                    .filter(MilitarObmFuncao.data_fim.is_(None)))
+            mo = (database.session.query(MilitarObmFuncao.militar_id)
+                .filter(MilitarObmFuncao.data_fim.is_(None)))
             if obm_ids:
-                query = query.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
+                mo = mo.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
             if funcao_ids:
-                query = query.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
-            query = query.distinct(Militar.id)
+                mo = mo.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
 
-        filtrados_sq = query.with_entities(Militar.id).distinct().subquery()
+            mo = mo.distinct()  # DISTINCT "puro" (sem ON)
+
+            # restringe os militares aos que têm OBM/Função ativa
+            query = query.filter(Militar.id.in_(mo))
+                    
+        base_filtrada = query.order_by(None)
+        
+        filtrados_sq = (
+            base_filtrada
+                .with_entities(Militar.id)
+                .distinct()        # em PG vira DISTINCT ON (militar.id)
+                .order_by(None)    # <-- essencial pra não “vazar” ORDER BY nome_completo
+                .subquery()
+        )
 
         # contagem de agregados dentre os filtrados
         agregados_ids = [
@@ -1754,7 +1775,12 @@ def tabela_militares():
         ]
         adisposicao_count = len(adisposicao_ids)
 
-        militares_filtrados_count = query.distinct(Militar.id).count()
+        militares_filtrados = (
+            base_filtrada               # mesma base sem ORDER BY no subquery
+                .order_by(Militar.nome_completo.asc())
+                .all()
+        )
+
         query = query.order_by(Militar.nome_completo.asc())
 
         # Retorna todos os resultados
@@ -1774,14 +1800,17 @@ def tabela_militares():
             destino_txt = 'N/A'
             try:
                 if getattr(militar, 'destino', None):
-                    destino_txt = getattr(militar.destino, 'local', None) or 'N/A'
+                    destino_txt = getattr(
+                        militar.destino, 'local', None) or 'N/A'
                 elif getattr(militar, 'destino_id', None):
                     d = Destino.query.get(militar.destino_id)
-                    destino_txt = getattr(d, 'local', None) or str(militar.destino_id)
+                    destino_txt = getattr(d, 'local', None) or str(
+                        militar.destino_id)
             except Exception:
                 pass
-            
-            inclusao_fmt = militar.inclusao.strftime('%d/%m/%Y') if militar.inclusao else 'N/A'
+
+            inclusao_fmt = militar.inclusao.strftime(
+                '%d/%m/%Y') if militar.inclusao else 'N/A'
 
             if militar.id in adisposicao_ids:
                 situacao_exibe = 'À DISPOSIÇÃO'
@@ -2837,9 +2866,12 @@ def adicionar_motorista():
 def motoristas():
     form_filtro = FormFiltroMotorista()
 
-    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+    form_filtro.obm_id.choices = [
+        ('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [
+        (posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(
+        categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -2850,11 +2882,13 @@ def motoristas():
 
     # Query base — junta Militar e Motoristas
     # IMPORTANTE: exclui motoristas desclassificados (desclassificar == 'SIM')
-    query = Motoristas.query.join(Militar).filter(Motoristas.desclassificar != 'SIM')
+    query = Motoristas.query.join(Militar).filter(
+        Motoristas.desclassificar != 'SIM')
 
     # Filtro por OBM
     if obm_id:
-        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        subquery = MilitarObmFuncao.query.filter_by(
+            obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
         query = query.filter(Motoristas.militar_id.in_(subquery))
 
     # Filtro por Posto/Graduação
@@ -2873,16 +2907,19 @@ def motoristas():
     query = query.filter(Motoristas.modified.is_(None))
 
     # Paginação
-    motoristas_paginados = query.order_by(Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
+    motoristas_paginados = query.order_by(
+        Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
 
     # Contagem de militares (total geral) e motoristas válidos (exclui desclassificados)
     total_militares = Militar.query.count()
-    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').count()
+    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(
+        None), Motoristas.desclassificar != 'SIM').count()
 
     # Gráfico: Percentual de militares que são motoristas (exclui desclassificados)
     labels_motoristas = ['Motoristas', 'Não são motoristas']
     values_motoristas = [total_motoristas, total_militares - total_motoristas]
-    fig_motoristas = go.Figure(data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
+    fig_motoristas = go.Figure(
+        data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
     grafico_motoristas = pio.to_json(fig_motoristas)
 
     # Gráfico: Motoristas por categoria (exclui desclassificados)
@@ -2892,7 +2929,8 @@ def motoristas():
     ).join(Motoristas).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Categoria.sigla).all()
     labels_categorias = [c[0] for c in categorias]
     values_categorias = [c[1] for c in categorias]
-    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    fig_categorias = go.Figure(
+        data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
     grafico_categorias = pio.to_json(fig_categorias)
 
     # Gráfico: Motoristas por OBM (exclui desclassificados)
@@ -2904,7 +2942,8 @@ def motoristas():
     ).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Obm.sigla).all()
     labels_obms = [obm[0] for obm in obms]
     values_obms = [obm[1] for obm in obms]
-    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    fig_obms = go.Figure(
+        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
     grafico_obms = pio.to_json(fig_obms)
 
     return render_template(
@@ -2938,7 +2977,8 @@ def atualizar_motorista(motorista_id):
     # Preenche dados exibidos
     form_motorista.matricula.data = motorista.militar.matricula
     form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
-    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[0].obm.sigla if motorista.militar.obm_funcoes else None
+    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
+        0].obm.sigla if motorista.militar.obm_funcoes else None
 
     if request.method == 'POST':
         # Ação específica: desclassificar (vindo do modal)
@@ -3007,8 +3047,10 @@ def atualizar_motorista(motorista_id):
                     file = form_motorista.cnh_imagem.data
                     ext = file.filename.split('.')[-1]
                     timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                    nome_formatado = motorista.militar.nome_completo.replace(" ", "_")
-                    nome_arquivo = secure_filename(f"{nome_formatado}_cnh_{timestamp}.{ext}")
+                    nome_formatado = motorista.militar.nome_completo.replace(
+                        " ", "_")
+                    nome_arquivo = secure_filename(
+                        f"{nome_formatado}_cnh_{timestamp}.{ext}")
                     file_bytes = file.read()
 
                     # Upload para o root do bucket
@@ -3045,9 +3087,12 @@ def atualizar_motorista(motorista_id):
 def motoristas_desclassificados():
     form_filtro = FormFiltroMotorista()
 
-    form_filtro.obm_id.choices = [('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [(posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+    form_filtro.obm_id.choices = [
+        ('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
+    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [
+        (posto.id, posto.sigla) for posto in PostoGrad.query.all()]
+    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(
+        categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -3057,11 +3102,13 @@ def motoristas_desclassificados():
     categoria_id = request.args.get('categoria_id', '', type=str)
 
     # Query base: apenas desclassificados atuais (registros não modificados e desclassificar == 'SIM')
-    query = Motoristas.query.join(Militar).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None))
+    query = Motoristas.query.join(Militar).filter(
+        Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None))
 
     # Filtro por OBM
     if obm_id:
-        subquery = MilitarObmFuncao.query.filter_by(obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        subquery = MilitarObmFuncao.query.filter_by(
+            obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
         query = query.filter(Motoristas.militar_id.in_(subquery))
 
     # Filtro por Posto/Graduação
@@ -3077,10 +3124,12 @@ def motoristas_desclassificados():
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
     # Paginação
-    motoristas_paginados = query.order_by(Motoristas.desclassificar_em.desc().nullslast(), Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
+    motoristas_paginados = query.order_by(Motoristas.desclassificar_em.desc(
+    ).nullslast(), Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
 
     # Contagem total de desclassificados (para resumo)
-    total_desclassificados = Motoristas.query.filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).count()
+    total_desclassificados = Motoristas.query.filter(
+        Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).count()
 
     # Gráfico 1: Desclassificados por categoria
     categorias = database.session.query(
@@ -3089,7 +3138,8 @@ def motoristas_desclassificados():
     ).join(Motoristas).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).group_by(Categoria.sigla).all()
     labels_categorias = [c[0] for c in categorias]
     values_categorias = [c[1] for c in categorias]
-    fig_categorias = go.Figure(data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+    fig_categorias = go.Figure(
+        data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
     grafico_categorias = pio.to_json(fig_categorias)
 
     # Gráfico 2: Desclassificados por OBM
@@ -3101,13 +3151,15 @@ def motoristas_desclassificados():
     ).filter(Motoristas.desclassificar == 'SIM', Motoristas.modified.is_(None)).group_by(Obm.sigla).all()
     labels_obms = [o[0] for o in obms]
     values_obms = [o[1] for o in obms]
-    fig_obms = go.Figure(data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+    fig_obms = go.Figure(
+        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
     grafico_obms = pio.to_json(fig_obms)
 
     # Gráfico 3: Evolução mensal de desclassificados (últimos 12 meses)
     # Usa date_trunc para agrupar por mês; funciona em PostgreSQL (Supabase)
     mensal = database.session.query(
-        database.func.date_trunc('month', Motoristas.desclassificar_em).label('mes'),
+        database.func.date_trunc(
+            'month', Motoristas.desclassificar_em).label('mes'),
         database.func.count(Motoristas.id)
     ).filter(
         Motoristas.desclassificar == 'SIM',
@@ -4097,18 +4149,20 @@ def ficha_aluno():
     '''
     # Preenchendo choices se necessário
     form.pelotao.choices = [('', '— Selecionar —'),
-                        ('Rio Javari','Rio Javari'), ('Rio Juruá','Rio Juruá'),
-                        ('Rio Japurá','Rio Japurá'), ('Rio Purus','Rio Purus')]
-    
+                            ('Rio Javari', 'Rio Javari'), ('Rio Juruá', 'Rio Juruá'),
+                            ('Rio Japurá', 'Rio Japurá'), ('Rio Purus', 'Rio Purus')]
+
     form.estado_civil.choices = [('', '— Selecionar —'),
-                             ('Solteiro','Solteiro'), ('Casado','Casado'),
-                             ('Divorciado','Divorciado'), ('Viúvo','Viúvo')]
-    
-    form.estado.choices = [('', '— Selecionar —'), ('AM','Amazonas'), ('AC','Acre')]
+                                 ('Solteiro', 'Solteiro'), ('Casado', 'Casado'),
+                                 ('Divorciado', 'Divorciado'), ('Viúvo', 'Viúvo')]
+
+    form.estado.choices = [('', '— Selecionar —'),
+                           ('AM', 'Amazonas'), ('AC', 'Acre')]
 
     form.categoria_cnh.choices = [('', '— Selecionar —'),
-                              ('A','A'),('B','B'),('AB','AB'),('C','C'),('D','D'),
-                              ('E','E'),('AC','AC'),('AD','AD'),('AE','AE')]
+                                  ('A', 'A'), ('B', 'B'), ('AB',
+                                                           'AB'), ('C', 'C'), ('D', 'D'),
+                                  ('E', 'E'), ('AC', 'AC'), ('AD', 'AD'), ('AE', 'AE')]
 
     foto_url = None
 
@@ -4141,7 +4195,8 @@ def ficha_aluno():
             tipo_sanguineo=form.tipo_sanguineo.data or None,
             categoria_cnh=form.categoria_cnh.data or None,
             comportamento=(form.comportamento.data or 'Bom'),
-            nota_comportamento=(form.nota_comportamento.data if form.nota_comportamento.data is not None else 5.0),
+            nota_comportamento=(
+                form.nota_comportamento.data if form.nota_comportamento.data is not None else 5.0),
             caso_aluno_nao_resida_em_manaus=form.hospedagem_aluno_de_fora.data or None,
             foto=foto_filename or None,
             matricula=form.matricula.data or None
@@ -5247,7 +5302,8 @@ def cadete_exibir_militar(militar_id):
                 flash("Você concluiu todas as suas atualizações!", "success")
                 return redirect(url_for("home_cadete"))
 
-            flash("Dados salvos.", "success" if acao=="salvar" else "Atualizado com sucesso.")
+            flash("Dados salvos.", "success" if acao ==
+                  "salvar" else "Atualizado com sucesso.")
             return redirect(url_for("home_cadete"))
         except Exception as e:
             database.session.rollback()
