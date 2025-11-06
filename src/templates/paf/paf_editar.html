@@ -118,7 +118,7 @@
                             <label class="form-label">{{ idx }}ª opção</label>
                             <select class="form-select mes" name="opcao_{{ idx }}" required>
                                 <option value="">Selecione...</option>
-                                {% for m in range(8,13) %}
+                                {% for m in range(10,13) %}
                                 <option value="{{ m }}" {% if selected_val|int == m %}selected{% endif %}>{{ meses_full[m-1] }}</option>
                                 {% endfor %}
                             </select>
