@@ -110,6 +110,54 @@
     .modal-xl .modal-footer{
         position: sticky; bottom: -1rem; background: #fff; z-index: 2;
     }
+
+    /* container “cheio” */
+    .container-fluid {
+        max-width: 100% !important;
+    }
+
+    /* Deixa os cards de cabeçalho e o painel ocuparem a largura sem “miar” nas bordas */
+    .brand-header, .glass-panel {
+        width: 100%;
+    }
+
+    /* Opcional: encosta mais nas laterais em telas menores e dá respiro no desktop */
+    .page-wrapper {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Em telas grandes, um respiro sutil nas laterais para não colar 100% na borda */
+    @media (min-width: 1200px) {
+        .container-fluid {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+    }
+
+    /* Tabela continua responsiva com scroll horizontal quando precisar */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    /* Evita “estouro” de colunas muito longas — quebra elegante onde couber */
+    .table th, .table td {
+        white-space: nowrap;           /* mantém linhas compactas */
+    }
+    @media (max-width: 992px) {
+        .table th, .table td {
+            white-space: normal;         /* em telas menores, permite quebrar */
+            word-break: break-word;
+        }
+    }
+
+    /* Opcional: em mobile, bordas mais “retas” encostando nas laterais */
+    @media (max-width: 576px) {
+        .brand-header, .glass-panel {
+            border-radius: 10px;
+        }
+    }
+
 </style>
 {% endblock %}
 
@@ -130,7 +178,7 @@
 
 {% block body %}
 <section class="py-3 py-md-4 page-wrapper">
-    <div class="container">
+    <div class="container-fluid px-2 px-md-3">
         <!-- Cabeçalho com ações e contador -->
         <div class="brand-header p-3 p-md-4 mb-3">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
