@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from encodings import aliases
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, send_file, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select
 from src import database
@@ -10,6 +10,8 @@ from zoneinfo import ZoneInfo
 from functools import lru_cache
 from math import ceil
 from sqlalchemy.orm import aliased
+from io import BytesIO
+import pandas as pd
 
 
 bp_paf = Blueprint("paf", __name__, url_prefix="/paf")
@@ -982,3 +984,119 @@ def salvar_plano():
     database.session.commit()
     flash("Plano de férias enviado para avaliação.", "success")
     return redirect(url_for("paf.minhas", ano=ano))
+
+
+@bp_paf.route("/relatorio-geral", methods=["GET"])
+@login_required
+def relatorio_geral():
+    ano = request.args.get("ano", type=int) or 2026
+
+    # join básico
+    q = (
+        database.session.query(
+            Militar,
+            NovoPaf.mes_definido.label("mes_definido"),
+            PafFeriasPlano.direito_total_dias,
+            PafFeriasPlano.qtd_dias_p1, PafFeriasPlano.inicio_p1, PafFeriasPlano.fim_p1, PafFeriasPlano.mes_usufruto_p1,
+            PafFeriasPlano.qtd_dias_p2, PafFeriasPlano.inicio_p2, PafFeriasPlano.fim_p2, PafFeriasPlano.mes_usufruto_p2,
+            PafFeriasPlano.qtd_dias_p3, PafFeriasPlano.inicio_p3, PafFeriasPlano.fim_p3, PafFeriasPlano.mes_usufruto_p3,
+        )
+        .outerjoin(NovoPaf, and_(NovoPaf.militar_id==Militar.id, NovoPaf.ano_referencia==ano))
+        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id==Militar.id, PafFeriasPlano.ano_referencia==ano))
+        .order_by(Militar.nome_completo.asc())
+    )
+
+    rows = q.all()
+    return render_template("paf/relatorio_geral.html", ano=ano, rows=rows)
+
+
+
+@bp_paf.route("/relatorio-geral-excel")
+@login_required
+def relatorio_geral_excel():
+    ano = request.args.get("ano", type=int) or 2026
+
+    q = (
+        database.session.query(
+            Militar.nome_completo,                     # 1
+            Militar.matricula,                        # 2
+            NovoPaf.mes_definido.label("mes_definido"),# 3
+            PafFeriasPlano.direito_total_dias,        # 4
+            PafFeriasPlano.qtd_dias_p1,               # 5
+            PafFeriasPlano.inicio_p1,                 # 6
+            PafFeriasPlano.fim_p1,                    # 7
+            PafFeriasPlano.mes_usufruto_p1,           # 8
+            PafFeriasPlano.qtd_dias_p2,               # 9
+            PafFeriasPlano.inicio_p2,                 # 10
+            PafFeriasPlano.fim_p2,                    # 11
+            PafFeriasPlano.mes_usufruto_p2,           # 12
+            PafFeriasPlano.qtd_dias_p3,               # 13
+            PafFeriasPlano.inicio_p3,                 # 14
+            PafFeriasPlano.fim_p3,                    # 15
+            PafFeriasPlano.mes_usufruto_p3,           # 16
+            NovoPaf.status.label("status_paf"),       # 17 -> para categorizar
+        )
+        .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id,
+                                 NovoPaf.ano_referencia == ano))
+        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id,
+                                        PafFeriasPlano.ano_referencia == ano))
+        .order_by(Militar.nome_completo.asc())
+    )
+
+    rows = q.all()
+
+    def fmt_dt(d):
+        return d.strftime("%d/%m/%Y") if d else ""
+
+    def cat(status):
+        if status is None:
+            return "Não enviou"
+        if status.lower() == "pendente":
+            return "Pendente (chefia)"
+        return "Enviou"
+
+    data = []
+    for (nome, matricula, mes_definido, direito_total_dias,
+         q1, i1, f1, mu1,
+         q2, i2, f2, mu2,
+         q3, i3, f3, mu3,
+         status_paf) in rows:
+
+        data.append({
+            "Nome": nome,
+            "Matrícula": matricula,
+            "Categoria": cat(status_paf),           # Não enviou / Pendente (chefia) / Enviou
+            "Status bruto": status_paf or "",
+            "Direito total (dias)": direito_total_dias or "",
+            "P1 - Qtde": q1 or "",
+            "P1 - Início": fmt_dt(i1),
+            "P1 - Fim": fmt_dt(f1),
+            "P1 - Mês usufruto": mu1 or "",
+            "P2 - Qtde": q2 or "",
+            "P2 - Início": fmt_dt(i2),
+            "P2 - Fim": fmt_dt(f2),
+            "P2 - Mês usufruto": mu2 or "",
+            "P3 - Qtde": q3 or "",
+            "P3 - Início": fmt_dt(i3),
+            "P3 - Fim": fmt_dt(f3),
+            "P3 - Mês usufruto": mu3 or "",
+            "Mês validado (mes_definido)": mes_definido or "",
+        })
+
+    df = pd.DataFrame(data)
+
+    # Opcional: gerar várias abas (Geral / Não enviou / Pendente chefia / Enviou)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Geral")
+        df[df["Categoria"] == "Não enviou"].to_excel(writer, index=False, sheet_name="Não enviou")
+        df[df["Categoria"] == "Pendente (chefia)"].to_excel(writer, index=False, sheet_name="Pendente chefia")
+        df[df["Categoria"] == "Enviou"].to_excel(writer, index=False, sheet_name="Enviou")
+
+    output.seek(0)
+    return send_file(
+        output,
+        download_name=f"relatorio_geral_{ano}.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
