@@ -1010,7 +1010,6 @@ def relatorio_geral():
     return render_template("paf/relatorio_geral.html", ano=ano, rows=rows)
 
 
-
 @bp_paf.route("/relatorio-geral-excel")
 @login_required
 def relatorio_geral_excel():
@@ -1018,28 +1017,18 @@ def relatorio_geral_excel():
 
     q = (
         database.session.query(
-            Militar.nome_completo,                     # 1
-            Militar.matricula,                        # 2
-            NovoPaf.mes_definido.label("mes_definido"),# 3
-            PafFeriasPlano.direito_total_dias,        # 4
-            PafFeriasPlano.qtd_dias_p1,               # 5
-            PafFeriasPlano.inicio_p1,                 # 6
-            PafFeriasPlano.fim_p1,                    # 7
-            PafFeriasPlano.mes_usufruto_p1,           # 8
-            PafFeriasPlano.qtd_dias_p2,               # 9
-            PafFeriasPlano.inicio_p2,                 # 10
-            PafFeriasPlano.fim_p2,                    # 11
-            PafFeriasPlano.mes_usufruto_p2,           # 12
-            PafFeriasPlano.qtd_dias_p3,               # 13
-            PafFeriasPlano.inicio_p3,                 # 14
-            PafFeriasPlano.fim_p3,                    # 15
-            PafFeriasPlano.mes_usufruto_p3,           # 16
-            NovoPaf.status.label("status_paf"),       # 17 -> para categorizar
+            Militar.nome_completo,
+            Militar.matricula,
+            NovoPaf.mes_definido.label("mes_definido"),
+            PafFeriasPlano.direito_total_dias,
+            PafFeriasPlano.qtd_dias_p1, PafFeriasPlano.inicio_p1, PafFeriasPlano.fim_p1, PafFeriasPlano.mes_usufruto_p1,
+            PafFeriasPlano.qtd_dias_p2, PafFeriasPlano.inicio_p2, PafFeriasPlano.fim_p2, PafFeriasPlano.mes_usufruto_p2,
+            PafFeriasPlano.qtd_dias_p3, PafFeriasPlano.inicio_p3, PafFeriasPlano.fim_p3, PafFeriasPlano.mes_usufruto_p3,
+            NovoPaf.status.label("status_paf"),
         )
-        .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id,
-                                 NovoPaf.ano_referencia == ano))
-        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id,
-                                        PafFeriasPlano.ano_referencia == ano))
+        .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id, NovoPaf.ano_referencia == ano))
+        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id, PafFeriasPlano.ano_referencia == ano))
+        .filter(Militar.inativo == False)  # 🔥 só militares ativos
         .order_by(Militar.nome_completo.asc())
     )
 
@@ -1065,7 +1054,7 @@ def relatorio_geral_excel():
         data.append({
             "Nome": nome,
             "Matrícula": matricula,
-            "Categoria": cat(status_paf),           # Não enviou / Pendente (chefia) / Enviou
+            "Categoria": cat(status_paf),
             "Status bruto": status_paf or "",
             "Direito total (dias)": direito_total_dias or "",
             "P1 - Qtde": q1 or "",
@@ -1085,7 +1074,6 @@ def relatorio_geral_excel():
 
     df = pd.DataFrame(data)
 
-    # Opcional: gerar várias abas (Geral / Não enviou / Pendente chefia / Enviou)
     output = BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Geral")
