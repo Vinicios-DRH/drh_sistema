@@ -53,6 +53,7 @@
 {% endblock %}
 
 {% block body %}
+{% set meses = meses_pt or ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
 <section class="py-3 py-md-4 page-wrapper">
   <div class="container-fluid">
 
@@ -84,36 +85,44 @@
           <thead>
             <tr>
               <th>Militar</th>
-              <th>Mat.</th>
+              <th>Matrícula</th>
               <th>Direito</th>
-              <th>P1</th>
-              <th>P2</th>
-              <th>P3</th>
+              <th>1º Período</th>
+              <th>2º Período</th>
+              <th>3º Período</th>
               <th>Mês validado</th>
             </tr>
           </thead>
           <tbody>
+            {% set meses = meses_pt or ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
             {% for m, mes_def, direito, q1, i1, f1, mu1, q2, i2, f2, mu2, q3, i3, f3, mu3 in rows %}
             <tr>
-              <td>{{ m.nome_completo }}</td>
-              <td>{{ m.matricula }}</td>
-              <td>{{ direito or '-' }}</td>
-              <td>
+                <td>{{ m.nome_completo }}</td>
+                <td>{{ m.matricula }}</td>
+                <td>{{ direito or '-' }}</td>
+
+                <td>
                 {% if q1 %}
-                  {{ q1 }}d — {{ i1 and i1.strftime('%d/%m/%Y') }} a {{ f1 and f1.strftime('%d/%m/%Y') }} (M: {{ mu1 }})
+                    {{ q1 }}d — {{ i1 and i1.strftime('%d/%m/%Y') }} a {{ f1 and f1.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu1 and meses[mu1] or '-' }})
                 {% else %}-{% endif %}
-              </td>
-              <td>
+                </td>
+
+                <td>
                 {% if q2 %}
-                  {{ q2 }}d — {{ i2 and i2.strftime('%d/%m/%Y') }} a {{ f2 and f2.strftime('%d/%m/%Y') }} (M: {{ mu2 }})
+                    {{ q2 }}d — {{ i2 and i2.strftime('%d/%m/%Y') }} a {{ f2 and f2.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu2 and meses[mu2] or '-' }})
                 {% else %}-{% endif %}
-              </td>
-              <td>
+                </td>
+
+                <td>
                 {% if q3 %}
-                  {{ q3 }}d — {{ i3 and i3.strftime('%d/%m/%Y') }} a {{ f3 and f3.strftime('%d/%m/%Y') }} (M: {{ mu3 }})
+                    {{ q3 }}d — {{ i3 and i3.strftime('%d/%m/%Y') }} a {{ f3 and f3.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu3 and meses[mu3] or '-' }})
                 {% else %}-{% endif %}
-              </td>
-              <td>{{ mes_def or '-' }}</td>
+                </td>
+
+                <td>{{ mes_def and meses[mes_def] or '-' }}</td>
             </tr>
             {% else %}
             <tr><td colspan="7" class="text-center opacity-75">Sem registros para {{ ano }}.</td></tr>
@@ -122,7 +131,6 @@
         </table>
       </div>
     </div>
-
   </div>
 </section>
 {% endblock %}

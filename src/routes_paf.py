@@ -991,7 +991,6 @@ def salvar_plano():
 def relatorio_geral():
     ano = request.args.get("ano", type=int) or 2026
 
-    # join básico
     q = (
         database.session.query(
             Militar,
@@ -1007,7 +1006,12 @@ def relatorio_geral():
     )
 
     rows = q.all()
-    return render_template("paf/relatorio_geral.html", ano=ano, rows=rows)
+
+    # índice 0 vazio para permitir acesso direto por número do mês (1..12)
+    meses_pt = ["", "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+    return render_template("paf/relatorio_geral.html", ano=ano, rows=rows, meses_pt=meses_pt)
 
 
 @bp_paf.route("/relatorio-geral-excel")
@@ -1015,6 +1019,7 @@ def relatorio_geral():
 def relatorio_geral_excel():
     ano = request.args.get("ano", type=int) or 2026
 
+    # Query base
     q = (
         database.session.query(
             Militar.nome_completo,
@@ -1028,14 +1033,27 @@ def relatorio_geral_excel():
         )
         .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id, NovoPaf.ano_referencia == ano))
         .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id, PafFeriasPlano.ano_referencia == ano))
-        .filter(Militar.inativo == False)  # 🔥 só militares ativos
+        .filter(Militar.inativo == False)  # ✅ só militares ativos
         .order_by(Militar.nome_completo.asc())
     )
 
     rows = q.all()
 
+    # 🔤 Mapeamento dos meses
+    meses_pt = [
+        "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ]
+
+    # 🔧 Funções auxiliares
     def fmt_dt(d):
         return d.strftime("%d/%m/%Y") if d else ""
+
+    def nome_mes(num):
+        try:
+            return meses_pt[num] if num and 1 <= num <= 12 else ""
+        except Exception:
+            return ""
 
     def cat(status):
         if status is None:
@@ -1044,6 +1062,7 @@ def relatorio_geral_excel():
             return "Pendente (chefia)"
         return "Enviou"
 
+    # 🧾 Construção dos dados
     data = []
     for (nome, matricula, mes_definido, direito_total_dias,
          q1, i1, f1, mu1,
@@ -1057,24 +1076,25 @@ def relatorio_geral_excel():
             "Categoria": cat(status_paf),
             "Status bruto": status_paf or "",
             "Direito total (dias)": direito_total_dias or "",
-            "P1 - Qtde": q1 or "",
-            "P1 - Início": fmt_dt(i1),
-            "P1 - Fim": fmt_dt(f1),
-            "P1 - Mês usufruto": mu1 or "",
-            "P2 - Qtde": q2 or "",
-            "P2 - Início": fmt_dt(i2),
-            "P2 - Fim": fmt_dt(f2),
-            "P2 - Mês usufruto": mu2 or "",
-            "P3 - Qtde": q3 or "",
-            "P3 - Início": fmt_dt(i3),
-            "P3 - Fim": fmt_dt(f3),
-            "P3 - Mês usufruto": mu3 or "",
-            "Mês validado (mes_definido)": mes_definido or "",
+            "1º Período - Qtde": q1 or "",
+            "1º Período - Início": fmt_dt(i1),
+            "1º Período - Fim": fmt_dt(f1),
+            "1º Período - Mês usufruto": nome_mes(mu1),
+            "2º Período - Qtde": q2 or "",
+            "2º Período - Início": fmt_dt(i2),
+            "2º Período - Fim": fmt_dt(f2),
+            "2º Período - Mês usufruto": nome_mes(mu2),
+            "3º Período - Qtde": q3 or "",
+            "3º Período - Início": fmt_dt(i3),
+            "3º Período - Fim": fmt_dt(f3),
+            "3º Período - Mês usufruto": nome_mes(mu3),
+            "Mês validado (mes_definido)": nome_mes(mes_definido),
         })
 
+    # 🧮 Geração do Excel
     df = pd.DataFrame(data)
-
     output = BytesIO()
+
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Geral")
         df[df["Categoria"] == "Não enviou"].to_excel(writer, index=False, sheet_name="Não enviou")
