@@ -55,6 +55,8 @@ from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
 import time
 import statistics
 from collections import defaultdict
+from src.utils.sa_serialize import sa_to_dict
+from sqlalchemy.inspection import inspect as sa_inspect
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -2577,6 +2579,33 @@ def api_sesuite():
 
     # Retorna a lista de resultados como JSON
     return jsonify(resultado)
+
+
+@app.route("/debug/militar/<int:militar_id>/full")
+@login_required
+def debug_militar_full(militar_id):
+    # profundidade padrão (pode diminuir se ainda ficar pesado)
+    depth = request.args.get("depth", default=4, type=int)
+
+    # monta options de eager load para TODAS as relationships do Militar
+    mapper = sa_inspect(Militar)
+    rel_options = [
+        selectinload(getattr(Militar, rel.key))
+        for rel in mapper.relationships
+    ]
+
+    militar = (
+        database.session.query(Militar)
+        .options(*rel_options)
+        .get(militar_id)
+    )
+
+    if not militar:
+        return jsonify({"error": "Militar não encontrado"}), 404
+
+    payload = sa_to_dict(militar, depth=depth, root_class=Militar)
+
+    return jsonify(payload)
 
 
 @app.route('/ferias-chefe', methods=['GET'])
