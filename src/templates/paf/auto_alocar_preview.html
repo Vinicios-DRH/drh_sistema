@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  /* Paleta + efeitos de vidro */
+  :root{
+    --ink-200:#e8eef6;
+    --glass-brd: rgba(255,255,255,.12);
+  }
+
+  /* BG gradiente app */
+  body{
+    background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;
+  }
+
+  .page-wrapper{ position: relative; }
+  .container-fluid{ max-width:100% !important; padding-left: .75rem; padding-right: .75rem; }
+  @media (min-width:1200px){
+    .container-fluid{ padding-left: 1.25rem; padding-right: 1.25rem; }
+  }
+
+  .chip{
+    display:inline-flex; gap:.4rem; align-items:center;
+    padding:.15rem .55rem; border-radius:999px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06); color:#e8eef6
+  }
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+
+  /* Cabeçalho vidro */
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  /* Cartões vidro (escuros) */
+  .glass-card{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:16px; color:#e8eef6;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+
+  /* Tabela vidro escura com cabeçalho sticky */
+  .glass-table{
+    color:#e8eef6;
+    --bs-table-bg: rgba(255,255,255,.06);
+    --bs-table-striped-bg: rgba(255,255,255,.08);
+    --bs-table-hover-bg: rgba(255,255,255,.10);
+    --bs-table-border-color: rgba(255,255,255,.12);
+    background: transparent;
+  }
+  .table-responsive{ overflow-x:auto; }
+  .glass-table thead th{
+    position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+    color:#e8eef6; border-bottom:1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .glass-table tbody tr{ transition:background-color .12s ease; }
+
+  /* Melhor comportamento de largura em colunas longas */
+  .glass-table th, .glass-table td{ white-space:nowrap; }
+  @media (max-width: 992px){
+    .glass-table th, .glass-table td{ white-space:normal; word-break:break-word; }
+  }
+
+  /* Inputs/botões visíveis no tema */
+  .brand-header .form-control{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.24); color:#e8eef6; }
+  .brand-header .form-control:focus{ background:rgba(255,255,255,.18); color:#e8eef6; }
+  .btn-outline-light{ --bs-btn-color:#e8eef6; --bs-btn-border-color:rgba(255,255,255,.5); }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4 page-wrapper">
+  <div class="container-fluid">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <div>
+            <h1 class="h5 m-0">Alocação automática — {{ ano }}</h1>
+            <div class="small opacity-75">Prévia das propostas para quem <strong>ainda não enviou</strong>.</div>
+          </div>
+        </div>
+        <form method="get" class="d-flex gap-2">
+          <input class="form-control" type="number" name="ano" value="{{ ano }}" min="2020" max="2030" style="width:120px">
+          <button class="btn btn-outline-light">Alterar ano</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Chips/resumo -->
+    <div class="glass-card p-3 p-md-4 mb-3">
+      <div class="d-flex flex-wrap gap-3">
+        <div class="chip">Pendentes: <strong class="ms-1">{{ total_sem_envio }}</strong></div>
+        <div class="chip">Capacidade por mês:
+          {% for m in range(1,13) %}
+            {% set cap = caps.get(m, {'limite':0,'usado':0}) %}
+            <span class="mono ms-2">{{ "%02d"|format(m) }}={{ (cap.limite|int) - (cap.usado|int) }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <form method="post" class="glass-card p-3 p-md-4">
+      <input type="hidden" name="ano" value="{{ ano }}">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-hover align-middle glass-table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="width:56px">#</th>
+              <th>Militar</th>
+              <th style="width:160px">Mat.</th>
+              <th style="width:360px">Opções (pagamento)</th>
+              <th style="width:360px">Plano Férias (30d)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in propostas %}
+            <tr>
+              <td class="mono">{{ loop.index }}</td>
+              <td>{{ it.militar.nome_completo }}</td>
+              <td class="mono">{{ it.militar.matricula }}</td>
+              <td>
+                <span class="chip">1ª: {{ it.meses_pagamento[0] }}</span>
+                <span class="chip">2ª: {{ it.meses_pagamento[1] }}</span>
+                <span class="chip">3ª: {{ it.meses_pagamento[2] }}</span>
+              </td>
+              <td class="mono">
+                {{ it.plano.inicio_p1.strftime('%d/%m/%Y') }} — {{ it.plano.fim_p1.strftime('%d/%m/%Y') }}
+                (usufruto: {{ "%02d"|format(it.plano.mes_usufruto_p1) }})
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center opacity-75">Sem pendentes para {{ ano }}.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-danger" type="submit">
+          <i class="bi bi-magic me-1"></i> Aplicar alocação automaticamente
+        </button>
+      </div>
+    </form>
+
+    <div class="small text-warning mt-2">
+      * A capacidade só é consumida quando o <em>mês definido</em> é marcado (<code>mes_definido</code>). Aqui é apenas a prévia das 3 opções.
+    </div>
+
+  </div>
+</section>
+{% endblock %}

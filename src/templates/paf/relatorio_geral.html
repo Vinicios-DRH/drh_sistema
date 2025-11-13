@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{ --ink-200:#e8eef6; --glass-brd: rgba(255,255,255,.12); }
+
+  body{ background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed; }
+
+  .page-wrapper{ position:relative; }
+  .container-fluid{ max-width:100% !important; padding-left:.75rem; padding-right:.75rem; }
+  @media (min-width:1200px){ .container-fluid{ padding-left:1.25rem; padding-right:1.25rem; } }
+
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:16px; color:var(--ink-200);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  .glass-card{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:16px; color:#e8eef6;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+
+  .table-responsive{ overflow-x:auto; }
+  .glass-table{
+    color:#e8eef6;
+    --bs-table-bg: rgba(255,255,255,.06);
+    --bs-table-striped-bg: rgba(255,255,255,.08);
+    --bs-table-hover-bg: rgba(255,255,255,.10);
+    --bs-table-border-color: rgba(255,255,255,.12);
+    background:transparent;
+  }
+  .glass-table thead th{
+    position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+    color:#e8eef6; border-bottom:1px solid rgba(255,255,255,.16);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+  .glass-table th, .glass-table td{ white-space:nowrap; }
+  @media (max-width:992px){ .glass-table th, .glass-table td{ white-space:normal; word-break:break-word; } }
+
+  .brand-header .form-control{
+    background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.24); color:#e8eef6;
+  }
+  .brand-header .form-control:focus{ background:rgba(255,255,255,.18); color:#e8eef6; }
+  .btn-outline-light{ --bs-btn-color:#e8eef6; --bs-btn-border-color:rgba(255,255,255,.5); }
+</style>
+{% endblock %}
+
+{% block body %}
+{% set meses = meses_pt or ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+<section class="py-3 py-md-4 page-wrapper">
+  <div class="container-fluid">
+
+    <!-- Cabeçalho -->
+    <div class="brand-header p-3 p-md-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+          <div>
+            <h1 class="h5 m-0">Relatório Geral — {{ ano }}</h1>
+            <div class="small opacity-75">Períodos de férias + mês validado (mes_definido).</div>
+          </div>
+        </div>
+
+        <form method="get" class="d-flex gap-2 align-items-stretch">
+          <input class="form-control" type="number" name="ano" value="{{ ano }}" min="2020" max="2030" style="width:120px">
+          <button class="btn btn-outline-light"><i class="bi bi-arrow-repeat me-1"></i> Alterar ano</button>
+          <a class="btn btn-success" href="{{ url_for('paf.relatorio_geral_excel', ano=ano) }}">
+            <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
+          </a>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="glass-card p-3 p-md-4">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-hover align-middle glass-table" style="width:100%">
+          <thead>
+            <tr>
+              <th>Militar</th>
+              <th>Matrícula</th>
+              <th>Direito</th>
+              <th>1º Período</th>
+              <th>2º Período</th>
+              <th>3º Período</th>
+              <th>Mês validado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set meses = meses_pt or ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+            {% for m, mes_def, direito, q1, i1, f1, mu1, q2, i2, f2, mu2, q3, i3, f3, mu3 in rows %}
+            <tr>
+                <td>{{ m.nome_completo }}</td>
+                <td>{{ m.matricula }}</td>
+                <td>{{ direito or '-' }}</td>
+
+                <td>
+                {% if q1 %}
+                    {{ q1 }}d — {{ i1 and i1.strftime('%d/%m/%Y') }} a {{ f1 and f1.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu1 and meses[mu1] or '-' }})
+                {% else %}-{% endif %}
+                </td>
+
+                <td>
+                {% if q2 %}
+                    {{ q2 }}d — {{ i2 and i2.strftime('%d/%m/%Y') }} a {{ f2 and f2.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu2 and meses[mu2] or '-' }})
+                {% else %}-{% endif %}
+                </td>
+
+                <td>
+                {% if q3 %}
+                    {{ q3 }}d — {{ i3 and i3.strftime('%d/%m/%Y') }} a {{ f3 and f3.strftime('%d/%m/%Y') }}
+                    (Mês: {{ mu3 and meses[mu3] or '-' }})
+                {% else %}-{% endif %}
+                </td>
+
+                <td>{{ mes_def and meses[mes_def] or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center opacity-75">Sem registros para {{ ano }}.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
