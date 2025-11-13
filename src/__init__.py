@@ -122,7 +122,10 @@ def br_currency(value):
 from src import routes
 from src.routes_acumulo import bp_acumulo
 from src.routes_paf import bp_paf
+from src.route_ferias import bp_ferias
 app.register_blueprint(bp_acumulo)
 app.register_blueprint(bp_paf)
+app.register_blueprint(bp_ferias)
+
 # Torna o supabase acessível de fora
 app.supabase = supabase

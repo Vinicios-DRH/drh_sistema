@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+        --brand-red: #B5121B;
+        /* CBMAM */
+        --brand-red-600: #9F1119;
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    /* cabeçalho */
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 14px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+    }
+
+    .btn-brand {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+        color: #fff
+    }
+
+    .btn-brand:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600);
+        color: #fff
+    }
+
+    /* cartões KPI */
+    .kpi-card {
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .08)
+    }
+
+    .kpi-title {
+        font-size: .78rem;
+        color: #64748b
+    }
+
+    .kpi-accent {
+        height: 3px;
+        background: var(--brand-red);
+        border-radius: 12px 12px 0 0
+    }
+
+    /* painéis claros */
+    .glass-panel {
+        background: rgba(255, 255, 255, .96);
+        color: #111;
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 14px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* ===== FULL-BLEED (estoura o container e usa 100vw) ===== */
+    .edge-to-edge {
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        border-radius: 0;
+        /* borda reta nas laterais */
+    }
+
+    /* gráfico compacto */
+    .chart-box {
+        height: 280px
+    }
+
+    /* tabela com scroll */
+    .table-wrap {
+        max-height: 65vh;
+        overflow: auto;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
+    }
+
+    .table-wrap table {
+        width: 100%
+    }
+
+    .table-wrap thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fafc;
+        color: #334155;
+        text-transform: uppercase;
+        font-size: .72rem;
+        letter-spacing: .02em;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+
+    .table-sm th,
+    .table-sm td {
+        padding: .45rem .6rem
+    }
+
+    tbody tr:hover {
+        background: rgba(181, 18, 27, .06)
+    }
+
+    .badge-soft {
+        background: #eef2f7;
+        color: #475569
+    }
+
+    /* animação leve */
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(6px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .fade-row {
+        opacity: 0;
+        will-change: opacity, transform
+    }
+
+    .fade-row.visible {
+        animation: fadeUp .35s ease-out forwards
+    }
+
+    /* Busca legível no cabeçalho */
+    .brand-header .input-group-text,
+    .brand-header .form-control {
+        background: #ffffff !important;
+        color: #0b2e4f !important;
+        border-color: #ffffff !important;
+    }
+
+    .brand-header .form-control::placeholder {
+        color: #607086;
+        opacity: 1
+    }
+
+    .brand-header .input-group-text {
+        background: var(--brand-red) !important;
+        color: #fff !important;
+        border-color: var(--brand-red) !important;
+    }
+
+    .brand-header .input-group .input-group-text,
+    .brand-header .input-group .form-control {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+        border-radius: .5rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container py-4"><!-- mantém header e KPIs centralizados -->
+
+    <!-- header -->
+    <div class="brand-header p-3 px-md-4 mb-3">
+        <div
+            class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center justify-content-between gap-2">
+            <h2 class="h5 m-0">Relatório — Situação Geral de Férias</h2>
+
+            <div class="d-flex flex-column flex-sm-row gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Buscar</span>
+                    <input id="tblSearch" type="text" class="form-control form-control-sm"
+                        placeholder="por nome, matrícula, OBM...">
+                </div>
+
+                <a href="{{ url_for('ferias.ferias_pendentes_excel') }}" class="btn btn-sm btn-success">
+                    📥 Exportar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="kpi-accent"></div>
+                <div class="p-3">
+                    <div class="kpi-title">Total</div>
+                    <div class="h4 m-0" style="color:#e8eef6">{{ grafico.total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="kpi-accent"></div>
+                <div class="p-3">
+                    <div class="kpi-title">Nenhum dia</div>
+                    <div class="h4 m-0" style="color:#e8eef6">{{ grafico.sem_dias }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="kpi-accent"></div>
+                <div class="p-3">
+                    <div class="kpi-title">Parcialmente usufruído</div>
+                    <div class="h4 m-0" style="color:#e8eef6">{{ grafico.parcial }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-accent"></div>
+                <div class="p-3">
+                    <div class="kpi-title">Período iniciando em 2026</div>
+                    <div class="h4 m-0" style="color:#e8eef6">{{ grafico.com_2026 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-accent"></div>
+                <div class="p-3">
+                    <div class="kpi-title">Férias completas (30/40 dias)</div>
+                    <div class="h4 m-0" style="color:#e8eef6">{{ grafico.completos }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- gráfico -->
+    <div class="glass-panel p-3 p-md-4 mb-3">
+        <h6 class="m-0">Distribuição</h6>
+        <div class="chart-box mt-2"><canvas id="graficoFerias"></canvas></div>
+    </div>
+</div><!-- /container -->
+
+<!-- ===== TABELA FULL-WIDTH ===== -->
+<div class="glass-panel p-3 p-md-4 edge-to-edge">
+    <div class="table-wrap">
+        <table id="tbl" class="table table-hover table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Matrícula</th>
+                    <th>OBM</th>
+                    <th>Posto/Grad</th>
+                    <th>Quadro</th>
+                    <th>Dias usufruídos</th>
+                    <th>Direito</th>
+                    <th>Faltam</th>
+                    <th>Meses (mes_usufruto)</th>
+                    <th>Períodos / Datas</th>
+                    <th>Período começa em 2026?</th>
+                    <th>Cruza 2025–2026?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pendentes %}
+                <tr class="fade-row"
+                    data-busca="{{ (p.militar.nome_completo ~ ' ' ~ (p.militar.matricula or '') ~ ' ' ~ (p.obm_sigla or '')) | lower }}">
+                    <td class="fw-semibold">{{ p.militar.nome_completo }}</td>
+                    <td>{{ p.militar.matricula }}</td>
+                    <td>{{ p.obm_sigla or '-' }}</td>
+                    <td>{{ p.militar.posto_grad.sigla if p.militar.posto_grad else '-' }}</td>
+                    <td>{{ p.militar.quadro.sigla if p.militar.quadro else '-' }}</td>
+                    <td>{{ p.dias_usufruidos }}</td>
+                    <td>{{ p.direito_total }}</td>
+                    <td class="{% if p.faltam>0 %}text-danger{% endif %}">{{ p.faltam }}</td>
+                    <td><span class="badge badge-soft">{{ p.meses_agregados or '-' }}</span></td>
+                    <td style="min-width:240px;">
+                        {% if p.periodos %}
+                        {% for per in p.periodos %}
+                        <div class="small">
+                            <strong>{{ per.label }}:</strong>
+                            {{ per.inicio.strftime('%d/%m/%Y') if per.inicio else '-' }} a
+                            {{ per.fim.strftime('%d/%m/%Y') if per.fim else '-' }}
+                            ({{ per.qtd_dias }} dias, mês: {{ per.mes_usufruto or '-' }})
+                        </div>
+                        {% endfor %}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{% if p.tem_2026 %}<span class="badge bg-info">Sim</span>{% else %}<span
+                            class="badge bg-secondary">Não</span>{% endif %}</td>
+                    <td>{% if p.cruza_25_26 %}<span class="badge bg-warning text-dark">Sim</span>{% else %}<span
+                            class="badge bg-secondary">Não</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // gráfico
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            const el = document.getElementById('graficoFerias');
+            if (!el) return;
+            const ctx = el.getContext('2d');
+
+            const base = getComputedStyle(document.documentElement).getPropertyValue('--brand-red').trim() || '#B5121B';
+            const tint = (hex, amt) => {
+                let c = hex.replace('#', ''); if (c.length === 3) c = c.split('').map(x => x + x).join('');
+                const n = parseInt(c, 16);
+                let r = (n >> 16) + amt, g = ((n >> 8) & 255) + amt, b = (n & 255) + amt;
+                r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+                return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+            };
+            const colors = [-15, 5, 25, -35, 0].map(a => tint(base, a));
+
+            const dados = {
+                sem: {{ grafico.sem_dias|default (0)
+        }},
+        parcial: {{ grafico.parcial |default(0) }},
+        com2026: {{ grafico.com_2026 |default(0) }},
+        cruza: {{ grafico.cruza_25_26 |default(0) }},
+        total: {{ grafico.total |default(0) }}
+      };
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ["Nenhum dia", "Parcial", "Com datas em 2026", "Cruza 2025-2026", "Total"],
+            datasets: [{
+                data: [dados.sem, dados.parcial, dados.com2026, dados.cruza, dados.total],
+                backgroundColor: colors, borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            plugins: { legend: { display: false }, tooltip: { intersect: false } }
+        }
+    });
+    }catch (e) { console.error(e); }
+  });
+
+    // busca instantânea + animação
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('tblSearch');
+        const rows = Array.from(document.querySelectorAll('#tbl tbody tr'));
+        rows.forEach((r, i) => { r.style.animationDelay = (i * 30) + 'ms'; r.classList.add('visible'); });
+
+        if (!input) return;
+        let t;
+        const filter = q => {
+            const term = (q || '').toLowerCase().trim();
+            rows.forEach(r => r.style.display = r.dataset.busca.includes(term) ? '' : 'none');
+        };
+        input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => filter(input.value), 150); });
+    });
+</script>
+{% endblock %}
