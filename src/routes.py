@@ -929,6 +929,42 @@ def exibir_militar(militar_id):
         bg = PublicacaoBg.query.filter_by(
             militar_id=militar_id, tipo_bg='situacao_militar').first()
         return bg.id if bg else None
+    
+    def encerrar_status_anteriores(militar, condicao_atual):
+        """Fecha registros vigentes de AGREGADO / À DISPOSIÇÃO que não batem com a situação atual."""
+        hoje = date.today()
+        ontem = hoje - timedelta(days=1)
+
+        # Se a situação atual NÃO é AGREGADO, fecha agregações vigentes
+        if condicao_atual != 'AGREGADO':
+            agregacoes_vigentes = MilitaresAgregados.query.filter(
+                MilitaresAgregados.militar_id == militar.id,
+                MilitaresAgregados.inicio_periodo <= hoje,
+                or_(
+                    MilitaresAgregados.fim_periodo_agregacao == None,
+                    MilitaresAgregados.fim_periodo_agregacao >= hoje,
+                )
+            ).all()
+
+            for ag in agregacoes_vigentes:
+                ag.fim_periodo_agregacao = ontem  # <<< aqui muda
+                ag.atualizar_status()
+
+        # Se a situação atual NÃO é À DISPOSIÇÃO, fecha disposições vigentes
+        if condicao_atual != 'À DISPOSIÇÃO':
+            disposicoes_vigentes = MilitaresADisposicao.query.filter(
+                MilitaresADisposicao.militar_id == militar.id,
+                MilitaresADisposicao.inicio_periodo <= hoje,
+                or_(
+                    MilitaresADisposicao.fim_periodo_disposicao == None,
+                    MilitaresADisposicao.fim_periodo_disposicao >= hoje,
+                )
+            ).all()
+
+            for disp in disposicoes_vigentes:
+                disp.fim_periodo_disposicao = ontem  # <<< e aqui também
+                disp.atualizar_status()
+
 
     if form_militar.validate_on_submit():
         form_militar.process(request.form)
@@ -1146,9 +1182,13 @@ def exibir_militar(militar_id):
                         )
                         database.session.add(nova_publicacao)
 
-        # Verifica se a situação selecionada é "AGREGADO"
-        situacao_selecionada = Situacao.query.get(
-            form_militar.situacao_id.data)
+                # Situação escolhida no formulário
+        situacao_selecionada = Situacao.query.get(form_militar.situacao_id.data)
+        condicao_atual = situacao_selecionada.condicao if situacao_selecionada else None
+
+        # Garante que não fiquem registros vigentes "errados"
+        encerrar_status_anteriores(militar, condicao_atual)
+
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
             bg_id = safe_bg_id(militar.id)  # pode ser None
             militar_agregado = MilitaresAgregados.query.filter_by(
