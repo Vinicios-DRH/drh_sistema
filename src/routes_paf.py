@@ -1019,33 +1019,12 @@ def relatorio_geral():
 def relatorio_geral_excel():
     ano = request.args.get("ano", type=int) or 2026
 
-    # Query base
-    q = (
-        database.session.query(
-            Militar.nome_completo,
-            Militar.matricula,
-            NovoPaf.mes_definido.label("mes_definido"),
-            PafFeriasPlano.direito_total_dias,
-            PafFeriasPlano.qtd_dias_p1, PafFeriasPlano.inicio_p1, PafFeriasPlano.fim_p1, PafFeriasPlano.mes_usufruto_p1,
-            PafFeriasPlano.qtd_dias_p2, PafFeriasPlano.inicio_p2, PafFeriasPlano.fim_p2, PafFeriasPlano.mes_usufruto_p2,
-            PafFeriasPlano.qtd_dias_p3, PafFeriasPlano.inicio_p3, PafFeriasPlano.fim_p3, PafFeriasPlano.mes_usufruto_p3,
-            NovoPaf.status.label("status_paf"),
-        )
-        .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id, NovoPaf.ano_referencia == ano))
-        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id, PafFeriasPlano.ano_referencia == ano))
-        .filter(Militar.inativo == False)  # ✅ só militares ativos
-        .order_by(Militar.nome_completo.asc())
-    )
-
-    rows = q.all()
-
     # 🔤 Mapeamento dos meses
     meses_pt = [
         "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ]
 
-    # 🔧 Funções auxiliares
     def fmt_dt(d):
         return d.strftime("%d/%m/%Y") if d else ""
 
@@ -1062,15 +1041,40 @@ def relatorio_geral_excel():
             return "Pendente (chefia)"
         return "Enviou"
 
+    # 🧮 Query base — agora trazendo também o Posto/Grad
+    q = (
+        database.session.query(
+            Militar.nome_completo,
+            Militar.matricula,
+            PostoGrad.sigla.label("pg_sigla"),      # 🔥 NOVO: posto/grad
+            NovoPaf.mes_definido.label("mes_definido"),
+            PafFeriasPlano.direito_total_dias,
+            PafFeriasPlano.qtd_dias_p1, PafFeriasPlano.inicio_p1, PafFeriasPlano.fim_p1, PafFeriasPlano.mes_usufruto_p1,
+            PafFeriasPlano.qtd_dias_p2, PafFeriasPlano.inicio_p2, PafFeriasPlano.fim_p2, PafFeriasPlano.mes_usufruto_p2,
+            PafFeriasPlano.qtd_dias_p3, PafFeriasPlano.inicio_p3, PafFeriasPlano.fim_p3, PafFeriasPlano.mes_usufruto_p3,
+            NovoPaf.status.label("status_paf"),
+        )
+        .outerjoin(NovoPaf, and_(NovoPaf.militar_id == Militar.id,
+                                 NovoPaf.ano_referencia == ano))
+        .outerjoin(PafFeriasPlano, and_(PafFeriasPlano.militar_id == Militar.id,
+                                        PafFeriasPlano.ano_referencia == ano))
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)  # 👈 join no PG
+        .filter(Militar.inativo == False)  # ✅ só militares ativos
+        .order_by(Militar.nome_completo.asc())
+    )
+
+    rows = q.all()
+
     # 🧾 Construção dos dados
     data = []
-    for (nome, matricula, mes_definido, direito_total_dias,
+    for (nome, matricula, pg_sigla, mes_definido, direito_total_dias,
          q1, i1, f1, mu1,
          q2, i2, f2, mu2,
          q3, i3, f3, mu3,
          status_paf) in rows:
 
         data.append({
+            "Posto/Graduação": pg_sigla or "",      # 🔥 NOVO CAMPO
             "Nome": nome,
             "Matrícula": matricula,
             "Categoria": cat(status_paf),
@@ -1091,7 +1095,6 @@ def relatorio_geral_excel():
             "Mês validado (mes_definido)": nome_mes(mes_definido),
         })
 
-    # 🧮 Geração do Excel
     df = pd.DataFrame(data)
     output = BytesIO()
 
