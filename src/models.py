@@ -443,7 +443,7 @@ class Militar(database.Model):
 
     # Endereço/contato
     endereco = database.Column(database.String(100))
-    complemento = database.Column(database.String(50))
+    complemento = database.Column(database.String(100))
     cidade = database.Column(database.String(50))
     estado = database.Column(database.String(50))
     cep = database.Column(database.String(50))
