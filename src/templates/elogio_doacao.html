@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+    .card-custom {
+        background: #fff;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    h3 {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        font-weight: 600;
+    }
+
+    hr {
+        border-top: 2px dashed #ccc;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card-custom">
+        <h3>Nota de Elogio – Doação de Sangue</h3>
+        <p class="text-muted mb-4">
+            Preencha os dados abaixo para gerar a Nota de Elogio referente à doação de sangue.
+        </p>
+
+        <form method="POST">
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label for="nota_bg">Número / Nota do BG</label>
+                    <input type="text" id="nota_bg" name="nota_bg" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="nome_militar">Nome do Militar</label>
+                    <input type="text" id="nome_militar" name="nome_militar" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="posto_graduacao">Posto/Graduação</label>
+                    <select id="posto_graduacao" name="posto_graduacao" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="CEL">CEL BM</option>
+                        <option value="TC">TC BM</option>
+                        <option value="MAJ">MAJ BM</option>
+                        <option value="CAP">CAP BM</option>
+                        <option value="1º TEN">1º TEN BM</option>
+                        <option value="2º TEN">2º TEN BM</option>
+                        <option value="ASP OF">ASP OF BM</option>
+                        <option value="Subtenente">ST BM</option>
+                        <option value="1º SGT">1º SGT BM</option>
+                        <option value="2º SGT">2º SGT BM</option>
+                        <option value="3º SGT">3º SGT BM</option>
+                        <option value="CB">CB BM</option>
+                        <option value="SD">SD BM</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="quadro">Quadro</label>
+                    <select id="quadro" name="quadro" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="QOBM">QOBM</option>
+                        <option value="QOABM">QOABM</option>
+                        <option value="QCOBM">QCOBM</option>
+                        <option value="QCPBM">QCPBM</option>
+                        <option value="QPBM">QPBM</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="atestador">Atestador / Responsável</label>
+                    <input type="text" id="atestador" name="atestador" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="numero_siged">Número do SIGED</label>
+                    <input type="text" id="numero_siged" name="numero_siged" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="numero_siged">Número COREN</label>
+                    <input type="text" id="numero_coren" name="numero_coren" class="form-control" required>
+                </div>
+
+                <hr class="mt-4 mb-3">
+
+                <div class="col-md-4">
+                    <label for="data_doacao">Data da Doação de Sangue</label>
+                    <input type="date" id="data_doacao" name="data_doacao" class="form-control" required>
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-4">
+                Gerar Nota de Elogio
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

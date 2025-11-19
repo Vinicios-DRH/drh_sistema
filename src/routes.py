@@ -6303,3 +6303,75 @@ def declaracao():
         return send_file(output, as_attachment=True, download_name=f'declaracao_{nome}.docx')
 
     return render_template('declaracao.html')
+
+
+@app.route('/nota-elogio', methods=['GET', 'POST'])
+@login_required
+def nota_elogio():
+    if request.method == 'POST':
+        nome = request.form['nome_militar']
+
+        dados = {
+            'nota_bg': request.form['nota_bg'],
+            # <-- corrigido aqui
+            'posto_graduacao': request.form['posto_graduacao'],
+            'quadro': request.form['quadro'],
+            'nome_militar': nome,
+            'atestador': request.form['atestador'],
+            'data_doacao': formatar_data_sem_zero(request.form['data_doacao']),
+            'numero_siged': request.form['numero_siged'],
+            'numero_coren': request.form['numero_coren'],
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+
+        NEGRITO = ['nota_bg', 'posto_graduacao', 'quadro',
+                   'nome_militar', 'data_doacao']
+        ITALICO = ['numero_siged']
+
+        doc = Document('src/template/doacao_sangue.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                    if chave in ITALICO:
+                        novo_run.italic = True
+                        if chave == 'numero_siged':
+                            novo_run.text = f"({valor})"
+                            novo_run.font.size = Pt(10)
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name=f'elogio_{nome}.docx')
+
+    return render_template('elogio_doacao.html')
+
