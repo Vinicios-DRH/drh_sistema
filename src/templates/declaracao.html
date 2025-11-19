@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+    .card-custom {
+        background: #fff;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    h3,
+    h4 {
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        font-weight: bold;
+    }
+
+    .btn-success {
+        font-weight: bold;
+    }
+
+    hr {
+        border-top: 2px dashed #ccc;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+
+    <div class="card-custom">
+        <h3>Gerar Declaracao</h3>
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Número da Nota</label>
+                    <input type="text" name="nota_declaracao" class="form-control" required>
+                </div>
+                <!-- <div class="col-md-6">
+                    <label>Data do Requerimento</label>
+                    <input type="date" name="data_do_requerimento" class="form-control" required>
+                </div> -->
+                
+                <div class="col-md-9">
+                    <label>Nome do Militar</label>
+                    <input type="text" name="nome_militar" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Posto/Graduação</label>
+                    <select name="posto_graduacao" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="CEL">CEL</option>
+                        <option value="TC">TC</option>
+                        <option value="MAJ">MAJ</option>
+                        <option value="CAP">CAP</option>
+                        <option value="1º TEN">1º TEN</option>
+                        <option value="2º TEN">2º TEN</option>
+                        <option value="ST">ST</option>
+                        <option value="1º SGT">1º SGT</option>
+                        <option value="2º SGT">2º SGT</option>
+                        <option value="3º SGT">3º SGT</option>
+                        <option value="CB">CB</option>
+                        <option value="SD">SD</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Quadro</label>
+                    <select name="quadro" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="QOBM">QOBM</option>
+                        <option value="QOABM">QOABM</option>
+                        <option value="QCOBM">QCOBM</option>
+                        <option value="QCPBM">QCPBM</option>
+                        <option value="QPBM">QPBM</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Especialidade</label>
+                    <select name="especialidade" class="form-control" required>
+                        <option value="">Selecione</option>
+                        <option value="ACD">ACD</option>
+                        <option value="Assistente Social">Assistente Social</option>
+                        <option value="Combatente">Combatente</option>
+                        <option value="Dentista">Dentista</option>
+                        <option value="Enfermeiro(a)">Enfermeiro(a)</option>
+                        <option value="Médico(a) Clínico (a)">Médico(a) Clínico(a)</option>
+                        <option value="Médico(a) Ortopedista">Médico(a) Ortopedista</option>
+                        <option value="Médico(a) Pediatra">Médico(a) Pediatra</option>
+                        <option value="Farmacêutico(a)">Farmacêutico(a)</option>
+                        <option value="Técnico(a) de Enfermagem">Técnico(a) de Enfermagem</option>
+                        <option value="Técnico(a) de Gesso">Técnico(a) de Gesso</option>
+                        <option value="Técnico(a) de Raio-x">Técnico(a) de Raio-x</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label>Matrícula</label>
+                    <input type="text" name="matricula" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Órgão</label>
+                    <input type="text" name="orgao" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>RG CBMAM</label>
+                    <input type="text" name="rg_cbmam" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>CPF</label>
+                    <input type="text" name="cpf" class="form-control" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label>Data do Concurso</label>
+                    <input type="date" name="data_concurso" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Número BG</label>
+                    <input type="text" name="numero_bg" class="form-control" required>
+                </div><div class="col-md-6">
+                    <label>Data do BG</label>
+                    <input type="date" name="data_bg" class="form-control" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Gerar Documento</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

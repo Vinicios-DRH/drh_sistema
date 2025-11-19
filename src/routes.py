@@ -6116,13 +6116,6 @@ def gerar_certidao_obito():
     return render_template('gerar_certidao_obito.html')
 
 
-@app.route('/gerar-declaracao', methods=['GET', 'POST'])
-@login_required
-def gerar_declaracao():
-    if request.method == 'POST':
-        nome = request.form['nome']
-
-
 @app.route('/gerar-certidao-tempo-servico', methods=['GET', 'POST'])
 @login_required
 def certidao_tempo_servico():
@@ -6244,3 +6237,69 @@ def certidao_exercicio_atv_atipica():
         return send_file(output, as_attachment=True, download_name=f'declaracao_exercicio_atividade_{nome}.docx')
 
     return render_template('gerar_exc_atv.html')
+
+
+@app.route('/gerar-declaracao', methods=['GET', 'POST'])
+@login_required
+def declaracao():
+    if request.method == 'POST':
+        nome = request.form['nome_militar'].replace(" ", "_")
+        dados = {
+            'nota_declaracao': request.form['nota_declaracao'],
+            'nome_militar': request.form['nome_militar'],
+            'orgao': request.form['orgao'],
+            'posto_graduacao': request.form['posto_graduacao'],
+            'quadro': request.form['quadro'],
+            'cpf': request.form['cpf'],
+            'rg_cbmam': request.form['rg_cbmam'],
+            'matricula': request.form['matricula'],
+            'especialidade': request.form['especialidade'],
+            'data_concurso':formatar_data_sem_zero(request.form['data_concurso']),
+            'numero_bg': request.form['numero_bg'],
+            'data_bg': formatar_data_sem_zero(request.form['data_bg']),
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+        }
+
+        NEGRITO = ['nome_militar', 'posto_graduacao', 'quadro', 'cpf', 'nota_declaracao']
+
+        doc = Document('src/template/declaracao1.docx')
+
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove todos os runs do parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            # Regex para encontrar todos os campos do tipo {chave}
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(output, as_attachment=True, download_name=f'declaracao_{nome}.docx')
+
+    return render_template('declaracao.html')
