@@ -6375,3 +6375,77 @@ def nota_elogio():
 
     return render_template('elogio_doacao.html')
 
+
+@app.route('/portaria-gratificacao', methods=['GET', 'POST'])
+@login_required
+def portaria_gratificacao():
+    if request.method == 'POST':
+        # Nome para gerar o arquivo final
+        nome_servidor = request.form['nome_servidor'].replace(" ", "_")
+
+        # DADOS PARA PREENCHER O DOCUMENTO
+        dados = {
+            'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
+            'numero_processo': request.form['numero_processo'],
+            'nome_juiz': request.form['nome_juiz'],
+            'porcentagem': request.form['porcentagem'],
+            'porcentagem_por_extenso': request.form['porcentagem_por_extenso'],
+            'nome_servidor': request.form['nome_servidor'],
+            'matricula': request.form['matricula'],
+            'data_a_contar': formatar_data_sem_zero(request.form['data_a_contar']),
+            'memo': request.form['memo']
+        }
+
+        # Campos que ficarão em negrito (opcional, pode editar)
+        NEGRITO = [
+            'nome_servidor', 'matricula', 'porcentagem',
+            'numero_processo', 'data_atual'
+        ]
+
+        doc = Document('src/template/portaria_gc.docx')
+
+        # PERCORRER TODOS OS PARÁGRAFOS
+        for p in doc.paragraphs:
+            texto = p.text
+            if not any(f"{{{k}}}" in texto for k in dados):
+                continue
+
+            # Remove runs para reconstruir o parágrafo
+            for run in p.runs:
+                p._element.remove(run._element)
+
+            partes = re.split(r'(\{.*?\})', texto)
+
+            for parte in partes:
+                if re.match(r'\{.*?\}', parte):
+                    chave = parte.strip('{}')
+                    valor = dados.get(chave, parte)
+
+                    novo_run = p.add_run(str(valor))
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+                    if chave in NEGRITO:
+                        novo_run.bold = True
+
+                else:
+                    novo_run = p.add_run(parte)
+                    novo_run.font.name = 'Times New Roman'
+                    novo_run._element.rPr.rFonts.set(
+                        qn('w:eastAsia'), 'Times New Roman')
+                    novo_run.font.size = Pt(12)
+
+        # EXPORTA ARQUIVO FINAL
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'portaria_gratificacao_{nome_servidor}.docx'
+        )
+
+    return render_template('portaria_gratificacao.html')

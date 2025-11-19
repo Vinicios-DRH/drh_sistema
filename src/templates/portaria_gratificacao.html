@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+.card-custom {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+label { font-weight: 600; }
+h3 { font-weight: bold; margin-bottom: 20px; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card-custom">
+        <h3>Gerar Portaria de Gratificação de Curso</h3>
+
+        <form method="POST">
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label>Número do Processo</label>
+                    <input type="text" name="numero_processo" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Nome do Juiz(a)</label>
+                    <input type="text" name="nome_juiz" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Porcentagem (%)</label>
+                    <input type="text" name="porcentagem" class="form-control" required>
+                </div>
+
+                <div class="col-md-8">
+                    <label>Porcentagem (por extenso)</label>
+                    <input type="text" name="porcentagem_por_extenso" class="form-control" required>
+                </div>
+
+                <div class="col-md-8">
+                    <label>Nome do Servidor</label>
+                    <input type="text" name="nome_servidor" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Matrícula</label>
+                    <input type="text" name="matricula" class="form-control" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Data a Contar</label>
+                    <input type="date" name="data_a_contar" class="form-control" required>
+                </div>
+
+                <div class="col-md-8">
+                    <label>Número do Memorando / Memo</label>
+                    <input type="text" name="memo" class="form-control" required>
+                </div>
+
+            </div>
+
+            <button class="btn btn-primary mt-4" type="submit">
+                Gerar Portaria
+            </button>
+
+        </form>
+    </div>
+</div>
+{% endblock %}
