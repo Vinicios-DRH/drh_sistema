@@ -1,140 +1,261 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
-    .card-custom {
-        background: #fff;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
-    }
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9F1119;
+    --ink-200:#e8eef6; --glass-brd:rgba(255,255,255,.12);
+  }
 
-    h3,
-    h4 {
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
 
-    label {
-        font-weight: 500;
-    }
+  /* Cabeçalho */
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd);
+    border-radius:14px; color:var(--ink-200);
+    box-shadow:0 8px 22px rgba(0,0,0,.35);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
 
-    .btn-primary {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-        font-weight: bold;
-    }
+  /* Cartão claro */
+  .glass-panel{
+    background:#fff; border:1px solid rgba(0,0,0,.05);
+    border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.08);
+  }
 
-    .btn-success {
-        font-weight: bold;
-    }
+  /* Seções / títulos */
+  .section-title{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+    color:#64748b; margin:8px 0 4px;
+  }
+  .section-accent{height:3px;background:var(--brand-red);border-radius:6px;margin-bottom:12px;}
 
-    hr {
-        border-top: 2px dashed #ccc;
-    }
+  /* Inputs / botões */
+  .form-label{font-weight:600}
+  .form-control,.form-select{border-radius:.6rem}
+  .hint{font-size:.85rem;color:#6b7280}
+  .btn-brand{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600}
+  .btn-brand:hover{background:var(--brand-red-600);border-color:var(--brand-red-600)}
+  .btn-outline{font-weight:600}
+
+  /* Grupo de duração (chips) */
+  .chip-group .form-check{margin:0}
+  .chip{
+    cursor:pointer; user-select:none;
+    border:1px solid rgba(0,0,0,.1); border-radius:999px; padding:.35rem .75rem;
+    display:inline-flex; align-items:center; gap:.4rem; font-weight:600;
+    background:#fff;
+  }
+  .chip input{display:none}
+  .chip.active{border-color:var(--brand-red); box-shadow:0 0 0 .2rem rgba(181,18,27,.15)}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
+<div class="container-xxl py-4">
 
-    <div class="card-custom">
-        <h3>Gerar Licença Paternidade</h3>
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-4">
-                    <label>Número da Nota para BG</label>
-                    <input type="text" name="nota_bg" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label>Matrícula da Certidão</label>
-                    <input type="text" name="matricula_certidao" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label>Cartório</label>
-                    <input type="text" name="cartorio" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Nome do Filho</label>
-                    <input type="text" name="nome_filho" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Cidade Natal</label>
-                    <input type="text" name="cidade_natal" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Nome do Pai</label>
-                    <input type="text" name="pai" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Nome da Mãe</label>
-                    <input type="text" name="mae" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label>Posto/Graduação</label>
-                    <select name="posto_grad" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="CEL">CEL</option>
-                        <option value="TC">TC</option>
-                        <option value="MAJ">MAJ</option>
-                        <option value="CAP">CAP</option>
-                        <option value="1º TEN">1º TEN</option>
-                        <option value="2º TEN">2º TEN</option>
-                        <option value="ST">ST</option>
-                        <option value="1º SGT">1º SGT</option>
-                        <option value="2º SGT">2º SGT</option>
-                        <option value="3º SGT">3º SGT</option>
-                        <option value="CB">CB</option>
-                        <option value="SD">SD</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>Quadro</label>
-                    <select name="quadro" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="QOBM">QOBM</option>
-                        <option value="QOABM">QOABM</option>
-                        <option value="QCOBM">QCOBM</option>
-                        <option value="QCPBM">QCPBM</option>
-                        <option value="QPBM">QPBM</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label>Data de Emissão da Certidão</label>
-                    <input type="date" name="data_certidao" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Oficial Responsável</label>
-                    <input type="text" name="oficial_responsavel" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Data de Início da Licença</label>
-                    <input type="date" name="data_inicio_lp" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Data de Apresentação</label>
-                    <input type="date" name="data_apresentacao" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Número SIGED</label>
-                    <input type="text" name="numero_siged" class="form-control" required>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary mt-4">Gerar Documento</button>
-        </form>
+  <!-- Header -->
+  <div class="brand-header p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+      <h3 class="h5 m-0">Gerar Licença Paternidade</h3>
+      <div class="hint">Preencha os dados e clique em <strong>Gerar Documento</strong>.</div>
     </div>
+  </div>
+
+  <!-- Formulário -->
+  <form method="POST" class="glass-panel p-3 p-md-4" novalidate>
+    {# <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> #}
+
+    <!-- Seção: Dados da Certidão / BG -->
+    <div class="section-title">Dados da Certidão / BG</div>
+    <div class="section-accent"></div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="nota_bg">Número da Nota para BG</label>
+        <input id="nota_bg" name="nota_bg" type="text" class="form-control"
+               value="{{ request.form.get('nota_bg','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="matricula_certidao">Matrícula da Certidão</label>
+        <input id="matricula_certidao" name="matricula_certidao" type="text" class="form-control"
+               value="{{ request.form.get('matricula_certidao','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="cartorio">Cartório</label>
+        <input id="cartorio" name="cartorio" type="text" class="form-control"
+               value="{{ request.form.get('cartorio','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="data_certidao">Data de Emissão da Certidão</label>
+        <input id="data_certidao" name="data_certidao" type="date" class="form-control"
+               value="{{ request.form.get('data_certidao','') }}" required>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label" for="oficial_responsavel">Oficial Responsável</label>
+        <input id="oficial_responsavel" name="oficial_responsavel" type="text" class="form-control"
+               value="{{ request.form.get('oficial_responsavel','') }}" required>
+      </div>
+    </div>
+
+    <!-- Seção: Filiação / Criança -->
+    <div class="mt-4">
+      <div class="section-title">Filiação / Criança</div>
+      <div class="section-accent"></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="nome_filho">Nome do Filho</label>
+        <input id="nome_filho" name="nome_filho" type="text" class="form-control"
+               value="{{ request.form.get('nome_filho','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="cidade_natal">Cidade Natal</label>
+        <input id="cidade_natal" name="cidade_natal" type="text" class="form-control"
+               value="{{ request.form.get('cidade_natal','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="pai">Nome do Pai</label>
+        <input id="pai" name="pai" type="text" class="form-control"
+               value="{{ request.form.get('pai','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="mae">Nome da Mãe</label>
+        <input id="mae" name="mae" type="text" class="form-control"
+               value="{{ request.form.get('mae','') }}" required>
+      </div>
+    </div>
+
+    <!-- Seção: Militar -->
+    <div class="mt-4">
+      <div class="section-title">Militar</div>
+      <div class="section-accent"></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="posto_grad">Posto/Graduação</label>
+        <select id="posto_grad" name="posto_grad" class="form-select" required>
+          {% set pgsel = request.form.get('posto_grad','') %}
+          <option value="">Selecione</option>
+          {% for op in ['CEL','TC','MAJ','CAP','1º TEN','2º TEN','ST','1º SGT','2º SGT','3º SGT','CB','SD'] %}
+            <option value="{{ op }}" {% if pgsel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="quadro">Quadro</label>
+        <select id="quadro" name="quadro" class="form-select" required>
+          {% set qsel = request.form.get('quadro','') %}
+          <option value="">Selecione</option>
+          {% for op in ['QOBM','QOABM','QCOBM','QCPBM','QPBM'] %}
+            <option value="{{ op }}" {% if qsel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Seção: Datas da Licença e Protocolo -->
+    <div class="mt-4">
+      <div class="section-title">Datas da Licença e Protocolo</div>
+      <div class="section-accent"></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="data_inicio_lp">Data de Início da Licença</label>
+        <input id="data_inicio_lp" name="data_inicio_lp" type="date" class="form-control"
+               value="{{ request.form.get('data_inicio_lp','') }}" required>
+        <div class="hint mt-1">Defina a data de início e selecione a <strong>duração</strong> para sugerirmos a apresentação.</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="data_apresentacao">Data de Apresentação</label>
+        <input id="data_apresentacao" name="data_apresentacao" type="date" class="form-control"
+               value="{{ request.form.get('data_apresentacao','') }}" required>
+        <div class="hint mt-1">Calculada como <em>início + duração</em> (ajuste se necessário).</div>
+      </div>
+
+      <div class="col-12">
+        <div class="d-flex align-items-center gap-2 flex-wrap chip-group" aria-label="Duração sugerida">
+          <span class="hint me-2">Duração sugerida:</span>
+
+          <label class="chip" id="chip-5"><input type="radio" name="_duracao_sugerida" value="5"> 5 dias</label>
+          <label class="chip" id="chip-20"><input type="radio" name="_duracao_sugerida" value="20"> 20 dias</label>
+
+          <div class="input-group" style="width:220px;">
+            <span class="input-group-text">Custom</span>
+            <input type="number" min="1" step="1" id="duracao_custom" class="form-control" placeholder="dias">
+            <button class="btn btn-outline-secondary" type="button" id="btn-aplicar-custom">Aplicar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="numero_siged">Número SIGED</label>
+        <input id="numero_siged" name="numero_siged" type="text" class="form-control"
+               value="{{ request.form.get('numero_siged','') }}" required>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-brand">Gerar Documento</button>
+      <button type="reset" class="btn btn-outline btn-outline-secondary">Limpar</button>
+    </div>
+  </form>
 </div>
+
+<!-- Scripts: cálculo de apresentação -->
+<script>
+  function toISO(d){ return d.toISOString().split('T')[0]; }
+  function addDays(date, days){
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  function calcApresentacao(dias){
+    const startStr = document.getElementById('data_inicio_lp').value;
+    if(!startStr || !dias) return;
+    const [y,m,da] = startStr.split('-').map(Number);
+    const inicio = new Date(y, m-1, da);
+    // apresentação = início + dias (ex.: 5 dias => apresenta no 6º dia)
+    const apresentacao = addDays(inicio, Number(dias));
+    document.getElementById('data_apresentacao').value = toISO(apresentacao);
+  }
+
+  // Chips de duração
+  const chip5 = document.getElementById('chip-5');
+  const chip20 = document.getElementById('chip-20');
+  const customInput = document.getElementById('duracao_custom');
+  const btnCustom = document.getElementById('btn-aplicar-custom');
+
+  function setActiveChip(active){
+    [chip5, chip20].forEach(ch => ch.classList.toggle('active', ch === active));
+  }
+
+  chip5.addEventListener('click', () => { setActiveChip(chip5); calcApresentacao(5); });
+  chip20.addEventListener('click', () => { setActiveChip(chip20); calcApresentacao(20); });
+
+  btnCustom.addEventListener('click', () => {
+    const n = Number(customInput.value || 0);
+    if(n > 0){
+      setActiveChip(null);
+      calcApresentacao(n);
+    }
+  });
+
+  // Recalcular ao trocar a data de início
+  document.getElementById('data_inicio_lp').addEventListener('change', () => {
+    if (chip5.classList.contains('active')) calcApresentacao(5);
+    else if (chip20.classList.contains('active')) calcApresentacao(20);
+    else if (Number(customInput.value) > 0) calcApresentacao(Number(customInput.value));
+  });
+</script>
 {% endblock %}

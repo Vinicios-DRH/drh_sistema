@@ -1,231 +1,269 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
-    .card-custom {
-        background: #fff;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
-    }
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9F1119;
+    --ink-200:#e8eef6; --glass-brd:rgba(255,255,255,.12);
+  }
 
-    h3,
-    h4 {
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
 
-    label {
-        font-weight: 500;
-    }
+  /* Cabeçalho */
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd);
+    border-radius:14px; color:var(--ink-200);
+    box-shadow:0 8px 22px rgba(0,0,0,.35);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
 
-    .btn-primary {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-        font-weight: bold;
-    }
+  /* Cartão claro */
+  .glass-panel{
+    background:#fff; border:1px solid rgba(0,0,0,.05);
+    border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.08);
+  }
 
-    .btn-success {
-        font-weight: bold;
-    }
+  /* Títulos/Seções */
+  .section-title{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+    color:#64748b; margin:8px 0 4px;
+  }
+  .section-accent{height:3px;background:var(--brand-red);border-radius:6px;margin-bottom:12px;}
 
-    hr {
-        border-top: 2px dashed #ccc;
-    }
+  /* Inputs / botões */
+  .form-label{font-weight:600}
+  .form-control,.form-select{border-radius:.6rem}
+  .hint{font-size:.85rem;color:#6b7280}
+  .btn-brand{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600}
+  .btn-brand:hover{background:var(--brand-red-600);border-color:var(--brand-red-600)}
+  .req::after{content:" *"; color:var(--brand-red); font-weight:700}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
+<div class="container-xxl py-4">
 
-    <div class="card-custom">
-        <h3>Gerar Licença Especial</h3>
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-6">
-                    <label>Número da Nota para BG</label>
-                    <input type="text" name="nota_bg" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Data do Requerimento</label>
-                    <input type="date" name="data_do_requerimento" class="form-control" required>
-                </div>
+  <!-- Header -->
+  <div class="brand-header p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+      <h3 class="h5 m-0">Gerar Licença Especial</h3>
+      <div class="hint">Preencha os dados, escolha o tipo e as datas. O período é calculado automaticamente.</div>
+    </div>
+  </div>
 
-                <div class="col-md-4">
-                    <label>Posto/Graduação</label>
-                    <select name="posto_grad" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="CEL">CEL</option>
-                        <option value="TC">TC</option>
-                        <option value="MAJ">MAJ</option>
-                        <option value="CAP">CAP</option>
-                        <option value="1º TEN">1º TEN</option>
-                        <option value="2º TEN">2º TEN</option>
-                        <option value="ST">ST</option>
-                        <option value="1º SGT">1º SGT</option>
-                        <option value="2º SGT">2º SGT</option>
-                        <option value="3º SGT">3º SGT</option>
-                        <option value="CB">CB</option>
-                        <option value="SD">SD</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>Quadro</label>
-                    <select name="quadro" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="QOBM">QOBM</option>
-                        <option value="QOABM">QOABM</option>
-                        <option value="QCOBM">QCOBM</option>
-                        <option value="QCPBM">QCPBM</option>
-                        <option value="QPBM">QPBM</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>Nome do Militar</label>
-                    <input type="text" name="nome" class="form-control" required>
-                </div>
+  <!-- Formulário principal -->
+  <form method="POST" class="glass-panel p-3 p-md-4" novalidate>
+    {# <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> #}
 
-                <div class="col-md-6">
-                    <label>OBM do Militar</label>
-                    <input type="text" name="obm" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Tipo da Licença</label>
-                    <select name="tipo_licenca_especial" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="quinquênio">Quinquênio</option>
-                        <option value="decênio">Decênio</option>
-                    </select>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Período da Licença</label>
-                    <input type="text" name="periodo_licenca" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Data de Início da Licença</label>
-                    <input type="date" name="data_inicio_pedido" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Data de Apresentação</label>
-                    <input type="date" name="data_apresentacao" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Número SIGED</label>
-                    <input type="text" name="numero_siged" class="form-control" required>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary mt-4">Gerar Documento</button>
-        </form>
+    <!-- Seção: Dados para BG -->
+    <div class="section-title">Dados para BG</div>
+    <div class="section-accent"></div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label req" for="nota_bg">Número da Nota para BG</label>
+        <input id="nota_bg" name="nota_bg" type="text" class="form-control"
+               value="{{ request.form.get('nota_bg','') }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label req" for="data_do_requerimento">Data do Requerimento</label>
+        <input id="data_do_requerimento" name="data_do_requerimento" type="date" class="form-control"
+               value="{{ request.form.get('data_do_requerimento','') }}" required>
+      </div>
     </div>
 
-    <div class="card-custom">
-        <h4>Cálculo de Quinquênios/Decênios</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <label>Data de Ingresso do Militar no CBMAM</label>
-                <input type="date" id="data_ingresso" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Tipo</label>
-                <select id="tipo_licenca" class="form-control">
-                    <option value="quinquenio">Quinquênio</option>
-                    <option value="decenio">Decênio</option>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="button" class="btn btn-success w-100" onclick="calcularPeriodos()">Calcular</button>
-            </div>
-        </div>
-
-        <div class="row mt-4" id="selecao_periodo" style="display: none;">
-            <div class="col-md-6">
-                <label>Selecionar Período Calculado</label>
-                <select id="periodos_resultantes" class="form-control" onchange="preencherPeriodo()">
-                    <option value="">Selecione...</option>
-                </select>
-            </div>
-        </div>
+    <!-- Seção: Identificação do militar -->
+    <div class="mt-4">
+      <div class="section-title">Identificação do Militar</div>
+      <div class="section-accent"></div>
     </div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label req" for="posto_grad">Posto/Graduação</label>
+        <select id="posto_grad" name="posto_grad" class="form-select" required>
+          {% set pgsel = request.form.get('posto_grad','') %}
+          <option value="">Selecione</option>
+          {% for op in ['CEL','TC','MAJ','CAP','1º TEN','2º TEN','ST','1º SGT','2º SGT','3º SGT','CB','SD'] %}
+            <option value="{{ op }}" {% if pgsel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label req" for="quadro">Quadro</label>
+        <select id="quadro" name="quadro" class="form-select" required>
+          {% set qsel = request.form.get('quadro','') %}
+          <option value="">Selecione</option>
+          {% for op in ['QOBM','QOABM','QCOBM','QCPBM','QPBM'] %}
+            <option value="{{ op }}" {% if qsel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label req" for="nome">Nome do Militar</label>
+        <input id="nome" name="nome" type="text" class="form-control"
+               value="{{ request.form.get('nome','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label req" for="obm">OBM do Militar</label>
+        <input id="obm" name="obm" type="text" class="form-control"
+               value="{{ request.form.get('obm','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label req" for="tipo_licenca_especial">Tipo da Licença</label>
+        <select id="tipo_licenca_especial" name="tipo_licenca_especial" class="form-select" required>
+          {% set tsel = request.form.get('tipo_licenca_especial','') %}
+          <option value="">Selecione</option>
+          <option value="quinquênio" {% if tsel=='quinquênio' %}selected{% endif %}>Quinquênio (3 meses)</option>
+          <option value="decênio"   {% if tsel=='decênio' %}selected{% endif %}>Decênio (6 meses)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Seção: Períodos e datas -->
+    <div class="mt-4">
+      <div class="section-title">Períodos e Datas</div>
+      <div class="section-accent"></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label req" for="periodo_licenca">Período da Licença (ex.: 01/01/2026 a 31/03/2026)</label>
+        <input id="periodo_licenca" name="periodo_licenca" type="text" class="form-control"
+               value="{{ request.form.get('periodo_licenca','') }}" required>
+        <div class="hint">Este campo é preenchido automaticamente ao escolher o <strong>tipo</strong> e a <strong>data de início</strong>, mas pode ser editado.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label req" for="data_inicio_pedido">Data de Início da Licença</label>
+        <input id="data_inicio_pedido" name="data_inicio_pedido" type="date" class="form-control"
+               value="{{ request.form.get('data_inicio_pedido','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label req" for="data_apresentacao">Data de Apresentação</label>
+        <input id="data_apresentacao" name="data_apresentacao" type="date" class="form-control"
+               value="{{ request.form.get('data_apresentacao','') }}" required>
+        <div class="hint">Preenchida automaticamente como o dia <strong>após</strong> o término do período.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label req" for="numero_siged">Número SIGED</label>
+        <input id="numero_siged" name="numero_siged" type="text" class="form-control"
+               value="{{ request.form.get('numero_siged','') }}" required>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-brand">Gerar Documento</button>
+      <button type="reset" class="btn btn-outline btn-outline-secondary">Limpar</button>
+    </div>
+  </form>
+
+  <!-- Utilitário: Cálculo de quinquênios/decênios -->
+  <div class="glass-panel p-3 p-md-4 mt-4">
+    <h5 class="mb-3">Cálculo de Quinquênios/Decênios</h5>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="data_ingresso">Data de Ingresso no CBMAM</label>
+        <input id="data_ingresso" type="date" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="tipo_licenca">Tipo</label>
+        <select id="tipo_licenca" class="form-select">
+          <option value="quinquenio">Quinquênio</option>
+          <option value="decenio">Decênio</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button type="button" class="btn btn-success w-100" onclick="calcularPeriodos()">Calcular</button>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3" id="selecao_periodo" style="display:none;">
+      <div class="col-md-6">
+        <label class="form-label" for="periodos_resultantes">Selecionar Período Calculado</label>
+        <select id="periodos_resultantes" class="form-select" onchange="preencherPeriodo()">
+          <option value="">Selecione...</option>
+        </select>
+        <div class="hint mt-1">Ao selecionar, o valor é copiado para <strong>Período da Licença</strong> acima.</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
+<!-- Scripts -->
 <script>
-    function calcularPeriodos() {
-        const dataInput = document.getElementById('data_ingresso').value;
-        const tipo = document.getElementById('tipo_licenca').value;
-        const select = document.getElementById('periodos_resultantes');
-        const divSelecao = document.getElementById('selecao_periodo');
+  // ===== Utilitários de data =====
+  function toBR(d){ return d.toLocaleDateString('pt-BR'); }
+  function toISO(d){ return d.toISOString().split('T')[0]; }
 
-        select.innerHTML = '<option value="">Selecione...</option>';
+  // ===== Calcula sequência de períodos (quinquenio/decenio) a partir da data de ingresso =====
+  function calcularPeriodos(){
+    const dataInput = document.getElementById('data_ingresso').value;
+    const tipo = document.getElementById('tipo_licenca').value; // 'quinquenio' | 'decenio'
+    const select = document.getElementById('periodos_resultantes');
+    const divSelecao = document.getElementById('selecao_periodo');
 
-        if (!dataInput) {
-            alert("Informe a data de ingresso!");
-            return;
-        }
+    select.innerHTML = '<option value="">Selecione...</option>';
 
-        const partes = dataInput.split("-");
-        let inicio = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-
-        const anosLimite = 35;
-        const salto = tipo === 'quinquenio' ? 5 : 10;
-
-        for (let i = 1; i <= Math.floor(anosLimite / salto); i++) {
-            const fim = new Date(inicio);
-            fim.setFullYear(fim.getFullYear() + salto);
-
-            const inicioFormatado = inicio.toLocaleDateString('pt-BR');
-            const fimFormatado = fim.toLocaleDateString('pt-BR');
-
-            const label = `${i * salto} anos: ${inicioFormatado} a ${fimFormatado}`;
-            const value = `${inicioFormatado} a ${fimFormatado}`;
-
-            const option = new Option(label, value);
-            select.appendChild(option);
-
-            inicio = new Date(fim);
-        }
-
-        divSelecao.style.display = 'block';
+    if(!dataInput){
+      alert('Informe a data de ingresso!');
+      return;
     }
 
-    function preencherPeriodo() {
-        const select = document.getElementById('periodos_resultantes');
-        const periodo = select.value;
-        if (periodo) {
-            document.querySelector('input[name="periodo_licenca"]').value = periodo;
-        }
+    const [y,m,d] = dataInput.split('-').map(Number);
+    let inicio = new Date(y, m-1, d);
+
+    const anosLimite = 35; // até 35 anos de carreira
+    const salto = (tipo === 'quinquenio') ? 5 : 10;
+
+    for(let i=1; i<=Math.floor(anosLimite/salto); i++){
+      const fim = new Date(inicio);
+      fim.setFullYear(fim.getFullYear() + salto);
+
+      const label = `${i*salto} anos: ${toBR(inicio)} a ${toBR(fim)}`;
+      const value = `${toBR(inicio)} a ${toBR(fim)}`;
+
+      const opt = new Option(label, value);
+      select.appendChild(opt);
+
+      // próximo bloco parte do fim do atual
+      inicio = new Date(fim);
     }
 
-    document.querySelector('input[name="data_inicio_pedido"]').addEventListener('change', calcularLicenca);
-    document.querySelector('select[name="tipo_licenca_especial"]').addEventListener('change', calcularLicenca);
+    divSelecao.style.display = 'block';
+  }
 
-    function calcularLicenca() {
-        const tipo = document.querySelector('select[name="tipo_licenca_especial"]').value;
-        const dataInicioStr = document.querySelector('input[name="data_inicio_pedido"]').value;
-
-        if (!tipo || !dataInicioStr) return;
-
-        const partes = dataInicioStr.split("-");
-        const inicio = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-
-        let mesesAdicionar = tipo === "quinquênio" ? 3 : tipo === "decênio" ? 6 : 0;
-        const fim = new Date(inicio);
-        fim.setMonth(fim.getMonth() + mesesAdicionar);
-
-        const apresentacao = new Date(fim);
-        apresentacao.setDate(apresentacao.getDate() + 1);
-
-        const formatar = (data) => data.toLocaleDateString("pt-BR");
-
-        const periodoStr = `${formatar(inicio)} a ${formatar(fim)}`;
-
-        const campoPeriodo = document.querySelector('input[name="periodo_licenca"]');
-        if (!campoPeriodo.value) {
-            campoPeriodo.value = periodoStr;
-        }
-
-        document.querySelector('input[name="data_apresentacao"]').value = apresentacao.toISOString().split('T')[0];
+  function preencherPeriodo(){
+    const sel = document.getElementById('periodos_resultantes');
+    const periodo = sel.value;
+    if(periodo){
+      document.getElementById('periodo_licenca').value = periodo;
     }
+  }
+
+  // ===== Calcula período (3 ou 6 meses) e data de apresentação a partir do tipo e da data de início =====
+  function calcularLicencaAuto(){
+    const tipo = document.getElementById('tipo_licenca_especial').value; // 'quinquênio' | 'decênio'
+    const dataInicioStr = document.getElementById('data_inicio_pedido').value;
+    if(!tipo || !dataInicioStr) return;
+
+    const [y,m,d] = dataInicioStr.split('-').map(Number);
+    const inicio = new Date(y, m-1, d);
+
+    const mesesAdicionar = (tipo === 'quinquênio') ? 3 : (tipo === 'decênio' ? 6 : 0);
+    const fim = new Date(inicio);
+    fim.setMonth(fim.getMonth() + mesesAdicionar);
+
+    const apresentacao = new Date(fim);
+    apresentacao.setDate(apresentacao.getDate() + 1);
+
+    // Preenche campos
+    document.getElementById('periodo_licenca').value = `${toBR(inicio)} a ${toBR(fim)}`;
+    document.getElementById('data_apresentacao').value = toISO(apresentacao);
+  }
+
+  // Listeners
+  document.getElementById('data_inicio_pedido').addEventListener('change', calcularLicencaAuto);
+  document.getElementById('tipo_licenca_especial').addEventListener('change', calcularLicencaAuto);
 </script>
 {% endblock %}
