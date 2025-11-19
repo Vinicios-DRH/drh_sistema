@@ -1,114 +1,141 @@
 {% extends 'base.html' %}
-
 {% block head %}
 <style>
-    .card-custom {
-        background: #fff;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
-    }
+  :root{
+    --brand-red:#B5121B;
+    --brand-red-600:#9F1119;
+    --ink-200:#e8eef6;
+    --glass-brd:rgba(255,255,255,.12);
+  }
 
-    h3 {
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
 
-    label {
-        font-weight: 500;
-    }
+  /* cabeçalho */
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd);
+    border-radius:14px;
+    color:var(--ink-200);
+    box-shadow:0 8px 22px rgba(0,0,0,.35);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  }
 
-    .btn-primary {
-        font-weight: 600;
-    }
+  /* painel claro */
+  .glass-panel{
+    background:#fff;
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:14px;
+    box-shadow:0 10px 24px rgba(0,0,0,.08);
+  }
 
-    hr {
-        border-top: 2px dashed #ccc;
-    }
+  .form-label{font-weight:600}
+  .form-control,.form-select{border-radius:.6rem}
+  .hint{font-size:.85rem;color:#6b7280}
+
+  .btn-brand{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600}
+  .btn-brand:hover{background:var(--brand-red-600);border-color:var(--brand-red-600);color:#fff}
+
+  .section-title{
+    font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+    color:#64748b; margin:8px 0 4px;
+  }
+  .section-accent{height:3px;background:var(--brand-red);border-radius:6px;margin-bottom:12px;}
+
+  .req::after{content:" *"; color:var(--brand-red); font-weight:700}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <div class="card-custom">
-        <h3>Nota de Elogio – Doação de Sangue</h3>
-        <p class="text-muted mb-4">
-            Preencha os dados abaixo para gerar a Nota de Elogio referente à doação de sangue.
-        </p>
+<div class="container-xxl py-4">
 
-        <form method="POST">
-            <div class="row g-3">
-
-                <div class="col-md-4">
-                    <label for="nota_bg">Número / Nota do BG</label>
-                    <input type="text" id="nota_bg" name="nota_bg" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="nome_militar">Nome do Militar</label>
-                    <input type="text" id="nome_militar" name="nome_militar" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="posto_graduacao">Posto/Graduação</label>
-                    <select id="posto_graduacao" name="posto_graduacao" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="CEL">CEL BM</option>
-                        <option value="TC">TC BM</option>
-                        <option value="MAJ">MAJ BM</option>
-                        <option value="CAP">CAP BM</option>
-                        <option value="1º TEN">1º TEN BM</option>
-                        <option value="2º TEN">2º TEN BM</option>
-                        <option value="ASP OF">ASP OF BM</option>
-                        <option value="Subtenente">ST BM</option>
-                        <option value="1º SGT">1º SGT BM</option>
-                        <option value="2º SGT">2º SGT BM</option>
-                        <option value="3º SGT">3º SGT BM</option>
-                        <option value="CB">CB BM</option>
-                        <option value="SD">SD BM</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="quadro">Quadro</label>
-                    <select id="quadro" name="quadro" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="QOBM">QOBM</option>
-                        <option value="QOABM">QOABM</option>
-                        <option value="QCOBM">QCOBM</option>
-                        <option value="QCPBM">QCPBM</option>
-                        <option value="QPBM">QPBM</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="atestador">Atestador / Responsável</label>
-                    <input type="text" id="atestador" name="atestador" class="form-control" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="numero_siged">Número do SIGED</label>
-                    <input type="text" id="numero_siged" name="numero_siged" class="form-control" required>
-                </div>
-                <div class="col-md-4">
-                    <label for="numero_siged">Número COREN</label>
-                    <input type="text" id="numero_coren" name="numero_coren" class="form-control" required>
-                </div>
-
-                <hr class="mt-4 mb-3">
-
-                <div class="col-md-4">
-                    <label for="data_doacao">Data da Doação de Sangue</label>
-                    <input type="date" id="data_doacao" name="data_doacao" class="form-control" required>
-                </div>
-
-            </div>
-
-            <button type="submit" class="btn btn-primary mt-4">
-                Gerar Nota de Elogio
-            </button>
-        </form>
+  <!-- Header -->
+  <div class="brand-header p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+      <h3 class="h5 m-0">Nota de Elogio — Doação de Sangue</h3>
+      <p class="m-0 hint">Preencha os dados e clique em <strong>Gerar Nota de Elogio</strong>.</p>
     </div>
+  </div>
+
+  <!-- Form -->
+  <form method="POST" class="glass-panel p-3 p-md-4" novalidate>
+    {# <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> #}
+
+    <!-- Identificação do militar -->
+    <div class="section-title">Identificação</div>
+    <div class="section-accent"></div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label for="nota_bg" class="form-label req">Número / Nota do BG</label>
+        <input id="nota_bg" type="text" name="nota_bg" class="form-control"
+               value="{{ request.form.get('nota_bg','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label for="nome_militar" class="form-label req">Nome do Militar</label>
+        <input id="nome_militar" type="text" name="nome_militar" class="form-control"
+               value="{{ request.form.get('nome_militar','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label for="posto_graduacao" class="form-label req">Posto/Graduação</label>
+        <select id="posto_graduacao" name="posto_graduacao" class="form-select" required>
+          {% set pg = request.form.get('posto_graduacao','') %}
+          <option value="">Selecione</option>
+          {% for op in ['CEL','TC','MAJ','CAP','1º TEN','2º TEN','ASP OF','Subtenente','1º SGT','2º SGT','3º SGT','CB','SD'] %}
+            <option value="{{ op }}" {% if pg==op %}selected{% endif %}>{{ op }} BM</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label for="quadro" class="form-label req">Quadro</label>
+        <select id="quadro" name="quadro" class="form-select" required>
+          {% set q = request.form.get('quadro','') %}
+          <option value="">Selecione</option>
+          {% for op in ['QOBM','QOABM','QCOBM','QCPBM','QPBM'] %}
+            <option value="{{ op }}" {% if q==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label for="atestador" class="form-label req">Atestador / Responsável</label>
+        <input id="atestador" type="text" name="atestador" class="form-control"
+               value="{{ request.form.get('atestador','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label for="numero_siged" class="form-label req">Número do SIGED</label>
+        <input id="numero_siged" type="text" name="numero_siged" class="form-control"
+               value="{{ request.form.get('numero_siged','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label for="numero_coren" class="form-label req">Número COREN</label>
+        <input id="numero_coren" type="text" name="numero_coren" class="form-control"
+               value="{{ request.form.get('numero_coren','') }}" required>
+      </div>
+    </div>
+
+    <!-- Doação -->
+    <div class="mt-4">
+      <div class="section-title">Informações da Doação</div>
+      <div class="section-accent"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label for="data_doacao" class="form-label req">Data da Doação de Sangue</label>
+        <input id="data_doacao" type="date" name="data_doacao" class="form-control"
+               value="{{ request.form.get('data_doacao','') }}" required>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-brand">Gerar Nota de Elogio</button>
+      <button type="reset" class="btn btn-outline-secondary fw-semibold">Limpar</button>
+    </div>
+  </form>
 </div>
 {% endblock %}

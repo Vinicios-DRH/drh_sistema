@@ -1,140 +1,207 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
-    .card-custom {
-        background: #fff;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
-    }
-
-    h3,
-    h4 {
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
-
-    label {
-        font-weight: 500;
-    }
-
-    .btn-primary {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-        font-weight: bold;
-    }
-
-    .btn-success {
-        font-weight: bold;
-    }
-
-    hr {
-        border-top: 2px dashed #ccc;
-    }
+  :root{
+    --brand-red:#B5121B; --brand-red-600:#9F1119; --ink-200:#e8eef6; --glass-brd:rgba(255,255,255,.12);
+  }
+  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  .brand-header{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); border-radius:14px; color:var(--ink-200);
+    box-shadow:0 8px 22px rgba(0,0,0,.35); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+  .glass-panel{background:#fff;border:1px solid rgba(0,0,0,.05);border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.08);}
+  .section-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:8px 0 4px;}
+  .section-accent{height:3px;background:var(--brand-red);border-radius:6px;margin-bottom:12px;}
+  .btn-brand{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600}
+  .btn-brand:hover{background:var(--brand-red-600);border-color:var(--brand-red-600)}
+  .btn-outline{font-weight:600}
+  .form-label{font-weight:600} .form-control,.form-select{border-radius:.6rem}
+  .hint{font-size:.8rem;color:#6b7280}
+  .req::after{content:" *"; color:var(--brand-red); font-weight:700}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-
-    <div class="card-custom">
-        <h3>Gerar Declaracao</h3>
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-3">
-                    <label>Número da Nota</label>
-                    <input type="text" name="nota_declaracao" class="form-control" required>
-                </div>
-                <!-- <div class="col-md-6">
-                    <label>Data do Requerimento</label>
-                    <input type="date" name="data_do_requerimento" class="form-control" required>
-                </div> -->
-                
-                <div class="col-md-9">
-                    <label>Nome do Militar</label>
-                    <input type="text" name="nome_militar" class="form-control" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Posto/Graduação</label>
-                    <select name="posto_graduacao" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="CEL">CEL</option>
-                        <option value="TC">TC</option>
-                        <option value="MAJ">MAJ</option>
-                        <option value="CAP">CAP</option>
-                        <option value="1º TEN">1º TEN</option>
-                        <option value="2º TEN">2º TEN</option>
-                        <option value="ST">ST</option>
-                        <option value="1º SGT">1º SGT</option>
-                        <option value="2º SGT">2º SGT</option>
-                        <option value="3º SGT">3º SGT</option>
-                        <option value="CB">CB</option>
-                        <option value="SD">SD</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>Quadro</label>
-                    <select name="quadro" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="QOBM">QOBM</option>
-                        <option value="QOABM">QOABM</option>
-                        <option value="QCOBM">QCOBM</option>
-                        <option value="QCPBM">QCPBM</option>
-                        <option value="QPBM">QPBM</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label>Especialidade</label>
-                    <select name="especialidade" class="form-control" required>
-                        <option value="">Selecione</option>
-                        <option value="ACD">ACD</option>
-                        <option value="Assistente Social">Assistente Social</option>
-                        <option value="Combatente">Combatente</option>
-                        <option value="Dentista">Dentista</option>
-                        <option value="Enfermeiro(a)">Enfermeiro(a)</option>
-                        <option value="Médico(a) Clínico (a)">Médico(a) Clínico(a)</option>
-                        <option value="Médico(a) Ortopedista">Médico(a) Ortopedista</option>
-                        <option value="Médico(a) Pediatra">Médico(a) Pediatra</option>
-                        <option value="Farmacêutico(a)">Farmacêutico(a)</option>
-                        <option value="Técnico(a) de Enfermagem">Técnico(a) de Enfermagem</option>
-                        <option value="Técnico(a) de Gesso">Técnico(a) de Gesso</option>
-                        <option value="Técnico(a) de Raio-x">Técnico(a) de Raio-x</option>
-                    </select>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Matrícula</label>
-                    <input type="text" name="matricula" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Órgão</label>
-                    <input type="text" name="orgao" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>RG CBMAM</label>
-                    <input type="text" name="rg_cbmam" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>CPF</label>
-                    <input type="text" name="cpf" class="form-control" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label>Data do Concurso</label>
-                    <input type="date" name="data_concurso" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Número BG</label>
-                    <input type="text" name="numero_bg" class="form-control" required>
-                </div><div class="col-md-6">
-                    <label>Data do BG</label>
-                    <input type="date" name="data_bg" class="form-control" required>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary mt-4">Gerar Documento</button>
-        </form>
+<div class="container-xxl py-4">
+  <!-- Cabeçalho -->
+  <div class="brand-header p-3 p-md-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+      <h3 class="h5 m-0">Gerar Declaração</h3>
+      <div class="hint">Preencha os dados e clique em <strong>Gerar Documento</strong>.</div>
     </div>
+  </div>
+
+  <!-- Formulário -->
+  <form method="POST" class="glass-panel p-3 p-md-4" novalidate>
+    {# <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> #}
+
+    <!-- Identificação -->
+    <div class="section-title">Identificação</div>
+    <div class="section-accent"></div>
+
+    <div class="row g-3">
+      <div class="col-sm-6 col-lg-3">
+        <label for="nota_declaracao" class="form-label req">Número da Nota</label>
+        <input id="nota_declaracao" type="text" name="nota_declaracao" class="form-control"
+               value="{{ request.form.get('nota_declaracao','') }}" required>
+      </div>
+
+      <div class="col-sm-6 col-lg-9">
+        <label for="nome_militar" class="form-label req">Nome do Militar</label>
+        <input id="nome_militar" type="text" name="nome_militar" class="form-control"
+               autocomplete="name" value="{{ request.form.get('nome_militar','') }}" required>
+      </div>
+
+      <div class="col-md-4">
+        <label for="posto_graduacao" class="form-label req">Posto/Graduação</label>
+        <select id="posto_graduacao" name="posto_graduacao" class="form-select" required>
+          {% set sel = request.form.get('posto_graduacao','') %}
+          <option value="">Selecione</option>
+          {% for op in ['CEL','TC','MAJ','CAP','1º TEN','2º TEN','ST','1º SGT','2º SGT','3º SGT','CB','SD'] %}
+            <option value="{{ op }}" {% if sel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label for="quadro" class="form-label req">Quadro</label>
+        <select id="quadro" name="quadro" class="form-select" required>
+          {% set qsel = request.form.get('quadro','') %}
+          <option value="">Selecione</option>
+          {% for op in ['QOBM','QOABM','QCOBM','QCPBM','QPBM'] %}
+            <option value="{{ op }}" {% if qsel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label for="especialidade" class="form-label req">Especialidade</label>
+        <select id="especialidade" name="especialidade" class="form-select" required>
+          {% set esel = request.form.get('especialidade','') %}
+          <option value="">Selecione</option>
+          {% for op in ['ACD','Assistente Social','Combatente','Dentista','Enfermeiro(a)',
+                        'Médico(a) Clínico(a)','Médico(a) Ortopedista','Médico(a) Pediatra',
+                        'Farmacêutico(a)','Técnico(a) de Enfermagem','Técnico(a) de Gesso','Técnico(a) de Raio-x'] %}
+            <option value="{{ op }}" {% if esel==op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="matricula" class="form-label req">Matrícula</label>
+        <input id="matricula" type="text" name="matricula" class="form-control"
+               inputmode="numeric" value="{{ request.form.get('matricula','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="orgao" class="form-label req">Órgão</label>
+        <input id="orgao" type="text" name="orgao" class="form-control"
+               value="{{ request.form.get('orgao','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="rg_cbmam" class="form-label req">RG CBMAM</label>
+        <input id="rg_cbmam" type="text" name="rg_cbmam" class="form-control"
+               value="{{ request.form.get('rg_cbmam','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="cpf" class="form-label req">CPF</label>
+        <input id="cpf" type="text" name="cpf" class="form-control"
+               inputmode="numeric" autocomplete="off" placeholder="000.000.000-00"
+               maxlength="14" pattern="\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}"
+               value="{{ request.form.get('cpf','') }}" required>
+        <div class="hint">Formato: 000.000.000-00</div>
+      </div>
+    </div>
+
+    <!-- Publicação -->
+    <div class="mt-4">
+      <div class="section-title">Publicação</div>
+      <div class="section-accent"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="data_concurso" class="form-label req">Data do Concurso</label>
+        <input id="data_concurso" type="date" name="data_concurso" class="form-control"
+               value="{{ request.form.get('data_concurso','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="numero_bg" class="form-label req">Número BG</label>
+        <input id="numero_bg" type="text" name="numero_bg" class="form-control"
+               value="{{ request.form.get('numero_bg','') }}" required>
+      </div>
+
+      <div class="col-md-6">
+        <label for="data_bg" class="form-label req">Data do BG</label>
+        <input id="data_bg" type="date" name="data_bg" class="form-control"
+               value="{{ request.form.get('data_bg','') }}" required>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-brand">Gerar Documento</button>
+      <button type="reset" class="btn btn-outline btn-outline-secondary">Limpar</button>
+    </div>
+  </form>
 </div>
 
+<!-- Máscara de CPF: mantém formatado ao digitar e envia formatado -->
+<script>
+  (function () {
+    const cpf = document.getElementById('cpf');
+    if (!cpf) return;
+
+    function onlyDigits(s){ return (s||'').replace(/\D+/g,''); }
+
+    function formatCPF(d) {
+      // limita a 11 dígitos
+      d = onlyDigits(d).slice(0, 11);
+      // 000.000.000-00
+      const p1 = d.slice(0,3), p2 = d.slice(3,6), p3 = d.slice(6,9), p4 = d.slice(9,11);
+      let out = '';
+      if (p1) out = p1;
+      if (p2) out += '.' + p2;
+      if (p3) out += '.' + p3;
+      if (p4) out += '-' + p4;
+      return out;
+    }
+
+    // formata ao carregar (caso venha sem máscara do servidor)
+    cpf.value = formatCPF(cpf.value);
+
+    // formata enquanto digita/cola
+    cpf.addEventListener('input', (e) => {
+      const pos = cpf.selectionStart;
+      const before = cpf.value;
+      const formatted = formatCPF(before);
+      cpf.value = formatted;
+
+      // tenta manter o cursor no fim (simplicidade e boa UX)
+      cpf.setSelectionRange(cpf.value.length, cpf.value.length);
+    });
+
+    // valida visual simples no blur (opcional)
+    cpf.addEventListener('blur', () => {
+      const ok = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpf.value);
+      cpf.classList.toggle('is-invalid', !ok && cpf.value.length > 0);
+    });
+
+    // NÃO removemos a máscara no submit — backend recebe "000.000.000-00"
+    // Se quiser bloquear envio com formato incorreto:
+    const form = cpf.closest('form');
+    if (form) {
+      form.addEventListener('submit', (ev) => {
+        if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpf.value)) {
+          ev.preventDefault();
+          cpf.focus();
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}
