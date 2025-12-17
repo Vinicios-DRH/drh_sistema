@@ -131,7 +131,8 @@
                             <th>Nome Completo</th>
                             <th>Nome de Guerra</th>
                             <th>Posto/Graduação</th>
-                            <th>Quadro</th>
+                            <th>Quadro</th>                
+                            <th>Sexo</th>
                             <th>CPF</th>
                             <th>RG</th>
                             <th>Matrícula</th>
@@ -159,6 +160,7 @@
                             <td>{{ militar.nome_guerra }}</td>
                             <td>{{ militar.posto_grad }}</td>
                             <td>{{ militar.quadro }}</td>
+                            <td>{{ militar.sexo }}</td>
                             <td>{{ militar.cpf }}</td>
                             <td>{{ militar.rg }}</td>
                             <td>{{ militar.matricula }}</td>
@@ -175,7 +177,7 @@
                         {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="16" class="text-center">Nenhum dado encontrado.</td>
+                            <td colspan="17" class="text-center">Nenhum dado encontrado.</td>
                         </tr>
                         {% endif %}
                     </tbody>
@@ -251,9 +253,10 @@
                 { targets: 0, responsivePriority: 1 },
                 { targets: 2, responsivePriority: 2 },
                 { targets: 3, responsivePriority: 3 },
-                { targets: 4, responsivePriority: 4 },
-                { targets: [10, 11, 12, 13], responsivePriority: 5 }
+                { targets: 5, responsivePriority: 4 }, // CPF agora é 5 (antes era 4)
+                { targets: [11, 12, 13, 14], responsivePriority: 5 } // deslocou +1
             ]
+
         });
 
         // Busca rápida (client-side)
