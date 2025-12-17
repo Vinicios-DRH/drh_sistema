@@ -1560,6 +1560,8 @@ def militares():
     localidade_ids = request.args.getlist('localidade_ids', type=int)
     situacao_ids = request.args.getlist('situacao_ids', type=int)
 
+    sexo_filtro = (request.args.get('sexo') or '').strip().upper() 
+
     # base
     query = (Militar.query
              .options(
@@ -1606,6 +1608,19 @@ def militares():
             query = query.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
 
         query = query.distinct()
+
+    sexo_norm = func.lower(func.trim(Militar.sexo))
+
+    if sexo_filtro == 'M':
+        query = query.filter(
+            Militar.sexo.isnot(None),
+            sexo_norm.like('m%')
+        )
+    elif sexo_filtro == 'F':
+        query = query.filter(
+            Militar.sexo.isnot(None),
+            sexo_norm.like('f%')
+        )
 
     # paginação
     per_page = 100
@@ -1733,6 +1748,8 @@ def tabela_militares():
         if search:
             query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
 
+        sexo_filtro = request.args.get('sexo', '', type=str).strip().upper()
+
         vals = request.values  # une args + form
         obm_ids = vals.getlist('obm_ids', type=int)
         funcao_ids = vals.getlist('funcao_ids', type=int)
@@ -1741,7 +1758,7 @@ def tabela_militares():
         especialidade_ids = vals.getlist('especialidade_ids', type=int)
         localidade_ids = vals.getlist('localidade_ids', type=int)
         situacao_ids = vals.getlist('situacao_ids', type=int)
-
+        sexo_norm = func.lower(func.trim(Militar.sexo))
         # FK diretas
         if posto_grad_ids:
             query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
@@ -1768,7 +1785,18 @@ def tabela_militares():
 
             # restringe os militares aos que têm OBM/Função ativa
             query = query.filter(Militar.id.in_(mo))
-                    
+
+        if sexo_filtro == 'M':
+            query = query.filter(
+                Militar.sexo.isnot(None),
+                sexo_norm.like('m%')   # "m", "masculino", "MASCULINO", etc
+            )
+        elif sexo_filtro == 'F':
+            query = query.filter(
+                Militar.sexo.isnot(None),
+                sexo_norm.like('f%')   # "f", "feminino", etc
+            ) 
+
         base_filtrada = query.order_by(None)
         
         filtrados_sq = (

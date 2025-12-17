@@ -2,54 +2,62 @@
 
 {% block head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 
 <style>
-
     /* ——— BG igual à ficha + containers de vidro ——— */
-    :root{
-    --ink-200:#e8eef6;
-    --glass-brd: rgba(255,255,255,.12);
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
     }
 
     /* Gradiente do app */
-    body{
-    background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
     }
 
     /* Wrapper para ajudar em posicionamentos “no vidro” */
-    .page-wrapper{ position: relative; }
+    .page-wrapper {
+        position: relative;
+    }
 
     /* Cabeçalho com vidro (igual à ficha) */
-    .brand-header{
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-    border: 1px solid var(--glass-brd);
-    border-radius: 16px;
-    color: var(--ink-200);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
     }
 
     /* Painel claro “frosted” para a tabela (texto escuro) */
-    .glass-panel{
-    background: rgba(255,255,255,.92);
-    border: 1px solid rgba(255,255,255,.5);
-    border-radius: 18px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    color:#111;
+    .glass-panel {
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
     }
 
     /* Evita fundo branco chapado da tabela dentro do vidro */
-    .table{ background: transparent; }
-  
+    .table {
+        background: transparent;
+    }
+
     /* Força contraste nas colunas OBMs e Funções */
-    th.col-obms, td.col-obms,
-    th.col-funcoes, td.col-funcoes {
-        color: #111 !important;       /* texto escuro */
-        font-weight: 600;             /* um pouco mais forte no header e células */
+    th.col-obms,
+    td.col-obms,
+    th.col-funcoes,
+    td.col-funcoes {
+        color: #111 !important;
+        /* texto escuro */
+        font-weight: 600;
+        /* um pouco mais forte no header e células */
     }
 
     /* “Chips” para cada item de OBM/Função */
@@ -68,47 +76,60 @@
     }
 
     /* Caso a tabela tenha estilos que deixam o td opaco */
-    .table td, .table th { opacity: 1 !important; }
+    .table td,
+    .table th {
+        opacity: 1 !important;
+    }
 
     /* Cabeçalho sticky e “frosted” dentro do glass-panel */
-    .table thead th{
+    .table thead th {
         position: sticky;
         top: 0;
         z-index: 2;
-        background: rgba(255,255,255,.9);
+        background: rgba(255, 255, 255, .9);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
     }
 
-    .table-striped > tbody > tr:nth-of-type(odd) > *{
-        background-color: rgba(0,0,0,.02);
+    .table-striped>tbody>tr:nth-of-type(odd)>* {
+        background-color: rgba(0, 0, 0, .02);
     }
-    .table-hover > tbody > tr:hover > *{
-        background-color: rgba(0,0,0,.04);
+
+    .table-hover>tbody>tr:hover>* {
+        background-color: rgba(0, 0, 0, .04);
     }
 
     /* Modal mais clean */
-    .filter-card{
-        border:1px solid rgba(0,0,0,.06);
-        border-radius:14px;
-        padding:1rem;
-        background:#fff;
+    .filter-card {
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 14px;
+        padding: 1rem;
+        background: #fff;
     }
-    .filter-title{
-        font-weight:700;
-        font-size:.9rem;
-        margin-bottom:.5rem;
+
+    .filter-title {
+        font-weight: 700;
+        font-size: .9rem;
+        margin-bottom: .5rem;
     }
+
     /* Select2 tema bootstrap */
-    .select2-container--bootstrap-5 .select2-selection{
-        border-radius:.5rem; min-height: calc(2.5rem + 2px);
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: .5rem;
+        min-height: calc(2.5rem + 2px);
     }
-    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice{
-        border-radius:9999px; font-weight:600;
+
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+        border-radius: 9999px;
+        font-weight: 600;
     }
+
     /* Rodapé do modal “gruda” embaixo */
-    .modal-xl .modal-footer{
-        position: sticky; bottom: -1rem; background: #fff; z-index: 2;
+    .modal-xl .modal-footer {
+        position: sticky;
+        bottom: -1rem;
+        background: #fff;
+        z-index: 2;
     }
 
     /* container “cheio” */
@@ -117,7 +138,8 @@
     }
 
     /* Deixa os cards de cabeçalho e o painel ocuparem a largura sem “miar” nas bordas */
-    .brand-header, .glass-panel {
+    .brand-header,
+    .glass-panel {
         width: 100%;
     }
 
@@ -141,39 +163,48 @@
     }
 
     /* Evita “estouro” de colunas muito longas — quebra elegante onde couber */
-    .table th, .table td {
-        white-space: nowrap;           /* mantém linhas compactas */
+    .table th,
+    .table td {
+        white-space: nowrap;
+        /* mantém linhas compactas */
     }
+
     @media (max-width: 992px) {
-        .table th, .table td {
-            white-space: normal;         /* em telas menores, permite quebrar */
+
+        .table th,
+        .table td {
+            white-space: normal;
+            /* em telas menores, permite quebrar */
             word-break: break-word;
         }
     }
 
     /* Opcional: em mobile, bordas mais “retas” encostando nas laterais */
     @media (max-width: 576px) {
-        .brand-header, .glass-panel {
+
+        .brand-header,
+        .glass-panel {
             border-radius: 10px;
         }
     }
-
 </style>
 {% endblock %}
 
 {% macro qs_with_page(p) -%}
-  {# reconstrói querystring mantendo filtros + page #}
-  {% set params = [] %}
-  {% if request.args.get('search') %}{% set _ = params.append('search=' ~ request.args.get('search')) %}{% endif %}
-  {% for v in request.args.getlist('obm_ids') %}{% set _ = params.append('obm_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('funcao_ids') %}{% set _ = params.append('funcao_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('posto_grad_ids') %}{% set _ = params.append('posto_grad_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('quadro_ids') %}{% set _ = params.append('quadro_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('especialidade_ids') %}{% set _ = params.append('especialidade_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
-  {% for v in request.args.getlist('situacao_ids') %}{% set _ = params.append('situacao_ids=' ~ v) %}{% endfor %}
-  {% set _ = params.append('page=' ~ p) %}
-  {{ params|join('&') }}
+{# reconstrói querystring mantendo filtros + page #}
+{% set params = [] %}
+{% if request.args.get('search') %}{% set _ = params.append('search=' ~ request.args.get('search')) %}{% endif %}
+{% for v in request.args.getlist('obm_ids') %}{% set _ = params.append('obm_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('funcao_ids') %}{% set _ = params.append('funcao_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('posto_grad_ids') %}{% set _ = params.append('posto_grad_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('quadro_ids') %}{% set _ = params.append('quadro_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('especialidade_ids') %}{% set _ = params.append('especialidade_ids=' ~ v) %}{% endfor
+%}
+{% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('situacao_ids') %}{% set _ = params.append('situacao_ids=' ~ v) %}{% endfor %}
+{% if request.args.get('sexo') %}{% set _ = params.append('sexo=' ~ request.args.get('sexo')) %}{% endif %}
+{% set _ = params.append('page=' ~ p) %}
+{{ params|join('&') }}
 {%- endmacro %}
 
 {% block body %}
@@ -184,15 +215,18 @@
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <!-- Marca + resumo -->
                 <div class="d-flex align-items-center gap-3">
-                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded" alt="CBMAM">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded"
+                        alt="CBMAM">
                     <div>
                         <h1 class="h5 mb-1">Militares</h1>
                         <div class="small text-light opacity-75">
-                        DRH • Sistema CBMAM
-                        {% if total is defined %}
-                            • mostrando <strong>{{ start }}</strong>–<strong>{{ end }}</strong> de <strong>{{ total }}</strong>
-                            {% if pages is defined %} • página {{ page }}{% if pages %}/{{ pages }}{% endif %}{% endif %}
-                        {% endif %}
+                            DRH • Sistema CBMAM
+                            {% if total is defined %}
+                            • mostrando <strong>{{ start }}</strong>–<strong>{{ end }}</strong> de <strong>{{ total
+                                }}</strong>
+                            {% if pages is defined %} • página {{ page }}{% if pages %}/{{ pages }}{% endif %}{% endif
+                            %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -202,11 +236,18 @@
                     class="d-flex align-items-stretch flex-wrap gap-2">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search"
-                            placeholder="Buscar por nome, CPF, RG, matrícula…"
-                            value="{{ request.args.get('search', '') }}"
-                            class="form-control" aria-label="Buscar militar">
+                        <input type="text" name="search" placeholder="Buscar por nome, CPF, RG, matrícula…"
+                            value="{{ request.args.get('search', '') }}" class="form-control"
+                            aria-label="Buscar militar">
                     </div>
+
+                    <select class="form-select" name="sexo" style="max-width: 180px;">
+                        <option value="" {{ ''==request.args.get('sexo','')|upper and 'selected' or '' }}>Todos</option>
+                        <option value="M" {{ 'M'==request.args.get('sexo','')|upper and 'selected' or '' }}>Masculino
+                        </option>
+                        <option value="F" {{ 'F'==request.args.get('sexo','')|upper and 'selected' or '' }}>Feminino
+                        </option>
+                    </select>
 
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-arrow-return-left me-1"></i> Buscar
@@ -218,8 +259,8 @@
                     </a>
                     {% endif %}
 
-                    <button type="button" class="btn btn-outline-light"
-                            data-bs-toggle="modal" data-bs-target="#filtrarMilitar">
+                    <button type="button" class="btn btn-outline-light" data-bs-toggle="modal"
+                        data-bs-target="#filtrarMilitar">
                         <i class="bi bi-funnel me-1"></i> Filtros
                     </button>
 
@@ -234,7 +275,7 @@
         </div>
 
 
-            <!-- Painel de vidro envolvendo filtros + tabela + paginação -->
+        <!-- Painel de vidro envolvendo filtros + tabela + paginação -->
         <div class="glass-panel p-3 p-md-4">
 
             <div class="table-responsive">
@@ -253,16 +294,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                    {% if militares|length == 0 %}
+                        {% if militares|length == 0 %}
                         <tr>
                             <td colspan="9" class="text-center text-muted py-4">
-                            <i class="bi bi-search"></i> Nenhum militar encontrado com os critérios informados.
+                                <i class="bi bi-search"></i> Nenhum militar encontrado com os critérios informados.
                             </td>
                         </tr>
                         {% else %}
                         {% for militar in militares %}
                         <tr>
-                            <td><a href="{{ url_for('exibir_militar', militar_id=militar.id) }}">{{ militar.nome_completo }}</a></td>
+                            <td><a href="{{ url_for('exibir_militar', militar_id=militar.id) }}">{{
+                                    militar.nome_completo }}</a></td>
                             <td>{{ militar.nome_guerra }}</td>
                             <td>{{ militar.posto_grad }}</td>
                             <td>{{ militar.quadro }}</td>
@@ -271,7 +313,7 @@
                             <td>{{ militar.matricula }}</td>
 
                             <td class="col-obms">
-                            {% if militar.obms and militar.obms|length %}
+                                {% if militar.obms and militar.obms|length %}
                                 {% set MAX = 3 %}
                                 {% for obm in militar.obms[:MAX] %}
                                 <span class="chip">{{ obm }}</span>
@@ -279,11 +321,11 @@
                                 {% if militar.obms|length > MAX %}
                                 <span class="chip">+{{ militar.obms|length - MAX }}</span>
                                 {% endif %}
-                            {% else %} — {% endif %}
+                                {% else %} — {% endif %}
                             </td>
 
                             <td class="col-funcoes">
-                            {% if militar.funcoes and militar.funcoes|length %}
+                                {% if militar.funcoes and militar.funcoes|length %}
                                 {% set MAX = 3 %}
                                 {% for funcao in militar.funcoes[:MAX] %}
                                 <span class="chip">{{ funcao }}</span>
@@ -291,11 +333,11 @@
                                 {% if militar.funcoes|length > MAX %}
                                 <span class="chip">+{{ militar.funcoes|length - MAX }}</span>
                                 {% endif %}
-                            {% else %} — {% endif %}
+                                {% else %} — {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
-                    {% endif %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -303,29 +345,31 @@
             <nav class="d-flex justify-content-center mt-3">
                 <ul class="pagination mb-0">
                     <li class="page-item {{ 'disabled' if not has_prev }}">
-                    <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(prev_page) }}" aria-label="Anterior">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
+                        <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(prev_page) }}"
+                            aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
                     </li>
 
                     {% set last_out = 0 %}
                     {% for p in range(1, pages + 1) %}
-                    {% if p == 1 or p == pages or (p >= page - 1 and p <= page + 1) %}
-                        <li class="page-item {{ 'active' if p == page }}">
+                    {% if p == 1 or p == pages or (p >= page - 1 and p <= page + 1) %} <li
+                        class="page-item {{ 'active' if p == page }}">
                         <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(p) }}">{{ p }}</a>
                         </li>
                         {% set last_out = p %}
-                    {% elif last_out != 'dots' %}
+                        {% elif last_out != 'dots' %}
                         <li class="page-item disabled"><span class="page-link">…</span></li>
                         {% set last_out = 'dots' %}
-                    {% endif %}
-                    {% endfor %}
+                        {% endif %}
+                        {% endfor %}
 
-                    <li class="page-item {{ 'disabled' if not has_next }}">
-                    <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(next_page) }}" aria-label="Próxima">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                    </li>
+                        <li class="page-item {{ 'disabled' if not has_next }}">
+                            <a class="page-link" href="{{ url_for('militares') }}?{{ qs_with_page(next_page) }}"
+                                aria-label="Próxima">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
                 </ul>
             </nav>
         </div>
@@ -344,133 +388,161 @@
                     <!-- OBMs -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">OBMs</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="obm_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="obm_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">OBMs</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="obm_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="obm_ids">Limpar</button>
+                                </div>
                             </div>
+                            <select name="obm_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.obm_id_1.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('obm_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <select name="obm_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.obm_id_1.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('obm_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="filter-card">
+                            <div class="filter-title">Sexo</div>
+                            <select class="form-select" name="sexo">
+                                <option value="" {{ ''==request.args.get('sexo','')|upper and 'selected' or '' }}>Todos
+                                </option>
+                                <option value="M" {{ 'M'==request.args.get('sexo','')|upper and 'selected' or '' }}>
+                                    Masculino</option>
+                                <option value="F" {{ 'F'==request.args.get('sexo','')|upper and 'selected' or '' }}>
+                                    Feminino</option>
+                            </select>
                         </div>
                     </div>
 
                     <!-- Funções -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Funções</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="funcao_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="funcao_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Funções</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="funcao_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="funcao_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="funcao_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.funcao_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('funcao_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="funcao_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.funcao_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('funcao_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
                     <!-- Posto/Grad -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Posto/Grad</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="posto_grad_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="posto_grad_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Posto/Grad</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="posto_grad_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="posto_grad_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="posto_grad_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.posto_grad_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('posto_grad_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="posto_grad_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.posto_grad_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('posto_grad_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
                     <!-- Quadro -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Quadro</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="quadro_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="quadro_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Quadro</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="quadro_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="quadro_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="quadro_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.quadro_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('quadro_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="quadro_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.quadro_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('quadro_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
                     <!-- Especialidade -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Especialidade</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="especialidade_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="especialidade_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Especialidade</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="especialidade_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="especialidade_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="especialidade_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.especialidade_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('especialidade_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="especialidade_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.especialidade_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('especialidade_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
                     <!-- Localidade -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Localidade</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="localidade_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="localidade_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Localidade</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="localidade_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="localidade_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="localidade_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.localidade_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('localidade_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="localidade_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.localidade_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('localidade_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
                     <!-- Situação -->
                     <div class="col-md-4">
                         <div class="filter-card">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="filter-title">Situação</span>
-                            <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" type="button" data-select-all="situacao_ids">Selecionar tudo</button>
-                            <button class="btn btn-outline-secondary" type="button" data-clear="situacao_ids">Limpar</button>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Situação</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="situacao_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="situacao_ids">Limpar</button>
+                                </div>
                             </div>
-                        </div>
-                        <select name="situacao_ids" class="form-select js-multi" multiple>
-                            {% for val, label in form_militar.situacao_id.choices if val != '' %}
-                            {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
-                            <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+                            <select name="situacao_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.situacao_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
@@ -486,38 +558,38 @@
 
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-  // Inicializa todos os multiselects com tema Bootstrap 5
-  document.addEventListener('DOMContentLoaded', () => {
-    const modalEl = document.getElementById('filtrarMilitar');
-    const dropdownParent = modalEl; // necessário pro Select2 funcionar no modal
+    // Inicializa todos os multiselects com tema Bootstrap 5
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('filtrarMilitar');
+        const dropdownParent = modalEl; // necessário pro Select2 funcionar no modal
 
-    $('.js-multi').select2({
-      theme: 'bootstrap-5',
-      width: '100%',
-      placeholder: 'Selecione...',
-      allowClear: true,
-      closeOnSelect: false,    // <— permite clicar vários sem fechar
-      dropdownParent: $(dropdownParent)
-    });
+        $('.js-multi').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Selecione...',
+            allowClear: true,
+            closeOnSelect: false,    // <— permite clicar vários sem fechar
+            dropdownParent: $(dropdownParent)
+        });
 
-    // Botões "Selecionar tudo" / "Limpar" por campo
-    document.querySelectorAll('[data-select-all]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const name = btn.getAttribute('data-select-all');
-        const sel  = modalEl.querySelector(`select[name="${name}"]`);
-        [...sel.options].forEach(o=>o.selected=true);
-        $(sel).trigger('change');
-      });
+        // Botões "Selecionar tudo" / "Limpar" por campo
+        document.querySelectorAll('[data-select-all]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.getAttribute('data-select-all');
+                const sel = modalEl.querySelector(`select[name="${name}"]`);
+                [...sel.options].forEach(o => o.selected = true);
+                $(sel).trigger('change');
+            });
+        });
+        document.querySelectorAll('[data-clear]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.getAttribute('data-clear');
+                const sel = modalEl.querySelector(`select[name="${name}"]`);
+                [...sel.options].forEach(o => o.selected = false);
+                $(sel).val(null).trigger('change');
+            });
+        });
     });
-    document.querySelectorAll('[data-clear]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const name = btn.getAttribute('data-clear');
-        const sel  = modalEl.querySelector(`select[name="${name}"]`);
-        [...sel.options].forEach(o=>o.selected=false);
-        $(sel).val(null).trigger('change');
-      });
-    });
-  });
 </script>
 
 {% endblock %}
