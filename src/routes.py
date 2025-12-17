@@ -1888,11 +1888,24 @@ def tabela_militares():
                 situacao_exibe = 'AGREGADO'
             else:
                 situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
+            
+            sexo_raw = (militar.sexo or '').strip()
+            s = sexo_raw.lower()
 
+            if s.startswith('m'):
+                sexo_exibe = 'Masculino'
+            elif s.startswith('f'):
+                sexo_exibe = 'Feminino'
+            elif sexo_raw:
+                sexo_exibe = sexo_raw
+            else:
+                sexo_exibe = 'N/A'
+            
             militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
                 'nome_guerra': militar.nome_guerra,
+                'sexo': sexo_exibe,  # <-- NOVO
                 'cpf': militar.cpf,
                 'rg': militar.rg,
                 'matricula': militar.matricula,
@@ -1900,12 +1913,13 @@ def tabela_militares():
                 'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
-                'situacao': situacao_exibe,             # <-- aqui
+                'situacao': situacao_exibe,
                 'destino': destino_txt,
                 'inclusao': inclusao_fmt,
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
                 'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
             })
+
 
         return render_template(
             'relacao_militares.html',
