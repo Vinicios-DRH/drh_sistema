@@ -1,3 +1,4 @@
+from flask import request
 import pytz
 from sqlalchemy.orm import backref, foreign
 
@@ -1282,3 +1283,72 @@ class PafFeriasPlano(database.Model):
     updated_at = database.Column(database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
 
     usuario = database.relationship('User', foreign_keys=[usuario_id])
+
+
+def get_client_ip():
+    # Se tiver proxy/reverse, o IP real pode vir no X-Forwarded-For
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr
+
+
+class DepProcesso(database.Model):
+    __tablename__ = "dep_processo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    protocolo = database.Column(database.String(40), unique=True, index=True, nullable=False)
+
+    militar_id = database.Column(database.Integer, database.ForeignKey("militar.id"), nullable=False)
+    ano = database.Column(database.Integer, nullable=False)
+
+    status = database.Column(database.String(30), default="ENVIADO", nullable=False)
+    # ENVIADO -> EM_ANALISE -> DEFERIDO / INDEFERIDO
+
+    enviado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+    enviado_ip = database.Column(database.String(45))
+
+    # check DRH
+    conferido_em = database.Column(database.DateTime(timezone=True))
+    conferido_ip = database.Column(database.String(45))
+    conferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
+
+    militar = database.relationship("Militar")
+    conferido_por = database.relationship("User", foreign_keys=[conferido_por_id])
+    arquivos = database.relationship("DepArquivo", back_populates="processo", cascade="all, delete-orphan")
+    acoes = database.relationship("DepAcaoLog", back_populates="processo", cascade="all, delete-orphan")
+
+
+class DepArquivo(database.Model):
+    __tablename__ = "dep_arquivo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    processo_id = database.Column(database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
+
+    object_key = database.Column(database.Text, nullable=False)  # key no B2
+    nome_original = database.Column(database.String(255))
+    content_type = database.Column(database.String(120))
+
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+
+    processo = database.relationship("DepProcesso", back_populates="arquivos")
+
+
+class DepAcaoLog(database.Model):
+    __tablename__ = "dep_acao_log"
+
+    id = database.Column(database.Integer, primary_key=True)
+    processo_id = database.Column(database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
+
+    acao = database.Column(database.String(50), nullable=False)
+    # EX: "MILITAR_ENVIOU", "DRH_CONFERIU", "DRH_DEFERIU", "DRH_INDEFERIU"
+
+    user_id = database.Column(database.Integer, database.ForeignKey("user.id"))  # pode ser null se quiser
+    ip = database.Column(database.String(45))
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+
+    detalhes = database.Column(database.Text)
+
+    processo = database.relationship("DepProcesso", back_populates="acoes")
+    user = database.relationship("User")
+

@@ -113,6 +113,13 @@ def build_prefix(ano: int, militar_id: int) -> str:
     return f"acumulo/{ano}/{militar_id}"
 
 
+def build_prefix_dependente(ano: int, militar_id: int, protocolo: str) -> str:
+    """
+    Ex: acumulo/2025/123/dependentes/PROTOCOLO-XYZ
+    """
+    return f"acumulo/{ano}/{militar_id}/dependentes/{protocolo}"
+
+
 def b2_check():
     s3 = b2_client()
     print("endpoint:", os.getenv("B2_ENDPOINT"))

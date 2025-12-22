@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+  .page-wrap{padding:20px 0}
+  .glass-card{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  .brand-top{
+    background: linear-gradient(90deg, rgba(13,110,253,.12), rgba(25,135,84,.10));
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    padding: 18px 18px;
+  }
+  .brand-top h4{margin:0;font-weight:800}
+  .muted{opacity:.8}
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: rgba(255,255,255,.55);
+  }
+  .kpi{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: rgba(248,249,250,.7);
+  }
+  .kpi .pill{
+    border:1px solid rgba(0,0,0,.08);
+    border-radius: 999px;
+    padding:6px 10px;
+    font-size:.9rem;
+    background:#fff;
+  }
+  .table-wrap{padding: 0 18px 18px}
+  table{margin:0}
+  .status-badge{font-weight:700; letter-spacing:.2px}
+  .row-link{cursor:pointer}
+  .small2{font-size:.88rem}
+  .nowrap{white-space:nowrap}
+  .truncate{
+    max-width: 260px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  @media (max-width: 576px){
+    .truncate{max-width: 180px}
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container page-wrap">
+  <div class="glass-card">
+
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <h4>DRH • Inclusão de Dependentes</h4>
+        <div class="muted small">Central de recebimento e conferência de protocolos enviados pelos militares.</div>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-primary">CBMAM</span>
+        <div class="small muted mt-1">Atualize a lista quando necessário.</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="input-group" style="max-width:520px; flex:1 1 320px;">
+        <span class="input-group-text">🔎</span>
+        <input id="searchInput" class="form-control" placeholder="Buscar por protocolo, nome, CPF, matrícula, status...">
+        <button id="btnClear" class="btn btn-outline-secondary" type="button">Limpar</button>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <select id="filterStatus" class="form-select" style="min-width: 180px;">
+          <option value="">Todos os status</option>
+          <option value="ENVIADO">ENVIADO</option>
+          <option value="EM_ANALISE">EM_ANALISE</option>
+          <option value="DEFERIDO">DEFERIDO</option>
+          <option value="INDEFERIDO">INDEFERIDO</option>
+        </select>
+
+        <button id="btnRefresh" class="btn btn-outline-primary" type="button" onclick="location.reload()">
+          ⟳ Atualizar
+        </button>
+      </div>
+    </div>
+
+    {# KPIs (contagem feita em JS também, mas aqui já sai rápido) #}
+    <div class="kpi">
+      <div class="pill">Total: <b id="kpiTotal">{{ processos|length }}</b></div>
+      <div class="pill">ENVIADO: <b id="kpiEnviado">0</b></div>
+      <div class="pill">EM ANÁLISE: <b id="kpiAnalise">0</b></div>
+      <div class="pill">DEFERIDO: <b id="kpiDeferido">0</b></div>
+      <div class="pill">INDEFERIDO: <b id="kpiIndeferido">0</b></div>
+      <div class="pill">Exibindo: <b id="kpiExibindo">{{ processos|length }}</b></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th class="nowrap">Protocolo</th>
+              <th>Militar</th>
+              <th class="nowrap">Matrícula</th>
+              <th class="nowrap">Enviado em</th>
+              <th class="nowrap">Status</th>
+              <th class="nowrap">Conferido por</th>
+              <th class="nowrap text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            {% for p in processos %}
+            <tr class="row-link"
+                data-status="{{ (p.status or '')|upper }}"
+                data-protocolo="{{ p.protocolo or '' }}"
+                data-nome="{{ (p.militar.nome_completo if p.militar else '')|lower }}"
+                data-cpf="{{ (p.militar.cpf if p.militar else '') }}"
+                data-matricula="{{ (p.militar.matricula if p.militar else '') }}"
+                onclick="window.location.href='{{ url_for('dep.drh_detalhe_processo', processo_id=p.id) }}'">
+              <td class="nowrap">
+                <span class="fw-bold">{{ p.protocolo }}</span>
+                <div class="small muted">ID: {{ p.id }}</div>
+              </td>
+
+              <td>
+                <div class="fw-semibold truncate">
+                  {{ p.militar.nome_completo if p.militar else "—" }}
+                </div>
+                <div class="small2 muted">
+                  CPF: {{ p.militar.cpf if p.militar else "—" }}
+                </div>
+              </td>
+
+              <td class="nowrap">{{ p.militar.matricula if p.militar else "—" }}</td>
+
+              <td class="nowrap">
+                {% if p.enviado_em %}
+                  {{ p.enviado_em.strftime("%d/%m/%Y %H:%M") }}
+                  <div class="small muted">IP: {{ p.enviado_ip or "—" }}</div>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td class="nowrap">
+                {% set st = (p.status or 'ENVIADO')|upper %}
+                {% if st == 'ENVIADO' %}
+                  <span class="badge bg-warning text-dark status-badge">ENVIADO</span>
+                {% elif st == 'EM_ANALISE' %}
+                  <span class="badge bg-info text-dark status-badge">EM ANÁLISE</span>
+                {% elif st == 'DEFERIDO' %}
+                  <span class="badge bg-success status-badge">DEFERIDO</span>
+                {% elif st == 'INDEFERIDO' %}
+                  <span class="badge bg-danger status-badge">INDEFERIDO</span>
+                {% else %}
+                  <span class="badge bg-secondary status-badge">{{ st }}</span>
+                {% endif %}
+              </td>
+
+              <td class="nowrap">
+                {% if p.conferido_por %}
+                  <div class="fw-semibold">{{ p.conferido_por.nome if p.conferido_por.nome else 'Usuário #' ~ p.conferido_por.id }}</div>
+                  <div class="small muted">{{ p.conferido_em.strftime("%d/%m/%Y %H:%M") if p.conferido_em else "" }}</div>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-end nowrap" onclick="event.stopPropagation()">
+                <a class="btn btn-sm btn-outline-primary"
+                   href="{{ url_for('dep.drh_detalhe_processo', processo_id=p.id) }}">
+                  Abrir
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if processos|length == 0 %}
+          <div class="p-4 text-center muted">
+            Nenhum protocolo encontrado.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const rows = Array.from(document.querySelectorAll("#tbody tr"));
+  const searchInput = document.getElementById("searchInput");
+  const filterStatus = document.getElementById("filterStatus");
+  const btnClear = document.getElementById("btnClear");
+
+  const kpiEnviado = document.getElementById("kpiEnviado");
+  const kpiAnalise = document.getElementById("kpiAnalise");
+  const kpiDeferido = document.getElementById("kpiDeferido");
+  const kpiIndeferido = document.getElementById("kpiIndeferido");
+  const kpiExibindo = document.getElementById("kpiExibindo");
+
+  function normalize(s){ return (s || "").toString().trim().toLowerCase(); }
+
+  function calcKPIs(){
+    let cEnv=0,cAna=0,cDef=0,cInd=0;
+    rows.forEach(r=>{
+      const st = (r.dataset.status || "").toUpperCase();
+      if(st==="ENVIADO") cEnv++;
+      else if(st==="EM_ANALISE") cAna++;
+      else if(st==="DEFERIDO") cDef++;
+      else if(st==="INDEFERIDO") cInd++;
+    });
+    kpiEnviado.textContent = cEnv;
+    kpiAnalise.textContent = cAna;
+    kpiDeferido.textContent = cDef;
+    kpiIndeferido.textContent = cInd;
+  }
+
+  function applyFilters(){
+    const q = normalize(searchInput.value);
+    const stf = (filterStatus.value || "").toUpperCase();
+    let shown = 0;
+
+    rows.forEach(r=>{
+      const st = (r.dataset.status || "").toUpperCase();
+
+      const hay = [
+        r.dataset.protocolo,
+        r.dataset.nome,
+        r.dataset.cpf,
+        r.dataset.matricula,
+        st
+      ].map(normalize).join(" | ");
+
+      const okQ = !q || hay.includes(q);
+      const okS = !stf || st === stf;
+
+      const visible = okQ && okS;
+      r.style.display = visible ? "" : "none";
+      if(visible) shown++;
+    });
+
+    kpiExibindo.textContent = shown;
+  }
+
+  btnClear.addEventListener("click", ()=>{
+    searchInput.value = "";
+    filterStatus.value = "";
+    applyFilters();
+    searchInput.focus();
+  });
+
+  searchInput.addEventListener("input", applyFilters);
+  filterStatus.addEventListener("change", applyFilters);
+
+  calcKPIs();
+  applyFilters();
+})();
+</script>
+{% endblock %}

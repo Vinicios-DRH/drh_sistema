@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .card-form{
+    background:#fff;border-radius:16px;padding:24px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    border:1px solid rgba(0,0,0,.06);
+  }
+  .hint{font-size:.92rem;opacity:.85}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+  <div class="card-form">
+    <h4 class="mb-1">Upload – Inclusão de Dependente</h4>
+    <div class="hint">
+      Anexe o <b>DOCX que você acabou de baixar</b> e também os demais anexos citados no documento
+      (certidão, RG/CPF, espelho IR, etc.).
+    </div>
+
+    <hr class="my-3">
+
+    <form method="POST" action="{{ url_for('dep.upload_post') }}" enctype="multipart/form-data">
+      <input type="hidden" name="token" value="{{ token }}">
+
+      <div class="mb-3">
+        <label class="form-label">Arquivos (pode selecionar vários)</label>
+        <input class="form-control" type="file" name="arquivos" multiple required>
+        <div class="hint mt-1">Dica: selecione tudo de uma vez (DOCX + anexos).</div>
+      </div>
+
+      <button class="btn btn-success" type="submit">Enviar para o Backblaze</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('dep.requerimento_form') }}">Voltar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

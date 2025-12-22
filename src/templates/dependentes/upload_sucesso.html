@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container py-4">
+  <div class="alert alert-success">
+    <h4 class="mb-1">Arquivos enviados com sucesso ✅</h4>
+    <div>Protocolo: <b>{{ protocolo }}</b></div>
+  </div>
+
+  <div class="card p-3">
+    <h6 class="mb-2">Object keys enviados</h6>
+    <ul class="mb-0">
+      {% for k in uploaded %}
+        <li><code>{{ k }}</code></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

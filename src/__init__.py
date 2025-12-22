@@ -123,12 +123,13 @@ from src import routes
 from src.routes_acumulo import bp_acumulo
 from src.routes_paf import bp_paf
 from src.bp_paf_auto import bp_paf_auto
-
+from src.routes_dependentes import bp_dep
 from src.route_ferias import bp_ferias
 app.register_blueprint(bp_acumulo)
 app.register_blueprint(bp_paf)
 app.register_blueprint(bp_ferias)
 app.register_blueprint(bp_paf_auto)
+app.register_blueprint(bp_dep)
 
 # Torna o supabase acessível de fora
 app.supabase = supabase

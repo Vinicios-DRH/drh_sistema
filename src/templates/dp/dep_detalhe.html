@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+  .page-wrap{padding:20px 0}
+  .glass-card{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  .brand-top{
+    background: linear-gradient(90deg, rgba(13,110,253,.12), rgba(25,135,84,.10));
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    padding: 18px 18px;
+  }
+  .brand-top h4{margin:0;font-weight:800}
+  .muted{opacity:.8}
+  .meta-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 768px){
+    .meta-grid{grid-template-columns: 1fr;}
+  }
+  .meta-item{
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 14px;
+    background: #fff;
+    padding: 12px 14px;
+  }
+  .meta-item .label{font-size:.85rem; opacity:.8}
+  .meta-item .value{font-weight:800}
+  .status-badge{font-weight:800; letter-spacing:.2px}
+  .files-card{
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 16px;
+    background: #fff;
+    overflow:hidden;
+  }
+  .files-card .head{
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: rgba(248,249,250,.8);
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+  .file-row{
+    padding: 12px 16px;
+    border-top: 1px solid rgba(0,0,0,.06);
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 10px;
+  }
+  .file-row:first-child{border-top:none}
+  .file-name{font-weight:700}
+  .file-key{font-size:.85rem; opacity:.75; word-break:break-all}
+  .btns{display:flex; gap:8px; flex-wrap:wrap}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container page-wrap">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h4 class="mb-0">Protocolo: <span class="fw-bold">{{ p.protocolo }}</span></h4>
+      <div class="muted small">Detalhes do envio e arquivos anexados para conferência DRH.</div>
+    </div>
+    <div class="btns">
+      <a class="btn btn-outline-secondary" href="{{ url_for('dep.drh_lista_processos') }}">← Voltar</a>
+      <button class="btn btn-outline-primary" type="button" onclick="location.reload()">⟳ Atualizar</button>
+    </div>
+  </div>
+
+  <div class="glass-card mb-3">
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <h4>Resumo do Processo</h4>
+        <div class="muted small">Confira dados, abra anexos e finalize o check.</div>
+      </div>
+      <div class="text-end">
+        {% set st = (p.status or 'ENVIADO')|upper %}
+        {% if st == 'ENVIADO' %}
+          <span class="badge bg-warning text-dark status-badge">ENVIADO</span>
+        {% elif st == 'EM_ANALISE' %}
+          <span class="badge bg-info text-dark status-badge">EM ANÁLISE</span>
+        {% elif st == 'DEFERIDO' %}
+          <span class="badge bg-success status-badge">DEFERIDO</span>
+        {% elif st == 'INDEFERIDO' %}
+          <span class="badge bg-danger status-badge">INDEFERIDO</span>
+        {% else %}
+          <span class="badge bg-secondary status-badge">{{ st }}</span>
+        {% endif %}
+        <div class="small muted mt-1">Ano (pasta): <b>{{ p.ano }}</b></div>
+      </div>
+    </div>
+
+    <div class="p-3 p-md-4">
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="label">Militar</div>
+          <div class="value">{{ p.militar.nome_completo if p.militar else "—" }}</div>
+          <div class="muted small">Matrícula: <b>{{ p.militar.matricula if p.militar else "—" }}</b></div>
+          <div class="muted small">CPF: <b>{{ p.militar.cpf if p.militar else "—" }}</b></div>
+        </div>
+
+        <div class="meta-item">
+          <div class="label">Envio</div>
+          <div class="value">
+            {% if p.enviado_em %}{{ p.enviado_em.strftime("%d/%m/%Y %H:%M") }}{% else %}—{% endif %}
+          </div>
+          <div class="muted small">IP: <b>{{ p.enviado_ip or "—" }}</b></div>
+        </div>
+
+        <div class="meta-item">
+          <div class="label">Conferência DRH</div>
+          <div class="value">
+            {% if p.conferido_em %}{{ p.conferido_em.strftime("%d/%m/%Y %H:%M") }}{% else %}—{% endif %}
+          </div>
+          <div class="muted small">
+            Por: <b>
+              {% if p.conferido_por %}
+                {{ p.conferido_por.nome if p.conferido_por.nome else 'Usuário #' ~ p.conferido_por.id }}
+              {% else %}
+                —
+              {% endif %}
+            </b>
+          </div>
+          <div class="muted small">IP: <b>{{ p.conferido_ip or "—" }}</b></div>
+        </div>
+
+        <div class="meta-item">
+          <div class="label">Ações</div>
+          <div class="muted small mb-2">Marque como conferido após validar os anexos.</div>
+
+          <form method="POST" action="{{ url_for('dep.drh_conferir_processo', processo_id=p.id) }}"
+                onsubmit="return confirmConferir(event)">
+            <button class="btn btn-success w-100" type="submit">
+              ✅ Dar CHECK (Conferido)
+            </button>
+          </form>
+
+          <div class="muted small mt-2">
+            Ao confirmar, será registrado: usuário, data/hora (Manaus) e IP.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="files-card">
+    <div class="head">
+      <div>
+        <div class="fw-bold">Arquivos anexados ({{ arquivos|length }})</div>
+        <div class="muted small">Links temporários (expiram). Abra e confira antes de marcar.</div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="expandKeys()">
+          Mostrar/ocultar keys
+        </button>
+      </div>
+    </div>
+
+    {% if arquivos|length == 0 %}
+      <div class="p-4 text-center muted">Nenhum arquivo registrado neste protocolo.</div>
+    {% else %}
+      {% for a in arquivos %}
+      <div class="file-row">
+        <div style="min-width:0;">
+          <div class="file-name text-truncate" style="max-width: 520px;">
+            {{ a.nome or "Arquivo" }}
+          </div>
+          <div class="file-key d-none fileKey">{{ a.key }}</div>
+        </div>
+        <div class="btns">
+          <a class="btn btn-sm btn-primary" href="{{ a.url }}" target="_blank" rel="noopener">
+            Abrir/baixar
+          </a>
+          <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyText('{{ a.key|e }}')">
+            Copiar key
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  function confirmConferir(e){
+    const st = "{{ (p.status or 'ENVIADO')|upper }}";
+    if(st === "DEFERIDO" || st === "INDEFERIDO"){
+      return confirm("Este processo já parece finalizado. Deseja marcar como conferido novamente?");
+    }
+    return confirm("Confirma que conferiu os anexos e deseja dar CHECK?");
+  }
+
+  function expandKeys(){
+    document.querySelectorAll(".fileKey").forEach(el => {
+      el.classList.toggle("d-none");
+    });
+  }
+
+  async function copyText(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      toast("Key copiada!");
+    }catch(e){
+      // fallback simples
+      const t = document.createElement("textarea");
+      t.value = text;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand("copy");
+      t.remove();
+      toast("Key copiada!");
+    }
+  }
+
+  function toast(msg){
+    const el = document.createElement("div");
+    el.textContent = msg;
+    el.style.position = "fixed";
+    el.style.bottom = "18px";
+    el.style.left = "50%";
+    el.style.transform = "translateX(-50%)";
+    el.style.background = "rgba(0,0,0,.85)";
+    el.style.color = "#fff";
+    el.style.padding = "10px 14px";
+    el.style.borderRadius = "999px";
+    el.style.zIndex = 9999;
+    el.style.fontSize = ".95rem";
+    document.body.appendChild(el);
+    setTimeout(()=> el.remove(), 1400);
+  }
+</script>
+{% endblock %}
