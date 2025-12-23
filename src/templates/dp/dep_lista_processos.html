@@ -1,0 +1,429 @@
+{# templates/dp/dep_lista_processos.html #}
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+  :root{
+    --brand-blue-700:#0d2036;
+    --brand-blue-600:#0c3761;
+    --glass-brd: rgba(255,255,255,.12);
+  }
+
+  body{
+    background: linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;
+  }
+
+  .page-wrap{ padding:18px 10px; }
+
+  .glass-card{
+    background:rgba(255,255,255,.96);
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:16px;
+    box-shadow:0 10px 24px rgba(0,0,0,.12);
+    overflow:hidden;
+  }
+
+  .brand-top{
+    background:linear-gradient(90deg,var(--brand-blue-700) 0%,var(--brand-blue-600) 100%);
+    color:#fff;
+    padding:16px 18px;
+    border-bottom:1px solid rgba(0,0,0,.06);
+  }
+  .brand-top h4{ margin:0; font-weight:900; }
+  .muted{ opacity:.85; }
+
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px;
+    padding:14px 18px;
+    border-bottom:1px solid rgba(0,0,0,.06);
+    background: rgba(255,255,255,.65);
+    align-items:end;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .toolbar .grow{ flex:1 1 320px; min-width:260px; }
+  .toolbar .input-group-text{
+    background: var(--brand-blue-600);
+    color:#fff; border-color: var(--brand-blue-600);
+    font-weight:700;
+  }
+
+  .kpi{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    padding:12px 18px;
+    border-bottom:1px solid rgba(0,0,0,.06);
+    background:#f8fafc;
+  }
+  .kpi .pill{
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:999px;
+    padding:6px 10px;
+    font-size:.9rem;
+    background:#fff;
+    font-weight:600;
+  }
+
+  .table-wrap{ padding:0 12px 12px; }
+  @media (min-width: 992px){ .table-wrap{ padding:0 18px 18px; } }
+
+  .table-responsive{
+    max-height: clamp(420px, 70dvh, 78dvh);
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+  }
+
+  .table-sticky thead th{
+    position: sticky; top: 0; z-index: 3;
+    background:#f8fafc !important;
+    color:#334155;
+    text-transform: uppercase;
+    font-size:.74rem;
+    letter-spacing:.02em;
+    border-bottom:1px solid rgba(0,0,0,.06);
+  }
+
+  .table-hover tbody tr:hover{ background: rgba(13,110,253,.06); }
+  .row-link{ cursor:pointer; }
+
+  .status-badge{ font-weight:800; letter-spacing:.2px; }
+  .nowrap{ white-space:nowrap; }
+  .truncate{
+    max-width: 320px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (max-width: 576px){ .truncate{ max-width:200px; } }
+
+  .finalidade{ display:inline-flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .chip{
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:999px; padding:3px 8px; font-size:.78rem; background:#fff;
+  }
+  .chip.ir{ background: rgba(255,193,7,.14); }
+  .chip.cfpp{ background: rgba(13,110,253,.14); }
+  .chip.ambos{ background: rgba(25,135,84,.14); }
+  .chip.nao-enviado{ background: rgba(108,117,125,.14); }
+
+  .pagination-wrap{
+    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    padding: 10px 6px 0;
+  }
+  .page-info{ font-size:.9rem; opacity:.8; }
+  .page-jump{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .form-mini .form-control, .form-mini .form-select{ height:38px; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid page-wrap">
+  <div class="glass-card">
+
+    <!-- Cabeçalho -->
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <h4>DRH • Dependentes (Protocolos)</h4>
+        <div class="muted small">
+          Visão por <b>militar</b> e <b>protocolo</b>.
+        </div>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-light text-dark">CBMAM</span>
+        <div class="small muted mt-1">Use filtros e paginação.</div>
+      </div>
+    </div>
+
+    {# Toolbar (filtros GET) #}
+    <form class="toolbar form-mini" method="GET" action="{{ url_for('dep.drh_lista_processos') }}">
+      <div class="grow">
+        <label class="form-label small mb-1">Busca</label>
+        <div class="input-group">
+          <span class="input-group-text">🔎</span>
+          <input class="form-control" name="q" value="{{ q or '' }}"
+                 placeholder="Protocolo, militar, CPF, matrícula, dependente...">
+          <a class="btn btn-outline-secondary" href="{{ url_for('dep.drh_lista_processos') }}">Limpar</a>
+        </div>
+      </div>
+
+      <div style="min-width:200px;">
+        <label class="form-label small mb-1">Status</label>
+        <select class="form-select" name="status">
+          <option value="" {% if not status %}selected{% endif %}>Todos</option>
+          <option value="NAO_ENVIADO" {% if status=='NAO_ENVIADO' %}selected{% endif %}>NÃO ENVIADO</option>
+          <option value="ENVIADO" {% if status=='ENVIADO' %}selected{% endif %}>ENVIADO</option>
+          <option value="EM_ANALISE" {% if status=='EM_ANALISE' %}selected{% endif %}>EM_ANALISE</option>
+          <option value="DEFERIDO" {% if status=='DEFERIDO' %}selected{% endif %}>DEFERIDO</option>
+          <option value="INDEFERIDO" {% if status=='INDEFERIDO' %}selected{% endif %}>INDEFERIDO</option>
+        </select>
+      </div>
+
+      <div style="min-width:220px;">
+        <label class="form-label small mb-1">Finalidade</label>
+        <select class="form-select" name="finalidade">
+          <option value="" {% if not finalidade %}selected{% endif %}>Todas</option>
+          <option value="IR" {% if finalidade=='IR' %}selected{% endif %}>Imposto de Renda (IR)</option>
+          <option value="CFPP" {% if finalidade=='CFPP' %}selected{% endif %}>CFPP/CBMAM</option>
+          <option value="AMBOS" {% if finalidade=='AMBOS' %}selected{% endif %}>Ambos</option>
+        </select>
+      </div>
+
+      <div style="min-width:160px;">
+        <label class="form-label small mb-1">Por página</label>
+        <select class="form-select" name="per_page">
+          {% set pp = (per_page or 20) %}
+          <option value="10"  {% if pp==10  %}selected{% endif %}>10</option>
+          <option value="20"  {% if pp==20  %}selected{% endif %}>20</option>
+          <option value="30"  {% if pp==30  %}selected{% endif %}>30</option>
+          <option value="50"  {% if pp==50  %}selected{% endif %}>50</option>
+          <option value="100" {% if pp==100 %}selected{% endif %}>100</option>
+        </select>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+        <button class="btn btn-outline-primary" type="button" onclick="location.reload()">⟳ Atualizar</button>
+      </div>
+    </form>
+
+    {# KPIs (da página atual) #}
+    <div class="kpi">
+      <div class="pill">Registros nesta página: <b id="kpiTotal">{{ pag.items|length }}</b></div>
+      <div class="pill">NÃO ENVIADO: <b id="kpiNaoEnviado">0</b></div>
+      <div class="pill">ENVIADO: <b id="kpiEnviado">0</b></div>
+      <div class="pill">EM ANÁLISE: <b id="kpiAnalise">0</b></div>
+      <div class="pill">DEFERIDO: <b id="kpiDeferido">0</b></div>
+      <div class="pill">INDEFERIDO: <b id="kpiIndeferido">0</b></div>
+      <div class="pill">Total (consulta): <b>{{ pag.total }}</b></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-sticky mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="nowrap">Protocolo</th>
+              <th>Militar</th>
+              <th class="nowrap">Matrícula</th>
+              <th>Dependente</th>
+              <th class="nowrap">Finalidade</th>
+              <th class="nowrap">Enviado em</th>
+              <th class="nowrap">Status</th>
+              <th class="nowrap">Conferido por</th>
+              <th class="nowrap text-end">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody id="tbody">
+            {% for militar, p in pag.items %}
+            {% set has_proc = (p is not none) %}
+            {% set st = (p.status if has_proc else 'NAO_ENVIADO')|upper %}
+
+            <tr class="{% if has_proc %}row-link{% endif %}"
+                data-status="{{ st }}"
+                {% if has_proc %}
+                  onclick="window.location.href='{{ url_for('dep.drh_detalhe_processo', processo_id=p.id) }}'"
+                {% endif %}>
+
+              <td class="nowrap">
+                {% if has_proc %}
+                  <div class="fw-bold">{{ p.protocolo }}</div>
+                  <div class="small muted">ID: {{ p.id }} • Ano: {{ p.ano }}</div>
+                {% else %}
+                  <div class="fw-bold">—</div>
+                  <div class="small muted">Sem protocolo</div>
+                {% endif %}
+              </td>
+
+              <td>
+                <div class="fw-semibold truncate" title="{{ militar.nome_completo or '' }}">
+                  {{ militar.nome_completo or "—" }}
+                </div>
+                <div class="small muted">CPF: {{ militar.cpf or "—" }}</div>
+              </td>
+
+              <td class="nowrap">{{ militar.matricula or "—" }}</td>
+
+              <td>
+                {% if has_proc %}
+                  <div class="fw-semibold truncate" title="{{ p.dependente_nome or '' }}">{{ p.dependente_nome or "—" }}</div>
+                  <div class="small muted">
+                    {{ p.grau_parentesco or "—" }}
+                    {% if p.idade_dependente %} • Idade: {{ p.idade_dependente }}{% endif %}
+                  </div>
+                {% else %}
+                  <div class="fw-semibold muted">—</div>
+                  <div class="small muted">—</div>
+                {% endif %}
+              </td>
+
+              <td class="nowrap">
+                <div class="finalidade">
+                  {% if has_proc %}
+                    {% if p.fim_imposto_renda and p.fim_cadastro_sistema %}
+                      <span class="chip ambos">AMBOS</span>
+                    {% else %}
+                      {% if p.fim_imposto_renda %}<span class="chip ir">IR</span>{% endif %}
+                      {% if p.fim_cadastro_sistema %}<span class="chip cfpp">CFPP</span>{% endif %}
+                      {% if (not p.fim_imposto_renda) and (not p.fim_cadastro_sistema) %}
+                        <span class="chip">—</span>
+                      {% endif %}
+                    {% endif %}
+                  {% else %}
+                    <span class="chip nao-enviado">—</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td class="nowrap">
+                {% if has_proc and p.enviado_em %}
+                  {{ p.enviado_em.strftime("%d/%m/%Y %H:%M") }}
+                  <div class="small muted">IP: {{ p.enviado_ip or "—" }}</div>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td class="nowrap">
+                {% if st == 'NAO_ENVIADO' %}
+                  <span class="badge bg-secondary status-badge">NÃO ENVIADO</span>
+                {% elif st == 'ENVIADO' %}
+                  <span class="badge bg-warning text-dark status-badge">ENVIADO</span>
+                {% elif st == 'EM_ANALISE' %}
+                  <span class="badge bg-info text-dark status-badge">EM ANÁLISE</span>
+                {% elif st == 'DEFERIDO' %}
+                  <span class="badge bg-success status-badge">DEFERIDO</span>
+                {% elif st == 'INDEFERIDO' %}
+                  <span class="badge bg-danger status-badge">INDEFERIDO</span>
+                {% else %}
+                  <span class="badge bg-secondary status-badge">{{ st }}</span>
+                {% endif %}
+              </td>
+
+              <td class="nowrap">
+                {% if has_proc and p.conferido_por %}
+                  <div class="fw-semibold">
+                    {{ p.conferido_por.nome if p.conferido_por.nome else 'Usuário #' ~ p.conferido_por.id }}
+                  </div>
+                  <div class="small muted">
+                    {{ p.conferido_em.strftime("%d/%m/%Y %H:%M") if p.conferido_em else "" }}
+                  </div>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-end nowrap" onclick="event.stopPropagation()">
+                {% if has_proc %}
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="{{ url_for('dep.drh_detalhe_processo', processo_id=p.id) }}">
+                    Abrir
+                  </a>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if pag.items|length == 0 %}
+        <div class="p-4 text-center muted">
+          Nenhum registro encontrado para os filtros informados.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Paginação -->
+      <div class="pagination-wrap">
+        <div class="page-info">
+          Página <b>{{ pag.page }}</b> de <b>{{ pag.pages or 1 }}</b> — Total: <b>{{ pag.total }}</b>
+        </div>
+
+        <nav aria-label="Paginação">
+          <ul class="pagination mb-0">
+            {% set base_args = {'q': q, 'status': status, 'finalidade': finalidade, 'per_page': per_page} %}
+
+            <li class="page-item {% if not pag.has_prev %}disabled{% endif %}">
+              <a class="page-link"
+                 href="{% if pag.has_prev %}{{ url_for('dep.drh_lista_processos', page=pag.prev_num, **base_args) }}{% else %}#{% endif %}">
+                «
+              </a>
+            </li>
+
+            {% set start = (pag.page - 2) if (pag.page - 2) > 1 else 1 %}
+            {% set end = (pag.page + 2) if (pag.page + 2) < (pag.pages or 1) else (pag.pages or 1) %}
+
+            {% if start > 1 %}
+              <li class="page-item"><a class="page-link" href="{{ url_for('dep.drh_lista_processos', page=1, **base_args) }}">1</a></li>
+              {% if start > 2 %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+              {% endif %}
+            {% endif %}
+
+            {% for n in range(start, end + 1) %}
+              <li class="page-item {% if n == pag.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('dep.drh_lista_processos', page=n, **base_args) }}">{{ n }}</a>
+              </li>
+            {% endfor %}
+
+            {% if end < (pag.pages or 1) %}
+              {% if end < (pag.pages or 1) - 1 %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+              {% endif %}
+              <li class="page-item">
+                <a class="page-link" href="{{ url_for('dep.drh_lista_processos', page=(pag.pages or 1), **base_args) }}">{{ pag.pages or 1 }}</a>
+              </li>
+            {% endif %}
+
+            <li class="page-item {% if not pag.has_next %}disabled{% endif %}">
+              <a class="page-link"
+                 href="{% if pag.has_next %}{{ url_for('dep.drh_lista_processos', page=pag.next_num, **base_args) }}{% else %}#{% endif %}">
+                »
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <form class="page-jump form-mini" method="GET" action="{{ url_for('dep.drh_lista_processos') }}">
+          <input type="hidden" name="q" value="{{ q or '' }}">
+          <input type="hidden" name="status" value="{{ status or '' }}">
+          <input type="hidden" name="finalidade" value="{{ finalidade or '' }}">
+          <input type="hidden" name="per_page" value="{{ per_page or 20 }}">
+          <label class="small muted">Ir para:</label>
+          <input name="page" class="form-control" style="width:90px" type="number"
+                 min="1" max="{{ pag.pages or 1 }}" value="{{ pag.page }}">
+          <button class="btn btn-outline-secondary" type="submit">OK</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const rows = Array.from(document.querySelectorAll("#tbody tr"));
+    const kpiNaoEnviado = document.getElementById("kpiNaoEnviado");
+    const kpiEnviado = document.getElementById("kpiEnviado");
+    const kpiAnalise = document.getElementById("kpiAnalise");
+    const kpiDeferido = document.getElementById("kpiDeferido");
+    const kpiIndeferido = document.getElementById("kpiIndeferido");
+
+    let cNE=0,cEnv=0,cAna=0,cDef=0,cInd=0;
+    rows.forEach(r=>{
+      const st = (r.dataset.status||"").toUpperCase();
+      if(st==="NAO_ENVIADO") cNE++;
+      else if(st==="ENVIADO") cEnv++;
+      else if(st==="EM_ANALISE") cAna++;
+      else if(st==="DEFERIDO") cDef++;
+      else if(st==="INDEFERIDO") cInd++;
+    });
+
+    if(kpiNaoEnviado) kpiNaoEnviado.textContent = cNE;
+    if(kpiEnviado)    kpiEnviado.textContent    = cEnv;
+    if(kpiAnalise)    kpiAnalise.textContent    = cAna;
+    if(kpiDeferido)   kpiDeferido.textContent   = cDef;
+    if(kpiIndeferido) kpiIndeferido.textContent = cInd;
+  })();
+</script>
+{% endblock %}

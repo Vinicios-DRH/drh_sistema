@@ -96,8 +96,12 @@ def _dep_signer():
     return URLSafeTimedSerializer(_secret_key(), salt="req-dependente")
 
 
-def make_dep_token(militar_id: int, ano: int, protocolo: str):
-    return _dep_signer().dumps({"militar_id": militar_id, "ano": ano, "protocolo": protocolo})
+def make_dep_token(militar_id: int, ano: int, protocolo: str, payload_extra: dict | None = None):
+    data = {"militar_id": militar_id, "ano": ano, "protocolo": protocolo}
+    if payload_extra:
+        data.update(payload_extra)
+    return _dep_signer().dumps(data)
+
 
 
 def load_dep_token(token: str, max_age_hours=24):
@@ -111,26 +115,6 @@ def requerimento_form():
         militar = get_militar_from_current_user()
     except ValueError as e:
         return str(e), 400
-
-    # pega o processo mais recente do militar
-    # ultimo = (
-    #     DepProcesso.query
-    #     .filter(DepProcesso.militar_id == militar.id)
-    #     .order_by(desc(DepProcesso.id))
-    #     .first()
-    # )
-
-    # if ultimo:
-    #     st = (ultimo.status or "ENVIADO").upper()
-
-    #     # bloqueia se estiver "em andamento" ou "pendente de correção"
-    #     if st in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
-    #         flash(
-    #             f"Você já possui um requerimento em andamento ({st}). "
-    #             f"Acompanhe por lá para ver status ou reenviar documentos.",
-    #             "warning"
-    #         )
-    #         return redirect(url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo))
 
     # se não tem processo ou o último está DEFERIDO, deixa criar novo
     from datetime import datetime
@@ -153,22 +137,20 @@ def gerar_docx_api():
     except ValueError as e:
         return str(e), 400
 
-    # ultimo = (DepProcesso.query
-    #           .filter(DepProcesso.militar_id == militar.id)
-    #           .order_by(desc(DepProcesso.id)).first())
-
-    # if ultimo and (ultimo.status or "ENVIADO").upper() in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
-    #     return jsonify({
-    #         "ok": False,
-    #         "message": "Você já possui um requerimento em andamento. Vá para o acompanhamento.",
-    #         "redirect": url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo)
-    #     }), 409
-
     ano = int(request.form.get("ano") or 0) or __import__(
         "datetime").datetime.now().year
 
     protocolo = f"DEP-{uuid4().hex[:10].upper()}"
-    token = make_dep_token(militar.id, ano, protocolo)
+    token = make_dep_token(
+        militar.id, ano, protocolo,
+        payload_extra={
+            "dependente_nome": request.form.get("nome_dependente","").strip(),
+            "grau_parentesco": request.form.get("grau_parentesco","").strip(),
+            "idade_dependente": request.form.get("idade_dependente","").strip(),
+            "fim_imposto_renda": request.form.get("fim_imposto_renda") == "on",
+            "fim_cadastro_sistema": request.form.get("fim_cadastro_sistema") == "on",
+        }
+    )
 
     x_ir = "X" if request.form.get("fim_imposto_renda") == "on" else " "
     x_cfpp = "X" if request.form.get("fim_cadastro_sistema") == "on" else " "
@@ -239,35 +221,18 @@ def get_client_ip():
 @bp_dep.get("/dependentes/acompanhar")
 @login_required
 def militar_acompanhar():
-    """
-    Mostra o último processo do militar (ou o mais recente).
-    Se quiser, dá pra passar ?protocolo=DEP-XXXX e achar específico.
-    """
     militar = get_militar_from_current_user()
 
-    protocolo = (request.args.get("protocolo") or "").strip().upper()
+    page = int(request.args.get("page") or 1)
+    per_page = min(int(request.args.get("per_page") or 10), 50)
 
-    q = DepProcesso.query.filter(DepProcesso.militar_id == militar.id)
+    q = (DepProcesso.query
+         .filter(DepProcesso.militar_id == militar.id)
+         .order_by(desc(DepProcesso.enviado_em), desc(DepProcesso.id)))
 
-    if protocolo:
-        q = q.filter(DepProcesso.protocolo == protocolo)
+    pag = q.paginate(page=page, per_page=per_page, error_out=False)
 
-    p = q.order_by(desc(DepProcesso.enviado_em), desc(DepProcesso.id)).first()
-
-    if not p:
-        # ainda não tem processo
-        return render_template("dependentes/acompanhar.html", militar=militar, p=None, arquivos=[])
-
-    # arquivos já anexados (sem presigned aqui; só mostrar)
-    arquivos = []
-    for a in getattr(p, "arquivos", []):
-        arquivos.append({
-            "id": a.id,
-            "nome": getattr(a, "nome_original", None) or "Arquivo",
-            "key": a.object_key
-        })
-
-    return render_template("dependentes/acompanhar.html", militar=militar, p=p, arquivos=arquivos)
+    return render_template("dependentes/acompanhar_lista.html", militar=militar, pag=pag)
 
 
 @bp_dep.get("/dependentes/reenvio/<int:processo_id>")
@@ -358,10 +323,18 @@ def upload_post():
     ano = payload["ano"]
     protocolo = payload["protocolo"]
 
+    # campos do dependente / finalidade vindos do token
+    dep_nome = (payload.get("dependente_nome") or "").strip()
+    grau = (payload.get("grau_parentesco") or "").strip()
+    idade = (payload.get("idade_dependente") or "").strip()
+    fim_ir = bool(payload.get("fim_imposto_renda") or False)
+    fim_cfpp = bool(payload.get("fim_cadastro_sistema") or False)
+
     files = request.files.getlist("arquivos")
     if not files or all(f.filename.strip() == "" for f in files):
         return "Nenhum arquivo enviado.", 400
 
+    ip = get_client_ip()
     key_prefix = build_prefix_dependente(ano, militar_id, protocolo)
 
     uploaded = []
@@ -369,9 +342,9 @@ def upload_post():
         if not f or not f.filename:
             continue
         obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
-        uploaded.append((obj_key, f.filename, f.mimetype))
+        uploaded.append((obj_key, f.filename, f.mimetype or "application/octet-stream"))
 
-    # ====== BANCO: cria/atualiza processo ======
+    # ====== cria/atualiza processo por PROTOCOLO ======
     processo = DepProcesso.query.filter_by(protocolo=protocolo).first()
     if not processo:
         processo = DepProcesso(
@@ -380,26 +353,34 @@ def upload_post():
             ano=ano,
             status="ENVIADO",
             enviado_em=now_manaus(),
-            enviado_ip=get_client_ip(),
+            enviado_ip=ip,
+
+            dependente_nome=dep_nome,
+            grau_parentesco=grau,
+            idade_dependente=idade,
+            fim_imposto_renda=fim_ir,
+            fim_cadastro_sistema=fim_cfpp,
         )
         database.session.add(processo)
+        database.session.flush()  # <<< ESSENCIAL
 
-    # registra arquivos (uma linha por arquivo)
+    # agora sim processo.id existe
     for obj_key, nome, ctype in uploaded:
         database.session.add(DepArquivo(
-            processo=processo,
+            processo_id=processo.id,
             object_key=obj_key,
             nome_original=nome,
             content_type=ctype,
             criado_em=now_manaus(),
         ))
 
-    # log de ação do militar
+
+    # log
     database.session.add(DepAcaoLog(
-        processo=processo,
+        processo_id=processo.id,
         acao="MILITAR_ENVIOU",
-        user_id=getattr(current_user, "id", None),
-        ip=get_client_ip(),
+        user_id=current_user.id,
+        ip=ip,
         criado_em=now_manaus(),
         detalhes=f"Enviou {len(uploaded)} arquivo(s).",
     ))
@@ -409,41 +390,78 @@ def upload_post():
     return render_template("dependentes/upload_sucesso.html", protocolo=protocolo, uploaded=[x[0] for x in uploaded])
 
 
+
 @bp_dep.get("/dp/dependentes")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@checar_ocupacao(
+    'DIRETOR DRH', 'CHEFE DRH', 'SUPER USER',
+    'DIRETOR', 'CHEFE', 'DRH'
+)
 def drh_lista_processos():
-    """
-    Lista TODOS os militares:
-    - Com processo (status real)
-    - Sem processo (status = NÃO ENVIADO)
-    """
+    qtxt = (request.args.get("q") or "").strip()
+    status = (request.args.get("status") or "").strip().upper()
+    finalidade = (request.args.get("finalidade") or "").strip().upper()
+    page = int(request.args.get("page") or 1)
+    per_page = min(int(request.args.get("per_page") or 20), 100)
 
     DP = aliased(DepProcesso)
 
-    resultados = (
-        database.session.query(
-            Militar,
-            DP
-        )
+    query = (
+        database.session.query(Militar, DP)
         .outerjoin(
             DP,
             DP.militar_id == Militar.id
         )
-        .order_by(
-            # quem enviou aparece primeiro
-            DP.enviado_em.desc().nullslast(),
-            Militar.nome_completo.asc()
-        )
-        .all()
     )
+
+    # 🔎 Busca
+    if qtxt:
+        like = f"%{qtxt}%"
+        query = query.filter(or_(
+            Militar.nome_completo.ilike(like),
+            Militar.cpf.ilike(like),
+            Militar.matricula.ilike(like),
+            DP.protocolo.ilike(like),
+            DP.dependente_nome.ilike(like),
+        ))
+
+    # 🎯 Status
+    if status:
+        if status == "NAO_ENVIADO":
+            query = query.filter(DP.id.is_(None))
+        else:
+            query = query.filter(func.upper(DP.status) == status)
+
+    # 🎯 Finalidade (apenas se houver processo)
+    if finalidade:
+        if finalidade == "IR":
+            query = query.filter(DP.fim_imposto_renda.is_(True))
+        elif finalidade == "CFPP":
+            query = query.filter(DP.fim_cadastro_sistema.is_(True))
+        elif finalidade == "AMBOS":
+            query = query.filter(
+                DP.fim_imposto_renda.is_(True),
+                DP.fim_cadastro_sistema.is_(True),
+            )
+
+    # 📊 Ordenação:
+    # 1️⃣ quem tem processo primeiro
+    # 2️⃣ mais recentes no topo
+    query = query.order_by(
+        DP.enviado_em.desc().nullslast(),
+        Militar.nome_completo.asc()
+    )
+
+    pag = query.paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
-        "dp/dep_lista.html",
-        resultados=resultados
+        "dp/dep_lista_processos.html",
+        pag=pag,
+        q=qtxt,
+        status=status,
+        finalidade=finalidade,
+        per_page=per_page
     )
-
-
 def get_client_ip():
     # se tem proxy/load balancer: X-Forwarded-For
     xff = request.headers.get("X-Forwarded-For", "")

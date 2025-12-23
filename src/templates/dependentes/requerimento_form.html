@@ -2,68 +2,90 @@
 
 {% block head %}
 <style>
-  :root {
-    --brand-blue-700: #0d2036;
-    --brand-blue-600: #0c3761;
+  :root{
+    --brand-blue-700:#0d2036;
+    --brand-blue-600:#0c3761;
   }
 
-  .page-wrap {
-    padding: 18px 10px;
+  /* fundo padrão */
+  body{
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
 
-  /* Card principal (padrão adotado) */
-  .glass-card {
-    background: rgba(255, 255, 255, .96);
-    border: 1px solid rgba(0, 0, 0, .06);
-    border-radius: 16px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
-    overflow: hidden;
+  .page-wrap{ padding:18px 10px; }
+
+  /* ===== ALERTA FLUTUANTE À FRENTE DA NAVBAR ===== */
+  .alert-stack{
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(960px, 96vw);
+    z-index: 2000;            /* acima da navbar (1030/1050), abaixo de modais se quiser (1055+) */
+    pointer-events: none;     /* evita bloquear cliques fora do alerta */
+  }
+  .alert-stack .alert{
+    pointer-events: auto;     /* permite clicar no X do alerta */
+    box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Card principal (padrão) */
+  .glass-card{
+    background:rgba(255,255,255,.96);
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:16px;
+    box-shadow:0 10px 24px rgba(0,0,0,.12);
+    overflow:hidden;
   }
 
   /* Cabeçalho com alto contraste */
-  .brand-top {
-    background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
-    color: #fff;
-    padding: 16px 18px;
-    border-bottom: 1px solid rgba(0, 0, 0, .06);
+  .brand-top{
+    background:linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
+    color:#fff; padding:16px 18px;
+    border-bottom:1px solid rgba(0,0,0,.06);
   }
+  .brand-top h4{ margin:0; font-weight:900; }
 
-  .brand-top h4 {
-    margin: 0;
-    font-weight: 900
-  }
+  .muted{ opacity:.85; }
+  .section-title{ font-weight:800; font-size:1.05rem; margin:10px 0 6px; }
+  .hint{ font-size:.9rem; opacity:.85; }
+  .btn-primary{ font-weight:700; }
 
-  .muted {
-    opacity: .85
-  }
-
-  /* Seções / dicas */
-  .section-title {
-    font-weight: 800;
-    font-size: 1.05rem;
-    margin: 10px 0 6px
-  }
-
-  .hint {
-    font-size: .9rem;
-    opacity: .85
-  }
-
-  /* Botão primário consistente */
-  .btn-primary {
-    font-weight: 700;
-  }
-
-  /* Inputs compactos em telas menores */
-  @media (max-width:576px) {
-    .form-label {
-      font-size: .92rem;
-    }
+  @media (max-width:576px){
+    .form-label{ font-size:.92rem; }
   }
 </style>
 {% endblock %}
 
 {% block body %}
+
+{# ======= PILHA DE AVISOS (sempre na frente da navbar) ======= #}
+<div class="alert-stack" aria-live="polite" aria-atomic="true">
+  {# aviso direto via contexto (opcional) #}
+  {% if aviso %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+      {{ aviso|safe }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+  {% endif %}
+
+  {# flashed messages do Flask (com categorias) #}
+  {% with msgs=get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for category, msg in msgs %}
+        {# normaliza categorias comuns do BS5 #}
+        {% set cat = category if category in ['primary','secondary','success','danger','warning','info','light','dark'] else 'info' %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+          {{ msg|safe }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
 <div class="container-fluid page-wrap">
   <div class="glass-card">
 
@@ -71,7 +93,8 @@
     <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
       <div>
         <h4>Requerimento – Inclusão de Dependente</h4>
-        <div class="muted small">Preencha e clique em <b>Gerar e baixar</b>. Após baixar, você será levado ao upload.
+        <div class="muted small">
+          Preencha e clique em <b>Gerar e baixar</b>. Após baixar, você será levado ao upload.
         </div>
       </div>
       <span class="badge bg-primary">CBMAM</span>
@@ -80,15 +103,21 @@
     <!-- Formulário -->
     <div class="p-3 p-md-4">
       <form id="formReq" novalidate>
-        <!-- Hidden: militar -->
         <input type="hidden" name="militar_id" value="{{ militar.id }}">
 
         <div class="row g-3">
           <!-- Ano -->
           <div class="col-md-3">
             <label for="inpAno" class="form-label">Ano (pasta)</label>
-            <input id="inpAno" name="ano" class="form-control" inputmode="numeric" pattern="\\d{4}" placeholder="AAAA"
-              value="{{ ano_default }}" required>
+            <input id="inpAno"
+                  name="ano"
+                  class="form-control"
+                  inputmode="numeric"
+                  pattern="[0-9]{4}"
+                  maxlength="4"
+                  placeholder="AAAA"
+                  value="{{ ano_default }}"
+                  required>
             <div class="form-text">Use 4 dígitos (ex.: {{ ano_default }}).</div>
           </div>
 
@@ -99,22 +128,18 @@
             <label class="form-label">Nome completo</label>
             <input class="form-control" value="{{ militar.nome_completo }}" readonly>
           </div>
-
           <div class="col-md-3">
             <label class="form-label">RG</label>
             <input class="form-control" value="{{ militar.rg }}" readonly>
           </div>
-
           <div class="col-md-3">
             <label class="form-label">CPF</label>
             <input class="form-control cpf-view" data-raw="{{ militar.cpf }}" value="{{ militar.cpf }}" readonly>
           </div>
-
           <div class="col-md-3">
             <label class="form-label">Matrícula</label>
             <input class="form-control" value="{{ militar.matricula }}" readonly>
           </div>
-
           <div class="col-md-3">
             <label class="form-label">OBM</label>
             <input class="form-control" value="{{ obm_sigla }}" readonly>
@@ -137,22 +162,26 @@
           <div class="col-12">
             <div class="section-title">Dados do dependente</div>
           </div>
-
           <div class="col-md-6">
             <label for="inpNomeDep" class="form-label">Nome do dependente</label>
             <input id="inpNomeDep" name="nome_dependente" class="form-control" required>
           </div>
-
           <div class="col-md-4">
             <label for="inpParentesco" class="form-label">Grau de parentesco</label>
-            <input id="inpParentesco" name="grau_parentesco" class="form-control" placeholder="Filho(a), Cônjuge..."
-              required>
+            <input id="inpParentesco" name="grau_parentesco" class="form-control"
+                   placeholder="Filho(a), Cônjuge..." required>
           </div>
-
+          <!-- Idade -->
           <div class="col-md-2">
             <label for="inpIdade" class="form-label">Idade</label>
-            <input id="inpIdade" name="idade_dependente" class="form-control" inputmode="numeric" pattern="\\d{1,3}"
-              placeholder="Ex.: 12" required>
+            <input id="inpIdade"
+                  name="idade_dependente"
+                  class="form-control"
+                  inputmode="numeric"
+                  pattern="[0-9]{1,3}"
+                  maxlength="3"
+                  placeholder="Ex.: 12"
+                  required>
           </div>
 
           <!-- Ações -->
@@ -163,7 +192,6 @@
             <a class="btn btn-outline-secondary" href="{{ url_for('dep.upload_page') }}">Ir para upload</a>
           </div>
 
-          <!-- Status -->
           <div id="status" class="hint mt-2" aria-live="polite"></div>
         </div>
       </form>
@@ -179,11 +207,11 @@
     const btn = document.getElementById("btnGerar");
     const btnText = btn.querySelector('.btn-text');
 
-    // Foco no primeiro campo editável
+    // foco no primeiro campo editável
     const firstEditable = form.querySelector('[required]:not([readonly])');
     if (firstEditable) firstEditable.focus();
 
-    // Exibição do CPF formatado (somente visual)
+    // formatação visual do CPF
     const fmtCPF = (v) => {
       const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
       if (d.length <= 3) return d;
@@ -196,28 +224,18 @@
       el.value = fmtCPF(raw);
     });
 
-    // Validação leve de números (ano e idade)
-    const onlyDigits = (e) => { e.target.value = (e.target.value || "").replace(/\D+/g, ""); };
-    const inpAno = document.getElementById('inpAno');
-    const inpIdade = document.getElementById('inpIdade');
-    if (inpAno) inpAno.addEventListener('input', onlyDigits);
-    if (inpIdade) inpIdade.addEventListener('input', onlyDigits);
+    // somente dígitos para ano e idade
+    const onlyDigits = (e) => e.target.value = (e.target.value || "").replace(/\D+/g, "");
+    document.getElementById('inpAno')?.addEventListener('input', onlyDigits);
+    document.getElementById('inpIdade')?.addEventListener('input', onlyDigits);
 
-    // Submissão: gera DOCX, baixa e redireciona p/ upload
+    // submissão: gerar DOCX, baixar e redirecionar para upload
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      // Validação HTML5 básica
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
+      if (!form.checkValidity()) { form.reportValidity(); return; }
 
-      // UI: lock
-      const lock = (on) => {
-        btn.disabled = !!on;
-        btnText.textContent = on ? 'Gerando...' : 'Gerar e baixar';
-      };
+      const lock = (on) => { btn.disabled = !!on; btnText.textContent = on ? 'Gerando...' : 'Gerar e baixar'; };
       lock(true);
       statusEl.innerHTML = '<span class="text-muted">Gerando documento...</span>';
 
@@ -238,7 +256,7 @@
         const m = cd.match(/filename="(.+?)"/);
         if (m) filename = m[1];
 
-        // dispara download
+        // download
         const a = document.createElement("a");
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
@@ -246,7 +264,6 @@
 
         statusEl.innerHTML = '<span class="text-success">Download iniciado. Redirecionando para upload...</span>';
 
-        // aguarda breve intervalo para garantir o início do download antes do redirect
         setTimeout(() => {
           const q = token ? ("?t=" + encodeURIComponent(token)) : "";
           window.location.href = "{{ url_for('dep.upload_page') }}" + q;

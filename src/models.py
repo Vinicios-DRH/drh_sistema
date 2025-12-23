@@ -1302,13 +1302,19 @@ class DepProcesso(database.Model):
     militar_id = database.Column(database.Integer, database.ForeignKey("militar.id"), nullable=False)
     ano = database.Column(database.Integer, nullable=False)
 
-    status = database.Column(database.String(30), default="ENVIADO", nullable=False)
-    # ENVIADO -> EM_ANALISE -> DEFERIDO / INDEFERIDO
+    # NOVO: metadata do dependente (1 processo = 1 dependente)
+    dependente_nome = database.Column(database.String(200))
+    grau_parentesco = database.Column(database.String(80))
+    idade_dependente = database.Column(database.String(10))
+    fim_imposto_renda = database.Column(database.Boolean, default=False, nullable=False)
+    fim_cadastro_sistema = database.Column(database.Boolean, default=False, nullable=False)
 
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    status = database.Column(database.String(30), default="ENVIADO", nullable=False)
     enviado_em = database.Column(database.DateTime(timezone=True), nullable=False)
     enviado_ip = database.Column(database.String(45))
 
-    # check DRH
     conferido_em = database.Column(database.DateTime(timezone=True))
     conferido_ip = database.Column(database.String(45))
     conferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
@@ -1322,7 +1328,6 @@ class DepProcesso(database.Model):
     conferido_por = database.relationship("User", foreign_keys=[conferido_por_id])
     arquivos = database.relationship("DepArquivo", back_populates="processo", cascade="all, delete-orphan")
     acoes = database.relationship("DepAcaoLog", back_populates="processo", cascade="all, delete-orphan")
-
 
 class DepArquivo(database.Model):
     __tablename__ = "dep_arquivo"
