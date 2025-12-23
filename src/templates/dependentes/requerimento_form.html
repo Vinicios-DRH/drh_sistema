@@ -6,32 +6,27 @@
     --brand-blue-700:#0d2036;
     --brand-blue-600:#0c3761;
   }
-
-  /* fundo padrão */
   body{
     background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
-
   .page-wrap{ padding:18px 10px; }
 
-  /* ===== ALERTA FLUTUANTE À FRENTE DA NAVBAR ===== */
   .alert-stack{
     position: fixed;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
     width: min(960px, 96vw);
-    z-index: 99999;           /* maior que navbar, dropdowns, offcanvas e até modal padrão */
-    pointer-events: none;     /* evita bloquear cliques fora do alerta */
+    z-index: 99999;
+    pointer-events: none;
   }
   .alert-stack .alert{
-    pointer-events: auto;     /* permite clicar no X do alerta */
+    pointer-events: auto;
     box-shadow: 0 10px 24px rgba(0,0,0,.18);
     border-radius: 12px;
     margin-bottom: 8px;
   }
 
-  /* Card principal (padrão) */
   .glass-card{
     background:rgba(255,255,255,.96);
     border:1px solid rgba(0,0,0,.06);
@@ -39,8 +34,6 @@
     box-shadow:0 10px 24px rgba(0,0,0,.12);
     overflow:hidden;
   }
-
-  /* Cabeçalho com alto contraste */
   .brand-top{
     background:linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
     color:#fff; padding:16px 18px;
@@ -49,9 +42,27 @@
   .brand-top h4{ margin:0; font-weight:900; }
 
   .muted{ opacity:.85; }
-  .section-title{ font-weight:800; font-size:1.05rem; margin:10px 0 6px; }
+  .section-title{ font-weight:800; font-size:1.05rem; margin:12px 0 6px; }
   .hint{ font-size:.9rem; opacity:.85; }
   .btn-primary{ font-weight:700; }
+
+  .dep-card{
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 6px 14px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .dep-card .dep-head{
+    background:#f8fafc;
+    padding:10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    border-bottom:1px solid rgba(0,0,0,.06);
+  }
+  .dep-card .dep-body{ padding:12px; }
 
   @media (max-width:576px){
     .form-label{ font-size:.92rem; }
@@ -60,8 +71,6 @@
 {% endblock %}
 
 {% block body %}
-
-{# ======= PILHA DE AVISOS (sempre na frente da navbar) ======= #}
 <div class="alert-stack" id="alertStack" aria-live="polite" aria-atomic="true">
   {% if aviso %}
     <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -87,9 +96,9 @@
   <div class="glass-card">
     <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
       <div>
-        <h4>Requerimento – Inclusão de Dependente</h4>
+        <h4>Requerimento – Inclusão de Dependentes</h4>
         <div class="muted small">
-          Preencha e clique em <b>Gerar e baixar</b>. Após baixar, você será levado ao upload.
+          Você pode adicionar <b>quantos dependentes quiser</b>. Eles irão no mesmo DOCX em forma de tabela.
         </div>
       </div>
       <span class="badge bg-primary">CBMAM</span>
@@ -98,6 +107,7 @@
     <div class="p-3 p-md-4">
       <form id="formReq" novalidate>
         <input type="hidden" name="militar_id" value="{{ militar.id }}">
+        <input type="hidden" name="dependentes_json" id="dependentesJson" value="[]">
 
         <div class="row g-3">
           <div class="col-md-3">
@@ -138,26 +148,23 @@
               <label class="form-check-label" for="ir">Dedução do dependente no Imposto de Renda</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="fim_cadastro_sistema" id="cfpp">
+              <input class="form-check-input" type="checkbox" name="fim_cadastro_sistema" id="cfpp" checked>
               <label class="form-check-label" for="cfpp">Cadastro no sistema CFPP/CBMAM</label>
+            </div>
+            <div class="hint mt-1">
+              Você só precisa gerar outro requerimento se a finalidade for diferente.
             </div>
           </div>
 
-          <div class="col-12"><div class="section-title">Dados do dependente</div></div>
-          <div class="col-md-6">
-            <label for="inpNomeDep" class="form-label">Nome do dependente</label>
-            <input id="inpNomeDep" name="nome_dependente" class="form-control" required>
+          <div class="col-12 d-flex align-items-end justify-content-between flex-wrap gap-2 mt-2">
+            <div>
+              <div class="section-title mb-1">Dependentes</div>
+              <div class="hint">Adicione os dependentes abaixo. Todos irão para o DOCX em forma de tabela.</div>
+            </div>
+            <button type="button" class="btn btn-outline-primary" id="btnAddDep">+ Adicionar dependente</button>
           </div>
-          <div class="col-md-4">
-            <label for="inpParentesco" class="form-label">Grau de parentesco</label>
-            <input id="inpParentesco" name="grau_parentesco" class="form-control"
-                   placeholder="Filho(a), Cônjuge..." required>
-          </div>
-          <div class="col-md-2">
-            <label for="inpIdade" class="form-label">Idade</label>
-            <input id="inpIdade" name="idade_dependente" class="form-control"
-                   inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" placeholder="Ex.: 12" required>
-          </div>
+
+          <div class="col-12" id="depsWrap"></div>
 
           <div class="col-12 d-flex gap-2 mt-2">
             <button id="btnGerar" type="submit" class="btn btn-primary">
@@ -170,91 +177,174 @@
         </div>
       </form>
     </div>
-
   </div>
 </div>
 
 <script>
-  (function () {
-    // Garante que o banner fique no topo do <body>, fora de qualquer stacking context do layout
-    const stack = document.getElementById('alertStack');
-    if (stack && stack.parentElement !== document.body) {
-      document.body.appendChild(stack);
+(function () {
+  const stack = document.getElementById('alertStack');
+  if (stack && stack.parentElement !== document.body) document.body.appendChild(stack);
+
+  const form = document.getElementById("formReq");
+  const statusEl = document.getElementById("status");
+  const btn = document.getElementById("btnGerar");
+  const btnText = btn.querySelector(".btn-text");
+
+  const depsWrap = document.getElementById("depsWrap");
+  const btnAdd = document.getElementById("btnAddDep");
+  const depsJson = document.getElementById("dependentesJson");
+
+  const fmtCPF = (v) => {
+    const d = String(v || "").replace(/\\D+/g, "").slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.replace(/(\\d{3})(\\d+)/, "$1.$2");
+    if (d.length <= 9) return d.replace(/(\\d{3})(\\d{3})(\\d+)/, "$1.$2.$3");
+    return d.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{0,2}).*/, "$1.$2.$3-$4");
+  };
+  document.querySelectorAll(".cpf-view[data-raw]").forEach(el => el.value = fmtCPF(el.dataset.raw || ""));
+
+  const onlyDigits = (e) => e.target.value = (e.target.value || "").replace(/\\D+/g, "");
+  document.getElementById("inpAno")?.addEventListener("input", onlyDigits);
+
+  let deps = [];
+
+  function syncJson(){
+    const clean = deps.map(d => ({
+      nome: (d.nome || "").trim(),
+      grau_parentesco: (d.grau_parentesco || "").trim(),
+      idade: String(d.idade || "").trim()
+    }));
+    depsJson.value = JSON.stringify(clean);
+  }
+
+  function render(){
+    depsWrap.innerHTML = "";
+    deps.forEach((d, idx) => {
+      const n = idx + 1;
+      const card = document.createElement("div");
+      card.className = "dep-card mb-3";
+      card.innerHTML = `
+        <div class="dep-head">
+          <div class="fw-bold">Dependente #${n}</div>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-act="rm">Remover</button>
+        </div>
+        <div class="dep-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome do dependente</label>
+              <input class="form-control" data-f="nome" value="${(d.nome||"").replaceAll('"','&quot;')}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Grau de parentesco</label>
+              <input class="form-control" data-f="grau_parentesco" value="${(d.grau_parentesco||"").replaceAll('"','&quot;')}" placeholder="Filho(a), Cônjuge..." required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Idade</label>
+              <input class="form-control" data-f="idade" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" value="${(d.idade||"").toString().replaceAll('"','&quot;')}" required>
+            </div>
+          </div>
+        </div>
+      `;
+      card.querySelector('[data-act="rm"]').addEventListener("click", () => {
+        deps.splice(idx, 1);
+        if (deps.length === 0) deps.push({nome:"", grau_parentesco:"", idade:""});
+        syncJson(); render();
+      });
+
+      card.querySelectorAll("input[data-f]").forEach(inp => {
+        inp.addEventListener("input", (e) => {
+          const f = e.target.dataset.f;
+          let v = e.target.value || "";
+          if (f === "idade") v = v.replace(/\\D+/g, "");
+          deps[idx][f] = v;
+          syncJson();
+        });
+      });
+
+      depsWrap.appendChild(card);
+    });
+
+    syncJson();
+  }
+
+  btnAdd.addEventListener("click", () => {
+    deps.push({nome:"", grau_parentesco:"", idade:""});
+    render();
+    depsWrap.querySelectorAll("input")[ (deps.length-1)*3 ]?.focus();
+  });
+
+  // inicia com 1 dependente
+  deps = [{nome:"", grau_parentesco:"", idade:""}];
+  render();
+
+  function validateDeps(){
+    if (!deps || deps.length === 0) return false;
+    for (const d of deps){
+      if (!(d.nome||"").trim()) return false;
+      if (!(d.grau_parentesco||"").trim()) return false;
+      if (!String(d.idade||"").trim()) return false;
+    }
+    return true;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (!validateDeps()) {
+      statusEl.innerHTML = `<div class="alert alert-warning mt-2 mb-0">Preencha todos os campos de todos os dependentes.</div>`;
+      return;
     }
 
-    const form = document.getElementById("formReq");
-    const statusEl = document.getElementById("status");
-    const btn = document.getElementById("btnGerar");
-    const btnText = btn.querySelector('.btn-text');
+    const lock = (on) => { btn.disabled = !!on; btnText.textContent = on ? "Gerando..." : "Gerar e baixar"; };
+    lock(true);
+    statusEl.innerHTML = '<span class="text-muted">Gerando documento...</span>';
 
-    const firstEditable = form.querySelector('[required]:not([readonly])');
-    if (firstEditable) firstEditable.focus();
+    try {
+      syncJson();
+      const fd = new FormData(form);
 
-    const fmtCPF = (v) => {
-      const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
-      if (d.length <= 3) return d;
-      if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, "$1.$2");
-      if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
-      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
-    };
-    document.querySelectorAll('.cpf-view[data-raw]').forEach(el => {
-      const raw = el.getAttribute('data-raw') || "";
-      el.value = fmtCPF(raw);
-    });
+      const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin"
+      });
 
-    const onlyDigits = (e) => e.target.value = (e.target.value || "").replace(/\D+/g, "");
-    document.getElementById('inpAno')?.addEventListener('input', onlyDigits);
-    document.getElementById('inpIdade')?.addEventListener('input', onlyDigits);
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-
-      const lock = (on) => { btn.disabled = !!on; btnText.textContent = on ? 'Gerando...' : 'Gerar e baixar'; };
-      lock(true);
-      statusEl.innerHTML = '<span class="text-muted">Gerando documento...</span>';
-
-      try {
-        const fd = new FormData(form);
-        const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", {
-          method: "POST",
-          body: fd,
-          credentials: "same-origin", // <-- importante pro Safari/Edge com sessão
-        });
-        if (!resp.ok) {
-          const txt = await resp.text().catch(()=> "");
-          throw new Error(txt || `Falha ao gerar o DOCX (HTTP ${resp.status}).`);
-        }
-
-        const token = resp.headers.get("X-DEP-TOKEN") || "";
-        const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";
-
-        const blob = await resp.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        const cd = resp.headers.get("Content-Disposition") || "";
-        let filename = `REQUERIMENTO_${protocolo}.docx`;
-        const m = cd.match(/filename="(.+?)"/);
-        if (m) filename = m[1];
-
-        const a = document.createElement("a");
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click(); a.remove();
-        window.URL.revokeObjectURL(url);
-
-        statusEl.innerHTML = '<span class="text-success">Download iniciado. Redirecionando para upload...</span>';
-
-        setTimeout(() => {
-          const q = token ? ("?t=" + encodeURIComponent(token)) : "";
-          window.location.href = "{{ url_for('dep.upload_page') }}" + q;
-        }, 400);
-
-      } catch (err) {
-        console.error(err);
-        statusEl.innerHTML = `<div class="alert alert-danger mt-2 mb-0">Erro: ${err.message || err}</div>`;
-        lock(false);
+      if (!resp.ok) {
+        const txt = await resp.text().catch(()=> "");
+        throw new Error(txt || `Falha ao gerar o DOCX (HTTP ${resp.status}).`);
       }
-    });
-  })();
+
+      const token = resp.headers.get("X-DEP-TOKEN") || "";
+      const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const cd = resp.headers.get("Content-Disposition") || "";
+      let filename = `REQUERIMENTO_${protocolo}.docx`;
+      const m = cd.match(/filename="(.+?)"/);
+      if (m) filename = m[1];
+
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+
+      statusEl.innerHTML = '<span class="text-success">Download iniciado. Redirecionando para upload...</span>';
+
+      setTimeout(() => {
+        const q = token ? ("?t=" + encodeURIComponent(token)) : "";
+        window.location.href = "{{ url_for('dep.upload_page') }}" + q;
+      }, 400);
+
+    } catch (err) {
+      console.error(err);
+      statusEl.innerHTML = `<div class="alert alert-danger mt-2 mb-0">Erro: ${err.message || err}</div>`;
+      btn.disabled = false;
+      btnText.textContent = "Gerar e baixar";
+    }
+  });
+})();
 </script>
 {% endblock %}

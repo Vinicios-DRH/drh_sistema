@@ -1,3 +1,4 @@
+import json
 import os
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -10,7 +11,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import func, desc, or_
 from sqlalchemy.orm import aliased
 from src.decorators.control import checar_ocupacao
-from src.decorators.docx_fill import docx_fill_template
+from src.decorators.docx_fill import docx_fill_template_dependentes
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, build_prefix_dependente, _secret_key
 
 from src import database
@@ -137,12 +138,17 @@ def gerar_docx_api():
         ano = int(request.form.get("ano") or 0) or __import__("datetime").datetime.now().year
         protocolo = f"DEP-{uuid4().hex[:10].upper()}"
 
+        # lê lista
+        deps_raw = (request.form.get("dependentes_json") or "[]").strip()
+        dependentes = json.loads(deps_raw)
+        if not isinstance(dependentes, list) or len(dependentes) == 0:
+            return "Informe pelo menos 1 dependente.", 400
+
+        # token carrega a lista inteira
         token = make_dep_token(
             militar.id, ano, protocolo,
             payload_extra={
-                "dependente_nome": request.form.get("nome_dependente","").strip(),
-                "grau_parentesco": request.form.get("grau_parentesco","").strip(),
-                "idade_dependente": request.form.get("idade_dependente","").strip(),
+                "dependentes": dependentes,
                 "fim_imposto_renda": request.form.get("fim_imposto_renda") == "on",
                 "fim_cadastro_sistema": request.form.get("fim_cadastro_sistema") == "on",
             }
@@ -159,23 +165,21 @@ def gerar_docx_api():
             "{cpf}": (militar.cpf or "").strip(),
             "{matricula}": (militar.matricula or "").strip(),
             "{obm}": (obm_sigla or "").strip(),
-
-            "{nome_dependente}": request.form.get("nome_dependente", "").strip(),
-            "{grau_parentesco}": request.form.get("grau_parentesco", "").strip(),
-            "{idade_dependente}": request.form.get("idade_dependente", "").strip(),
-
             "({x_imposto_renda})": f"({x_ir})",
             "({x_cadastro_sistema})": f"({x_cfpp})",
             "Manaus, ........ de ........................ de ....": data_manaus_extenso(),
         }
 
-        # garante que o template existe (erro comum em prod / path)
         if not os.path.exists(TEMPLATE_DOCX_PATH):
             raise FileNotFoundError(f"Template DOCX não encontrado: {TEMPLATE_DOCX_PATH}")
 
-        docx_bytes = docx_fill_template(TEMPLATE_DOCX_PATH, mapping)
+        docx_bytes = docx_fill_template_dependentes(
+            TEMPLATE_DOCX_PATH,
+            mapping=mapping,
+            dependentes=dependentes
+        )
 
-        filename = f"REQUERIMENTO_INCLUSAO_DEPENDENTE_{protocolo}.docx"
+        filename = f"REQUERIMENTO_INCLUSAO_DEPENDENTES_{protocolo}.docx"
         bio = BytesIO(docx_bytes)
         bio.seek(0)
 
@@ -191,14 +195,11 @@ def gerar_docx_api():
         return resp
 
     except Exception as e:
-        # log completo no servidor
         current_app.logger.exception("Erro ao gerar DOCX: %s", e)
-
-        # devolve mensagem útil pro frontend
         msg = f"{type(e).__name__}: {e}"
         r = make_response(msg, 500)
         r.headers["Content-Type"] = "text/plain; charset=utf-8"
-        r.headers["Cache-Control"] = "no-store" 
+        r.headers["Cache-Control"] = "no-store"
         return r
 
 
@@ -331,12 +332,18 @@ def upload_post():
     ano = payload["ano"]
     protocolo = payload["protocolo"]
 
-    # campos do dependente / finalidade vindos do token
-    dep_nome = (payload.get("dependente_nome") or "").strip()
-    grau = (payload.get("grau_parentesco") or "").strip()
-    idade = (payload.get("idade_dependente") or "").strip()
+    dependentes = payload.get("dependentes") or []
+    if not isinstance(dependentes, list) or len(dependentes) == 0:
+        return "Token sem dependentes.", 400
+
     fim_ir = bool(payload.get("fim_imposto_renda") or False)
     fim_cfpp = bool(payload.get("fim_cadastro_sistema") or False)
+
+    # “cache” do primeiro dependente só pra lista do DRH continuar legal
+    primeiro = dependentes[0]
+    dep_nome = (primeiro.get("nome") or "").strip()
+    grau = (primeiro.get("grau") or "").strip()
+    idade = str(primeiro.get("idade") or "").strip()
 
     files = request.files.getlist("arquivos")
     if not files or all(f.filename.strip() == "" for f in files):
@@ -363,9 +370,12 @@ def upload_post():
             enviado_em=now_manaus(),
             enviado_ip=ip,
 
-            dependente_nome=dep_nome,
+            dependente_nome=dep_nome,      # primeiro dependente (cache)
             grau_parentesco=grau,
             idade_dependente=idade,
+            dependentes_json=dependentes,  # lista completa
+            dependentes_qtd=len(dependentes),
+
             fim_imposto_renda=fim_ir,
             fim_cadastro_sistema=fim_cfpp,
         )
