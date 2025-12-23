@@ -21,7 +21,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: min(960px, 96vw);
-    z-index: 2000;            /* acima da navbar (1030/1050), abaixo de modais se quiser (1055+) */
+    z-index: 99999;           /* maior que navbar, dropdowns, offcanvas e até modal padrão */
     pointer-events: none;     /* evita bloquear cliques fora do alerta */
   }
   .alert-stack .alert{
@@ -62,8 +62,7 @@
 {% block body %}
 
 {# ======= PILHA DE AVISOS (sempre na frente da navbar) ======= #}
-<div class="alert-stack" aria-live="polite" aria-atomic="true">
-  {# aviso direto via contexto (opcional) #}
+<div class="alert-stack" id="alertStack" aria-live="polite" aria-atomic="true">
   {% if aviso %}
     <div class="alert alert-info alert-dismissible fade show" role="alert">
       {{ aviso|safe }}
@@ -71,11 +70,9 @@
     </div>
   {% endif %}
 
-  {# flashed messages do Flask (com categorias) #}
   {% with msgs=get_flashed_messages(with_categories=true) %}
     {% if msgs %}
       {% for category, msg in msgs %}
-        {# normaliza categorias comuns do BS5 #}
         {% set cat = category if category in ['primary','secondary','success','danger','warning','info','light','dark'] else 'info' %}
         <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
           {{ msg|safe }}
@@ -88,8 +85,6 @@
 
 <div class="container-fluid page-wrap">
   <div class="glass-card">
-
-    <!-- Cabeçalho -->
     <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
       <div>
         <h4>Requerimento – Inclusão de Dependente</h4>
@@ -100,30 +95,21 @@
       <span class="badge bg-primary">CBMAM</span>
     </div>
 
-    <!-- Formulário -->
     <div class="p-3 p-md-4">
       <form id="formReq" novalidate>
         <input type="hidden" name="militar_id" value="{{ militar.id }}">
 
         <div class="row g-3">
-          <!-- Ano -->
           <div class="col-md-3">
             <label for="inpAno" class="form-label">Ano (pasta)</label>
-            <input id="inpAno"
-                  name="ano"
-                  class="form-control"
-                  inputmode="numeric"
-                  pattern="[0-9]{4}"
-                  maxlength="4"
-                  placeholder="AAAA"
-                  value="{{ ano_default }}"
-                  required>
+            <input id="inpAno" name="ano" class="form-control"
+                   inputmode="numeric" pattern="[0-9]{4}" maxlength="4"
+                   placeholder="AAAA" value="{{ ano_default }}" required>
             <div class="form-text">Use 4 dígitos (ex.: {{ ano_default }}).</div>
           </div>
 
           <div class="col-md-9 d-none d-md-block"></div>
 
-          <!-- Dados do militar (somente leitura) -->
           <div class="col-md-6">
             <label class="form-label">Nome completo</label>
             <input class="form-control" value="{{ militar.nome_completo }}" readonly>
@@ -145,7 +131,6 @@
             <input class="form-control" value="{{ obm_sigla }}" readonly>
           </div>
 
-          <!-- Finalidade -->
           <div class="col-12">
             <div class="section-title">Finalidade</div>
             <div class="form-check">
@@ -158,10 +143,7 @@
             </div>
           </div>
 
-          <!-- Dependente -->
-          <div class="col-12">
-            <div class="section-title">Dados do dependente</div>
-          </div>
+          <div class="col-12"><div class="section-title">Dados do dependente</div></div>
           <div class="col-md-6">
             <label for="inpNomeDep" class="form-label">Nome do dependente</label>
             <input id="inpNomeDep" name="nome_dependente" class="form-control" required>
@@ -171,20 +153,12 @@
             <input id="inpParentesco" name="grau_parentesco" class="form-control"
                    placeholder="Filho(a), Cônjuge..." required>
           </div>
-          <!-- Idade -->
           <div class="col-md-2">
             <label for="inpIdade" class="form-label">Idade</label>
-            <input id="inpIdade"
-                  name="idade_dependente"
-                  class="form-control"
-                  inputmode="numeric"
-                  pattern="[0-9]{1,3}"
-                  maxlength="3"
-                  placeholder="Ex.: 12"
-                  required>
+            <input id="inpIdade" name="idade_dependente" class="form-control"
+                   inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" placeholder="Ex.: 12" required>
           </div>
 
-          <!-- Ações -->
           <div class="col-12 d-flex gap-2 mt-2">
             <button id="btnGerar" type="submit" class="btn btn-primary">
               <span class="btn-text">Gerar e baixar</span>
@@ -202,16 +176,20 @@
 
 <script>
   (function () {
+    // Garante que o banner fique no topo do <body>, fora de qualquer stacking context do layout
+    const stack = document.getElementById('alertStack');
+    if (stack && stack.parentElement !== document.body) {
+      document.body.appendChild(stack);
+    }
+
     const form = document.getElementById("formReq");
     const statusEl = document.getElementById("status");
     const btn = document.getElementById("btnGerar");
     const btnText = btn.querySelector('.btn-text');
 
-    // foco no primeiro campo editável
     const firstEditable = form.querySelector('[required]:not([readonly])');
     if (firstEditable) firstEditable.focus();
 
-    // formatação visual do CPF
     const fmtCPF = (v) => {
       const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
       if (d.length <= 3) return d;
@@ -224,15 +202,12 @@
       el.value = fmtCPF(raw);
     });
 
-    // somente dígitos para ano e idade
     const onlyDigits = (e) => e.target.value = (e.target.value || "").replace(/\D+/g, "");
     document.getElementById('inpAno')?.addEventListener('input', onlyDigits);
     document.getElementById('inpIdade')?.addEventListener('input', onlyDigits);
 
-    // submissão: gerar DOCX, baixar e redirecionar para upload
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
       const lock = (on) => { btn.disabled = !!on; btnText.textContent = on ? 'Gerando...' : 'Gerar e baixar'; };
@@ -250,13 +225,11 @@
         const blob = await resp.blob();
         const url = window.URL.createObjectURL(blob);
 
-        // nome do arquivo
         const cd = resp.headers.get("Content-Disposition") || "";
         let filename = `REQUERIMENTO_${protocolo}.docx`;
         const m = cd.match(/filename="(.+?)"/);
         if (m) filename = m[1];
 
-        // download
         const a = document.createElement("a");
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
