@@ -113,24 +113,24 @@ def requerimento_form():
         return str(e), 400
 
     # pega o processo mais recente do militar
-    ultimo = (
-        DepProcesso.query
-        .filter(DepProcesso.militar_id == militar.id)
-        .order_by(desc(DepProcesso.id))
-        .first()
-    )
+    # ultimo = (
+    #     DepProcesso.query
+    #     .filter(DepProcesso.militar_id == militar.id)
+    #     .order_by(desc(DepProcesso.id))
+    #     .first()
+    # )
 
-    if ultimo:
-        st = (ultimo.status or "ENVIADO").upper()
+    # if ultimo:
+    #     st = (ultimo.status or "ENVIADO").upper()
 
-        # bloqueia se estiver "em andamento" ou "pendente de correção"
-        if st in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
-            flash(
-                f"Você já possui um requerimento em andamento ({st}). "
-                f"Acompanhe por lá para ver status ou reenviar documentos.",
-                "warning"
-            )
-            return redirect(url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo))
+    #     # bloqueia se estiver "em andamento" ou "pendente de correção"
+    #     if st in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
+    #         flash(
+    #             f"Você já possui um requerimento em andamento ({st}). "
+    #             f"Acompanhe por lá para ver status ou reenviar documentos.",
+    #             "warning"
+    #         )
+    #         return redirect(url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo))
 
     # se não tem processo ou o último está DEFERIDO, deixa criar novo
     from datetime import datetime
@@ -153,16 +153,16 @@ def gerar_docx_api():
     except ValueError as e:
         return str(e), 400
 
-    ultimo = (DepProcesso.query
-              .filter(DepProcesso.militar_id == militar.id)
-              .order_by(desc(DepProcesso.id)).first())
+    # ultimo = (DepProcesso.query
+    #           .filter(DepProcesso.militar_id == militar.id)
+    #           .order_by(desc(DepProcesso.id)).first())
 
-    if ultimo and (ultimo.status or "ENVIADO").upper() in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
-        return jsonify({
-            "ok": False,
-            "message": "Você já possui um requerimento em andamento. Vá para o acompanhamento.",
-            "redirect": url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo)
-        }), 409
+    # if ultimo and (ultimo.status or "ENVIADO").upper() in {"ENVIADO", "EM_ANALISE", "INDEFERIDO"}:
+    #     return jsonify({
+    #         "ok": False,
+    #         "message": "Você já possui um requerimento em andamento. Vá para o acompanhamento.",
+    #         "redirect": url_for("dep.militar_acompanhar", protocolo=ultimo.protocolo)
+    #     }), 409
 
     ano = int(request.form.get("ano") or 0) or __import__(
         "datetime").datetime.now().year
@@ -314,11 +314,15 @@ def militar_reenvio_post(processo_id):
 
         obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
 
+        ctype = f.mimetype or "application/octet-stream"
+
         # registra arquivo no banco
         a = DepArquivo(
             processo_id=p.id,
             object_key=obj_key,
-            nome_original=f.filename
+            nome_original=f.filename,
+            content_type=ctype,
+            criado_em=now_manaus(),
         )
         database.session.add(a)
 
@@ -407,7 +411,7 @@ def upload_post():
 
 @bp_dep.get("/dp/dependentes")
 @login_required
-@checar_ocupacao("DIRETOR", "CHEFE", "DRH", "SUPER USER")
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def drh_lista_processos():
     """
     Lista TODOS os militares:
@@ -450,7 +454,7 @@ def get_client_ip():
 
 @bp_dep.get("/drh/dependentes/<int:processo_id>")
 @login_required
-@checar_ocupacao("DIRETOR", "CHEFE", "DRH", "SUPER USER")
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def drh_detalhe_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -466,7 +470,7 @@ def drh_detalhe_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/conferir")
 @login_required
-@checar_ocupacao("DIRETOR", "CHEFE", "DRH", "SUPER USER")
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def drh_conferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -497,7 +501,7 @@ def drh_conferir_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/indeferir")
 @login_required
-@checar_ocupacao("DIRETOR", "CHEFE", "DRH", "SUPER USER")
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def drh_indeferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -530,7 +534,7 @@ def drh_indeferir_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/deferir")
 @login_required
-@checar_ocupacao("DIRETOR", "CHEFE", "DRH", "SUPER USER")
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
 def drh_deferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 

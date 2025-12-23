@@ -1334,7 +1334,8 @@ class DepArquivo(database.Model):
     nome_original = database.Column(database.String(255))
     content_type = database.Column(database.String(120))
 
-    criado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, 
+        server_default=func.now())
 
     processo = database.relationship("DepProcesso", back_populates="arquivos")
 
