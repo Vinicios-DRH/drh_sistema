@@ -23,7 +23,7 @@ bp_dep = Blueprint("dep", __name__, template_folder="templates")
 TEMPLATE_DOCX_PATH = os.path.join(
     os.path.dirname(__file__),
     "template",
-    "FORMULARIO DE REQUERIMENTO Inclusão de Dependentes.docx"
+    "formulario_requerimento_inclusao_dependentes.docx"
 )
 
 MESES_PT = {
@@ -198,7 +198,7 @@ def gerar_docx_api():
         msg = f"{type(e).__name__}: {e}"
         r = make_response(msg, 500)
         r.headers["Content-Type"] = "text/plain; charset=utf-8"
-        r.headers["Cache-Control"] = "no-store"
+        r.headers["Cache-Control"] = "no-store" 
         return r
 
 
