@@ -1,146 +1,263 @@
 {% extends "base.html" %}
+
 {% block head %}
 <style>
-  .card-form{
-    background:#fff;border-radius:16px;padding:24px;
-    box-shadow:0 8px 24px rgba(0,0,0,.08);
-    border:1px solid rgba(0,0,0,.06);
+  :root {
+    --brand-blue-700: #0d2036;
+    --brand-blue-600: #0c3761;
   }
-  .section-title{font-weight:800;font-size:1.05rem;margin:18px 0 10px}
-  .hint{font-size:.9rem;opacity:.8}
+
+  .page-wrap {
+    padding: 18px 10px;
+  }
+
+  /* Card principal (padrão adotado) */
+  .glass-card {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+    overflow: hidden;
+  }
+
+  /* Cabeçalho com alto contraste */
+  .brand-top {
+    background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
+    color: #fff;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+  }
+
+  .brand-top h4 {
+    margin: 0;
+    font-weight: 900
+  }
+
+  .muted {
+    opacity: .85
+  }
+
+  /* Seções / dicas */
+  .section-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+    margin: 10px 0 6px
+  }
+
+  .hint {
+    font-size: .9rem;
+    opacity: .85
+  }
+
+  /* Botão primário consistente */
+  .btn-primary {
+    font-weight: 700;
+  }
+
+  /* Inputs compactos em telas menores */
+  @media (max-width:576px) {
+    .form-label {
+      font-size: .92rem;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container py-4">
-  <div class="card-form">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+<div class="container-fluid page-wrap">
+  <div class="glass-card">
+
+    <!-- Cabeçalho -->
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
       <div>
-        <h4 class="mb-1">Requerimento – Inclusão de Dependente</h4>
-        <div class="hint">Preencha e clique em <b>Gerar e baixar</b>. Após baixar, você será levado ao upload.</div>
+        <h4>Requerimento – Inclusão de Dependente</h4>
+        <div class="muted small">Preencha e clique em <b>Gerar e baixar</b>. Após baixar, você será levado ao upload.
+        </div>
       </div>
       <span class="badge bg-primary">CBMAM</span>
     </div>
 
-    <hr class="my-3">
+    <!-- Formulário -->
+    <div class="p-3 p-md-4">
+      <form id="formReq" novalidate>
+        <!-- Hidden: militar -->
+        <input type="hidden" name="militar_id" value="{{ militar.id }}">
 
-    <form id="formReq">
-      <!-- se você tiver current_user, pode preencher hidden automaticamente -->
-      <input type="hidden" name="militar_id" value="{{ militar.id }}">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Ano (pasta)</label>
-            <input name="ano" class="form-control" value="{{ ano_default }}" required>
-        </div>
+        <div class="row g-3">
+          <!-- Ano -->
+          <div class="col-md-3">
+            <label for="inpAno" class="form-label">Ano (pasta)</label>
+            <input id="inpAno" name="ano" class="form-control" inputmode="numeric" pattern="\\d{4}" placeholder="AAAA"
+              value="{{ ano_default }}" required>
+            <div class="form-text">Use 4 dígitos (ex.: {{ ano_default }}).</div>
+          </div>
 
-        <div class="col-md-6"></div>
+          <div class="col-md-9 d-none d-md-block"></div>
 
-        <div class="col-md-6">
+          <!-- Dados do militar (somente leitura) -->
+          <div class="col-md-6">
             <label class="form-label">Nome completo</label>
             <input class="form-control" value="{{ militar.nome_completo }}" readonly>
-        </div>
-        <div class="col-md-3">
+          </div>
+
+          <div class="col-md-3">
             <label class="form-label">RG</label>
             <input class="form-control" value="{{ militar.rg }}" readonly>
-        </div>
-        <div class="col-md-3">
+          </div>
+
+          <div class="col-md-3">
             <label class="form-label">CPF</label>
-            <input class="form-control" value="{{ militar.cpf }}" readonly>
-        </div>
-        <div class="col-md-3">
+            <input class="form-control cpf-view" data-raw="{{ militar.cpf }}" value="{{ militar.cpf }}" readonly>
+          </div>
+
+          <div class="col-md-3">
             <label class="form-label">Matrícula</label>
             <input class="form-control" value="{{ militar.matricula }}" readonly>
-        </div>
-        <div class="col-md-3">
+          </div>
+
+          <div class="col-md-3">
             <label class="form-label">OBM</label>
             <input class="form-control" value="{{ obm_sigla }}" readonly>
-        </div>
-
-        <div class="col-12">
-          <div class="section-title">Finalidade</div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="fim_imposto_renda" id="ir">
-            <label class="form-check-label" for="ir">Dedução do dependente no Imposto de Renda</label>
           </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="fim_cadastro_sistema" id="cfpp">
-            <label class="form-check-label" for="cfpp">Cadastro no sistema CFPP/CBMAM</label>
+
+          <!-- Finalidade -->
+          <div class="col-12">
+            <div class="section-title">Finalidade</div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="fim_imposto_renda" id="ir">
+              <label class="form-check-label" for="ir">Dedução do dependente no Imposto de Renda</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="fim_cadastro_sistema" id="cfpp">
+              <label class="form-check-label" for="cfpp">Cadastro no sistema CFPP/CBMAM</label>
+            </div>
           </div>
-        </div>
 
-        <div class="col-12">
-          <div class="section-title">Dados do dependente</div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Nome do dependente</label>
-          <input name="nome_dependente" class="form-control" required>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Grau de parentesco</label>
-          <input name="grau_parentesco" class="form-control" placeholder="Filho(a), Cônjuge..." required>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label">Idade</label>
-          <input name="idade_dependente" class="form-control" placeholder="Ex: 12" required>
-        </div>
-        <div class="col-12 d-flex gap-2 mt-2">
-          <button id="btnGerar" type="submit" class="btn btn-primary">
-            Gerar e baixar
-          </button>
-          <a class="btn btn-outline-secondary" href="{{ url_for('dep.upload_page') }}">Ir para upload</a>
-        </div>
+          <!-- Dependente -->
+          <div class="col-12">
+            <div class="section-title">Dados do dependente</div>
+          </div>
 
-        <div id="status" class="hint mt-2"></div>
-      </div>
-    </form>
+          <div class="col-md-6">
+            <label for="inpNomeDep" class="form-label">Nome do dependente</label>
+            <input id="inpNomeDep" name="nome_dependente" class="form-control" required>
+          </div>
+
+          <div class="col-md-4">
+            <label for="inpParentesco" class="form-label">Grau de parentesco</label>
+            <input id="inpParentesco" name="grau_parentesco" class="form-control" placeholder="Filho(a), Cônjuge..."
+              required>
+          </div>
+
+          <div class="col-md-2">
+            <label for="inpIdade" class="form-label">Idade</label>
+            <input id="inpIdade" name="idade_dependente" class="form-control" inputmode="numeric" pattern="\\d{1,3}"
+              placeholder="Ex.: 12" required>
+          </div>
+
+          <!-- Ações -->
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button id="btnGerar" type="submit" class="btn btn-primary">
+              <span class="btn-text">Gerar e baixar</span>
+            </button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('dep.upload_page') }}">Ir para upload</a>
+          </div>
+
+          <!-- Status -->
+          <div id="status" class="hint mt-2" aria-live="polite"></div>
+        </div>
+      </form>
+    </div>
+
   </div>
 </div>
 
 <script>
-  const form = document.getElementById("formReq");
-  const statusEl = document.getElementById("status");
-  const btn = document.getElementById("btnGerar");
+  (function () {
+    const form = document.getElementById("formReq");
+    const statusEl = document.getElementById("status");
+    const btn = document.getElementById("btnGerar");
+    const btnText = btn.querySelector('.btn-text');
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    statusEl.textContent = "Gerando documento...";
-    btn.disabled = true;
+    // Foco no primeiro campo editável
+    const firstEditable = form.querySelector('[required]:not([readonly])');
+    if (firstEditable) firstEditable.focus();
 
-    try {
-      const fd = new FormData(form);
-      const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", { method: "POST", body: fd });
-      if (!resp.ok) throw new Error("Falha ao gerar o DOCX.");
+    // Exibição do CPF formatado (somente visual)
+    const fmtCPF = (v) => {
+      const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
+      if (d.length <= 3) return d;
+      if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, "$1.$2");
+      if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
+    };
+    document.querySelectorAll('.cpf-view[data-raw]').forEach(el => {
+      const raw = el.getAttribute('data-raw') || "";
+      el.value = fmtCPF(raw);
+    });
 
-      const token = resp.headers.get("X-DEP-TOKEN");
-      const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";
+    // Validação leve de números (ano e idade)
+    const onlyDigits = (e) => { e.target.value = (e.target.value || "").replace(/\D+/g, ""); };
+    const inpAno = document.getElementById('inpAno');
+    const inpIdade = document.getElementById('inpIdade');
+    if (inpAno) inpAno.addEventListener('input', onlyDigits);
+    if (inpIdade) inpIdade.addEventListener('input', onlyDigits);
 
-      const blob = await resp.blob();
-      const url = window.URL.createObjectURL(blob);
+    // Submissão: gera DOCX, baixa e redireciona p/ upload
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-      // tenta obter nome do arquivo
-      const cd = resp.headers.get("Content-Disposition") || "";
-      let filename = `REQUERIMENTO_${protocolo}.docx`;
-      const match = cd.match(/filename="(.+?)"/);
-      if (match) filename = match[1];
+      // Validação HTML5 básica
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
 
-      // dispara download
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      // UI: lock
+      const lock = (on) => {
+        btn.disabled = !!on;
+        btnText.textContent = on ? 'Gerando...' : 'Gerar e baixar';
+      };
+      lock(true);
+      statusEl.innerHTML = '<span class="text-muted">Gerando documento...</span>';
 
-      statusEl.textContent = "Download iniciado. Redirecionando para upload...";
-      // redireciona pro upload com token
-      window.location.href = "{{ url_for('dep.upload_page') }}" + "?t=" + encodeURIComponent(token);
+      try {
+        const fd = new FormData(form);
+        const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", { method: "POST", body: fd });
+        if (!resp.ok) throw new Error("Falha ao gerar o DOCX.");
 
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = "Erro: " + (err.message || err);
-      btn.disabled = false;
-    }
-  });
+        const token = resp.headers.get("X-DEP-TOKEN") || "";
+        const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";
+
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // nome do arquivo
+        const cd = resp.headers.get("Content-Disposition") || "";
+        let filename = `REQUERIMENTO_${protocolo}.docx`;
+        const m = cd.match(/filename="(.+?)"/);
+        if (m) filename = m[1];
+
+        // dispara download
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+
+        statusEl.innerHTML = '<span class="text-success">Download iniciado. Redirecionando para upload...</span>';
+
+        // aguarda breve intervalo para garantir o início do download antes do redirect
+        setTimeout(() => {
+          const q = token ? ("?t=" + encodeURIComponent(token)) : "";
+          window.location.href = "{{ url_for('dep.upload_page') }}" + q;
+        }, 400);
+
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = `<div class="alert alert-danger mt-2 mb-0">Erro: ${err.message || err}</div>`;
+        lock(false);
+      }
+    });
+  })();
 </script>
 {% endblock %}

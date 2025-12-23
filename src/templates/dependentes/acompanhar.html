@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    :root {
+        --brand-red: #B5121B;
+        --brand-red-600: #9F1119;
+    }
+
+    /* fundo padrão do app */
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .page-wrap {
+        padding: 20px 0
+    }
+
+    /* cartão principal */
+    .glass-card {
+        background: rgba(255, 255, 255, .96);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+        overflow: hidden;
+    }
+
+    /* cabeçalho do cartão */
+    .brand-top {
+        background: linear-gradient(90deg, rgba(13, 110, 253, .12), rgba(25, 135, 84, .10));
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        padding: 18px;
+    }
+
+    .brand-top h4 {
+        margin: 0;
+        font-weight: 900
+    }
+
+    .muted {
+        opacity: .8
+    }
+
+    /* grid de metadados */
+    .meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px
+    }
+
+    @media (max-width:768px) {
+        .meta-grid {
+            grid-template-columns: 1fr
+        }
+    }
+
+    .meta-item {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 14px;
+        padding: 12px 14px;
+    }
+
+    .label {
+        font-size: .85rem;
+        opacity: .8
+    }
+
+    .value {
+        font-weight: 900
+    }
+
+    .status-badge {
+        font-weight: 900;
+        letter-spacing: .2px
+    }
+
+    /* arquivos */
+    .files-card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .files-card .head {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        background: rgba(248, 249, 250, .85);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .file-row {
+        padding: 12px 16px;
+        border-top: 1px solid rgba(0, 0, 0, .06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .file-row:first-child {
+        border-top: none
+    }
+
+    .file-name {
+        font-weight: 800
+    }
+
+    .file-key {
+        font-size: .85rem;
+        opacity: .75;
+        word-break: break-all
+    }
+
+    .btns {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap
+    }
+
+    /* banner flutuante acima da navbar */
+    .alert-float {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        top: calc(env(safe-area-inset-top, 0px) + 12px);
+        z-index: 3000;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+        border-radius: 12px;
+        padding: 12px 14px;
+        max-width: min(920px, 96vw);
+    }
+
+    .alert-float.alert-dismissible .btn-close {
+        filter: invert(1) grayscale(100%);
+    }
+
+    .alert-float .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px
+    }
+
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container page-wrap">
+
+    {# ===== Banner flutuante (sempre acima da navbar) ===== #}
+    {% set has_p = (p is not none) %}
+    {% if not has_p %}
+    <div class="alert alert-info alert-float alert-dismissible fade show" role="alert">
+        Você ainda não enviou nenhum protocolo de inclusão de dependentes.
+        <div class="actions">
+            <a class="btn btn-primary btn-sm" href="{{ url_for('dep.requerimento_form') }}">Iniciar requerimento</a>
+            <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="alert"
+                aria-label="Fechar">Fechar</button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% else %}
+    {% set st = (p.status or 'ENVIADO')|upper %}
+    {% if st == 'INDEFERIDO' %}
+    <div class="alert alert-danger alert-float alert-dismissible fade show" role="alert">
+        <div class="fw-bold">Seu protocolo foi INDEFERIDO.</div>
+        <div class="small mt-1">Motivo: <b>{{ p.indeferido_motivo or "Consulte o DRH para detalhes." }}</b></div>
+        <div class="actions">
+            <a class="btn btn-light btn-sm" href="{{ url_for('dep.militar_reenvio_page', processo_id=p.id) }}">Reenviar
+                documentos</a>
+            <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="alert"
+                aria-label="Fechar">Fechar</button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% elif st == 'DEFERIDO' %}
+    <div class="alert alert-success alert-float alert-dismissible fade show" role="alert">
+        <div class="fw-bold">Seu protocolo foi DEFERIDO ✅</div>
+        <div class="small mt-1">Nada mais precisa ser feito.</div>
+        <div class="actions">
+            <button type="button" class="btn btn-outline-dark btn-sm" data-bs-dismiss="alert"
+                aria-label="Fechar">Fechar</button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% elif st == 'EM_ANALISE' %}
+    <div class="alert alert-info alert-float alert-dismissible fade show" role="alert">
+        <div class="fw-bold">Seu protocolo está EM ANÁLISE.</div>
+        <div class="small mt-1">Aguarde conferência do DRH.</div>
+        <div class="actions">
+            <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="alert"
+                aria-label="Fechar">Fechar</button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% else %}
+    <div class="alert alert-warning alert-float alert-dismissible fade show" role="alert">
+        <div class="fw-bold">Seu protocolo foi ENVIADO.</div>
+        <div class="small mt-1">Aguarde conferência do DRH.</div>
+        <div class="actions">
+            <button type="button" class="btn btn-outline-dark btn-sm" data-bs-dismiss="alert"
+                aria-label="Fechar">Fechar</button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Cartão principal -->
+    <div class="glass-card mb-3">
+        <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+            <div>
+                <h4>Acompanhamento • Dependentes</h4>
+                <div class="muted small">Veja o status do seu envio e reenvie documentos caso seja indeferido.</div>
+            </div>
+            <div class="text-end"><span class="badge bg-primary">CBMAM</span></div>
+        </div>
+
+        <div class="p-3 p-md-4">
+            {% if not p %}
+            {# sem conteúdo duplicado: o banner já orienta o usuário #}
+            {% else %}
+            {% set st = (p.status or 'ENVIADO')|upper %}
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="label">Protocolo</div>
+                    <div class="value">{{ p.protocolo }}</div>
+                    <div class="muted small">Ano (pasta): <b>{{ p.ano }}</b></div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="label">Status</div>
+                    <div class="value">
+                        {% if st == 'ENVIADO' %}
+                        <span class="badge bg-warning text-dark status-badge">ENVIADO</span>
+                        {% elif st == 'EM_ANALISE' %}
+                        <span class="badge bg-info text-dark status-badge">EM ANÁLISE</span>
+                        {% elif st == 'DEFERIDO' %}
+                        <span class="badge bg-success status-badge">DEFERIDO</span>
+                        {% elif st == 'INDEFERIDO' %}
+                        <span class="badge bg-danger status-badge">INDEFERIDO</span>
+                        {% else %}
+                        <span class="badge bg-secondary status-badge">{{ st }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="muted small mt-1">
+                        Enviado em:
+                        <b>{% if p.enviado_em %}{{ p.enviado_em.strftime("%d/%m/%Y %H:%M") }}{% else %}—{% endif %}</b>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="label">Militar</div>
+                    <div class="value">{{ militar.nome_completo }}</div>
+                    <div class="muted small">
+                        Matrícula: <b>{{ militar.matricula or "—" }}</b> •
+                        CPF: <b><span class="cpf" data-cpf="{{ militar.cpf or '' }}">{{ militar.cpf or "—" }}</span></b>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="label">Ações</div>
+                    <div class="btns mt-1">
+                        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dep.requerimento_form') }}">Novo
+                            requerimento</a>
+                        {% if st == 'INDEFERIDO' %}
+                        <a class="btn btn-danger btn-sm"
+                            href="{{ url_for('dep.militar_reenvio_page', processo_id=p.id) }}">
+                            Reenviar documentos faltantes
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="form-text mt-2">Se indeferido, clique em <b>Reenviar</b> e anexe somente o que faltou.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if p %}
+    <div class="files-card">
+        <div class="head">
+            <div>
+                <div class="fw-bold">Arquivos já anexados ({{ arquivos|length }})</div>
+                <div class="muted small">Aqui é só acompanhamento. O DRH abre os arquivos pelo painel deles.</div>
+            </div>
+            <div class="btns">
+                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="expandKeys()">Mostrar/ocultar
+                    keys</button>
+            </div>
+        </div>
+
+        {% if arquivos|length == 0 %}
+        <div class="p-4 text-center muted">Nenhum arquivo registrado nesse protocolo.</div>
+        {% else %}
+        {% for a in arquivos %}
+        <div class="file-row">
+            <div style="min-width:0;">
+                <div class="file-name text-truncate" style="max-width:680px;">{{ a.nome }}</div>
+                <div class="file-key d-none fileKey">{{ a.key }}</div>
+            </div>
+            <div class="btns">
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                    onclick="copyText('{{ a.key|e }}')">Copiar key</button>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function expandKeys() { document.querySelectorAll(".fileKey").forEach(el => el.classList.toggle("d-none")); }
+
+    async function copyText(text) {
+        try { await navigator.clipboard.writeText(text); toast("Key copiada!"); }
+        catch (e) {
+            const t = document.createElement("textarea");
+            t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove();
+            toast("Key copiada!");
+        }
+    }
+
+    function toast(msg) {
+        const el = document.createElement("div");
+        el.textContent = msg;
+        el.style.position = "fixed"; el.style.bottom = "18px"; el.style.left = "50%"; el.style.transform = "translateX(-50%)";
+        el.style.background = "rgba(0,0,0,.85)"; el.style.color = "#fff"; el.style.padding = "10px 14px";
+        el.style.borderRadius = "999px"; el.style.zIndex = 3050; el.style.fontSize = ".95rem";
+        document.body.appendChild(el); setTimeout(() => el.remove(), 1400);
+    }
+
+    // Formata visualmente o CPF exibido
+    (function () {
+        const fmt = v => {
+            const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
+            if (d.length <= 3) return d;
+            if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, "$1.$2");
+            if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+            return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
+        };
+        document.querySelectorAll(".cpf[data-cpf]").forEach(el => {
+            const raw = el.getAttribute("data-cpf") || "";
+            if (raw) el.textContent = fmt(raw);
+        });
+    })();
+</script>
+{% endblock %}

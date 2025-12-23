@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+    :root {
+        --brand-red: #B5121B;
+        --brand-red-600: #9F1119;
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    /* fundo padrão */
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .page-wrap {
+        padding: 18px 10px
+    }
+
+    /* cartão principal */
+    .glass-card {
+        background: rgba(255, 255, 255, .96);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+        overflow: hidden;
+    }
+
+    /* cabeçalho do cartão — alto contraste */
+    .brand-top {
+        background: linear-gradient(90deg, #0d2036 0%, #0c3761 100%);
+        color: #fff;
+        padding: 16px 18px;
+    }
+
+    .brand-top h4 {
+        margin: 0;
+        font-weight: 900
+    }
+
+    .muted {
+        opacity: .85
+    }
+
+    /* badge status */
+    .status-badge {
+        font-weight: 800;
+        letter-spacing: .2px
+    }
+
+    /* área de upload */
+    .dropzone {
+        border: 2px dashed rgba(0, 0, 0, .2);
+        border-radius: 12px;
+        padding: 18px;
+        background: #fff;
+        transition: .15s ease-in-out;
+        cursor: pointer;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+        border-color: var(--brand-red);
+        background: #fff6f6;
+    }
+
+    .file-list {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px
+    }
+
+    .file-chip {
+        background: #f1f5f9;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: .9rem;
+    }
+
+    .btn-brand {
+        background: var(--brand-red);
+        border-color: var(--brand-red);
+        color: #fff;
+        font-weight: 700
+    }
+
+    .btn-brand:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600)
+    }
+
+    /* ===== Banner flutuante acima da navbar ===== */
+    .alert-float {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 12px;
+        /* fica abaixo do topo */
+        z-index: 4000;
+        /* maior que navbar e dropdowns */
+        max-width: min(960px, 96vw);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+
+    .alert-float .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px
+    }
+
+    .alert-float .btn-close {
+        filter: invert(1) grayscale(100%);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Banner flutuante (na frente da navbar) -->
+<div class="alert alert-warning alert-float" role="alert">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <div class="fw-bold">Seu protocolo foi INDEFERIDO.</div>
+            <div class="small mt-1">Motivo: <b>{{ p.indeferido_motivo or "Consulte o DRH para detalhes." }}</b></div>
+            <div class="actions">
+                <a class="btn btn-dark btn-sm"
+                    href="{{ url_for('dep.militar_reenvio_page', processo_id=p.id) }}">Reenviar documentos</a>
+                <button type="button" class="btn btn-outline-dark btn-sm" data-bs-dismiss="alert"
+                    aria-label="Fechar">Fechar</button>
+            </div>
+        </div>
+        <span class="badge bg-danger status-badge">INDEFERIDO</span>
+    </div>
+</div>
+
+<div class="container-fluid page-wrap">
+    <div class="glass-card">
+        <!-- Cabeçalho -->
+        <div class="brand-top d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h4>Reenvio de documentos – {{ p.protocolo }}</h4>
+                <div class="muted small">Envie somente os documentos faltantes. O DRH fará nova conferência.</div>
+            </div>
+            <span class="badge bg-danger status-badge">INDEFERIDO</span>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="p-3 p-md-4">
+            {# O aviso principal está no banner flutuante para ficar visível acima da navbar #}
+
+            <form id="formReenvio" method="POST" enctype="multipart/form-data" novalidate>
+                <label for="arquivos" class="form-label fw-semibold">Selecione os arquivos faltantes</label>
+
+                <!-- Dropzone / Input -->
+                <div id="drop" class="dropzone mb-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span>📎</span>
+                        <div>
+                            <div class="fw-semibold">Clique para escolher ou arraste e solte aqui</div>
+                            <div class="small text-muted">Você pode selecionar múltiplos arquivos.</div>
+                        </div>
+                    </div>
+                    <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple required>
+                </div>
+
+                <!-- Lista de arquivos escolhidos -->
+                <div id="fileList" class="file-list"></div>
+
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                    <button id="btnEnviar" class="btn btn-brand" type="submit">Enviar reenvio</button>
+                    <a class="btn btn-outline-secondary"
+                        href="{{ url_for('dep.militar_acompanhar', protocolo=p.protocolo) }}">
+                        Voltar
+                    </a>
+                </div>
+
+                <div class="form-text mt-2">
+                    Você pode anexar quantos arquivos precisar. Após o reenvio, o status volta para <b>ENVIADO</b>.
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const input = document.getElementById('arquivos');
+        const drop = document.getElementById('drop');
+        const list = document.getElementById('fileList');
+        const form = document.getElementById('formReenvio');
+        const btn = document.getElementById('btnEnviar');
+
+        drop.addEventListener('click', () => input.click());
+
+        ['dragenter', 'dragover'].forEach(evt =>
+            drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); })
+        );
+        ['dragleave', 'drop'].forEach(evt =>
+            drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); })
+        );
+        drop.addEventListener('drop', e => {
+            if (e.dataTransfer?.files?.length) {
+                input.files = e.dataTransfer.files;
+                renderList();
+            }
+        });
+
+        input.addEventListener('change', renderList);
+
+        function renderList() {
+            list.innerHTML = '';
+            Array.from(input.files || []).forEach(f => {
+                const chip = document.createElement('span');
+                chip.className = 'file-chip';
+                chip.textContent = f.name;
+                list.appendChild(chip);
+            });
+        }
+
+        form.addEventListener('submit', (e) => {
+            if (!input.files || input.files.length === 0) {
+                e.preventDefault();
+                alert('Selecione ao menos um arquivo para reenviar.');
+                return;
+            }
+            btn.disabled = true;
+            const original = btn.textContent;
+            btn.textContent = 'Enviando...';
+            setTimeout(() => { try { btn.disabled = false; btn.textContent = original; } catch (_) { } }, 6000);
+        });
+    })();
+</script>
+{% endblock %}

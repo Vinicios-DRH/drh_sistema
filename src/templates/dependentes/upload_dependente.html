@@ -1,38 +1,209 @@
 {% extends "base.html" %}
+
 {% block head %}
 <style>
-  .card-form{
-    background:#fff;border-radius:16px;padding:24px;
-    box-shadow:0 8px 24px rgba(0,0,0,.08);
-    border:1px solid rgba(0,0,0,.06);
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #9F1119;
+    --brand-blue-700: #0d2036;
+    --brand-blue-600: #0c3761;
   }
-  .hint{font-size:.92rem;opacity:.85}
+
+  /* fundo padrão (opcional; mantém coerência visual) */
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
+
+  .page-wrap {
+    padding: 18px 10px;
+  }
+
+  /* Card padrão (glass) */
+  .glass-card {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+    overflow: hidden;
+  }
+
+  /* Cabeçalho com alto contraste */
+  .brand-top {
+    background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
+    color: #fff;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+  }
+
+  .brand-top h4 {
+    margin: 0;
+    font-weight: 900;
+  }
+
+  .muted {
+    opacity: .85;
+  }
+
+  .hint {
+    font-size: .92rem;
+    opacity: .85;
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed rgba(0, 0, 0, .2);
+    border-radius: 12px;
+    padding: 18px;
+    background: #fff;
+    transition: .15s ease-in-out;
+    cursor: pointer;
+  }
+
+  .dropzone:hover,
+  .dropzone.dragover {
+    border-color: var(--brand-red);
+    background: #fff6f6;
+  }
+
+  .file-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .file-chip {
+    background: #f1f5f9;
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: .9rem;
+  }
+
+  .btn-brand {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .btn-brand:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600);
+  }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container py-4">
-  <div class="card-form">
-    <h4 class="mb-1">Upload – Inclusão de Dependente</h4>
-    <div class="hint">
-      Anexe o <b>DOCX que você acabou de baixar</b> e também os demais anexos citados no documento
-      (certidão, RG/CPF, espelho IR, etc.).
+<div class="container-fluid page-wrap">
+  <div class="glass-card">
+
+    <!-- Cabeçalho -->
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <h4>Upload – Inclusão de Dependente</h4>
+        <div class="muted small">
+          Anexe o <b>DOCX que você acabou de baixar</b> e também os demais anexos citados no documento
+          (certidão, RG/CPF, espelho IR, etc.).
+        </div>
+      </div>
+      <span class="badge bg-primary">CBMAM</span>
     </div>
 
-    <hr class="my-3">
+    <!-- Conteúdo -->
+    <div class="p-3 p-md-4">
+      <form id="formUpload" method="POST" action="{{ url_for('dep.upload_post') }}" enctype="multipart/form-data"
+        novalidate>
+        <input type="hidden" name="token" value="{{ token }}">
 
-    <form method="POST" action="{{ url_for('dep.upload_post') }}" enctype="multipart/form-data">
-      <input type="hidden" name="token" value="{{ token }}">
+        <!-- Dropzone / Input -->
+        <label class="form-label fw-semibold" for="arquivos">Arquivos</label>
+        <div id="drop" class="dropzone mb-2" aria-describedby="hintMulti">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span>📎</span>
+            <div>
+              <div class="fw-semibold">Clique para escolher ou arraste e solte aqui</div>
+              <div id="hintMulti" class="small text-muted">Você pode selecionar vários arquivos (DOCX + anexos).</div>
+            </div>
+          </div>
+          <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple required>
+        </div>
 
-      <div class="mb-3">
-        <label class="form-label">Arquivos (pode selecionar vários)</label>
-        <input class="form-control" type="file" name="arquivos" multiple required>
-        <div class="hint mt-1">Dica: selecione tudo de uma vez (DOCX + anexos).</div>
-      </div>
+        <!-- Lista de arquivos escolhidos -->
+        <div id="fileList" class="file-list"></div>
 
-      <button class="btn btn-success" type="submit">Enviar para o Backblaze</button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('dep.requerimento_form') }}">Voltar</a>
-    </form>
+        <div class="d-flex gap-2 flex-wrap mt-3">
+          <button id="btnEnviar" class="btn btn-brand" type="submit">Enviar</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('dep.requerimento_form') }}">Voltar</a>
+        </div>
+
+        <div id="status" class="hint mt-2" aria-live="polite"></div>
+      </form>
+    </div>
+
   </div>
 </div>
+
+<script>
+  (function () {
+    const form = document.getElementById('formUpload');
+    const input = document.getElementById('arquivos');
+    const drop = document.getElementById('drop');
+    const list = document.getElementById('fileList');
+    const btn = document.getElementById('btnEnviar');
+    const statusEl = document.getElementById('status');
+
+    // Abre seletor ao clicar na área
+    drop.addEventListener('click', () => input.click());
+
+    // Drag & Drop
+    ['dragenter', 'dragover'].forEach(evt =>
+      drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); })
+    );
+    ['dragleave', 'drop'].forEach(evt =>
+      drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); })
+    );
+    drop.addEventListener('drop', e => {
+      if (e.dataTransfer?.files?.length) {
+        input.files = e.dataTransfer.files; // para o backend receber via request.files.getlist(...)
+        renderList();
+      }
+    });
+
+    // Mudança pelo input
+    input.addEventListener('change', renderList);
+
+    function renderList() {
+      list.innerHTML = '';
+      const files = Array.from(input.files || []);
+      files.forEach(f => {
+        const chip = document.createElement('span');
+        chip.className = 'file-chip';
+        chip.textContent = f.name;
+        list.appendChild(chip);
+      });
+      if (files.length) {
+        statusEl.textContent = `${files.length} arquivo(s) selecionado(s).`;
+      } else {
+        statusEl.textContent = '';
+      }
+    }
+
+    // Validação mínima e prevenção de duplo envio
+    form.addEventListener('submit', (e) => {
+      const hasFiles = input.files && input.files.length > 0;
+      if (!hasFiles) {
+        e.preventDefault();
+        alert('Selecione ao menos um arquivo (DOCX + anexos).');
+        return;
+      }
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Enviando...';
+      statusEl.textContent = 'Enviando arquivos...';
+      // fallback de unlock caso algo impeça a navegação
+      setTimeout(() => { try { btn.disabled = false; btn.textContent = original; } catch (_) { } }, 6000);
+    });
+  })();
+</script>
 {% endblock %}

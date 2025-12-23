@@ -81,6 +81,9 @@
                                 </a>
                             </li>
                             <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
+
+                            <li><a class="dropdown-item" href="{{ url_for('dep.drh_lista_processos') }}">Processos
+                                    Inclusão de Dependentes</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -102,6 +105,17 @@
                         <ul class="dropdown-menu dropdown-glass">
                             <li><a class="dropdown-item" href="{{ url_for('paf.novo') }}">Solicitação</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('paf.minhas') }}">Minhas Solicitações</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Inclusão de Dependentes
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('dep.requerimento_form') }}">Solicitar
+                                    Inclusão</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dep.militar_acompanhar') }}">Acompanhar
+                                    solicitação</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -175,7 +189,8 @@
                             <li><a class="dropdown-item" href="{{ url_for('adicionar_motorista') }}">➕ Adicionar
                                     Motorista</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">📍 Mapa Motoristas</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('motoristas_desclassificados') }}">📍 Motoristas Desclassificados</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('motoristas_desclassificados') }}">📍
+                                    Motoristas Desclassificados</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('listar_cnhs') }}">📄 Listar CNHs</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('escolher_obm') }}">🚗 Viaturas</a></li>
                         </ul>

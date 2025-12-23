@@ -1313,6 +1313,11 @@ class DepProcesso(database.Model):
     conferido_ip = database.Column(database.String(45))
     conferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
 
+    indeferido_motivo = database.Column(database.Text)
+    indeferido_em = database.Column(database.DateTime(timezone=True))
+    indeferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
+    indeferido_ip = database.Column(database.String(45))
+
     militar = database.relationship("Militar")
     conferido_por = database.relationship("User", foreign_keys=[conferido_por_id])
     arquivos = database.relationship("DepArquivo", back_populates="processo", cascade="all, delete-orphan")
@@ -1345,7 +1350,8 @@ class DepAcaoLog(database.Model):
 
     user_id = database.Column(database.Integer, database.ForeignKey("user.id"))  # pode ser null se quiser
     ip = database.Column(database.String(45))
-    criado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, 
+        server_default=func.now(),)
 
     detalhes = database.Column(database.Text)
 
