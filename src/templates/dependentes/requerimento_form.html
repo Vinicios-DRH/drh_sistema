@@ -216,8 +216,15 @@
 
       try {
         const fd = new FormData(form);
-        const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", { method: "POST", body: fd });
-        if (!resp.ok) throw new Error("Falha ao gerar o DOCX.");
+        const resp = await fetch("{{ url_for('dep.gerar_docx_api') }}", {
+          method: "POST",
+          body: fd,
+          credentials: "same-origin", // <-- importante pro Safari/Edge com sessão
+        });
+        if (!resp.ok) {
+          const txt = await resp.text().catch(()=> "");
+          throw new Error(txt || `Falha ao gerar o DOCX (HTTP ${resp.status}).`);
+        }
 
         const token = resp.headers.get("X-DEP-TOKEN") || "";
         const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";

@@ -2,7 +2,7 @@ import os
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 from flask import (
-    Blueprint, flash, redirect, render_template, request, send_file, jsonify, url_for
+    Blueprint, current_app, flash, make_response, redirect, render_template, request, send_file, jsonify, url_for
 )
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 from io import BytesIO
@@ -128,70 +128,78 @@ def requerimento_form():
         ano_default=ano_default
     )
 
-
 @bp_dep.post("/dependentes/api/gerar-docx")
 @login_required
 def gerar_docx_api():
     try:
         militar = get_militar_from_current_user()
-    except ValueError as e:
-        return str(e), 400
 
-    ano = int(request.form.get("ano") or 0) or __import__(
-        "datetime").datetime.now().year
+        ano = int(request.form.get("ano") or 0) or __import__("datetime").datetime.now().year
+        protocolo = f"DEP-{uuid4().hex[:10].upper()}"
 
-    protocolo = f"DEP-{uuid4().hex[:10].upper()}"
-    token = make_dep_token(
-        militar.id, ano, protocolo,
-        payload_extra={
-            "dependente_nome": request.form.get("nome_dependente","").strip(),
-            "grau_parentesco": request.form.get("grau_parentesco","").strip(),
-            "idade_dependente": request.form.get("idade_dependente","").strip(),
-            "fim_imposto_renda": request.form.get("fim_imposto_renda") == "on",
-            "fim_cadastro_sistema": request.form.get("fim_cadastro_sistema") == "on",
+        token = make_dep_token(
+            militar.id, ano, protocolo,
+            payload_extra={
+                "dependente_nome": request.form.get("nome_dependente","").strip(),
+                "grau_parentesco": request.form.get("grau_parentesco","").strip(),
+                "idade_dependente": request.form.get("idade_dependente","").strip(),
+                "fim_imposto_renda": request.form.get("fim_imposto_renda") == "on",
+                "fim_cadastro_sistema": request.form.get("fim_cadastro_sistema") == "on",
+            }
+        )
+
+        x_ir = "X" if request.form.get("fim_imposto_renda") == "on" else " "
+        x_cfpp = "X" if request.form.get("fim_cadastro_sistema") == "on" else " "
+
+        obm_sigla = get_obm_sigla_from_militar(militar)
+
+        mapping = {
+            "{nome_completo}": (militar.nome_completo or "").strip(),
+            "{rg}": (militar.rg or "").strip(),
+            "{cpf}": (militar.cpf or "").strip(),
+            "{matricula}": (militar.matricula or "").strip(),
+            "{obm}": (obm_sigla or "").strip(),
+
+            "{nome_dependente}": request.form.get("nome_dependente", "").strip(),
+            "{grau_parentesco}": request.form.get("grau_parentesco", "").strip(),
+            "{idade_dependente}": request.form.get("idade_dependente", "").strip(),
+
+            "({x_imposto_renda})": f"({x_ir})",
+            "({x_cadastro_sistema})": f"({x_cfpp})",
+            "Manaus, ........ de ........................ de ....": data_manaus_extenso(),
         }
-    )
 
-    x_ir = "X" if request.form.get("fim_imposto_renda") == "on" else " "
-    x_cfpp = "X" if request.form.get("fim_cadastro_sistema") == "on" else " "
+        # garante que o template existe (erro comum em prod / path)
+        if not os.path.exists(TEMPLATE_DOCX_PATH):
+            raise FileNotFoundError(f"Template DOCX não encontrado: {TEMPLATE_DOCX_PATH}")
 
-    obm_sigla = get_obm_sigla_from_militar(militar)
+        docx_bytes = docx_fill_template(TEMPLATE_DOCX_PATH, mapping)
 
-    mapping = {
-        "{nome_completo}": (militar.nome_completo or "").strip(),
-        "{rg}": (militar.rg or "").strip(),
-        "{cpf}": (militar.cpf or "").strip(),
-        "{matricula}": (militar.matricula or "").strip(),
-        "{obm}": (obm_sigla or "").strip(),
+        filename = f"REQUERIMENTO_INCLUSAO_DEPENDENTE_{protocolo}.docx"
+        bio = BytesIO(docx_bytes)
+        bio.seek(0)
 
-        "{nome_dependente}": request.form.get("nome_dependente", "").strip(),
-        "{grau_parentesco}": request.form.get("grau_parentesco", "").strip(),
-        "{idade_dependente}": request.form.get("idade_dependente", "").strip(),
+        resp = send_file(
+            bio,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        resp.headers["X-DEP-TOKEN"] = token
+        resp.headers["X-DEP-PROTOCOLO"] = protocolo
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
-        "({x_imposto_renda})": f"({x_ir})",
-        "({x_cadastro_sistema})": f"({x_cfpp})",
-    }
+    except Exception as e:
+        # log completo no servidor
+        current_app.logger.exception("Erro ao gerar DOCX: %s", e)
 
-    dia = request.form.get("dia", "....")
-    mes = request.form.get("mes", "........................")
-    ano_str = request.form.get("ano", "....")
-    mapping["Manaus, ........ de ........................ de ...."] = data_manaus_extenso()
-
-    docx_bytes = docx_fill_template(TEMPLATE_DOCX_PATH, mapping)
-
-    filename = f"REQUERIMENTO_INCLUSAO_DEPENDENTE_{protocolo}.docx"
-    bio = BytesIO(docx_bytes)
-    bio.seek(0)
-
-    resp = send_file(
-        bio,
-        as_attachment=True,
-        download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-    resp.headers["X-DEP-TOKEN"] = token
-    resp.headers["X-DEP-PROTOCOLO"] = protocolo
-    return resp
+        # devolve mensagem útil pro frontend
+        msg = f"{type(e).__name__}: {e}"
+        r = make_response(msg, 500)
+        r.headers["Content-Type"] = "text/plain; charset=utf-8"
+        r.headers["Cache-Control"] = "no-store"
+        return r
 
 
 @bp_dep.get("/dependentes/upload")
