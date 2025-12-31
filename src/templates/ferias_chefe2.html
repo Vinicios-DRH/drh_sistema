@@ -5,89 +5,92 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 <style>
-    body {
-        background-color: #f4f6f9;
-        min-height: 100vh;
-    }
+  body {
+    background-color: #f4f6f9;
+    min-height: 100vh;
+  }
 
-    .filtro-container {
-        background: #fff;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        margin-bottom: 20px;
-        border-top: 5px solid #002b5c;
-    }
+  .filtro-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: 20px;
+    border-top: 5px solid #002b5c;
+  }
 
-    footer {
-        background-color: #f8f9fa;
-        padding: 15px 0;
-        text-align: center;
-        border-top: 1px solid #ddd;
-        font-size: 0.9rem;
-        color: #555;
-    }
+  footer {
+    background-color: #f8f9fa;
+    padding: 15px 0;
+    text-align: center;
+    border-top: 1px solid #ddd;
+    font-size: 0.9rem;
+    color: #555;
+  }
 </style>
 {% endblock %}
 
 {% block body %}
 <main class="container mt-5">
-    <div class="filtro-container">
-        {% if dia_atual < 10 or dia_atual> 20 %}
-            <div class="alert alert-warning text-center" role="alert">
-                ⚠️ As alterações de férias estão disponíveis apenas do dia 10 ao 20 de cada mês.
-            </div>
-            {% endif %}
-            <h4>Gestão de PAFs - CBMAM</h4>
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <label><strong>Selecione a OBM:</strong></label>
-                    <select id="obmSelect" class="form-select">
-                        <option value="">-- Selecione --</option>
-                        {% for obm in lista_obms %}
-                        <option value="{{ obm.id }}">{{ obm.sigla }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button class="btn btn-outline-primary" id="btnGrafico" disabled>
-                        <i class="bi bi-bar-chart-line"></i> Ver Gráfico
-                    </button>
-                </div>
-            </div>
-    </div>
+  <div class="filtro-container">
+    {% if dia_atual < 10 or dia_atual> 20 %}
+      <div class="alert alert-warning text-center" role="alert">
+        ⚠️ As alterações de férias estão disponíveis apenas do dia 10 ao 20 de cada mês.
+      </div>
+      {% endif %}
+      <h4>Gestão de PAFs - CBMAM</h4>
+      <div class="row mt-3">
+        <div class="col-md-6">
+          <label><strong>Selecione a OBM:</strong></label>
+          <select id="obmSelect" class="form-select">
+            <option value="">-- Selecione --</option>
+            {% for obm in lista_obms %}
+            <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-outline-primary" id="btnGrafico" disabled>
+            <i class="bi bi-bar-chart-line"></i> Ver Gráfico
+          </button>
+        </div>
+      </div>
+  </div>
 
-    <div id="tabelaContainer"></div>
+  <div id="tabelaContainer"></div>
 </main>
 
 <footer>Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}</footer>
 
 <script>
-    // janela liberada se hoje (no servidor) é 10..20 ou se é o usuário especial (id 6)
-    window.CAN_EDIT = {{ ((10 <= dia_atual <= 20) or(current_user.funcao_user_id == 6)) | tojson }};
+  // janela liberada se hoje (no servidor) é 10..20 ou se é o usuário especial (id 6)
+  window.CAN_EDIT = {{ ((10 <= dia_atual <= 20) or(current_user.funcao_user_id == 6)) | tojson }};
+</script>
+<script>
+  window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
 </script>
 <script>
   // ==== Regras especiais (vem do servidor/variável global) ====
-  window.MILITARES_40    = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];   // podem ter teto 40
+  window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];   // podem ter teto 40
   window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];   // dentre os de 40, forçar 20 + 20 (sem 3º)
   const CAN_EDIT = Boolean(window.CAN_EDIT);
 
   // ==== Datas utilitárias ====
   const hoje = new Date();
-  const ANO_ATUAL  = hoje.getFullYear();
+  const ANO_ATUAL = Number(window.PAF_ANO_VIGENTE || new Date().getFullYear());
   const LIMITE_ANO = new Date(ANO_ATUAL, 11, 31); // 31/12/yyyy
-  const pad   = v => String(v).padStart(2, '0');
-  const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth()+1, 1);
+  const pad = v => String(v).padStart(2, '0');
+  const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
 
-  function parseInputDate(s){
+  function parseInputDate(s) {
     if (!s) return null;
     const t = String(s).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y,m,d]=t.split('-').map(Number); return new Date(y,m-1,d); }
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d,m,y]=t.split('/').map(Number); return new Date(y,m-1,d); }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y, m, d] = t.split('-').map(Number); return new Date(y, m - 1, d); }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d, m, y] = t.split('/').map(Number); return new Date(y, m - 1, d); }
     return null;
   }
-  function setMinMax(input, minDate){
+  function setMinMax(input, minDate) {
     if (!input || input.type !== 'date') return;
     const min = minDate || firstDayNextMonth();
     input.min = fmtISO(min);
@@ -107,16 +110,16 @@
   }
 
   // ==== helpers de leitura/estado ====
-  function getNum(row, name){
+  function getNum(row, name) {
     return parseInt(row.querySelector(`[name="${name}"]`)?.value || 0, 10);
   }
-  function totals(row, mid){
+  function totals(row, mid) {
     const d1 = getNum(row, `qtd_dias_1_${mid}`);
     const d2 = getNum(row, `qtd_dias_2_${mid}`);
     const d3 = getNum(row, `qtd_dias_3_${mid}`);
     return { d1, d2, d3, total12: d1 + d2, total123: d1 + d2 + d3 };
   }
-  function clearPeriodo(row, mid, p){
+  function clearPeriodo(row, mid, p) {
     const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
     const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
     const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
@@ -124,10 +127,10 @@
     if (i) i.value = '';
     if (f) f.value = '';
   }
-  function lockPeriodo(row, mid, p, lock, title=''){
-    ['qtd_dias', 'inicio', 'fim'].forEach(k=>{
+  function lockPeriodo(row, mid, p, lock, title = '') {
+    ['qtd_dias', 'inicio', 'fim'].forEach(k => {
       const el = row.querySelector(`[name="${k}_${p}_${mid}"]`);
-      if (el){
+      if (el) {
         el.disabled = !!lock;
         el.readOnly = !!lock;
         el.title = title || '';
@@ -136,28 +139,28 @@
   }
 
   // ==== Calcular fim automaticamente ====
-  function calcularFim(row, mid, p){
+  function calcularFim(row, mid, p) {
     const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
     const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
     const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
     if (!i || !s || !f) return;
 
     const di = parseInputDate(i.value);
-    const n  = parseInt(s.value || 0, 10);
+    const n = parseInt(s.value || 0, 10);
     if (!di || !n) { f.value = ''; return; }
 
     const out = new Date(di.getFullYear(), di.getMonth(), di.getDate() + n - 1);
-    if (out.getFullYear() !== ANO_ATUAL || out > LIMITE_ANO){
+    if (out.getFullYear() !== ANO_ATUAL || out > LIMITE_ANO) {
       alert('Este período ultrapassa 31/12 do ano atual. Ajuste a data ou a quantidade de dias.');
       clearPeriodo(row, mid, p);
       return;
     }
     if (f.type === 'date') f.value = fmtISO(out);
-    else f.value = `${pad(out.getDate())}/${pad(out.getMonth()+1)}/${out.getFullYear()}`;
+    else f.value = `${pad(out.getDate())}/${pad(out.getMonth() + 1)}/${out.getFullYear()}`;
   }
 
   // ==== Regras de sequência/limite de ano ====
-  function validarSequencia(row, mid){
+  function validarSequencia(row, mid) {
     const i1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || '');
     const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || '');
     const i2 = parseInputDate(row.querySelector(`[name="inicio_2_${mid}"]`)?.value || '');
@@ -166,13 +169,13 @@
     const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value || '');
 
     const base2 = f1 || i1;
-    if (i2 && base2 && i2 <= base2){ alert('O 2º período não pode começar antes de terminar o 1º.'); clearPeriodo(row, mid, 2); }
+    if (i2 && base2 && i2 <= base2) { alert('O 2º período não pode começar antes de terminar o 1º.'); clearPeriodo(row, mid, 2); }
 
     const base3 = (f2 || i2 || f1 || i1);
-    if (i3 && base3 && i3 <= base3){ alert('O 3º período não pode começar antes de terminar o período anterior.'); clearPeriodo(row, mid, 3); }
+    if (i3 && base3 && i3 <= base3) { alert('O 3º período não pode começar antes de terminar o período anterior.'); clearPeriodo(row, mid, 3); }
 
-    [['1', f1], ['2', f2], ['3', f3]].forEach(([p, fim])=>{
-      if (fim && (fim.getFullYear() !== ANO_ATUAL || fim > LIMITE_ANO)){
+    [['1', f1], ['2', f2], ['3', f3]].forEach(([p, fim]) => {
+      if (fim && (fim.getFullYear() !== ANO_ATUAL || fim > LIMITE_ANO)) {
         alert('O término das férias não pode ultrapassar 31/12 do ano atual.');
         clearPeriodo(row, mid, p);
       }
@@ -180,9 +183,9 @@
   }
 
   // ==== Opções do 2º período (dinâmico) ====
-  function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20){
+  function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
     const dias1 = getNum(row, `qtd_dias_1_${mid}`);
-    const sel2  = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
+    const sel2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
     if (!sel2) return;
 
     const teto = podeTer40 ? 40 : 30;
@@ -191,33 +194,33 @@
       .filter(n => !isNaN(n));
 
     let permitidas;
-    if (podeTer40 && forcar20x20){
+    if (podeTer40 && forcar20x20) {
       permitidas = (dias1 + 20 <= 40) ? [20] : [];
     } else {
       permitidas = valoresDisponiveis.filter(v => (dias1 + v) <= teto);
     }
 
-    Array.from(sel2.options).forEach(opt=>{
+    Array.from(sel2.options).forEach(opt => {
       if (!opt.value) return; // placeholder
-      opt.disabled = !permitidas.includes(parseInt(opt.value,10));
+      opt.disabled = !permitidas.includes(parseInt(opt.value, 10));
     });
 
     const atual = parseInt(sel2.value || 0, 10);
-    if (!permitidas.includes(atual)){
+    if (!permitidas.includes(atual)) {
       sel2.value = '';
       clearPeriodo(row, mid, 2);
     }
   }
 
   // ==== Atualiza estado da linha (sem apagar valores do banco) ====
-  function refreshRow(row){
-    const mid    = row.dataset.militarId;
+  function refreshRow(row) {
+    const mid = row.dataset.militarId;
     const midNum = Number(mid);
-    const podeTer40   = (row.dataset.podeTer40 === 'true') || (window.MILITARES_40||[]).includes(midNum);
-    const forcar20x20 = (window.MILITARES_20_20||[]).includes(midNum);
-    const teto        = podeTer40 ? 40 : 30;
+    const podeTer40 = (row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(midNum);
+    const forcar20x20 = (window.MILITARES_20_20 || []).includes(midNum);
+    const teto = podeTer40 ? 40 : 30;
 
-    if (!CAN_EDIT){
+    if (!CAN_EDIT) {
       row.querySelectorAll('input,select,button.botao-salvar').forEach(el => el.disabled = true);
       return;
     }
@@ -237,7 +240,7 @@
     if (f1) f1.disabled = true;
 
     const v1 = parseInputDate(i1?.value || '');
-    if (v1 && v1 < firstDayNextMonth()){
+    if (v1 && v1 < firstDayNextMonth()) {
       // keep value (do banco), mas travado
       lockPeriodo(row, mid, '1', true, 'Período em mês passado/atual (somente leitura)');
     } else {
@@ -252,12 +255,12 @@
     const podeUsar2 = d1 > 0 && d1 < teto;
     [s2, i2, f2].forEach(el => { if (el) el.disabled = !podeUsar2; });
 
-    if (podeUsar2){
+    if (podeUsar2) {
       aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
       let min2 = firstDayNextMonth();
       const vf1 = parseInputDate(f1?.value || '');
-      if (vf1){
-        const d = new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate()+1);
+      if (vf1) {
+        const d = new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate() + 1);
         if (d > min2) min2 = d;
       }
       if (i2) setMinMax(i2, min2);
@@ -272,15 +275,15 @@
     const podeUsar3 = !forcar20x20 && total12 < teto;
     [s3, i3, f3].forEach(el => { if (el) el.disabled = !podeUsar3; });
 
-    if (podeUsar3){
+    if (podeUsar3) {
       let min3 = firstDayNextMonth();
       const vf2 = parseInputDate(f2?.value || '');
       const vf1b = parseInputDate(f1?.value || '');
-      if (vf2){
-        const d = new Date(vf2.getFullYear(), vf2.getMonth(), vf2.getDate()+1);
+      if (vf2) {
+        const d = new Date(vf2.getFullYear(), vf2.getMonth(), vf2.getDate() + 1);
         if (d > min3) min3 = d;
-      } else if (vf1b){
-        const d = new Date(vf1b.getFullYear(), vf1b.getMonth(), vf1b.getDate()+1);
+      } else if (vf1b) {
+        const d = new Date(vf1b.getFullYear(), vf1b.getMonth(), vf1b.getDate() + 1);
         if (d > min3) min3 = d;
       }
       if (i3) setMinMax(i3, min3);
@@ -295,10 +298,10 @@
   }
 
   // ==== Listeners por linha ====
-  function ligarListenersLinha(row){
+  function ligarListenersLinha(row) {
     const mid = row.dataset.militarId;
 
-    ['1','2','3'].forEach(p => {
+    ['1', '2', '3'].forEach(p => {
       const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
       const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
 
@@ -318,13 +321,14 @@
     });
 
     // Salvar
-    row.querySelectorAll('.botao-salvar').forEach(btn=>{
+    row.querySelectorAll('.botao-salvar').forEach(btn => {
       btn.addEventListener('click', () => {
         const formData = new URLSearchParams();
         formData.append('militar_id', mid);
-        ['mes_usufruto','qtd_dias_1','inicio_1','fim_1','qtd_dias_2','inicio_2','fim_2','qtd_dias_3','inicio_3','fim_3']
+        ['mes_usufruto', 'qtd_dias_1', 'inicio_1', 'fim_1', 'qtd_dias_2', 'inicio_2', 'fim_2', 'qtd_dias_3', 'inicio_3', 'fim_3']
           .forEach(c => formData.append(c, row.querySelector(`[name="${c}_${mid}"]`)?.value || ''));
-        fetch('/pafs/update', { method:'POST', body:formData })
+        formData.append('ano_referencia', ANO_ATUAL);
+        fetch('/pafs/update', { method: 'POST', body: formData })
           .then(r => r.json()).then(resp => alert(resp.message))
           .catch(() => alert('Erro ao salvar.'));
       });
@@ -334,7 +338,7 @@
     refreshRow(row);
   }
 
-  function inicializarListeners(){
+  function inicializarListeners() {
     document.querySelectorAll('tr[data-militar-id]').forEach(ligarListenersLinha);
   }
 
@@ -343,15 +347,15 @@
     const obmId = this.value;
     document.getElementById('btnGrafico').disabled = !obmId;
     const alvo = document.getElementById('tabelaContainer');
-    if (!obmId){ alvo.innerHTML = ''; return; }
-
-    fetch(`/pafs/tabela/${obmId}`)
+    if (!obmId) { alvo.innerHTML = ''; return; }
+    const ano = new Date().getFullYear(); // ou um select de ano
+    fetch(`/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
       .then(r => r.text())
       .then(html => {
         alvo.innerHTML = html;
 
         const $ok = (typeof $ !== 'undefined' && $.fn && $.fn.DataTable);
-        if ($ok){
+        if ($ok) {
           const t = $('#militaresTable');
           if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
           t.DataTable({
@@ -371,7 +375,7 @@
   });
 
   // ==== Gráfico ====
-  document.getElementById('btnGrafico').addEventListener('click', function(){
+  document.getElementById('btnGrafico').addEventListener('click', function () {
     const obmId = document.getElementById('obmSelect').value;
     fetch(`/grafico-ferias/${obmId}`)
       .then(r => r.text())
@@ -382,13 +386,13 @@
   });
 
   // ==== Janela fechada (10–20) -> travar tudo ====
-  if (!CAN_EDIT){
+  if (!CAN_EDIT) {
     document.addEventListener('DOMContentLoaded', () => {
       const obs = new MutationObserver(() => {
         document.querySelectorAll('#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar')
           .forEach(el => el.disabled = true);
       });
-      obs.observe(document.getElementById('tabelaContainer'), {childList:true, subtree:true});
+      obs.observe(document.getElementById('tabelaContainer'), { childList: true, subtree: true });
     });
   }
 </script>

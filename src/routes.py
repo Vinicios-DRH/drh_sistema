@@ -929,7 +929,7 @@ def exibir_militar(militar_id):
         bg = PublicacaoBg.query.filter_by(
             militar_id=militar_id, tipo_bg='situacao_militar').first()
         return bg.id if bg else None
-    
+
     def encerrar_status_anteriores(militar, condicao_atual):
         """Fecha registros vigentes de AGREGADO / À DISPOSIÇÃO que não batem com a situação atual."""
         hoje = date.today()
@@ -964,7 +964,6 @@ def exibir_militar(militar_id):
             for disp in disposicoes_vigentes:
                 disp.fim_periodo_disposicao = ontem  # <<< e aqui também
                 disp.atualizar_status()
-
 
     if form_militar.validate_on_submit():
         form_militar.process(request.form)
@@ -1183,7 +1182,8 @@ def exibir_militar(militar_id):
                         database.session.add(nova_publicacao)
 
                 # Situação escolhida no formulário
-        situacao_selecionada = Situacao.query.get(form_militar.situacao_id.data)
+        situacao_selecionada = Situacao.query.get(
+            form_militar.situacao_id.data)
         condicao_atual = situacao_selecionada.condicao if situacao_selecionada else None
 
         # Garante que não fiquem registros vigentes "errados"
@@ -1560,7 +1560,7 @@ def militares():
     localidade_ids = request.args.getlist('localidade_ids', type=int)
     situacao_ids = request.args.getlist('situacao_ids', type=int)
 
-    sexo_filtro = (request.args.get('sexo') or '').strip().upper() 
+    sexo_filtro = (request.args.get('sexo') or '').strip().upper()
 
     # base
     query = (Militar.query
@@ -1600,8 +1600,8 @@ def militares():
     # filtros por OBM/Função ativos via join
     if obm_ids or funcao_ids:
         query = (query
-                .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-                .filter(MilitarObmFuncao.data_fim.is_(None)))
+                 .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                 .filter(MilitarObmFuncao.data_fim.is_(None)))
         if obm_ids:
             query = query.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
         if funcao_ids:
@@ -1775,7 +1775,7 @@ def tabela_militares():
         # OBM/Função ativas
         if obm_ids or funcao_ids:
             mo = (database.session.query(MilitarObmFuncao.militar_id)
-                .filter(MilitarObmFuncao.data_fim.is_(None)))
+                  .filter(MilitarObmFuncao.data_fim.is_(None)))
             if obm_ids:
                 mo = mo.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
             if funcao_ids:
@@ -1795,16 +1795,17 @@ def tabela_militares():
             query = query.filter(
                 Militar.sexo.isnot(None),
                 sexo_norm.like('f%')   # "f", "feminino", etc
-            ) 
+            )
 
         base_filtrada = query.order_by(None)
-        
+
         filtrados_sq = (
             base_filtrada
-                .with_entities(Militar.id)
-                .distinct()        # em PG vira DISTINCT ON (militar.id)
-                .order_by(None)    # <-- essencial pra não “vazar” ORDER BY nome_completo
-                .subquery()
+            .with_entities(Militar.id)
+            .distinct()        # em PG vira DISTINCT ON (militar.id)
+            # <-- essencial pra não “vazar” ORDER BY nome_completo
+            .order_by(None)
+            .subquery()
         )
 
         # contagem de agregados dentre os filtrados
@@ -1847,8 +1848,8 @@ def tabela_militares():
 
         militares_filtrados = (
             base_filtrada               # mesma base sem ORDER BY no subquery
-                .order_by(Militar.nome_completo.asc())
-                .all()
+            .order_by(Militar.nome_completo.asc())
+            .all()
         )
 
         query = query.order_by(Militar.nome_completo.asc())
@@ -1888,7 +1889,7 @@ def tabela_militares():
                 situacao_exibe = 'AGREGADO'
             else:
                 situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
-            
+
             sexo_raw = (militar.sexo or '').strip()
             s = sexo_raw.lower()
 
@@ -1900,7 +1901,7 @@ def tabela_militares():
                 sexo_exibe = sexo_raw
             else:
                 sexo_exibe = 'N/A'
-            
+
             militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
@@ -1919,7 +1920,6 @@ def tabela_militares():
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
                 'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
             })
-
 
         return render_template(
             'relacao_militares.html',
@@ -2489,6 +2489,10 @@ def grafico_todos_militares():
     return Response(response=image_base64, status=200, mimetype='text/plain')
 
 
+def paf_ano_vigente():
+    return current_app.config.get('PAF_ANO_VIGENTE', datetime.now().year)
+
+
 @app.route('/ferias_dados', methods=['GET', 'POST'])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
@@ -2498,9 +2502,16 @@ def ferias_dados():
     length = request.form.get('length', type=int)
     search_value = request.form.get('search[value]', type=str)
 
-    # ⚡ Corrigido para OUTERJOIN
-    query = database.session.query(Militar, Paf).outerjoin(
-        Paf, Militar.id == Paf.militar_id)
+    # ✅ ano vem do frontend; fallback 2026
+    ano = request.form.get('ano', type=int) or 2026
+
+    query = (
+        database.session.query(Militar, Paf)
+        .outerjoin(Paf, and_(
+            Militar.id == Paf.militar_id,
+            Paf.ano_referencia == ano
+        ))
+    )
 
     if search_value:
         query = query.filter(
@@ -2545,8 +2556,8 @@ def ferias_dados():
 @login_required
 @checar_ocupacao('SUPER USER')
 def exibir_ferias():
-    return render_template('ferias.html',
-                           ano_atual=datetime.now().year)
+    ano_vigente = 2026  # depois tu puxa de config
+    return render_template('ferias.html', ano_atual=datetime.now().year, ano_vigente=ano_vigente)
 
 
 @app.route('/pafs/nao_preenchidos')
@@ -2716,11 +2727,13 @@ def exibir_ferias_chefe():
         adicionais = Obm.query.filter(Obm.id.in_(obms_adicionais)).all()
         lista_obms.extend(adicionais)
 
+    ano_vigente = paf_ano_vigente()
     return render_template(
         'ferias_chefe2.html',
         lista_obms=lista_obms,
         ano_atual=datetime.now().year,
-        dia_atual=dia_atual
+        dia_atual=dia_atual,
+        ano_vigente=ano_vigente,
     )
 
 
@@ -2728,6 +2741,8 @@ def exibir_ferias_chefe():
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def carregar_tabela_obm(obm_id):
+    ano = int(request.args.get("ano") or datetime.now().year)
+
     meses = {
         "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
@@ -2741,7 +2756,10 @@ def carregar_tabela_obm(obm_id):
 
     militares_pafs = (
         database.session.query(Militar, Paf)
-        .outerjoin(Paf, Paf.militar_id == Militar.id)
+        .outerjoin(Paf, database.and_(
+            Paf.militar_id == Militar.id,
+            Paf.ano_referencia == ano
+        ))
         .options(joinedload(Militar.obm_funcoes))
         .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
         .filter(
@@ -2757,7 +2775,8 @@ def carregar_tabela_obm(obm_id):
         militares_pafs=militares_pafs,
         meses=meses,
         current_month=current_month,
-        current_date=current_date
+        current_date=current_date,
+        ano=ano,
     )
 
 
@@ -2825,20 +2844,25 @@ def parse_date(date_string):
 @app.route('/pafs/update', methods=['POST'])
 @login_required
 def update_paf():
-
     hoje = datetime.now().day
     if (hoje < 10 or hoje > 20) and getattr(current_user, 'funcao_user_id', None) != 6:
         return jsonify({"message": "Alterações só são permitidas de 10 a 20 de cada mês."}), 403
+
     data = request.form
-    militar_id = data.get('militar_id')
+    militar_id = int(data.get('militar_id') or 0)
 
-    # Busca ou cria um registro na tabela Paf
-    paf = Paf.query.filter_by(militar_id=militar_id).first()
+    # ✅ novo: ano do form, se não vier usa ano atual do servidor
+    ano = int(data.get('ano_referencia') or datetime.now().year)
+
+    # ✅ novo: busca por militar + ano
+    paf = Paf.query.filter_by(militar_id=militar_id,
+                              ano_referencia=ano).first()
     if not paf:
-        paf = Paf(militar_id=militar_id)
+        paf = Paf(militar_id=militar_id, ano_referencia=ano)
+        database.session.add(paf)
 
-    # Extrai os dados do formulário
     mes_usufruto = data.get('mes_usufruto')
+
     qtd_dias_primeiro_periodo = int(data.get('qtd_dias_1') or 0)
     primeiro_periodo_inicio = parse_date(data.get('inicio_1'))
     primeiro_periodo_fim = parse_date(data.get('fim_1'))
@@ -2851,7 +2875,7 @@ def update_paf():
     terceiro_periodo_inicio = parse_date(data.get('inicio_3'))
     terceiro_periodo_fim = parse_date(data.get('fim_3'))
 
-    # Valida os períodos de férias
+    # validação (mantém tua lógica)
     try:
         if primeiro_periodo_inicio:
             validate_vacation_period(
@@ -2863,25 +2887,25 @@ def update_paf():
             validate_vacation_period(
                 terceiro_periodo_inicio, qtd_dias_terceiro_periodo)
     except ValueError as e:
-        print("Erro na validação:", e)
         return jsonify({"error": str(e)}), 400
 
     paf.mes_usufruto = mes_usufruto
     paf.qtd_dias_primeiro_periodo = qtd_dias_primeiro_periodo
     paf.primeiro_periodo_ferias = primeiro_periodo_inicio
     paf.fim_primeiro_periodo = primeiro_periodo_fim
+
     paf.qtd_dias_segundo_periodo = qtd_dias_segundo_periodo
     paf.segundo_periodo_ferias = segundo_periodo_inicio
     paf.fim_segundo_periodo = segundo_periodo_fim
+
     paf.qtd_dias_terceiro_periodo = qtd_dias_terceiro_periodo
     paf.terceiro_periodo_ferias = terceiro_periodo_inicio
     paf.fim_terceiro_periodo = terceiro_periodo_fim
+
     paf.usuario_id = current_user.id
     paf.data_alteracao = datetime.now()
 
-    database.session.add(paf)
     database.session.commit()
-
     return jsonify({"message": "Dados salvos com sucesso!"})
 
 
@@ -6296,13 +6320,14 @@ def declaracao():
             'rg_cbmam': request.form['rg_cbmam'],
             'matricula': request.form['matricula'],
             'especialidade': request.form['especialidade'],
-            'data_concurso':formatar_data_sem_zero(request.form['data_concurso']),
+            'data_concurso': formatar_data_sem_zero(request.form['data_concurso']),
             'numero_bg': request.form['numero_bg'],
             'data_bg': formatar_data_sem_zero(request.form['data_bg']),
             'data_atual': formatar_data_extenso(datetime.today().strftime('%Y-%m-%d')),
         }
 
-        NEGRITO = ['nome_militar', 'posto_graduacao', 'quadro', 'cpf', 'nota_declaracao']
+        NEGRITO = ['nome_militar', 'posto_graduacao',
+                   'quadro', 'cpf', 'nota_declaracao']
 
         doc = Document('src/template/declaracao1.docx')
 

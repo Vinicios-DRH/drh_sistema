@@ -133,6 +133,9 @@
         </div>
     </div>
 </div>
+<script>
+    window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
+</script>
 
 <script>
     function abrirGrafico() {
@@ -229,7 +232,10 @@
             serverSide: true,
             ajax: {
                 url: "{{ url_for('ferias_dados') }}",
-                type: "POST"
+                type: "POST",
+                data: function (d) {
+                    d.ano = window.PAF_ANO_VIGENTE; // ✅ manda 2026
+                }
             },
             columns: [
                 { data: 'posto_grad' },
@@ -309,6 +315,7 @@
             const id = $(this).data('militar-id');
             const dados = {
                 militar_id: id,
+                ano_referencia: window.PAF_ANO_VIGENTE,
                 mes_usufruto: $(`[name=mes_usufruto_${id}]`).val(),
                 qtd_dias_1: $(`[name=qtd_dias_1_${id}]`).val(),
                 inicio_1: $(`[name=inicio_1_${id}]`).val(),

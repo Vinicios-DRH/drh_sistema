@@ -532,6 +532,7 @@ class Paf(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
                                  nullable=True)  # Relaciona com Militar
+    ano_referencia = database.Column(database.Integer, nullable=False, default=lambda: datetime.now().year)
     mes_usufruto = database.Column(database.String(50))
     qtd_dias_primeiro_periodo = database.Column(database.Integer)
     primeiro_periodo_ferias = database.Column(database.Date)

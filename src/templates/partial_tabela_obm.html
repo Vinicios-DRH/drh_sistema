@@ -1,3 +1,7 @@
+{% set min_iso = ano ~ "-01-01" %}
+{% set max_iso = ano ~ "-12-31" %}
+
+
 <div class="card-obm">
     <div class="titulo-obm d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
@@ -67,7 +71,7 @@
                         </select>
                     </td>
                     <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control inicio-periodo"
-                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="2025-04-01" max="2025-12-31"></td>
+                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
                     <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
                             value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
 
@@ -83,7 +87,7 @@
                         </select>
                     </td>
                     <td><input type="date" name="inicio_2_{{ militar.id }}" class="form-control"
-                            value="{{ paf.segundo_periodo_ferias if paf }}" min="2025-04-01" max="2025-12-31"></td>
+                            value="{{ paf.segundo_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
                     <td><input type="date" name="fim_2_{{ militar.id }}" class="form-control"
                             value="{{ paf.fim_segundo_periodo if paf }}" readonly></td>
 
@@ -95,7 +99,7 @@
                         </select>
                     </td>
                     <td><input type="date" name="inicio_3_{{ militar.id }}" class="form-control"
-                            value="{{ paf.terceiro_periodo_ferias if paf }}" min="2025-04-01" max="2025-12-31"></td>
+                            value="{{ paf.terceiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
                     <td><input type="date" name="fim_3_{{ militar.id }}" class="form-control"
                             value="{{ paf.fim_terceiro_periodo if paf }}"></td>
 
