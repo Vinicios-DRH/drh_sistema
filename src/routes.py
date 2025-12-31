@@ -2504,7 +2504,7 @@ def ferias_dados():
 
     # ✅ ano vem do frontend; fallback 2026
     ano = request.form.get('ano', type=int) or 2026
-
+    print("ANO RECEBIDO:", ano)
     query = (
         database.session.query(Militar, Paf)
         .outerjoin(Paf, and_(
@@ -2556,8 +2556,15 @@ def ferias_dados():
 @login_required
 @checar_ocupacao('SUPER USER')
 def exibir_ferias():
-    ano_vigente = 2026  # depois tu puxa de config
-    return render_template('ferias.html', ano_atual=datetime.now().year, ano_vigente=ano_vigente)
+    ano_vigente = 2026
+    # se quiser depois, a gente busca do banco automaticamente
+    anos_disponiveis = [2025, 2026]
+    return render_template(
+        'ferias.html',
+        ano_atual=datetime.now().year,
+        ano_vigente=ano_vigente,
+        anos_disponiveis=anos_disponiveis
+    )
 
 
 @app.route('/pafs/nao_preenchidos')
