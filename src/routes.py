@@ -2364,37 +2364,43 @@ def exportar_pafs(tabela):
     if tabela != "pafs":
         return "Tabela inválida", 400
 
-        # Consulta os dados
+    # ✅ pega o último ano que existe na tabela paf
+    ultimo_ano = database.session.query(func.max(Paf.ano_referencia)).scalar()
+    if not ultimo_ano:
+        return "Não há PAFs cadastrados para exportação.", 404
+
+    # ✅ traz todos os militares, mas só o PAF do último ano
     militares_pafs = (
         database.session.query(Militar, Paf)
-        .outerjoin(Paf, Paf.militar_id == Militar.id)
+        .outerjoin(Paf, and_(
+            Paf.militar_id == Militar.id,
+            Paf.ano_referencia == ultimo_ano
+        ))
         .all()
     )
 
-    # Criação do arquivo Excel
     wb = Workbook()
     ws = wb.active
-    ws.title = "Pafs e Militares"
+    ws.title = f"PAFs {ultimo_ano}"
 
-    # Cabeçalhos com filtros
     colunas = [
-        "Posto/Grad", "Nome", "Matrícula", "Quadro", "Mês Usufruto",
+        "Ano", "Posto/Grad", "Nome", "Matrícula", "Quadro", "Mês Usufruto",
         "Qtd. Dias 1º Período", "1º Período de Férias", "Fim 1º Período",
         "Qtd. Dias 2º Período", "2º Período de Férias", "Fim 2º Período",
         "Qtd. Dias 3º Período", "3º Período de Férias", "Fim 3º Período"
     ]
     ws.append(colunas)
 
-    # Estilo do cabeçalho
     for col_num, col_name in enumerate(colunas, 1):
         cell = ws.cell(row=1, column=col_num)
         cell.value = col_name
         cell.font = Font(bold=True)
+
     ws.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}1"
 
-    # Adiciona os dados
     for militar, paf in militares_pafs:
         ws.append([
+            ultimo_ano,
             militar.posto_grad.sigla if militar.posto_grad else "",
             militar.nome_completo,
             militar.matricula,
@@ -2417,20 +2423,14 @@ def exportar_pafs(tabela):
                 "%d/%m/%Y") if paf and paf.fim_terceiro_periodo else "",
         ])
 
-    # Ajusta largura das colunas
-    for col_num, _ in enumerate(colunas, 1):
-        ws.column_dimensions[get_column_letter(col_num)].auto_size = True
-
-    # Salva em um arquivo na memória
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    # Prepara resposta HTTP
     response = make_response(output.read())
-    response.headers["Content-Disposition"] = "attachment; filename=pafs_militares.xlsx"
+    response.headers[
+        "Content-Disposition"] = f"attachment; filename=pafs_militares_{ultimo_ano}.xlsx"
     response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
     return response
 
 
@@ -2491,6 +2491,20 @@ def grafico_todos_militares():
 
 def paf_ano_vigente():
     return current_app.config.get('PAF_ANO_VIGENTE', datetime.now().year)
+
+
+def obms_permitidas_para_usuario(user):
+    ids = set()
+    if getattr(user, "obm_id_1", None):
+        ids.add(user.obm_id_1)
+    if getattr(user, "obm_id_2", None):
+        ids.add(user.obm_id_2)
+
+    # regra especial do teu sistema (quando obm_id_1 == 16)
+    if getattr(user, "obm_id_1", None) == 16:
+        ids.update([16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
+
+    return ids
 
 
 @app.route('/ferias_dados', methods=['GET', 'POST'])
@@ -2744,6 +2758,12 @@ def exibir_ferias_chefe():
     )
 
 
+def first_day_next_month(d: date) -> date:
+    if d.month == 12:
+        return date(d.year + 1, 1, 1)
+    return date(d.year, d.month + 1, 1)
+
+
 @app.route('/pafs/tabela/<int:obm_id>', methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
@@ -2754,9 +2774,33 @@ def carregar_tabela_obm(obm_id):
         "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
     }
-    current_month = datetime.now().month
     current_date = datetime.now().date()
 
+    is_super = (getattr(current_user, "funcao_user_id", None) == 6)
+
+    # ✅ data mínima global (para CHEFE): 1º dia do mês seguinte
+    min_global = first_day_next_month(current_date)
+
+    if is_super:
+        min_iso = f"{ano}-01-01"
+        min_year = 0
+        min_month = 1
+        bloqueio_mes_atual = False
+    else:
+        min_year = min_global.year
+        min_month = min_global.month
+        bloqueio_mes_atual = True
+
+        if ano < min_year:
+            # ano antigo => tudo bloqueado de fato
+            min_iso = f"{ano}-12-31"
+        elif ano == min_year:
+            min_iso = min_global.isoformat()
+        else:
+            # ano futuro além do min_year => ok começar 01/01 desse ano
+            min_iso = f"{ano}-01-01"
+
+    current_month = datetime.now().month
     obm = Obm.query.get(obm_id)
     if not obm:
         return "<div class='alert alert-danger'>OBM não encontrada</div>", 404
@@ -2784,7 +2828,103 @@ def carregar_tabela_obm(obm_id):
         current_month=current_month,
         current_date=current_date,
         ano=ano,
+        min_iso=min_iso,
+        min_year=min_year,
+        min_month=min_month,
+        bloqueio_mes_atual=bloqueio_mes_atual,
     )
+
+
+@app.route("/exportar-pafs-obm/<int:obm_id>")
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def exportar_pafs_obm(obm_id):
+    # ✅ permissão por OBM (SUPER USER = id 6 no teu sistema)
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if obm_id not in permitidas:
+            return "Sem permissão para exportar esta OBM.", 403
+
+    obm = Obm.query.get_or_404(obm_id)
+
+    # ✅ ano: se vier por querystring, usa; senão, pega o último ano da tabela paf
+    ano = request.args.get("ano", type=int)
+    if not ano:
+        ano = database.session.query(func.max(Paf.ano_referencia)).scalar()
+    if not ano:
+        return "Não há PAFs cadastrados para exportação.", 404
+
+    # ✅ efetivo ativo da OBM + PAF do ano
+    militares_pafs = (
+        database.session.query(Militar, Paf)
+        .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+        .filter(
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None)
+        )
+        .outerjoin(Paf, and_(
+            Paf.militar_id == Militar.id,
+            Paf.ano_referencia == ano
+        ))
+        .order_by(Militar.nome_completo.asc())
+        .all()
+    )
+
+    # ==== Excel ====
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"{obm.sigla} {ano}"
+
+    colunas = [
+        "OBM", "Ano", "Posto/Grad", "Nome", "Matrícula", "Quadro", "Mês Usufruto",
+        "Qtd. Dias 1º", "Início 1º", "Fim 1º",
+        "Qtd. Dias 2º", "Início 2º", "Fim 2º",
+        "Qtd. Dias 3º", "Início 3º", "Fim 3º"
+    ]
+    ws.append(colunas)
+
+    for col_num, col_name in enumerate(colunas, 1):
+        c = ws.cell(row=1, column=col_num)
+        c.value = col_name
+        c.font = Font(bold=True)
+
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}1"
+
+    def fmt(dt):
+        return dt.strftime("%d/%m/%Y") if dt else ""
+
+    for militar, paf in militares_pafs:
+        ws.append([
+            obm.sigla,
+            ano,
+            militar.posto_grad.sigla if militar.posto_grad else "",
+            militar.nome_completo,
+            militar.matricula,
+            militar.quadro.quadro if militar.quadro else "",
+            paf.mes_usufruto if paf else "",
+
+            paf.qtd_dias_primeiro_periodo if paf else "",
+            fmt(paf.primeiro_periodo_ferias) if paf else "",
+            fmt(paf.fim_primeiro_periodo) if paf else "",
+
+            paf.qtd_dias_segundo_periodo if paf else "",
+            fmt(paf.segundo_periodo_ferias) if paf else "",
+            fmt(paf.fim_segundo_periodo) if paf else "",
+
+            paf.qtd_dias_terceiro_periodo if paf else "",
+            fmt(paf.terceiro_periodo_ferias) if paf else "",
+            fmt(paf.fim_terceiro_periodo) if paf else "",
+        ])
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"pafs_{obm.sigla}_{ano}.xlsx"
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return response
 
 
 @app.route('/grafico-ferias/<int:obm_id>', methods=['GET'])

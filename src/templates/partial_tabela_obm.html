@@ -1,82 +1,181 @@
-{% set min_iso = ano ~ "-01-01" %}
+{# min_iso agora vem do backend #}
 {% set max_iso = ano ~ "-12-31" %}
+<style>
+    /* Container da OBM + barra de ações */
+    .card-obm {
+        background: rgba(255, 255, 255, .96);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 14px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .10);
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
 
+    .titulo-obm {
+        background: linear-gradient(90deg, rgba(13, 32, 54, .08), rgba(12, 55, 97, .06));
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        padding: 12px 16px;
+    }
+
+    /* Tabela padrão (sticky header) */
+    .table-wrap {
+        padding: 10px 12px 14px;
+    }
+
+    #militaresTable.table {
+        width: 100%;
+    }
+
+    #militaresTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8f9fa;
+        vertical-align: middle;
+    }
+
+    .nowrap {
+        white-space: nowrap;
+    }
+
+    .min-col {
+        width: 110px;
+    }
+
+    .min-col-sm {
+        width: 95px;
+    }
+
+    .min-col-xs {
+        width: 80px;
+    }
+
+    /* Controles compactos */
+    .form-select.form-select-sm,
+    .form-control.form-control-sm {
+        height: calc(1.5em + .5rem + 2px);
+        padding: .25rem .5rem;
+        font-size: .875rem;
+        border-radius: .35rem;
+    }
+
+    /* Ações */
+    .cell-actions {
+        min-width: 150px;
+    }
+
+    .last-update {
+        line-height: 1.2;
+    }
+</style>
 
 <div class="card-obm">
+    <!-- Topo / ações -->
     <div class="titulo-obm d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
             <i class="bi bi-building-fill text-primary fs-3 me-2"></i>
-            <span class="fw-bold fs-4 text-primary text-uppercase">{{ obm.sigla }}</span>
+            <span class="fw-bold fs-5 text-primary text-uppercase">{{ obm.sigla }}</span>
         </div>
-        <button type="button" class="btn btn-outline-primary abrir-modal" data-obm-id="{{ obm.id }}">
-            <i class="bi bi-bar-chart-line"></i> Gráfico
-        </button>
+
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('exportar_pafs_obm', obm_id=obm.id) }}?ano={{ ano }}">
+                <i class="bi bi-file-earmark-excel"></i> Baixar Excel
+            </a>
+
+            <button type="button" class="btn btn-sm btn-outline-primary abrir-modal" data-obm-id="{{ obm.id }}">
+                <i class="bi bi-bar-chart-line"></i> Gráfico
+            </button>
+        </div>
     </div>
 
-    <div class="table-responsive">
-        <table id="militaresTable" class="table table-striped table-bordered table-sm">
-            <thead>
+    <!-- Tabela -->
+    <div class="table-wrap table-responsive">
+        <table id="militaresTable" class="table table-hover table-striped table-bordered align-middle table-sticky">
+            <thead class="table-light">
                 <tr>
-                    <th>Posto/Grad</th>
+                    <th class="nowrap">Posto/Grad</th>
                     <th>Nome</th>
-                    <th>Matrícula</th>
+                    <th class="nowrap">Matrícula</th>
                     <th>Quadro</th>
-                    <th>Mês Usufruto</th>
-                    <th>Qtd. Dias 1º</th>
-                    <th>Início 1º</th>
-                    <th>Fim 1º</th>
-                    <th>Qtd. Dias 2º</th>
-                    <th>Início 2º</th>
-                    <th>Fim 2º</th>
-                    <th>Qtd. Dias 3º</th>
-                    <th>Início 3º</th>
-                    <th>Fim 3º</th>
-                    <th>Ações</th>
+                    <th class="nowrap">Mês Usufruto</th>
+                    <th class="nowrap min-col">Qtd. Dias 1º</th>
+                    <th class="nowrap min-col-sm">Início 1º</th>
+                    <th class="nowrap min-col-sm">Fim 1º</th>
+                    <th class="nowrap min-col">Qtd. Dias 2º</th>
+                    <th class="nowrap min-col-sm">Início 2º</th>
+                    <th class="nowrap min-col-sm">Fim 2º</th>
+                    <th class="nowrap min-col">Qtd. Dias 3º</th>
+                    <th class="nowrap min-col-sm">Início 3º</th>
+                    <th class="nowrap min-col-sm">Fim 3º</th>
+                    <th class="nowrap text-end cell-actions">Ações</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for militar, paf in militares_pafs %}
+                {# Regra especial: OBM 48 + especialidade 12 -> teto 40 #}
                 {% set pode_ter_40 = militar.obm_funcoes
-                | selectattr('obm_id', 'equalto', 48)
-                | selectattr('data_fim', 'equalto', none)
-                | list
-                | length > 0 and militar.especialidade_id == 12 %}
+                | selectattr('obm_id','equalto',48)
+                | selectattr('data_fim','equalto',none)
+                | list | length > 0
+                and militar.especialidade_id == 12 %}
                 <tr id="militar-{{ militar.id }}" data-militar-id="{{ militar.id }}"
                     data-pode-ter-40="{{ 'true' if pode_ter_40 else 'false' }}">
-                    <td>{{ militar.posto_grad.sigla }}</td>
-                    <td>{{ militar.nome_completo }}</td>
-                    <td>{{ militar.matricula }}</td>
+
+                    <td class="nowrap">{{ militar.posto_grad.sigla }}</td>
+                    <td class="fw-semibold">{{ militar.nome_completo }}</td>
+                    <td class="nowrap">{{ militar.matricula }}</td>
                     <td>{{ militar.quadro.quadro }}</td>
-                    <td>
+
+                    <!-- Mês de usufruto -->
+                    <td class="nowrap">
                         {% set mes_paf = meses.get(paf.mes_usufruto) if paf and paf.mes_usufruto else None %}
-                        <select name="mes_usufruto_{{ militar.id }}" class="form-select" {% if mes_paf and mes_paf
-                            <=current_month %}disabled{% endif %}>
+                        {% set mes_paf_bloqueado = (bloqueio_mes_atual and (
+                        (ano < min_year) or (ano==min_year and mes_paf and mes_paf < min_month) )) %} <select
+                            name="mes_usufruto_{{ militar.id }}" class="form-select form-select-sm" {% if
+                            mes_paf_bloqueado %}disabled{% endif %}>
+                            <option value="">Selecione...</option>
 
                             {% for mes in meses.keys() %}
-                            <option value="{{ mes }}" {% if paf and paf.mes_usufruto==mes %}selected{% endif %} {% if
-                                meses[mes] <=current_month %}disabled{% endif %}>
+                            {% set mes_num = meses[mes] %}
+                            {% set bloqueado = (bloqueio_mes_atual and (
+                            (ano < min_year) or (ano==min_year and mes_num < min_month) )) %} <option value="{{ mes }}"
+                                {% if paf and paf.mes_usufruto==mes %}selected{% endif %} {% if bloqueado %}disabled{%
+                                endif %}>
                                 {{ mes }}
+                                </option>
+                                {% endfor %}
+                                </select>
+                    </td>
+
+                    <!-- 1º período -->
+                    <td class="nowrap">
+                        <select name="qtd_dias_1_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
+                            data-period="1">
+                            <option value="">Selecione...</option>
+                            {% set opcoes = [10,20,30] if pode_ter_40 else [10,15,20,30] %}
+                            {% for dias in opcoes %}
+                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias %}selected{%
+                                endif %}>
+                                {{ dias }}
                             </option>
                             {% endfor %}
                         </select>
                     </td>
-                    <td>
-                        <select name="qtd_dias_1_{{ militar.id }}" class="form-select qtd-dias" data-period="1">
-                            <option value="">Selecione...</option>
-                            {% set opcoes = [10, 20, 30] if pode_ter_40 else [10, 15, 20, 30] %}
-                            {% for dias in opcoes %}
-                            <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias %}selected{%
-                                endif %}>{{ dias }}</option>
-                            {% endfor %}
-                        </select>
+                    <td class="nowrap">
+                        <input type="date" name="inicio_1_{{ militar.id }}"
+                            class="form-control form-control-sm inicio-periodo"
+                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}">
                     </td>
-                    <td><input type="date" name="inicio_1_{{ militar.id }}" class="form-control inicio-periodo"
-                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
-                    <td><input type="date" name="fim_1_{{ militar.id }}" class="form-control"
-                            value="{{ paf.fim_primeiro_periodo if paf }}" readonly></td>
+                    <td class="nowrap">
+                        <input type="date" name="fim_1_{{ militar.id }}" class="form-control form-control-sm"
+                            value="{{ paf.fim_primeiro_periodo if paf }}" readonly>
+                    </td>
 
-                    <td>
-                        <select name="qtd_dias_2_{{ militar.id }}" class="form-select qtd-dias" data-period="2">
+                    <!-- 2º período -->
+                    <td class="nowrap">
+                        <select name="qtd_dias_2_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
+                            data-period="2">
                             <option value="">Selecione...</option>
                             <option value="10" {% if paf and paf.qtd_dias_segundo_periodo==10 %}selected{% endif %}>10
                             </option>
@@ -86,28 +185,40 @@
                             </option>
                         </select>
                     </td>
-                    <td><input type="date" name="inicio_2_{{ militar.id }}" class="form-control"
-                            value="{{ paf.segundo_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
-                    <td><input type="date" name="fim_2_{{ militar.id }}" class="form-control"
-                            value="{{ paf.fim_segundo_periodo if paf }}" readonly></td>
+                    <td class="nowrap">
+                        <input type="date" name="inicio_2_{{ militar.id }}" class="form-control form-control-sm"
+                            value="{{ paf.segundo_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}">
+                    </td>
+                    <td class="nowrap">
+                        <input type="date" name="fim_2_{{ militar.id }}" class="form-control form-control-sm"
+                            value="{{ paf.fim_segundo_periodo if paf }}" readonly>
+                    </td>
 
-                    <td>
-                        <select name="qtd_dias_3_{{ militar.id }}" class="form-select qtd-dias" data-period="3">
+                    <!-- 3º período -->
+                    <td class="nowrap">
+                        <select name="qtd_dias_3_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
+                            data-period="3">
                             <option value="">Selecione...</option>
                             <option value="10" {% if paf and paf.qtd_dias_terceiro_periodo==10 %}selected{% endif %}>10
                             </option>
                         </select>
                     </td>
-                    <td><input type="date" name="inicio_3_{{ militar.id }}" class="form-control"
-                            value="{{ paf.terceiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}"></td>
-                    <td><input type="date" name="fim_3_{{ militar.id }}" class="form-control"
-                            value="{{ paf.fim_terceiro_periodo if paf }}"></td>
+                    <td class="nowrap">
+                        <input type="date" name="inicio_3_{{ militar.id }}" class="form-control form-control-sm"
+                            value="{{ paf.terceiro_periodo_ferias if paf }}" min="{{ min_iso }}" max="{{ max_iso }}">
+                    </td>
+                    <td class="nowrap">
+                        <input type="date" name="fim_3_{{ militar.id }}" class="form-control form-control-sm"
+                            value="{{ paf.fim_terceiro_periodo if paf }}" readonly>
+                    </td>
 
-                    <td>
-                        <button class="botao-salvar btn btn-success btn-sm"
-                            data-militar-id="{{ militar.id }}">Salvar</button>
+                    <!-- Ações -->
+                    <td class="text-end">
+                        <button class="botao-salvar btn btn-success btn-sm" data-militar-id="{{ militar.id }}">
+                            Salvar
+                        </button>
                         {% if paf and paf.data_alteracao %}
-                        <div class="mt-1 text-muted small">
+                        <div class="mt-1 text-muted small last-update">
                             <i class="bi bi-clock-history"></i>
                             {{ paf.usuario.nome }}<br>
                             {{ paf.data_alteracao.strftime('%d/%m/%Y %H:%M') }}

@@ -1,84 +1,206 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
 <style>
+  :root {
+    --brand-blue-700: #0d2036;
+    --brand-blue-600: #0c3761;
+  }
+
+  /* Fundo padrão */
   body {
-    background-color: #f4f6f9;
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
     min-height: 100vh;
   }
 
-  .filtro-container {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-    margin-bottom: 20px;
-    border-top: 5px solid #002b5c;
+  .page-wrap {
+    padding: 18px 10px;
   }
 
-  footer {
-    background-color: #f8f9fa;
-    padding: 15px 0;
-    text-align: center;
-    border-top: 1px solid #ddd;
-    font-size: 0.9rem;
-    color: #555;
+  /* ===== ALERTA FLUTUANTE (na frente da navbar) ===== */
+  .alert-stack {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(960px, 96vw);
+    z-index: 3000;
+    /* acima da navbar e dropdowns */
+    pointer-events: none;
+    /* não bloqueia cliques abaixo */
+  }
+
+  .alert-stack .alert {
+    pointer-events: auto;
+    /* permite clicar no X */
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Card principal (padrão adotado) */
+  .glass-card {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+    overflow: hidden;
+  }
+
+  /* Cabeçalho com alto contraste */
+  .brand-top {
+    background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
+    color: #fff;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+  }
+
+  .brand-top h4 {
+    margin: 0;
+    font-weight: 900;
+  }
+
+  .muted {
+    opacity: .85;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    background: rgba(255, 255, 255, .55);
+  }
+
+  .toolbar .grow {
+    flex: 1 1 320px;
+    min-width: 260px;
+  }
+
+  /* Área da tabela */
+  .table-wrap {
+    padding: 12px 12px 18px;
+  }
+
+  @media (min-width: 992px) {
+    .table-wrap {
+      padding: 18px;
+    }
+  }
+
+  .table-sticky thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f8f9fa;
   }
 </style>
 {% endblock %}
 
 {% block body %}
-<main class="container mt-5">
-  <div class="filtro-container">
-    {% if dia_atual < 10 or dia_atual> 20 %}
-      <div class="alert alert-warning text-center" role="alert">
-        ⚠️ As alterações de férias estão disponíveis apenas do dia 10 ao 20 de cada mês.
+
+<!-- ======= ALERTAS SEMPRE NA FRENTE DA NAVBAR ======= -->
+<div class="alert-stack" aria-live="polite" aria-atomic="true">
+  {% if dia_atual < 10 or dia_atual> 20 %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      ⚠️ As alterações de férias estão disponíveis apenas do dia <b>10</b> ao <b>20</b> de cada mês.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% endif %}
+
+    {% with msgs=get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+    {% for category, msg in msgs %}
+    {% set cat = category if category in ['primary','secondary','success','danger','warning','info','light','dark'] else
+    'info' %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+      {{ msg|safe }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</div>
+
+<div class="container-fluid page-wrap">
+  <div class="glass-card">
+
+    <!-- Cabeçalho -->
+    <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <h4><i class="bi bi-calendar-week"></i> Gestão de PAFs • CBMAM</h4>
+        <div class="muted small">Selecione a OBM para carregar a grade de férias e aplicar alterações.</div>
       </div>
-      {% endif %}
-      <h4>Gestão de PAFs - CBMAM</h4>
-      <div class="row mt-3">
-        <div class="col-md-6">
-          <label><strong>Selecione a OBM:</strong></label>
-          <select id="obmSelect" class="form-select">
-            <option value="">-- Selecione --</option>
-            {% for obm in lista_obms %}
-            <option value="{{ obm.id }}">{{ obm.sigla }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <button class="btn btn-outline-primary" id="btnGrafico" disabled>
-            <i class="bi bi-bar-chart-line"></i> Ver Gráfico
-          </button>
-        </div>
+      <span class="badge bg-primary">CBMAM</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="grow">
+        <label class="form-label small mb-1">Selecione a OBM</label>
+        <select id="obmSelect" class="form-select">
+          <option value="">— Selecione —</option>
+          {% for obm in lista_obms %}
+          <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+          {% endfor %}
+        </select>
       </div>
+
+      <div class="d-flex gap-2 flex-wrap ms-auto">
+        <button class="btn btn-success" id="btnGrafico" disabled>
+          <i class="bi bi-bar-chart-line"></i> Ver Gráfico
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabela (carregada dinamicamente) -->
+    <div class="table-wrap">
+      <div id="tabelaContainer"></div>
+    </div>
   </div>
 
-  <div id="tabelaContainer"></div>
-</main>
+  <div class="text-center text-white-50 small mt-3">
+    Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}
+  </div>
+</div>
 
-<footer>Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}</footer>
+<!-- Modal do Gráfico -->
+<div class="modal fade" id="modalGrafico" tabindex="-1" aria-labelledby="modalGraficoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalGraficoLabel"><i class="bi bi-bar-chart-line"></i> Gráfico de Férias</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center" id="graficoBody">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Carregando gráfico...</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-  // janela liberada se hoje (no servidor) é 10..20 ou se é o usuário especial (id 6)
+  // Janela liberada (10..20) OU Super User (id=6)
   window.CAN_EDIT = {{ ((10 <= dia_atual <= 20) or(current_user.funcao_user_id == 6)) | tojson }};
-</script>
-<script>
   window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
-</script>
-<script>
-  // ==== Regras especiais (vem do servidor/variável global) ====
-  window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];   // podem ter teto 40
-  window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];   // dentre os de 40, forçar 20 + 20 (sem 3º)
-  const CAN_EDIT = Boolean(window.CAN_EDIT);
 
-  // ==== Datas utilitárias ====
+  // Regras especiais (vindas do backend)
+  window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];
+  window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612];
+
+  const CAN_EDIT = Boolean(window.CAN_EDIT);
   const hoje = new Date();
   const ANO_ATUAL = Number(window.PAF_ANO_VIGENTE || new Date().getFullYear());
-  const LIMITE_ANO = new Date(ANO_ATUAL, 11, 31); // 31/12/yyyy
+  const LIMITE_ANO = new Date(ANO_ATUAL, 11, 31);
   const pad = v => String(v).padStart(2, '0');
   const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
@@ -96,23 +218,16 @@
     input.min = fmtISO(min);
     input.max = fmtISO(LIMITE_ANO);
   }
-
-  // ==== SÓ valida quando o usuário muda o campo (nada de loop) ====
   function ensureAfterMin(input) {
     if (!input || input.type !== 'date' || !input.min) return true;
     if (input.value && input.value < input.min) {
       alert('Selecione uma data a partir de ' + input.min.split('-').reverse().join('/'));
-      input.value = '';
-      input.focus();
-      return false;
+      input.value = ''; input.focus(); return false;
     }
     return true;
   }
 
-  // ==== helpers de leitura/estado ====
-  function getNum(row, name) {
-    return parseInt(row.querySelector(`[name="${name}"]`)?.value || 0, 10);
-  }
+  function getNum(row, name) { return parseInt(row.querySelector(`[name="${name}"]`)?.value || 0, 10); }
   function totals(row, mid) {
     const d1 = getNum(row, `qtd_dias_1_${mid}`);
     const d2 = getNum(row, `qtd_dias_2_${mid}`);
@@ -123,43 +238,31 @@
     const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
     const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
     const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
-    if (s) s.value = '';
-    if (i) i.value = '';
-    if (f) f.value = '';
+    if (s) s.value = ''; if (i) i.value = ''; if (f) f.value = '';
   }
   function lockPeriodo(row, mid, p, lock, title = '') {
     ['qtd_dias', 'inicio', 'fim'].forEach(k => {
       const el = row.querySelector(`[name="${k}_${p}_${mid}"]`);
-      if (el) {
-        el.disabled = !!lock;
-        el.readOnly = !!lock;
-        el.title = title || '';
-      }
+      if (el) { el.disabled = !!lock; el.readOnly = !!lock; el.title = title || ''; }
     });
   }
 
-  // ==== Calcular fim automaticamente ====
   function calcularFim(row, mid, p) {
     const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
     const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
     const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
     if (!i || !s || !f) return;
-
     const di = parseInputDate(i.value);
     const n = parseInt(s.value || 0, 10);
     if (!di || !n) { f.value = ''; return; }
-
     const out = new Date(di.getFullYear(), di.getMonth(), di.getDate() + n - 1);
     if (out.getFullYear() !== ANO_ATUAL || out > LIMITE_ANO) {
       alert('Este período ultrapassa 31/12 do ano atual. Ajuste a data ou a quantidade de dias.');
-      clearPeriodo(row, mid, p);
-      return;
+      clearPeriodo(row, mid, p); return;
     }
-    if (f.type === 'date') f.value = fmtISO(out);
-    else f.value = `${pad(out.getDate())}/${pad(out.getMonth() + 1)}/${out.getFullYear()}`;
+    f.value = fmtISO(out);
   }
 
-  // ==== Regras de sequência/limite de ano ====
   function validarSequencia(row, mid) {
     const i1 = parseInputDate(row.querySelector(`[name="inicio_1_${mid}"]`)?.value || '');
     const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value || '');
@@ -182,37 +285,23 @@
     });
   }
 
-  // ==== Opções do 2º período (dinâmico) ====
   function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
     const dias1 = getNum(row, `qtd_dias_1_${mid}`);
     const sel2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
     if (!sel2) return;
-
     const teto = podeTer40 ? 40 : 30;
-    const valoresDisponiveis = Array.from(sel2.options)
-      .map(o => parseInt(o.value, 10))
-      .filter(n => !isNaN(n));
-
+    const valores = Array.from(sel2.options).map(o => parseInt(o.value, 10)).filter(n => !isNaN(n));
     let permitidas;
-    if (podeTer40 && forcar20x20) {
-      permitidas = (dias1 + 20 <= 40) ? [20] : [];
-    } else {
-      permitidas = valoresDisponiveis.filter(v => (dias1 + v) <= teto);
-    }
-
+    if (podeTer40 && forcar20x20) { permitidas = (dias1 + 20 <= 40) ? [20] : []; }
+    else { permitidas = valores.filter(v => (dias1 + v) <= teto); }
     Array.from(sel2.options).forEach(opt => {
-      if (!opt.value) return; // placeholder
+      if (!opt.value) return;
       opt.disabled = !permitidas.includes(parseInt(opt.value, 10));
     });
-
     const atual = parseInt(sel2.value || 0, 10);
-    if (!permitidas.includes(atual)) {
-      sel2.value = '';
-      clearPeriodo(row, mid, 2);
-    }
+    if (!permitidas.includes(atual)) { sel2.value = ''; clearPeriodo(row, mid, 2); }
   }
 
-  // ==== Atualiza estado da linha (sem apagar valores do banco) ====
   function refreshRow(row) {
     const mid = row.dataset.militarId;
     const midNum = Number(mid);
@@ -220,10 +309,7 @@
     const forcar20x20 = (window.MILITARES_20_20 || []).includes(midNum);
     const teto = podeTer40 ? 40 : 30;
 
-    if (!CAN_EDIT) {
-      row.querySelectorAll('input,select,button.botao-salvar').forEach(el => el.disabled = true);
-      return;
-    }
+    if (!CAN_EDIT) { row.querySelectorAll('input,select,button.botao-salvar').forEach(el => el.disabled = true); return; }
 
     const s1 = row.querySelector(`[name="qtd_dias_1_${mid}"]`);
     const i1 = row.querySelector(`[name="inicio_1_${mid}"]`);
@@ -238,10 +324,8 @@
     // 1º período
     if (i1) setMinMax(i1, firstDayNextMonth());
     if (f1) f1.disabled = true;
-
     const v1 = parseInputDate(i1?.value || '');
     if (v1 && v1 < firstDayNextMonth()) {
-      // keep value (do banco), mas travado
       lockPeriodo(row, mid, '1', true, 'Período em mês passado/atual (somente leitura)');
     } else {
       if (s1) s1.disabled = false;
@@ -254,7 +338,6 @@
     // 2º período
     const podeUsar2 = d1 > 0 && d1 < teto;
     [s2, i2, f2].forEach(el => { if (el) el.disabled = !podeUsar2; });
-
     if (podeUsar2) {
       aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
       let min2 = firstDayNextMonth();
@@ -265,16 +348,14 @@
       }
       if (i2) setMinMax(i2, min2);
       if (f2) f2.disabled = true;
-
       const v2 = parseInputDate(i2?.value || '');
       if (v2 && v2 < min2) lockPeriodo(row, mid, '2', true, 'Período em mês passado/atual (somente leitura)');
     }
     calcularFim(row, mid, 2);
 
-    // 3º período (nunca para 20+20)
+    // 3º período (não para 20+20)
     const podeUsar3 = !forcar20x20 && total12 < teto;
     [s3, i3, f3].forEach(el => { if (el) el.disabled = !podeUsar3; });
-
     if (podeUsar3) {
       let min3 = firstDayNextMonth();
       const vf2 = parseInputDate(f2?.value || '');
@@ -288,7 +369,6 @@
       }
       if (i3) setMinMax(i3, min3);
       if (f3) f3.disabled = true;
-
       const v3 = parseInputDate(i3?.value || '');
       if (v3 && v3 < min3) lockPeriodo(row, mid, '3', true, 'Período em mês passado/atual (somente leitura)');
     }
@@ -297,17 +377,14 @@
     validarSequencia(row, mid);
   }
 
-  // ==== Listeners por linha ====
   function ligarListenersLinha(row) {
     const mid = row.dataset.militarId;
-
     ['1', '2', '3'].forEach(p => {
       const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
       const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-
       if (i) {
         i.addEventListener('change', () => {
-          if (!ensureAfterMin(i)) return;  // só valida aqui
+          if (!ensureAfterMin(i)) return;
           calcularFim(row, mid, p);
           refreshRow(row);
         });
@@ -320,7 +397,6 @@
       }
     });
 
-    // Salvar
     row.querySelectorAll('.botao-salvar').forEach(btn => {
       btn.addEventListener('click', () => {
         const formData = new URLSearchParams();
@@ -334,7 +410,6 @@
       });
     });
 
-    // Estado inicial
     refreshRow(row);
   }
 
@@ -342,59 +417,70 @@
     document.querySelectorAll('tr[data-militar-id]').forEach(ligarListenersLinha);
   }
 
-  // ==== Carregar a tabela por OBM ====
+  function getAno() { return ANO_ATUAL; }
+
+  // Carregar tabela por OBM
   document.getElementById('obmSelect').addEventListener('change', function () {
     const obmId = this.value;
     document.getElementById('btnGrafico').disabled = !obmId;
     const alvo = document.getElementById('tabelaContainer');
     if (!obmId) { alvo.innerHTML = ''; return; }
-    const ano = new Date().getFullYear(); // ou um select de ano
-    fetch(`/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
+
+    fetch(`/pafs/tabela/${obmId}?ano=${getAno()}`)
       .then(r => r.text())
       .then(html => {
         alvo.innerHTML = html;
 
-        const $ok = (typeof $ !== 'undefined' && $.fn && $.fn.DataTable);
-        if ($ok) {
+        // Garante classes de estilo padrão na tabela carregada
+        const tbl = document.getElementById('militaresTable');
+        if (tbl) {
+          tbl.classList.add('table', 'table-striped', 'table-bordered', 'align-middle', 'w-100', 'table-sticky');
+        }
+
+        // DataTables (se disponível)
+        if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
           const t = $('#militaresTable');
           if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
           t.DataTable({
-            scrollX: true, scrollY: "400px", paging: true,
+            scrollX: true,
+            scrollY: '400px',
+            paging: true,
             language: {
-              search: "Pesquisar:",
-              lengthMenu: "Mostrar _MENU_ registros",
-              info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-              paginate: { previous: "Anterior", next: "Próximo" }
+              url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json'
             }
           });
           t.on('draw.dt', () => inicializarListeners());
         }
-
         inicializarListeners();
       });
   });
 
-  // ==== Gráfico ====
+  // Modal de gráfico
   document.getElementById('btnGrafico').addEventListener('click', function () {
     const obmId = document.getElementById('obmSelect').value;
+    if (!obmId) return;
+    const body = document.getElementById('graficoBody');
+    body.innerHTML = `<div class="spinner-border text-primary" role="status"></div><p class="mt-3">Carregando gráfico...</p>`;
     fetch(`/grafico-ferias/${obmId}`)
       .then(r => r.text())
       .then(data => {
-        document.getElementById('grafico-img').src = 'data:image/png;base64,' + data;
-        document.getElementById('graficoModal').style.display = 'block';
-      });
+        const img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + data;
+        img.style.maxWidth = '100%';
+        body.innerHTML = '';
+        body.appendChild(img);
+        new bootstrap.Modal(document.getElementById('modalGrafico')).show();
+      })
+      .catch(() => { body.innerHTML = '<div class="alert alert-danger mb-0">Não foi possível carregar o gráfico.</div>'; });
   });
 
-  // ==== Janela fechada (10–20) -> travar tudo ====
+  // Janela fechada -> trava tudo assim que a tabela for inserida
   if (!CAN_EDIT) {
-    document.addEventListener('DOMContentLoaded', () => {
-      const obs = new MutationObserver(() => {
-        document.querySelectorAll('#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar')
-          .forEach(el => el.disabled = true);
-      });
-      obs.observe(document.getElementById('tabelaContainer'), { childList: true, subtree: true });
+    const obs = new MutationObserver(() => {
+      document.querySelectorAll('#tabelaContainer input, #tabelaContainer select, #tabelaContainer button.botao-salvar')
+        .forEach(el => el.disabled = true);
     });
+    obs.observe(document.getElementById('tabelaContainer'), { childList: true, subtree: true });
   }
 </script>
-
 {% endblock %}
