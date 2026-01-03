@@ -145,6 +145,7 @@
                             <th>Qtd. Dias 3º</th>
                             <th>Início 3º</th>
                             <th>Fim 3º</th>
+                            <th>Última alteração</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -187,7 +188,6 @@
 
     $(document).ready(function () {
 
-        // DEBUG: confirma que bootstrap existe (se não existir, teu script quebra em abrirGrafico)
         console.log("Bootstrap disponível?", typeof bootstrap !== 'undefined');
 
         const table = $('#militaresTable').DataTable({
@@ -206,49 +206,108 @@
                 { data: 'nome_completo', render: (d) => `<span class="truncate d-inline-block" style="max-width:280px">${d || ''}</span>` },
                 { data: 'matricula' },
                 { data: 'quadro' },
+
                 {
                     data: 'mes_usufruto', render: (mes, t, r) => `
-          <select class="form-select" name="mes_usufruto_${r.id}">
-            <option value="">Selecione...</option>
-            ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+            <select class="form-select" name="mes_usufruto_${r.id}">
+              <option value="">Selecione...</option>
+              ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
                             .map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${m}</option>`).join('')}
-          </select>`},
+            </select>`
+                },
+
                 {
                     data: 'qtd_dias_1', render: (d, t, r) => `
-          <select class="form-select" name="qtd_dias_1_${r.id}">
-            <option value="">Selecione...</option>
-            ${[10, 15, 20, 30].map(v => `<option value="${v}" ${String(v) === String(d) ? 'selected' : ''}>${v}</option>`).join('')}
-          </select>`},
+            <select class="form-select" name="qtd_dias_1_${r.id}">
+              <option value="">Selecione...</option>
+              ${[10, 15, 20, 30].map(v => `<option value="${v}" ${String(v) === String(d) ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>`
+                },
+
                 { data: 'inicio_1', render: (d, t, r) => `<input type="date" name="inicio_1_${r.id}" class="form-control" value="${d || ''}">` },
                 { data: 'fim_1', render: (d, t, r) => `<input type="date" name="fim_1_${r.id}" class="form-control" value="${d || ''}" readonly>` },
 
                 {
                     data: 'qtd_dias_2', render: (d, t, r) => `
-          <select class="form-select" name="qtd_dias_2_${r.id}">
-            <option value="">Selecione...</option>
-            ${[10, 15, 20].map(v => `<option value="${v}" ${String(v) === String(d) ? 'selected' : ''}>${v}</option>`).join('')}
-          </select>`},
+            <select class="form-select" name="qtd_dias_2_${r.id}">
+              <option value="">Selecione...</option>
+              ${[10, 15, 20].map(v => `<option value="${v}" ${String(v) === String(d) ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>`
+                },
+
                 { data: 'inicio_2', render: (d, t, r) => `<input type="date" name="inicio_2_${r.id}" class="form-control" value="${d || ''}">` },
                 { data: 'fim_2', render: (d, t, r) => `<input type="date" name="fim_2_${r.id}" class="form-control" value="${d || ''}" readonly>` },
 
                 {
                     data: 'qtd_dias_3', render: (d, t, r) => `
-          <select class="form-select" name="qtd_dias_3_${r.id}">
-            <option value="">Selecione...</option>
-            <option value="10" ${String(d) === '10' ? 'selected' : ''}>10</option>
-          </select>`},
+            <select class="form-select" name="qtd_dias_3_${r.id}">
+              <option value="">Selecione...</option>
+              <option value="10" ${String(d) === '10' ? 'selected' : ''}>10</option>
+            </select>`
+                },
+
                 { data: 'inicio_3', render: (d, t, r) => `<input type="date" name="inicio_3_${r.id}" class="form-control" value="${d || ''}">` },
                 { data: 'fim_3', render: (d, t, r) => `<input type="date" name="fim_3_${r.id}" class="form-control" value="${d || ''}" readonly>` },
 
-                { data: 'id', render: (d) => `<button type="button" class="btn btn-primary botao-salvar" data-militar-id="${d}">Salvar</button>` }
+                // ✅ Última alteração
+                {
+                    data: null,
+                    render: (d, t, r) => {
+                        const por = r.alterado_por || '';
+                        const em = r.alterado_em || '';
+                        if (!por && !em) return `<span class="text-muted small">—</span>`;
+                        return `
+              <div class="small">
+                <div class="fw-semibold"><i class="bi bi-person-check"></i> ${por}</div>
+                <div class="text-muted"><i class="bi bi-clock-history"></i> ${em}</div>
+              </div>
+            `;
+                    }
+                },
+
+                // ✅ Botão salvar
+                {
+                    data: 'id',
+                    render: (id) => `<button type="button" class="btn btn-primary botao-salvar" data-militar-id="${id}">Salvar</button>`
+                }
             ],
             language: { url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json" }
         });
 
-        // ✅ aqui é o ponto-chave
+        // ✅ recarrega quando muda o ano
         $('#selectAno').on('change', function () {
-            console.log("Ano selecionado:", getAnoSelecionado());
-            table.ajax.reload(null, true); // força request e reseta paginação
+            table.ajax.reload(null, true);
+        });
+
+        // ✅ salvar + atualizar tabela (SEM resetar página)
+        $(document).on('click', '.botao-salvar', function () {
+            const id = $(this).data('militar-id');
+
+            const payload = new URLSearchParams();
+            payload.append('militar_id', id);
+            payload.append('ano_referencia', getAnoSelecionado());
+
+            // pega os campos da linha
+            [
+                'mes_usufruto',
+                'qtd_dias_1', 'inicio_1', 'fim_1',
+                'qtd_dias_2', 'inicio_2', 'fim_2',
+                'qtd_dias_3', 'inicio_3', 'fim_3'
+            ].forEach(c => {
+                const el = document.querySelector(`[name="${c}_${id}"]`);
+                payload.append(c, el ? (el.value || '') : '');
+            });
+
+            fetch('/pafs/update', {
+                method: 'POST',
+                body: payload
+            })
+                .then(r => r.json())
+                .then(resp => {
+                    alert(resp.message || 'Salvo!');
+                    table.ajax.reload(null, false); // ✅ mantém página/scroll
+                })
+                .catch(() => alert('Erro ao salvar.'));
         });
 
     });

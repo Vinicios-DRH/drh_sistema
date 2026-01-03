@@ -2518,13 +2518,18 @@ def ferias_dados():
 
     # ✅ ano vem do frontend; fallback 2026
     ano = request.form.get('ano', type=int) or 2026
-    print("ANO RECEBIDO:", ano)
+
+    Usuario = aliased(User)
     query = (
-        database.session.query(Militar, Paf)
-        .outerjoin(Paf, and_(
-            Militar.id == Paf.militar_id,
-            Paf.ano_referencia == ano
-        ))
+        database.session.query(Militar, Paf, Usuario)
+        .outerjoin(
+            Paf,
+            and_(
+                Militar.id == Paf.militar_id,
+                Paf.ano_referencia == ano
+            )
+        )
+        .outerjoin(Usuario, Usuario.id == Paf.usuario_id)
     )
 
     if search_value:
@@ -2539,12 +2544,13 @@ def ferias_dados():
     militares_pafs = query.offset(start).limit(length).all()
 
     data = []
-    for militar, paf in militares_pafs:
+    for militar, paf, usuario in militares_pafs:
         data.append({
             "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "",
             "nome_completo": militar.nome_completo,
             "matricula": militar.matricula,
             "quadro": militar.quadro.quadro if militar.quadro else "",
+
             "mes_usufruto": paf.mes_usufruto if paf else "",
             "qtd_dias_1": paf.qtd_dias_primeiro_periodo if paf else "",
             "inicio_1": str(paf.primeiro_periodo_ferias) if paf and paf.primeiro_periodo_ferias else "",
@@ -2555,6 +2561,11 @@ def ferias_dados():
             "qtd_dias_3": paf.qtd_dias_terceiro_periodo if paf else "",
             "inicio_3": str(paf.terceiro_periodo_ferias) if paf and paf.terceiro_periodo_ferias else "",
             "fim_3": str(paf.fim_terceiro_periodo) if paf and paf.fim_terceiro_periodo else "",
+            "alterado_por": (usuario.nome if (paf and usuario and getattr(usuario, "nome", None))
+                             else (usuario.email if (paf and usuario and getattr(usuario, "email", None)) else "")),
+            "alterado_em": (paf.data_alteracao.strftime("%d/%m/%Y %H:%M")
+                            if (paf and paf.data_alteracao) else ""),
+
             "id": militar.id
         })
 
