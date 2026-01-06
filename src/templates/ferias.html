@@ -301,18 +301,8 @@
                 return;
             }
 
-            // fim = inicio + (dias - 1)
+            // fim = inicio + (dias - 1)  ✅ permite virar o ano
             const fim = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + dias - 1);
-
-            // valida não passar de 31/12 do ano selecionado
-            const ano = getAnoSelecionado();
-            const limite = new Date(ano, 11, 31);
-            if (fim.getFullYear() !== ano || fim > limite) {
-                alert('Este período ultrapassa 31/12 do ano selecionado. Ajuste a data ou a quantidade de dias.');
-                fimEl.value = '';
-                return;
-            }
-
             fimEl.value = fmtISO(fim);
         }
 
