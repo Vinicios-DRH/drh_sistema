@@ -1,4 +1,5 @@
 import math
+from zoneinfo import ZoneInfo
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
 from flask import abort, request, jsonify, make_response, current_app
@@ -2999,6 +3000,14 @@ def parse_date(date_string):
         return None
 
 
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def now_manaus_naive() -> datetime:
+    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
+    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
+
+
 @app.route('/pafs/update', methods=['POST'])
 @login_required
 def update_paf():
@@ -3061,7 +3070,7 @@ def update_paf():
     paf.fim_terceiro_periodo = terceiro_periodo_fim
 
     paf.usuario_id = current_user.id
-    paf.data_alteracao = datetime.now()
+    paf.data_alteracao = now_manaus_naive()
 
     database.session.commit()
     return jsonify({"message": "Dados salvos com sucesso!"})

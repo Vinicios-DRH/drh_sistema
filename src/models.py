@@ -10,6 +10,7 @@ from sqlalchemy import func, CheckConstraint, text
 
 from zoneinfo import ZoneInfo
 
+
 class PostoGrad(database.Model):
     __tablename__ = "posto_grad"
     id = database.Column(database.Integer, primary_key=True)
@@ -78,19 +79,21 @@ class Situacao(database.Model):
     condicao = database.Column(database.String(50))
 
     militares_situacao1 = database.relationship('Militar',
-        foreign_keys='Militar.situacao_id',
-        back_populates='situacao')
+                                                foreign_keys='Militar.situacao_id',
+                                                back_populates='situacao')
 
     militares_situacao2 = database.relationship('Militar',
-        foreign_keys='Militar.situacao2_id',
-        back_populates='situacao2')
+                                                foreign_keys='Militar.situacao2_id',
+                                                back_populates='situacao2')
 
 
 class Agregacoes(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     tipo = database.Column(database.String(50))
-    militares_ag1 = database.relationship('Militar', foreign_keys='Militar.agregacoes_id',  back_populates='agregacoes')
-    militares_ag2 = database.relationship('Militar', foreign_keys='Militar.agregacoes2_id', back_populates='agregacoes2')
+    militares_ag1 = database.relationship(
+        'Militar', foreign_keys='Militar.agregacoes_id',  back_populates='agregacoes')
+    militares_ag2 = database.relationship(
+        'Militar', foreign_keys='Militar.agregacoes2_id', back_populates='agregacoes2')
 
 
 class PublicacaoBg(database.Model):
@@ -460,13 +463,16 @@ class Militar(database.Model):
         database.Integer, database.ForeignKey('funcao_gratificada.id'))
     inativo = database.Column(database.Boolean, default=False)
 
-    situacao2_id  = database.Column(database.Integer, database.ForeignKey('situacao.id'))
-    agregacoes2_id = database.Column(database.Integer, database.ForeignKey('agregacoes.id'))
+    situacao2_id = database.Column(
+        database.Integer, database.ForeignKey('situacao.id'))
+    agregacoes2_id = database.Column(
+        database.Integer, database.ForeignKey('agregacoes.id'))
     inicio_situacao2 = database.Column(database.Date)
     fim_situacao2 = database.Column(database.Date)
 
     inativado_em = database.Column(database.DateTime)
-    inativado_por_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    inativado_por_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     motivo_inativacao = database.Column(database.String(255))
 
     # ---- relationships
@@ -483,21 +489,23 @@ class Militar(database.Model):
         'Especialidade', backref='militares', foreign_keys=[especialidade_id])
     localidade = database.relationship(
         'Localidade', backref='militares_loc', foreign_keys=[localidade_id])
-    situacao  = database.relationship('Situacao',
-                             foreign_keys=[situacao_id],
-                             back_populates='militares_situacao1')
+    situacao = database.relationship('Situacao',
+                                     foreign_keys=[situacao_id],
+                                     back_populates='militares_situacao1')
     pafs = database.relationship(
         'Paf', backref='militar', cascade="all, delete-orphan")
     viaturas = database.relationship(
         "ViaturaMilitar", back_populates="militar")
-    
+
     destino = database.relationship('Destino', foreign_keys=[destino_id])
 
     situacao2 = database.relationship('Situacao',
-                             foreign_keys=[situacao2_id],
-                             back_populates='militares_situacao2')
-    agregacoes  = database.relationship('Agregacoes', foreign_keys=[agregacoes_id],  back_populates='militares_ag1')
-    agregacoes2 = database.relationship('Agregacoes', foreign_keys=[agregacoes2_id], back_populates='militares_ag2')
+                                      foreign_keys=[situacao2_id],
+                                      back_populates='militares_situacao2')
+    agregacoes = database.relationship('Agregacoes', foreign_keys=[
+                                       agregacoes_id],  back_populates='militares_ag1')
+    agregacoes2 = database.relationship('Agregacoes', foreign_keys=[
+                                        agregacoes2_id], back_populates='militares_ag2')
 
 
 class MilitarObmFuncao(database.Model):
@@ -526,13 +534,22 @@ class Meses(database.Model):
     mes = database.Column(database.String(50))
 
 
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def now_manaus_naive() -> datetime:
+    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
+    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
+
+
 class Paf(database.Model):
     __tablename__ = 'paf'
 
     id = database.Column(database.Integer, primary_key=True)
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
                                  nullable=True)  # Relaciona com Militar
-    ano_referencia = database.Column(database.Integer, nullable=False, default=lambda: datetime.now().year)
+    ano_referencia = database.Column(
+        database.Integer, nullable=False, default=lambda: datetime.now().year)
     mes_usufruto = database.Column(database.String(50))
     qtd_dias_primeiro_periodo = database.Column(database.Integer)
     primeiro_periodo_ferias = database.Column(database.Date)
@@ -547,7 +564,8 @@ class Paf(database.Model):
         database.Integer, database.ForeignKey('user.id'))
 
     data_alteracao = database.Column(
-        database.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+        database.DateTime, default=now_manaus_naive, onupdate=now_manaus_naive
+    )
 
     # Relacionamentos
     # militar = database.relationship('Militar', backref='ferias', lazy=True)
@@ -565,24 +583,30 @@ class Motoristas(database.Model):
     __tablename__ = 'motoristas'
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=True)
-    categoria_id = database.Column(database.Integer, database.ForeignKey('categoria.id'), nullable=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=True)
+    categoria_id = database.Column(
+        database.Integer, database.ForeignKey('categoria.id'), nullable=True)
     siged = database.Column(database.String(200))
     boletim_geral = database.Column(database.String(200))
     created = database.Column(database.DateTime, default=datetime.utcnow)
     modified = database.Column(database.DateTime)
-    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
     cnh_imagem = database.Column(database.String(255))
     desclassificar = database.Column(database.String(30))
-    desclassificar_por = database.Column(database.Integer, database.ForeignKey('user.id'))
+    desclassificar_por = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     desclassificar_em = database.Column(database.DateTime)
 
     # Relacionamentos
     militar = database.relationship('Militar', backref='motoristas', lazy=True)
-    categoria = database.relationship('Categoria', backref='motorista_categoria', lazy=True)
+    categoria = database.relationship(
+        'Categoria', backref='motorista_categoria', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
-    usuario_desclassificacao = database.relationship('User', foreign_keys=[desclassificar_por])
+    usuario_desclassificacao = database.relationship(
+        'User', foreign_keys=[desclassificar_por])
 
 
 class Viaturas(database.Model):
@@ -1194,35 +1218,45 @@ class PafCapacidade(database.Model):
     ano = database.Column(database.Integer, nullable=False)
     mes = database.Column(database.SmallInteger, nullable=False)
     limite = database.Column(database.Integer, nullable=False, default=0)
-    created_at = database.Column(database.DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = database.Column(database.DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    __table_args__ = (database.UniqueConstraint('ano','mes', name='uq_pafcap_ano_mes'),)
+    created_at = database.Column(database.DateTime(
+        timezone=True), server_default=func.now(), nullable=False)
+    updated_at = database.Column(database.DateTime(
+        timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    __table_args__ = (database.UniqueConstraint(
+        'ano', 'mes', name='uq_pafcap_ano_mes'),)
 
 
 MANAUS_NOW = text("timezone('America/Manaus', now())")
+
 
 class NovoPaf(database.Model):
     __tablename__ = "novo_paf"
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
     ano_referencia = database.Column(database.Integer, nullable=False)
 
     opcao_1 = database.Column(database.SmallInteger, nullable=False)
     opcao_2 = database.Column(database.SmallInteger, nullable=False)
     opcao_3 = database.Column(database.SmallInteger, nullable=False)
 
-    status = database.Column(database.String(32), nullable=False, server_default="enviado")  # rascunho/enviado/aprovado_chefe/reprovado_chefe/validado_drh/aguardando_drh
+    # rascunho/enviado/aprovado_chefe/reprovado_chefe/validado_drh/aguardando_drh
+    status = database.Column(database.String(
+        32), nullable=False, server_default="enviado")
     justificativa = database.Column(database.Text)
 
     mes_definido = database.Column(database.SmallInteger)  # setado pela DRH
 
-    recebido_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    recebido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     recebido_em = database.Column(database.DateTime(timezone=True))
 
-    aprovado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    aprovado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     aprovado_em = database.Column(database.DateTime(timezone=True))
-    validado_por_user_id = database.Column(database.Integer, database.ForeignKey('user.id'))
+    validado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
     validado_em = database.Column(database.DateTime(timezone=True))
 
     observacoes = database.Column(database.Text)
@@ -1247,25 +1281,31 @@ class NovoPaf(database.Model):
     militar = database.relationship('Militar', backref='novo_pafs')
 
     __table_args__ = (
-        database.UniqueConstraint('militar_id', 'ano_referencia', name='uq_paf_militar_ano'),
+        database.UniqueConstraint(
+            'militar_id', 'ano_referencia', name='uq_paf_militar_ano'),
     )
-    
+
 
 class PafFeriasPlano(database.Model):
     __tablename__ = 'paf_ferias_plano'
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
-    usuario_id = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'), nullable=False)
 
-    ano_referencia = database.Column(database.Integer, nullable=False)  # ex.: 2026
-    direito_total_dias = database.Column(database.Integer, nullable=False)  # 30 ou 40
+    ano_referencia = database.Column(
+        database.Integer, nullable=False)  # ex.: 2026
+    direito_total_dias = database.Column(
+        database.Integer, nullable=False)  # 30 ou 40
 
     # Período 1
     qtd_dias_p1 = database.Column(database.Integer, nullable=False)
     inicio_p1 = database.Column(database.Date, nullable=False)
     fim_p1 = database.Column(database.Date, nullable=False)
-    mes_usufruto_p1 = database.Column(database.SmallInteger, nullable=False)  # 1..12
+    mes_usufruto_p1 = database.Column(
+        database.SmallInteger, nullable=False)  # 1..12
 
     # Período 2 (pode ser nulo p/ combos 30 dias que não usam)
     qtd_dias_p2 = database.Column(database.Integer, nullable=True)
@@ -1279,9 +1319,12 @@ class PafFeriasPlano(database.Model):
     fim_p3 = database.Column(database.Date, nullable=True)
     mes_usufruto_p3 = database.Column(database.SmallInteger, nullable=True)
 
-    status = database.Column(database.String(30), default='enviado')  # opcional
-    created_at = database.Column(database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")))
-    updated_at = database.Column(database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
+    status = database.Column(database.String(
+        30), default='enviado')  # opcional
+    created_at = database.Column(
+        database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")))
+    updated_at = database.Column(database.DateTime, default=lambda: datetime.now(
+        ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
 
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
@@ -1298,50 +1341,64 @@ class DepProcesso(database.Model):
     __tablename__ = "dep_processo"
 
     id = database.Column(database.Integer, primary_key=True)
-    protocolo = database.Column(database.String(40), unique=True, index=True, nullable=False)
+    protocolo = database.Column(database.String(
+        40), unique=True, index=True, nullable=False)
 
-    militar_id = database.Column(database.Integer, database.ForeignKey("militar.id"), nullable=False)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey("militar.id"), nullable=False)
     ano = database.Column(database.Integer, nullable=False)
 
     # NOVO: metadata do dependente (1 processo = 1 dependente)
     dependente_nome = database.Column(database.String(200))
     grau_parentesco = database.Column(database.String(80))
     idade_dependente = database.Column(database.String(10))
-    fim_imposto_renda = database.Column(database.Boolean, default=False, nullable=False)
-    fim_cadastro_sistema = database.Column(database.Boolean, default=False, nullable=False)
+    fim_imposto_renda = database.Column(
+        database.Boolean, default=False, nullable=False)
+    fim_cadastro_sistema = database.Column(
+        database.Boolean, default=False, nullable=False)
 
-    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, server_default=func.now())
+    criado_em = database.Column(database.DateTime(
+        timezone=True), nullable=False, server_default=func.now())
 
-    status = database.Column(database.String(30), default="ENVIADO", nullable=False)
-    enviado_em = database.Column(database.DateTime(timezone=True), nullable=False)
+    status = database.Column(database.String(
+        30), default="ENVIADO", nullable=False)
+    enviado_em = database.Column(
+        database.DateTime(timezone=True), nullable=False)
     enviado_ip = database.Column(database.String(45))
 
     conferido_em = database.Column(database.DateTime(timezone=True))
     conferido_ip = database.Column(database.String(45))
-    conferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
+    conferido_por_id = database.Column(
+        database.Integer, database.ForeignKey("user.id"))
 
     indeferido_motivo = database.Column(database.Text)
     indeferido_em = database.Column(database.DateTime(timezone=True))
-    indeferido_por_id = database.Column(database.Integer, database.ForeignKey("user.id"))
+    indeferido_por_id = database.Column(
+        database.Integer, database.ForeignKey("user.id"))
     indeferido_ip = database.Column(database.String(45))
 
     militar = database.relationship("Militar")
-    conferido_por = database.relationship("User", foreign_keys=[conferido_por_id])
-    arquivos = database.relationship("DepArquivo", back_populates="processo", cascade="all, delete-orphan")
-    acoes = database.relationship("DepAcaoLog", back_populates="processo", cascade="all, delete-orphan")
+    conferido_por = database.relationship(
+        "User", foreign_keys=[conferido_por_id])
+    arquivos = database.relationship(
+        "DepArquivo", back_populates="processo", cascade="all, delete-orphan")
+    acoes = database.relationship(
+        "DepAcaoLog", back_populates="processo", cascade="all, delete-orphan")
+
 
 class DepArquivo(database.Model):
     __tablename__ = "dep_arquivo"
 
     id = database.Column(database.Integer, primary_key=True)
-    processo_id = database.Column(database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
+    processo_id = database.Column(
+        database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
 
     object_key = database.Column(database.Text, nullable=False)  # key no B2
     nome_original = database.Column(database.String(255))
     content_type = database.Column(database.String(120))
 
-    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, 
-        server_default=func.now())
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False,
+                                server_default=func.now())
 
     processo = database.relationship("DepProcesso", back_populates="arquivos")
 
@@ -1350,18 +1407,19 @@ class DepAcaoLog(database.Model):
     __tablename__ = "dep_acao_log"
 
     id = database.Column(database.Integer, primary_key=True)
-    processo_id = database.Column(database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
+    processo_id = database.Column(
+        database.Integer, database.ForeignKey("dep_processo.id"), nullable=False)
 
     acao = database.Column(database.String(50), nullable=False)
     # EX: "MILITAR_ENVIOU", "DRH_CONFERIU", "DRH_DEFERIU", "DRH_INDEFERIU"
 
-    user_id = database.Column(database.Integer, database.ForeignKey("user.id"))  # pode ser null se quiser
+    user_id = database.Column(database.Integer, database.ForeignKey(
+        "user.id"))  # pode ser null se quiser
     ip = database.Column(database.String(45))
-    criado_em = database.Column(database.DateTime(timezone=True), nullable=False, 
-        server_default=func.now(),)
+    criado_em = database.Column(database.DateTime(timezone=True), nullable=False,
+                                server_default=func.now(),)
 
     detalhes = database.Column(database.Text)
 
     processo = database.relationship("DepProcesso", back_populates="acoes")
     user = database.relationship("User")
-
