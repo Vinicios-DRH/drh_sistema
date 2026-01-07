@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from flask import (
     Blueprint, current_app, flash, make_response, redirect, render_template, request, send_file, jsonify, url_for
 )
-from itsdangerous import URLSafeTimedSerializer, BadSignature
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from io import BytesIO
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc, or_
@@ -104,7 +104,6 @@ def make_dep_token(militar_id: int, ano: int, protocolo: str, payload_extra: dic
     return _dep_signer().dumps(data)
 
 
-
 def load_dep_token(token: str, max_age_hours=24):
     return _dep_signer().loads(token, max_age=max_age_hours * 3600)
 
@@ -129,13 +128,15 @@ def requerimento_form():
         ano_default=ano_default
     )
 
+
 @bp_dep.post("/dependentes/api/gerar-docx")
 @login_required
 def gerar_docx_api():
     try:
         militar = get_militar_from_current_user()
 
-        ano = int(request.form.get("ano") or 0) or __import__("datetime").datetime.now().year
+        ano = int(request.form.get("ano") or 0) or __import__(
+            "datetime").datetime.now().year
         protocolo = f"DEP-{uuid4().hex[:10].upper()}"
 
         # lê lista
@@ -155,7 +156,8 @@ def gerar_docx_api():
         )
 
         x_ir = "X" if request.form.get("fim_imposto_renda") == "on" else " "
-        x_cfpp = "X" if request.form.get("fim_cadastro_sistema") == "on" else " "
+        x_cfpp = "X" if request.form.get(
+            "fim_cadastro_sistema") == "on" else " "
 
         obm_sigla = get_obm_sigla_from_militar(militar)
 
@@ -171,7 +173,8 @@ def gerar_docx_api():
         }
 
         if not os.path.exists(TEMPLATE_DOCX_PATH):
-            raise FileNotFoundError(f"Template DOCX não encontrado: {TEMPLATE_DOCX_PATH}")
+            raise FileNotFoundError(
+                f"Template DOCX não encontrado: {TEMPLATE_DOCX_PATH}")
 
         docx_bytes = docx_fill_template_dependentes(
             TEMPLATE_DOCX_PATH,
@@ -204,12 +207,43 @@ def gerar_docx_api():
 
 
 @bp_dep.get("/dependentes/upload")
+@login_required
 def upload_page():
-    """
-    Página de upload — token vem por querystring (?t=...)
-    """
-    token = request.args.get("t", "")
-    return render_template("dependentes/upload_dependente.html", token=token)
+    token = (request.args.get("t", "") or "").strip()
+
+    resumo = None
+    erro_token = None
+
+    if token:
+        try:
+            payload = load_dep_token(token, max_age_hours=24)  # você já tem
+            # payload esperado:
+            # militar_id, ano, protocolo, dependentes, fim_imposto_renda, fim_cadastro_sistema
+            resumo = {
+                "protocolo": payload.get("protocolo", ""),
+                "ano": payload.get("ano", ""),
+                "fim_imposto_renda": bool(payload.get("fim_imposto_renda")),
+                "fim_cadastro_sistema": bool(payload.get("fim_cadastro_sistema")),
+                "dependentes": payload.get("dependentes") or [],
+            }
+
+            # sanity: garante lista
+            if not isinstance(resumo["dependentes"], list):
+                resumo["dependentes"] = []
+
+        except SignatureExpired:
+            erro_token = "Token expirado. Gere o requerimento novamente."
+        except BadSignature:
+            erro_token = "Token inválido. Gere o requerimento novamente."
+        except Exception:
+            erro_token = "Não foi possível ler o token. Gere o requerimento novamente."
+
+    return render_template(
+        "dependentes/upload_dependente.html",
+        token=token,
+        resumo=resumo,
+        erro_token=erro_token
+    )
 
 
 MANAUS_TZ = ZoneInfo("America/Manaus")
@@ -357,7 +391,8 @@ def upload_post():
         if not f or not f.filename:
             continue
         obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
-        uploaded.append((obj_key, f.filename, f.mimetype or "application/octet-stream"))
+        uploaded.append(
+            (obj_key, f.filename, f.mimetype or "application/octet-stream"))
 
     # ====== cria/atualiza processo por PROTOCOLO ======
     processo = DepProcesso.query.filter_by(protocolo=protocolo).first()
@@ -392,7 +427,6 @@ def upload_post():
             criado_em=now_manaus(),
         ))
 
-
     # log
     database.session.add(DepAcaoLog(
         processo_id=processo.id,
@@ -406,7 +440,6 @@ def upload_post():
     database.session.commit()
 
     return render_template("dependentes/upload_sucesso.html", protocolo=protocolo, uploaded=[x[0] for x in uploaded])
-
 
 
 @bp_dep.get("/dp/dependentes")
@@ -480,6 +513,8 @@ def drh_lista_processos():
         finalidade=finalidade,
         per_page=per_page
     )
+
+
 def get_client_ip():
     # se tem proxy/load balancer: X-Forwarded-For
     xff = request.headers.get("X-Forwarded-For", "")

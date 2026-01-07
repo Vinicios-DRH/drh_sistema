@@ -9,7 +9,6 @@
     --brand-blue-600: #0c3761;
   }
 
-  /* fundo padrão (opcional; mantém coerência visual) */
   body {
     background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
@@ -18,7 +17,6 @@
     padding: 18px 10px;
   }
 
-  /* Card padrão (glass) */
   .glass-card {
     background: rgba(255, 255, 255, .96);
     border: 1px solid rgba(0, 0, 0, .06);
@@ -27,7 +25,6 @@
     overflow: hidden;
   }
 
-  /* Cabeçalho com alto contraste */
   .brand-top {
     background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
     color: #fff;
@@ -47,6 +44,58 @@
   .hint {
     font-size: .92rem;
     opacity: .85;
+  }
+
+  /* Resumo */
+  .summary-card {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, .06);
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 768px) {
+    .summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .k {
+    font-size: .86rem;
+    opacity: .7;
+    margin-bottom: 2px;
+  }
+
+  .v {
+    font-weight: 700;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    background: #f8fafc;
+    font-size: .9rem;
+  }
+
+  .pill.ok {
+    background: #ecfdf5;
+    border-color: rgba(16, 185, 129, .25);
+  }
+
+  .pill.no {
+    background: #fef2f2;
+    border-color: rgba(239, 68, 68, .25);
   }
 
   /* Dropzone */
@@ -98,38 +147,112 @@
 <div class="container-fluid page-wrap">
   <div class="glass-card">
 
-    <!-- Cabeçalho -->
     <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
       <div>
-        <h4>Upload – Inclusão de Dependente</h4>
+        <h4>Upload – Inclusão de Dependentes</h4>
         <div class="muted small">
-          Anexe o <b>DOCX que você acabou de baixar</b> e também os demais anexos citados no documento
-          (certidão, RG/CPF, espelho IR, etc.).
+          Anexe o <b>DOCX assinado</b> e os demais anexos citados (certidão, RG/CPF, espelho IR, etc.).
         </div>
       </div>
       <span class="badge bg-primary">CBMAM</span>
     </div>
 
-    <!-- Conteúdo -->
     <div class="p-3 p-md-4">
+
+      {% if erro_token %}
+      <div class="alert alert-danger">
+        {{ erro_token }}
+        <div class="small mt-1">Volte e gere o requerimento novamente.</div>
+        <div class="mt-2">
+          <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dep.requerimento_form') }}">Voltar</a>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if resumo %}
+      <div class="summary-card mb-3">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+          <div>
+            <div class="fw-bold">Resumo do Requerimento</div>
+            <div class="small text-muted">Confira se este é o protocolo correto antes de enviar.</div>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyLink">Copiar link desta
+              página</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyProto">Copiar protocolo</button>
+          </div>
+        </div>
+
+        <hr class="my-2">
+
+        <div class="summary-grid">
+          <div>
+            <div class="k">Protocolo</div>
+            <div class="v"><code id="protoText">{{ resumo.protocolo }}</code></div>
+          </div>
+          <div>
+            <div class="k">Ano (pasta)</div>
+            <div class="v">{{ resumo.ano }}</div>
+          </div>
+
+          <div>
+            <div class="k">Finalidade</div>
+            <div class="d-flex gap-2 flex-wrap">
+              <span class="pill {{ 'ok' if resumo.fim_imposto_renda else 'no' }}">
+                {{ '✅' if resumo.fim_imposto_renda else '⬜' }} Imposto de Renda
+              </span>
+              <span class="pill {{ 'ok' if resumo.fim_cadastro_sistema else 'no' }}">
+                {{ '✅' if resumo.fim_cadastro_sistema else '⬜' }} CFPP/CBMAM
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="k">Dependentes ({{ resumo.dependentes|length }})</div>
+            <div class="small">
+              {% if resumo.dependentes and resumo.dependentes|length > 0 %}
+              <ul class="mb-0">
+                {% for d in resumo.dependentes %}
+                <li>
+                  <b>{{ d.nome }}</b>
+                  — {{ d.grau_parentesco }}
+                  — {{ d.idade }}
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <span class="text-muted">Nenhum dependente no token.</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0">
+          Dica: se você precisar assinar fora do sistema, <b>salve este link</b> (ou copie) e volte aqui depois para
+          enviar.
+        </div>
+      </div>
+      {% endif %}
+
       <form id="formUpload" method="POST" action="{{ url_for('dep.upload_post') }}" enctype="multipart/form-data"
         novalidate>
+
         <input type="hidden" name="token" value="{{ token }}">
 
-        <!-- Dropzone / Input -->
         <label class="form-label fw-semibold" for="arquivos">Arquivos</label>
         <div id="drop" class="dropzone mb-2" aria-describedby="hintMulti">
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span>📎</span>
             <div>
               <div class="fw-semibold">Clique para escolher ou arraste e solte aqui</div>
-              <div id="hintMulti" class="small text-muted">Você pode selecionar vários arquivos (DOCX + anexos).</div>
+              <div id="hintMulti" class="small text-muted">Você pode selecionar vários arquivos (PDF assinado +
+                anexos).</div>
             </div>
           </div>
           <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple required>
         </div>
 
-        <!-- Lista de arquivos escolhidos -->
         <div id="fileList" class="file-list"></div>
 
         <div class="d-flex gap-2 flex-wrap mt-3">
@@ -153,24 +276,60 @@
     const btn = document.getElementById('btnEnviar');
     const statusEl = document.getElementById('status');
 
-    // Abre seletor ao clicar na área
+    // Copiar link e protocolo (se existir resumo)
+    const btnCopyLink = document.getElementById('btnCopyLink');
+    const btnCopyProto = document.getElementById('btnCopyProto');
+    const protoText = document.getElementById('protoText');
+
+    const pageUrl = window.location.href;
+
+    btnCopyLink?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pageUrl);
+        btnCopyLink.textContent = "Link copiado!";
+        setTimeout(() => btnCopyLink.textContent = "Copiar link desta página", 1400);
+      } catch (e) {
+        // fallback simples
+        prompt("Copie o link:", pageUrl);
+      }
+    });
+
+    btnCopyProto?.addEventListener('click', async () => {
+      const proto = protoText?.textContent || "";
+      if (!proto) return;
+      try {
+        await navigator.clipboard.writeText(proto);
+        btnCopyProto.textContent = "Protocolo copiado!";
+        setTimeout(() => btnCopyProto.textContent = "Copiar protocolo", 1400);
+      } catch (e) {
+        prompt("Copie o protocolo:", proto);
+      }
+    });
+
+    // Abre seletor ao clicar
     drop.addEventListener('click', () => input.click());
 
     // Drag & Drop
     ['dragenter', 'dragover'].forEach(evt =>
-      drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); })
+      drop.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        drop.classList.add('dragover');
+      })
     );
     ['dragleave', 'drop'].forEach(evt =>
-      drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); })
+      drop.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        drop.classList.remove('dragover');
+      })
     );
+
     drop.addEventListener('drop', e => {
       if (e.dataTransfer?.files?.length) {
-        input.files = e.dataTransfer.files; // para o backend receber via request.files.getlist(...)
+        input.files = e.dataTransfer.files; // backend recebe via getlist(...)
         renderList();
       }
     });
 
-    // Mudança pelo input
     input.addEventListener('change', renderList);
 
     function renderList() {
@@ -182,27 +341,27 @@
         chip.textContent = f.name;
         list.appendChild(chip);
       });
-      if (files.length) {
-        statusEl.textContent = `${files.length} arquivo(s) selecionado(s).`;
-      } else {
-        statusEl.textContent = '';
-      }
+      statusEl.textContent = files.length ? `${files.length} arquivo(s) selecionado(s).` : '';
     }
 
-    // Validação mínima e prevenção de duplo envio
+    // Validação e anti-duplo envio
     form.addEventListener('submit', (e) => {
       const hasFiles = input.files && input.files.length > 0;
       if (!hasFiles) {
         e.preventDefault();
-        alert('Selecione ao menos um arquivo (DOCX + anexos).');
+        alert('Selecione ao menos um arquivo (PDF assinado + anexos).');
         return;
       }
+
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = 'Enviando...';
       statusEl.textContent = 'Enviando arquivos...';
+
       // fallback de unlock caso algo impeça a navegação
-      setTimeout(() => { try { btn.disabled = false; btn.textContent = original; } catch (_) { } }, 6000);
+      setTimeout(() => {
+        try { btn.disabled = false; btn.textContent = original; } catch (_) { }
+      }, 8000);
     });
   })();
 </script>
