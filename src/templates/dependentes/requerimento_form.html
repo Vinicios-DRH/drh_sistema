@@ -98,6 +98,12 @@
       font-size: .92rem;
     }
   }
+
+  @media (max-width: 576px) {
+    .modal-dialog {
+      margin: 12px;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -210,6 +216,55 @@
     </div>
   </div>
 </div>
+
+<!-- Modal pós-download (Bootstrap 5) -->
+<div class="modal fade" id="postDownloadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Documento gerado!</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-success mb-3">
+          <div class="fw-semibold">Download iniciado.</div>
+          <div class="small mb-0">
+            Baixe, assine e depois envie no upload.
+            <span class="d-block d-sm-none mt-1">
+              <b>No iPhone:</b> clique em <b>“Ir para upload”</b> quando terminar o download.
+            </span>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="small">
+            Protocolo: <code id="mdProto">—</code>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="mdCopyProto">
+              Copiar protocolo
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="mdCopyLink">
+              Copiar link do upload
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-danger" id="mdClearDraft">Limpar rascunho</button>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Ficar aqui</button>
+          <a class="btn btn-primary" id="mdGoUpload" href="#">Ir para upload</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   (function () {
     // =============== Helpers ===============
@@ -455,44 +510,47 @@
 
         const uploadUrl = "{{ url_for('dep.upload_page') }}" + (token ? ("?t=" + encodeURIComponent(token)) : "");
 
-        // mensagem + ações
-        statusEl.innerHTML = `
-          <div class="alert alert-success mt-2 mb-0">
-            <div class="fw-semibold">Documento gerado!</div>
-            <div class="small">
-              Baixe, assine e depois envie no upload.
-              ${isIOS && isSafari ? "<br><b>No iPhone:</b> clique em “Ir para upload” quando terminar o download." : ""}
-            </div>
-            <div class="mt-2 d-flex gap-2 flex-wrap">
-              <a class="btn btn-sm btn-primary" href="${uploadUrl}">Ir para upload</a>
-              <button class="btn btn-sm btn-outline-secondary" type="button" id="btnCopyLink">Copiar link do upload</button>
-              <button class="btn btn-sm btn-outline-secondary" type="button" id="btnCopyProto">Copiar protocolo</button>
-              <button class="btn btn-sm btn-outline-danger" type="button" id="btnClearDraft">Limpar rascunho</button>
-            </div>
-            <div class="small mt-2">
-              Protocolo: <code>${esc(protocolo)}</code>
-            </div>
-          </div>
-        `;
+        // Preenche e abre o modal
+        const md = document.getElementById("postDownloadModal");
+        const mdProto = document.getElementById("mdProto");
+        const mdGoUpload = document.getElementById("mdGoUpload");
+        const mdCopyProto = document.getElementById("mdCopyProto");
+        const mdCopyLink = document.getElementById("mdCopyLink");
+        const mdClearDraft = document.getElementById("mdClearDraft");
 
-        document.getElementById("btnCopyLink")?.addEventListener("click", async () => {
+        mdProto.textContent = protocolo;
+        mdGoUpload.href = uploadUrl;
+
+        mdCopyLink.onclick = async () => {
           try { await navigator.clipboard.writeText(uploadUrl); } catch (e) { }
-        });
+          mdCopyLink.textContent = "Link copiado!";
+          setTimeout(() => (mdCopyLink.textContent = "Copiar link do upload"), 1200);
+        };
 
-        document.getElementById("btnCopyProto")?.addEventListener("click", async () => {
+        mdCopyProto.onclick = async () => {
           try { await navigator.clipboard.writeText(protocolo); } catch (e) { }
-        });
+          mdCopyProto.textContent = "Protocolo copiado!";
+          setTimeout(() => (mdCopyProto.textContent = "Copiar protocolo"), 1200);
+        };
 
-        document.getElementById("btnClearDraft")?.addEventListener("click", () => {
+        mdClearDraft.onclick = () => {
           clearDraft();
           deps = [{ nome: "", grau_parentesco: "", idade: "" }];
           render();
+          // fecha modal
+          const inst = bootstrap.Modal.getInstance(md);
+          inst?.hide();
           statusEl.innerHTML = `<div class="alert alert-info mt-2 mb-0">Rascunho limpo.</div>`;
-        });
+        };
+
+        // mostra modal
+        bootstrap.Modal.getOrCreateInstance(md).show();
 
         // ✅ redireciona automático só fora do Safari iOS
         if (!(isIOS && isSafari)) {
           setTimeout(() => { window.location.href = uploadUrl; }, 900);
+        } else {
+          // no iPhone a pessoa clica em "Ir para upload" no modal quando quiser
         }
 
       } catch (err) {
