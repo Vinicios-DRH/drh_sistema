@@ -276,6 +276,8 @@
     const btn = document.getElementById('btnEnviar');
     const statusEl = document.getElementById('status');
 
+    const tokenInput = form.querySelector('input[name="token"]');
+
     // Copiar link e protocolo (se existir resumo)
     const btnCopyLink = document.getElementById('btnCopyLink');
     const btnCopyProto = document.getElementById('btnCopyProto');
@@ -289,7 +291,6 @@
         btnCopyLink.textContent = "Link copiado!";
         setTimeout(() => btnCopyLink.textContent = "Copiar link desta página", 1400);
       } catch (e) {
-        // fallback simples
         prompt("Copie o link:", pageUrl);
       }
     });
@@ -305,6 +306,43 @@
         prompt("Copie o protocolo:", proto);
       }
     });
+
+    // ✅ Recupera token do localStorage se o usuário abriu sem ?t=
+    const LAST_UPLOAD_KEY = "dep_last_upload_v1";
+    function recoverTokenIfMissing() {
+      let t = (tokenInput?.value || "").trim();
+      if (t) return true;
+
+      try {
+        const raw = localStorage.getItem(LAST_UPLOAD_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data?.token) {
+            tokenInput.value = String(data.token).trim();
+            t = tokenInput.value;
+
+            statusEl.innerHTML = `
+              <div class="alert alert-info mt-2 mb-0">
+                Recuperamos seu token automaticamente.
+                ${data.protocolo ? `<div class="small mt-1">Protocolo: <code>${data.protocolo}</code></div>` : ""}
+              </div>
+            `;
+          }
+        }
+      } catch (e) { }
+
+      if (!t) {
+        statusEl.innerHTML = `
+          <div class="alert alert-warning mt-2 mb-0">
+            Token não encontrado. Volte ao formulário e gere o requerimento novamente (ou abra o link do upload).
+          </div>
+        `;
+        return false;
+      }
+      return true;
+    }
+
+    recoverTokenIfMissing();
 
     // Abre seletor ao clicar
     drop.addEventListener('click', () => input.click());
@@ -346,6 +384,13 @@
 
     // Validação e anti-duplo envio
     form.addEventListener('submit', (e) => {
+      // garante token antes de enviar
+      if (!recoverTokenIfMissing()) {
+        e.preventDefault();
+        alert("Token não encontrado. Volte ao formulário e gere o requerimento novamente.");
+        return;
+      }
+
       const hasFiles = input.files && input.files.length > 0;
       if (!hasFiles) {
         e.preventDefault();
@@ -358,7 +403,6 @@
       btn.textContent = 'Enviando...';
       statusEl.textContent = 'Enviando arquivos...';
 
-      // fallback de unlock caso algo impeça a navegação
       setTimeout(() => {
         try { btn.disabled = false; btn.textContent = original; } catch (_) { }
       }, 8000);

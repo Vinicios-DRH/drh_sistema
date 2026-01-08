@@ -7,6 +7,7 @@ from flask_login import UserMixin
 from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
 from sqlalchemy import func, CheckConstraint, text
+from sqlalchemy.dialects.postgresql import JSONB
 
 from zoneinfo import ZoneInfo
 
@@ -1352,6 +1353,12 @@ class DepProcesso(database.Model):
     dependente_nome = database.Column(database.String(200))
     grau_parentesco = database.Column(database.String(80))
     idade_dependente = database.Column(database.String(10))
+    # NOVO: lista completa (processo pode ter vários dependentes)
+    # lista [{nome,grau_parentesco,idade}, ...]
+    dependentes_json = database.Column(JSONB)
+    dependentes_qtd = database.Column(
+        database.Integer, default=0, nullable=False)
+
     fim_imposto_renda = database.Column(
         database.Boolean, default=False, nullable=False)
     fim_cadastro_sistema = database.Column(

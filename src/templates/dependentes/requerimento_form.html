@@ -281,6 +281,7 @@
     const depsJson = document.getElementById("dependentesJson");
 
     const DRAFT_KEY = "dep_req_draft_v1";
+    const LAST_UPLOAD_KEY = "dep_last_upload_v1";
 
     const esc = (s) => String(s ?? "")
       .replaceAll("&", "&amp;")
@@ -435,12 +436,10 @@
     }
 
     // =============== Init ===============
-    // listeners de campos fixos
     document.getElementById("inpAno")?.addEventListener("input", saveDraft);
     document.getElementById("ir")?.addEventListener("change", saveDraft);
     document.getElementById("cfpp")?.addEventListener("change", saveDraft);
 
-    // inicia com 1 dependente ou restaura rascunho
     const restored = loadDraft();
     if (!restored) deps = [{ nome: "", grau_parentesco: "", idade: "" }];
     render();
@@ -510,6 +509,16 @@
 
         const uploadUrl = "{{ url_for('dep.upload_page') }}" + (token ? ("?t=" + encodeURIComponent(token)) : "");
 
+        // ✅ guarda o "último upload" para não perder o token se sair da página
+        try {
+          localStorage.setItem(LAST_UPLOAD_KEY, JSON.stringify({
+            token,
+            protocolo,
+            uploadUrl,
+            savedAt: Date.now()
+          }));
+        } catch (e) { }
+
         // Preenche e abre o modal
         const md = document.getElementById("postDownloadModal");
         const mdProto = document.getElementById("mdProto");
@@ -522,13 +531,15 @@
         mdGoUpload.href = uploadUrl;
 
         mdCopyLink.onclick = async () => {
-          try { await navigator.clipboard.writeText(uploadUrl); } catch (e) { }
+          try { await navigator.clipboard.writeText(uploadUrl); }
+          catch (e) { prompt("Copie o link do upload:", uploadUrl); }
           mdCopyLink.textContent = "Link copiado!";
           setTimeout(() => (mdCopyLink.textContent = "Copiar link do upload"), 1200);
         };
 
         mdCopyProto.onclick = async () => {
-          try { await navigator.clipboard.writeText(protocolo); } catch (e) { }
+          try { await navigator.clipboard.writeText(protocolo); }
+          catch (e) { prompt("Copie o protocolo:", protocolo); }
           mdCopyProto.textContent = "Protocolo copiado!";
           setTimeout(() => (mdCopyProto.textContent = "Copiar protocolo"), 1200);
         };
@@ -537,20 +548,16 @@
           clearDraft();
           deps = [{ nome: "", grau_parentesco: "", idade: "" }];
           render();
-          // fecha modal
           const inst = bootstrap.Modal.getInstance(md);
           inst?.hide();
           statusEl.innerHTML = `<div class="alert alert-info mt-2 mb-0">Rascunho limpo.</div>`;
         };
 
-        // mostra modal
         bootstrap.Modal.getOrCreateInstance(md).show();
 
         // ✅ redireciona automático só fora do Safari iOS
         if (!(isIOS && isSafari)) {
           setTimeout(() => { window.location.href = uploadUrl; }, 900);
-        } else {
-          // no iPhone a pessoa clica em "Ir para upload" no modal quando quiser
         }
 
       } catch (err) {

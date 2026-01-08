@@ -336,7 +336,7 @@ def militar_reenvio_post(processo_id):
 
     # volta o processo pra ENVIADO e registra novo envio
     p.status = "ENVIADO"
-    p.enviado_em = func.now()
+    p.enviado_em = now_manaus()
     p.enviado_ip = ip
 
     database.session.add(DepAcaoLog(
@@ -357,34 +357,43 @@ def militar_reenvio_post(processo_id):
 @login_required
 def upload_post():
     token = (request.form.get("token") or "").strip()
+
+    if not token:
+        return "Token não informado. Gere o requerimento novamente e entre no upload pelo botão/link.", 400
+
     try:
         payload = load_dep_token(token, max_age_hours=24)
+    except SignatureExpired:
+        return "Token expirado. Gere o requerimento novamente.", 400
     except BadSignature:
-        return "Token inválido ou expirado.", 400
+        return "Token inválido. Gere o requerimento novamente.", 400
 
-    militar_id = payload["militar_id"]
-    ano = payload["ano"]
-    protocolo = payload["protocolo"]
+    militar_id = payload.get("militar_id")
+    ano = payload.get("ano")
+    protocolo = payload.get("protocolo")
+
+    if not militar_id or not ano or not protocolo:
+        return "Token incompleto. Gere o requerimento novamente.", 400
 
     dependentes = payload.get("dependentes") or []
     if not isinstance(dependentes, list) or len(dependentes) == 0:
-        return "Token sem dependentes.", 400
+        return "Token sem dependentes. Gere o requerimento novamente.", 400
 
     fim_ir = bool(payload.get("fim_imposto_renda") or False)
     fim_cfpp = bool(payload.get("fim_cadastro_sistema") or False)
 
-    # “cache” do primeiro dependente só pra lista do DRH continuar legal
-    primeiro = dependentes[0]
+    # “cache” do primeiro dependente (pra lista do DRH ficar rápida)
+    primeiro = dependentes[0] if isinstance(dependentes[0], dict) else {}
     dep_nome = (primeiro.get("nome") or "").strip()
-    grau = (primeiro.get("grau") or "").strip()
+    grau = (primeiro.get("grau_parentesco") or "").strip()  # ✅ CORRETO
     idade = str(primeiro.get("idade") or "").strip()
 
     files = request.files.getlist("arquivos")
-    if not files or all(f.filename.strip() == "" for f in files):
+    if not files or all((not f) or (not (f.filename or "").strip()) for f in files):
         return "Nenhum arquivo enviado.", 400
 
     ip = get_client_ip()
-    key_prefix = build_prefix_dependente(ano, militar_id, protocolo)
+    key_prefix = build_prefix_dependente(int(ano), int(militar_id), protocolo)
 
     uploaded = []
     for f in files:
@@ -396,28 +405,32 @@ def upload_post():
 
     # ====== cria/atualiza processo por PROTOCOLO ======
     processo = DepProcesso.query.filter_by(protocolo=protocolo).first()
+
     if not processo:
         processo = DepProcesso(
             protocolo=protocolo,
             militar_id=militar_id,
             ano=ano,
+
             status="ENVIADO",
             enviado_em=now_manaus(),
             enviado_ip=ip,
 
-            dependente_nome=dep_nome,      # primeiro dependente (cache)
+            dependente_nome=dep_nome,
             grau_parentesco=grau,
             idade_dependente=idade,
-            dependentes_json=dependentes,  # lista completa
+
+            dependentes_json=dependentes,          # ✅ agora existe na model/tabela
+            # ✅ agora existe na model/tabela
             dependentes_qtd=len(dependentes),
 
             fim_imposto_renda=fim_ir,
             fim_cadastro_sistema=fim_cfpp,
         )
         database.session.add(processo)
-        database.session.flush()  # <<< ESSENCIAL
+        database.session.flush()  # garante processo.id
 
-    # agora sim processo.id existe
+    # grava arquivos
     for obj_key, nome, ctype in uploaded:
         database.session.add(DepArquivo(
             processo_id=processo.id,
@@ -439,7 +452,11 @@ def upload_post():
 
     database.session.commit()
 
-    return render_template("dependentes/upload_sucesso.html", protocolo=protocolo, uploaded=[x[0] for x in uploaded])
+    return render_template(
+        "dependentes/upload_sucesso.html",
+        protocolo=protocolo,
+        uploaded=[x[0] for x in uploaded]
+    )
 
 
 @bp_dep.get("/dp/dependentes")
