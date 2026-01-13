@@ -188,18 +188,18 @@ class FormCriarUsuario(FlaskForm):
                                     Optional(), EqualTo('senha')])
     botao_submit_criar_conta = SubmitField('Salvar')
 
-    def validate_email(self, email):
-        # Obtenha o usuário do formulário, se disponível
-        current_user_id = getattr(self, 'current_user_id', None)
-        if current_user_id:
-            usuario = User.query.filter(
-                User.email == email.data, User.id != current_user_id).first()
-        else:
-            usuario = User.query.filter_by(email=email.data).first()
+    # def validate_email(self, email):
+    #     # Obtenha o usuário do formulário, se disponível
+    #     current_user_id = getattr(self, 'current_user_id', None)
+    #     if current_user_id:
+    #         usuario = User.query.filter(
+    #             User.email == email.data, User.id != current_user_id).first()
+    #     else:
+    #         usuario = User.query.filter_by(email=email.data).first()
 
-        if usuario:
-            raise ValidationError(
-                'E-mail já cadastrado. Cadastre-se com outro e-mail ou faça Login para continuar.')
+    #     if usuario:
+    #         raise ValidationError(
+    #             'E-mail já cadastrado. Cadastre-se com outro e-mail ou faça Login para continuar.')
 
 
 class FormMilitaresDisposicao(FlaskForm):
