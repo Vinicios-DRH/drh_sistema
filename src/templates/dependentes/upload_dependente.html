@@ -250,7 +250,16 @@
                 anexos).</div>
             </div>
           </div>
-          <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple required>
+          <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddMore">
+            + Adicionar mais arquivos
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearFiles">
+            Limpar arquivos
+          </button>
         </div>
 
         <div id="fileList" class="file-list"></div>
@@ -344,10 +353,26 @@
 
     recoverTokenIfMissing();
 
-    // Abre seletor ao clicar
-    drop.addEventListener('click', () => input.click());
+    // ===============================
+    // ✅ ACUMULAR ARQUIVOS (DataTransfer)
+    // ===============================
+    let dt = new DataTransfer();
 
-    // Drag & Drop
+    const btnAddMore = document.getElementById('btnAddMore');
+    const btnClearFiles = document.getElementById('btnClearFiles');
+
+    // Abre seletor ao clicar na área OU no botão "Adicionar mais"
+    drop.addEventListener('click', () => input.click());
+    btnAddMore?.addEventListener('click', () => input.click());
+
+    // Quando selecionar arquivos pelo input -> ACUMULA
+    input.addEventListener('change', () => {
+      addFiles(input.files);
+      // limpa o input pra permitir escolher o MESMO arquivo de novo (se precisar)
+      input.value = "";
+    });
+
+    // Drag & Drop com acumulo
     ['dragenter', 'dragover'].forEach(evt =>
       drop.addEventListener(evt, e => {
         e.preventDefault(); e.stopPropagation();
@@ -363,38 +388,89 @@
 
     drop.addEventListener('drop', e => {
       if (e.dataTransfer?.files?.length) {
-        input.files = e.dataTransfer.files; // backend recebe via getlist(...)
-        renderList();
+        addFiles(e.dataTransfer.files);
       }
     });
 
-    input.addEventListener('change', renderList);
+    // Limpar seleção
+    btnClearFiles?.addEventListener('click', () => {
+      dt = new DataTransfer();
+      input.files = dt.files;
+      renderList();
+      statusEl.textContent = 'Arquivos limpos.';
+    });
 
+    // Adiciona arquivos, evitando duplicados (mesmo nome + tamanho)
+    function addFiles(fileList) {
+      const incoming = Array.from(fileList || []);
+      const existing = Array.from(dt.files || []);
+
+      for (const f of incoming) {
+        const dup = existing.some(x => x.name === f.name && x.size === f.size);
+        if (!dup) dt.items.add(f);
+      }
+
+      input.files = dt.files;
+      renderList();
+    }
+
+    // Renderiza lista com opção de remover item
     function renderList() {
       list.innerHTML = '';
-      const files = Array.from(input.files || []);
-      files.forEach(f => {
+      const files = Array.from(dt.files || []);
+
+      files.forEach((f, idx) => {
         const chip = document.createElement('span');
         chip.className = 'file-chip';
-        chip.textContent = f.name;
+        chip.innerHTML = `
+          ${escapeHtml(f.name)}
+          <button type="button" class="btn btn-sm btn-link p-0 ms-2" data-rm="${idx}" style="text-decoration:none;">
+            ✖
+          </button>
+        `;
         list.appendChild(chip);
       });
+
+      // remover individual
+      list.querySelectorAll('button[data-rm]').forEach(btnRm => {
+        btnRm.addEventListener('click', () => {
+          const i = parseInt(btnRm.getAttribute('data-rm'), 10);
+          removeAt(i);
+        });
+      });
+
       statusEl.textContent = files.length ? `${files.length} arquivo(s) selecionado(s).` : '';
+    }
+
+    function removeAt(index) {
+      const files = Array.from(dt.files || []);
+      dt = new DataTransfer();
+      files.forEach((f, i) => { if (i !== index) dt.items.add(f); });
+      input.files = dt.files;
+      renderList();
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     // Validação e anti-duplo envio
     form.addEventListener('submit', (e) => {
-      // garante token antes de enviar
       if (!recoverTokenIfMissing()) {
         e.preventDefault();
         alert("Token não encontrado. Volte ao formulário e gere o requerimento novamente.");
         return;
       }
 
-      const hasFiles = input.files && input.files.length > 0;
+      const hasFiles = dt.files && dt.files.length > 0;
       if (!hasFiles) {
         e.preventDefault();
-        alert('Selecione ao menos um arquivo (PDF assinado + anexos).');
+        alert('Selecione ao menos um arquivo (DOCX/PDF assinado + anexos).');
         return;
       }
 
@@ -405,8 +481,9 @@
 
       setTimeout(() => {
         try { btn.disabled = false; btn.textContent = original; } catch (_) { }
-      }, 8000);
+      }, 12000);
     });
   })();
 </script>
+
 {% endblock %}
