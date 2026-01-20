@@ -488,6 +488,14 @@
         const token = resp.headers.get("X-DEP-TOKEN") || "";
         const protocolo = resp.headers.get("X-DEP-PROTOCOLO") || "PROTOCOLO";
 
+        try {
+          localStorage.setItem("dep_last_upload_v1", JSON.stringify({
+            token,
+            protocolo,
+            at: Date.now()
+          }));
+        } catch (e) { }
+
         const blob = await resp.blob();
         const url = window.URL.createObjectURL(blob);
 

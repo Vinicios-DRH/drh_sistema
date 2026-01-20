@@ -104,7 +104,7 @@ def make_dep_token(militar_id: int, ano: int, protocolo: str, payload_extra: dic
     return _dep_signer().dumps(data)
 
 
-def load_dep_token(token: str, max_age_hours=24):
+def load_dep_token(token: str, max_age_hours=24*7):
     return _dep_signer().loads(token, max_age=max_age_hours * 3600)
 
 

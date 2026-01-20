@@ -368,8 +368,6 @@
     // Quando selecionar arquivos pelo input -> ACUMULA
     input.addEventListener('change', () => {
       addFiles(input.files);
-      // limpa o input pra permitir escolher o MESMO arquivo de novo (se precisar)
-      input.value = "";
     });
 
     // Drag & Drop com acumulo
@@ -461,13 +459,19 @@
 
     // Validação e anti-duplo envio
     form.addEventListener('submit', (e) => {
+      // garante token antes de enviar
       if (!recoverTokenIfMissing()) {
         e.preventDefault();
+        try { localStorage.removeItem("dep_last_upload_v1"); } catch (e) { }
         alert("Token não encontrado. Volte ao formulário e gere o requerimento novamente.");
         return;
       }
 
-      const hasFiles = dt.files && dt.files.length > 0;
+      // ✅ GARANTE que o input está com os arquivos do DataTransfer
+      try { input.files = dt.files; } catch (_) { }
+
+      // ✅ valida pelo INPUT (é o que vai pro backend)
+      const hasFiles = input.files && input.files.length > 0;
       if (!hasFiles) {
         e.preventDefault();
         alert('Selecione ao menos um arquivo (DOCX/PDF assinado + anexos).');
