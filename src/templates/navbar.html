@@ -2,7 +2,9 @@
 {% set user_obm = current_user.obm1.sigla if current_user.obm1 else '' %}
 {% set funcao_id = current_user.funcao_user_id %}
 {% set pode_novo = (funcao_id == 12) %}
+{% set is_user_394 = (current_user.id == 394) %}
 {% set pode_recebimento = funcao_id in [1, 2, 5, 6, 7] %}
+{% set pode_ver_validacoes = pode_recebimento or is_user_394 %}
 
 <nav class="navbar fixed-top navbar-glass">
     <div class="container-fluid">
@@ -67,23 +69,26 @@
                     </li>
                     {% endif %}
 
-                    {# --- Recebimento (funcao_user_id em {1,2,5,6,7}) --- #}
-                    {% if pode_recebimento %}
-
+                    {# --- Validações: aparece para funcao_user_id em {1,2,5,6,7} OU usuário id 394 --- #}
+                    {% if pode_ver_validacoes %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-friends me-2"></i>Validações
                         </a>
                         <ul class="dropdown-menu dropdown-glass">
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">Declarações —
-                                    Recebimento
+                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">
+                                    Declarações — Recebimento
                                 </a>
                             </li>
-                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
 
+                            {# Itens extras: só para funções com permissão (não aparece pro id 394 se ele não tiver a
+                            função) #}
+                            {% if pode_recebimento %}
+                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('dep.drh_lista_processos') }}">Processos
                                     Inclusão de Dependentes</a></li>
+                            {% endif %}
                         </ul>
                     </li>
                     {% endif %}

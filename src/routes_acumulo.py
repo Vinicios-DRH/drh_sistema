@@ -8,7 +8,7 @@ from sqlalchemy import case, exists, literal, or_, and_, func
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
 from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
-from src.decorators.control import checar_ocupacao
+from src.decorators.control import USERS_ANALISE_VINCULO, checar_ocupacao, _is_super_user, _is_drh_like, _user_obm_ids, _militar_permitido, _can_analise_vinculo, _can_editar_declaracao, _prazo_envio_ate, _prazo_fechado, ANO_ATUAL, _is_privilegiado, _parse_date, _parse_time, require_analise_vinculo, _usuario_ja_tem_declaracao, _is_auditor_vinculo
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
 from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
@@ -22,303 +22,6 @@ from sqlalchemy.orm import aliased
 from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
-
-# b2_check()  # Verifica se as credenciais estão corretas no início
-# b2_put_test()  # Teste opcional para verificar se o upload funciona
-
-# --- Helpers baseados em User ---
-
-
-@app.before_request
-def inject_pg_id_into_session():
-    if not current_user.is_authenticated:
-        session.pop('pg_id', None)
-        return
-    if 'pg_id' in session:
-        return
-    try:
-        # importa aqui pra evitar import circular
-        mil = get_militar_por_user(current_user)
-        session['pg_id'] = getattr(mil, 'posto_grad_id', None)
-    except Exception:
-        session['pg_id'] = None
-
-
-def _is_super_user() -> bool:
-    """
-    Considera SUPER se current_user.funcao_user.ocupacao (ou .nome) contiver 'SUPER'
-    """
-    try:
-        fu = getattr(current_user, "funcao_user", None)
-        ocup = (getattr(fu, "ocupacao", None)
-                or getattr(fu, "nome", "") or "").upper()
-    except Exception:
-        ocup = ""
-    return "SUPER" in ocup  # ex.: "SUPER USER"
-
-
-def _user_obm_ids() -> list[int]:
-    """
-    OBMs do usuário (User.obm_id_1 e User.obm_id_2). Remove None/duplicados.
-    """
-    ids = {getattr(current_user, "obm_id_1", None),
-           getattr(current_user, "obm_id_2", None)}
-    ids.discard(None)
-    return list(ids)
-
-
-def _militar_permitido(militar_id: int) -> bool:
-    """Chefe/Diretor só pode mexer em militar cuja OBM ativa ∈ (obm_id_1, obm_id_2). Super vê tudo."""
-    if _is_super_user():
-        return True
-    obm_ids = _user_obm_ids()
-    if not obm_ids:
-        return False
-    MOF = MilitarObmFuncao
-    ok = (
-        db.session.query(Militar.id)
-        .join(MOF, MOF.militar_id == Militar.id)
-        .filter(
-            Militar.id == militar_id,
-            MOF.data_fim.is_(None),
-            MOF.obm_id.in_(obm_ids),
-        )
-        .first()
-    )
-    return ok is not None
-
-
-# parse helpers
-def _parse_time(s: str | None) -> time | None:
-    if not s:
-        return None
-    try:
-        return datetime.strptime(s.strip(), "%H:%M").time()
-    except Exception:
-        return None
-
-
-def _parse_date(s: str | None) -> date | None:
-    if not s:
-        return None
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(s.strip(), fmt).date()
-        except Exception:
-            pass
-    return None
-
-
-def _digits(s: str | None) -> str:
-    return re.sub(r"\D+", "", s or "")
-
-
-def _ocupacao_nome() -> str:
-    try:
-        return (getattr(getattr(current_user, "user_funcao", None), "ocupacao", "") or "").upper()
-    except Exception:
-        return ""
-
-
-def _is_super_user() -> bool:
-    return "SUPER" in _ocupacao_nome()
-
-
-def _user_admin_obm_ids() -> set[int]:
-    if _ocupacao_nome() not in {"CHEFE", "DIRETOR"}:
-        return set()
-    ids = {v for v in (getattr(current_user, "obm_id_1", None),
-                       getattr(current_user, "obm_id_2", None)) if v}
-    return ids
-
-
-def _militar_obm_ativas_ids(militar_id: int) -> set[int]:
-    rows = (db.session.query(MilitarObmFuncao.obm_id)
-            .filter(MilitarObmFuncao.militar_id == militar_id,
-                    MilitarObmFuncao.data_fim.is_(None))
-            .distinct().all())
-    return {r.obm_id for r in rows}
-
-
-def _can_editar_declaracao(militar_id: int) -> bool:
-    # SUPER pode tudo
-    if _is_super_user():
-        return True
-    # chefe/diretor somente se administra a OBM ativa do militar
-    admin = _user_admin_obm_ids()
-    if not admin:
-        return False
-    return bool(admin & _militar_obm_ativas_ids(militar_id))
-
-
-def _digits(s):
-    import re
-    return re.sub(r"\D+", "", s or "")
-
-
-# helpers_perm.py (ou onde você já mantém permissões)
-
-def _user_obm_ids() -> list[int]:
-    """Coleta os OBM ids do usuário (campos diretos e/ou relação many-to-many)."""
-    ids = set()
-    for attr in ("obm_id_1", "obm_id_2"):
-        v = getattr(current_user, attr, None)
-        if v:
-            ids.add(v)
-    # se tiver relação many-to-many, aproveita
-    obms_rel = getattr(current_user, "obms", None)
-    if obms_rel:
-        try:
-            for o in obms_rel:
-                oid = getattr(o, "id", None)
-                if oid:
-                    ids.add(oid)
-        except Exception:
-            pass
-    return list(ids)
-
-
-def _is_drh_like() -> bool:
-    """
-    DRH-like = SUPER USER OU (é DIRETOR pela FuncaoUser/ocupacao e tem
-    pelo menos uma OBM cuja sigla contenha 'DRH').
-    """
-    if _is_super_user():
-        return True
-
-    # 1) Descobrir ocupação via FuncaoUser (pode ser escalar ou lista)
-    ocup = None
-    try:
-        fu = getattr(current_user, "user_funcao", None)
-        # se a relação foi criada com uselist=True (lista)
-        if isinstance(fu, (list, tuple)):
-            for f in fu:
-                o = getattr(f, "ocupacao", None)
-                if o:
-                    ocup = o
-                    break
-        elif fu is not None:
-            ocup = getattr(fu, "ocupacao", None)
-    except Exception:
-        pass
-
-    # fallback para algum campo no próprio User, se existir
-    if not ocup:
-        ocup = getattr(current_user, "ocupacao", None)
-
-    is_diretor = "DIRETOR" in ((ocup or "").upper())
-    if not is_diretor:
-        return False
-
-    # 2) Verificar se ele tem alguma OBM com sigla 'DRH'
-    obm_ids = _user_obm_ids()
-    if not obm_ids:
-        return False
-
-    # tenta primeiro via objetos já carregados para evitar roundtrip
-    obms_rel = getattr(current_user, "obms", None)
-    if obms_rel:
-        try:
-            for o in obms_rel:
-                sigla = (getattr(o, "sigla", "") or "").upper()
-                if "DRH" in sigla:
-                    return True
-        except Exception:
-            pass
-
-    # fallback: consulta rápida
-    tem_drh = (
-        db.session.query(Obm.id)
-        .filter(Obm.id.in_(obm_ids), Obm.sigla.ilike("%DRH%"))
-        .first()
-        is not None
-    )
-    return tem_drh
-
-
-def _to_hhmm(s: str) -> str:
-    """Normaliza 'HH:MM' ou 'HH:MM:SS' para 'HH:MM'."""
-    if not s:
-        return ""
-    s = str(s)
-    if ":" not in s:
-        return s
-    parts = s.split(":")
-    # garante dois dígitos
-    h = parts[0].zfill(2)
-    m = (parts[1] if len(parts) > 1 else "00").zfill(2)
-    return f"{h}:{m}"
-
-
-def _digits(s: str) -> str:
-    return "".join(ch for ch in (s or "") if ch.isdigit())
-
-
-def _ymd(s: str) -> str:
-    """Aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY' e devolve 'YYYY-MM-DD'.
-       Se já estiver OK, devolve como veio."""
-    if not s:
-        return ""
-    s = s.strip()
-    try:
-        # já no formato correto?
-        if "-" in s and len(s.split("-")) == 3:
-            datetime.strptime(s, "%Y-%m-%d")
-            return s
-    except Exception:
-        pass
-    # tenta converter de DD/MM/YYYY
-    try:
-        return datetime.strptime(s, "%d/%m/%Y").strftime("%Y-%m-%d")
-    except Exception:
-        return s
-
-
-def _is_privilegiado() -> bool:
-    # SUPER USER sempre é privilegiado
-    if _is_super_user():
-        return True
-
-    # Tenta ler via relação (pode ser lista ou objeto único)
-    ocup = None
-    try:
-        fu = getattr(current_user, "user_funcao", None)
-        if isinstance(fu, (list, tuple)):
-            for f in fu:
-                o = getattr(f, "ocupacao", None)
-                if o:
-                    ocup = o
-                    break
-        elif fu is not None:
-            ocup = getattr(fu, "ocupacao", None)
-    except Exception:
-        pass
-
-    # Fallback: campo simples no User
-    if not ocup:
-        ocup = getattr(current_user, "ocupacao", None)
-
-    up = (ocup or "").upper()
-    # marque aqui todos os cargos “VIP” que devem ver TUDO
-    return ("SUPER USER" in up) or ("DIRETOR DRH" in up)
-
-
-ANO_ATUAL = date.today().year
-
-
-def _prazo_envio_ate() -> date:
-    # Prazo final fixo (inclusive) para envio em 2025
-    return date(2025, 9, 22)
-
-
-def _prazo_fechado() -> bool:
-    return date.today() > _prazo_envio_ate()
-
-
-def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
-    return db.session.query(DeclaracaoAcumulo.id)\
-        .filter(DeclaracaoAcumulo.usuario_id == user_id,
-                DeclaracaoAcumulo.ano_referencia == ano).first() is not None
 
 
 @app.route("/home-atualizacao", methods=["GET"])
@@ -1557,7 +1260,7 @@ def editar(decl_id):
 
 @bp_acumulo.route("/recebimento", methods=["GET"])
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@require_analise_vinculo
 def recebimento():
     ano = request.args.get("ano", type=int) or datetime.now().year
     status = (request.args.get("status") or "todos").lower()
@@ -1567,10 +1270,11 @@ def recebimento():
     per_page = max(request.args.get("per_page", 20, type=int), 1)
 
     M, D, PG, MOF, O, F = Militar, DeclaracaoAcumulo, PostoGrad, MilitarObmFuncao, Obm, Funcao
-    IS_DRH_LIKE = _is_drh_like()
-    IS_SUPER = _is_super_user()
+    IS_AUDITOR = getattr(current_user, "id", None) in USERS_ANALISE_VINCULO  # ou _is_auditor_vinculo()
 
-    IS_PRIV = _is_privilegiado()
+    IS_DRH_LIKE = _is_drh_like() or IS_AUDITOR      # <- bypass do filtro por OBM
+    IS_SUPER = _is_super_user()
+    IS_PRIV = _is_privilegiado() or IS_AUDITOR      # <- “vê tudo” nas regras DRH
 
     rn = func.row_number().over(
         partition_by=D.militar_id,
@@ -1945,6 +1649,7 @@ def recebimento():
 
 @bp_acumulo.route("/recebimento/<int:decl_id>/status", methods=["POST"])
 @login_required
+@require_analise_vinculo
 def recebimento_mudar_status(decl_id):
     novo = (request.form.get("status") or "").lower()
     if novo not in {"validado", "inconforme", "pendente", "enviar_drh"}:
@@ -2024,6 +1729,7 @@ def recebimento_mudar_status(decl_id):
 
 @bp_acumulo.route("/arquivo/<int:decl_id>", methods=["GET"])
 @login_required
+@require_analise_vinculo
 # @checar_ocupacao('DRH', 'DIRETOR DRH', 'SUPER USER')
 def arquivo(decl_id):
     decl = db.session.get(DeclaracaoAcumulo, decl_id)
@@ -2034,7 +1740,7 @@ def arquivo(decl_id):
 
 @bp_acumulo.route("/recebimento/export", methods=["GET"])
 @login_required
-@checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER')
+@require_analise_vinculo
 def recebimento_export():
     def fmt_dt(dt):
         return dt.strftime("%d/%m/%Y %H:%M") if dt else ""
@@ -2383,6 +2089,7 @@ def recebimento_export():
 
 @bp_acumulo.route("/detalhe/<int:decl_id>", methods=["GET"])
 @login_required
+@require_analise_vinculo
 # @checar_ocupacao('DRH', 'DIRETOR DRH', 'DRH CHEFE', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE')
 def detalhe(decl_id):
     D = DeclaracaoAcumulo
@@ -2763,3 +2470,4 @@ def novo_generico(pessoa_tipo, pessoa_id):
         pass
 
     return redirect(url_for("acumulo.novo", militar_id=m.id))
+
