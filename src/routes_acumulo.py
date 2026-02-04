@@ -1,7 +1,7 @@
 from src.formatar_cpf import get_militar_por_user
 from src import app
 from io import BytesIO
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, session, url_for, request, jsonify
+from flask import Blueprint, abort, flash, redirect, render_template, send_file, session, url_for, request, jsonify
 from flask_login import login_required, current_user
 from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
@@ -12,10 +12,6 @@ from src.decorators.control import USERS_ANALISE_VINCULO, checar_ocupacao, _is_s
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, time
 from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
-import re
-from docx import Document
-from docx.shared import Pt
-from docx.oxml.ns import qn
 from src.decorators.helpers_docx import render_docx_from_template
 from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased

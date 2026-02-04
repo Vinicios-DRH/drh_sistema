@@ -1,360 +1,386 @@
+# src/control.py
+from __future__ import annotations
+
 from functools import wraps
-from flask import abort, flash, redirect, url_for, session
+from typing import Iterable, Set
+from datetime import date, datetime, time as dtime
+import os
+
+from flask import flash, redirect, url_for, request, abort, current_app
 from flask_login import current_user
-from src.formatar_cpf import get_militar_por_user
-from src import app
-from datetime import datetime, date, time
-from src.models import DeclaracaoAcumulo, database as db, Militar, Obm, MilitarObmFuncao
-import re
 
 
-@app.before_request
-def inject_pg_id_into_session():
-    if not current_user.is_authenticated:
-        session.pop('pg_id', None)
-        return
-    if 'pg_id' in session:
-        return
-    try:
-        # importa aqui pra evitar import circular
-        mil = get_militar_por_user(current_user)
-        session['pg_id'] = getattr(mil, 'posto_grad_id', None)
-    except Exception:
-        session['pg_id'] = None
+def _upper(x) -> str:
+    return (str(x).strip().upper()) if x is not None else ""
 
 
-def _is_super_user() -> bool:
+def _get_user_ocupacoes() -> Set[str]:
     """
-    Considera SUPER se current_user.funcao_user.ocupacao (ou .nome) contiver 'SUPER'
+    Retorna um SET de ocupações do usuário (sempre em UPPER),
+    cobrindo:
+      - current_user.funcao_user (objeto)
+      - current_user.user_funcao (backref, pode ser lista)
+      - fallbacks (ocupacao/perfil direto no user)
     """
-    try:
-        fu = getattr(current_user, "funcao_user", None)
-        ocup = (getattr(fu, "ocupacao", None)
-                or getattr(fu, "nome", "") or "").upper()
-    except Exception:
-        ocup = ""
-    return "SUPER" in ocup  # ex.: "SUPER USER"
+    ocupacoes: Set[str] = set()
+
+    # 1) Relação principal (User.funcao_user)
+    fu = getattr(current_user, "funcao_user", None)
+    if fu is not None:
+        oc = getattr(fu, "ocupacao", None) or getattr(fu, "nome", None)
+        if oc:
+            ocupacoes.add(_upper(oc))
+
+    # 2) Backref (User.user_funcao) - pode ser lista/coleção
+    back = getattr(current_user, "user_funcao", None)
+    if back:
+        if isinstance(back, (list, tuple, set)):
+            for item in back:
+                oc = getattr(item, "ocupacao", None) or getattr(
+                    item, "nome", None)
+                if oc:
+                    ocupacoes.add(_upper(oc))
+        else:
+            oc = getattr(back, "ocupacao", None) or getattr(back, "nome", None)
+            if oc:
+                ocupacoes.add(_upper(oc))
+
+    # 3) Fallbacks no próprio user (se você usa em algum lugar)
+    oc_direct = getattr(current_user, "ocupacao", None) or getattr(
+        current_user, "perfil", None)
+    if oc_direct:
+        ocupacoes.add(_upper(oc_direct))
+
+    # remove vazios
+    ocupacoes.discard("")
+    return ocupacoes
 
 
-def _user_obm_ids() -> list[int]:
+def checar_ocupacao(*permitidas: str):
     """
-    OBMs do usuário (User.obm_id_1 e User.obm_id_2). Remove None/duplicados.
+    Decorator: permite acesso se o usuário tiver QUALQUER ocupação dentro das permitidas.
+    Ex: @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
+    """
+    permitidas_set = {_upper(p) for p in permitidas if p}
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            # se não tiver autenticado, deixa o login_required cuidar
+            if not getattr(current_user, "is_authenticated", False):
+                return redirect(url_for("login"))
+
+            user_oc = _get_user_ocupacoes()
+
+            # ✅ regra: basta bater uma
+            if user_oc.intersection(permitidas_set):
+                return view_func(*args, **kwargs)
+
+            flash("Você não tem permissão para acessar esta página.", "alert-danger")
+            # escolha um fallback padrão seguro:
+            return redirect(url_for("home"))
+
+        return wrapper
+    return decorator
+
+
+def is_super_user() -> bool:
+    # mantém tua lógica por texto (robusta)
+    return any("SUPER" in oc for oc in _get_user_ocupacoes())
+
+
+def user_obm_ids() -> set[int]:
+    """
+    Retorna OBMs vinculadas ao user (obm_id_1 / obm_id_2) e, se existir, relação user.obms.
     """
     ids = {getattr(current_user, "obm_id_1", None),
            getattr(current_user, "obm_id_2", None)}
     ids.discard(None)
-    return list(ids)
 
-
-def _militar_permitido(militar_id: int) -> bool:
-    """Chefe/Diretor só pode mexer em militar cuja OBM ativa ∈ (obm_id_1, obm_id_2). Super vê tudo."""
-    if _is_super_user():
-        return True
-    obm_ids = _user_obm_ids()
-    if not obm_ids:
-        return False
-    MOF = MilitarObmFuncao
-    ok = (
-        db.session.query(Militar.id)
-        .join(MOF, MOF.militar_id == Militar.id)
-        .filter(
-            Militar.id == militar_id,
-            MOF.data_fim.is_(None),
-            MOF.obm_id.in_(obm_ids),
-        )
-        .first()
-    )
-    return ok is not None
-
-
-# parse helpers
-def _parse_time(s: str | None) -> time | None:
-    if not s:
-        return None
-    try:
-        return datetime.strptime(s.strip(), "%H:%M").time()
-    except Exception:
-        return None
-
-
-def _parse_date(s: str | None) -> date | None:
-    if not s:
-        return None
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(s.strip(), fmt).date()
-        except Exception:
-            pass
-    return None
-
-
-def _digits(s: str | None) -> str:
-    return re.sub(r"\D+", "", s or "")
-
-
-def _ocupacao_nome() -> str:
-    try:
-        return (getattr(getattr(current_user, "user_funcao", None), "ocupacao", "") or "").upper()
-    except Exception:
-        return ""
-
-
-def _is_super_user() -> bool:
-    return "SUPER" in _ocupacao_nome()
-
-
-def _user_admin_obm_ids() -> set[int]:
-    if _ocupacao_nome() not in {"CHEFE", "DIRETOR"}:
-        return set()
-    ids = {v for v in (getattr(current_user, "obm_id_1", None),
-                       getattr(current_user, "obm_id_2", None)) if v}
+    obms_rel = getattr(current_user, "obms", None)
+    if obms_rel:
+        for o in obms_rel:
+            oid = getattr(o, "id", None)
+            if oid:
+                ids.add(oid)
     return ids
 
 
-def _militar_obm_ativas_ids(militar_id: int) -> set[int]:
-    rows = (db.session.query(MilitarObmFuncao.obm_id)
-            .filter(MilitarObmFuncao.militar_id == militar_id,
-                    MilitarObmFuncao.data_fim.is_(None))
-            .distinct().all())
-    return {r.obm_id for r in rows}
-
-
-def _can_editar_declaracao(militar_id: int) -> bool:
-    # SUPER pode tudo
-    if _is_super_user():
-        return True
-    # chefe/diretor somente se administra a OBM ativa do militar
-    admin = _user_admin_obm_ids()
-    if not admin:
-        return False
-    return bool(admin & _militar_obm_ativas_ids(militar_id))
-
-
-def _digits(s):
-    import re
-    return re.sub(r"\D+", "", s or "")
-
-
-# helpers_perm.py (ou onde você já mantém permissões)
-
-def _user_obm_ids() -> list[int]:
-    """Coleta os OBM ids do usuário (campos diretos e/ou relação many-to-many)."""
-    ids = set()
-    for attr in ("obm_id_1", "obm_id_2"):
-        v = getattr(current_user, attr, None)
-        if v:
-            ids.add(v)
-    # se tiver relação many-to-many, aproveita
-    obms_rel = getattr(current_user, "obms", None)
-    if obms_rel:
-        try:
-            for o in obms_rel:
-                oid = getattr(o, "id", None)
-                if oid:
-                    ids.add(oid)
-        except Exception:
-            pass
-    return list(ids)
-
-
-def _is_drh_like() -> bool:
+def exigir_obm(*obm_ids: int):
     """
-    DRH-like = SUPER USER OU (é DIRETOR pela FuncaoUser/ocupacao e tem
-    pelo menos uma OBM cuja sigla contenha 'DRH').
+    Decorator: usuário precisa pertencer a pelo menos uma dessas OBMs (ou ser SUPER).
     """
-    if _is_super_user():
-        return True
+    obm_ids_set = {int(x) for x in obm_ids if x is not None}
 
-    # 1) Descobrir ocupação via FuncaoUser (pode ser escalar ou lista)
-    ocup = None
-    try:
-        fu = getattr(current_user, "user_funcao", None)
-        # se a relação foi criada com uselist=True (lista)
-        if isinstance(fu, (list, tuple)):
-            for f in fu:
-                o = getattr(f, "ocupacao", None)
-                if o:
-                    ocup = o
-                    break
-        elif fu is not None:
-            ocup = getattr(fu, "ocupacao", None)
-    except Exception:
-        pass
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            if not getattr(current_user, "is_authenticated", False):
+                return redirect(url_for("login"))
 
-    # fallback para algum campo no próprio User, se existir
-    if not ocup:
-        ocup = getattr(current_user, "ocupacao", None)
+            if is_super_user():
+                return view_func(*args, **kwargs)
 
-    is_diretor = "DIRETOR" in ((ocup or "").upper())
-    if not is_diretor:
-        return False
+            user_ids = user_obm_ids()
+            if user_ids.intersection(obm_ids_set):
+                return view_func(*args, **kwargs)
 
-    # 2) Verificar se ele tem alguma OBM com sigla 'DRH'
-    obm_ids = _user_obm_ids()
-    if not obm_ids:
-        return False
+            flash("Acesso restrito à sua OBM.", "alert-danger")
+            return redirect(url_for("home"))
 
-    # tenta primeiro via objetos já carregados para evitar roundtrip
-    obms_rel = getattr(current_user, "obms", None)
-    if obms_rel:
-        try:
-            for o in obms_rel:
-                sigla = (getattr(o, "sigla", "") or "").upper()
-                if "DRH" in sigla:
-                    return True
-        except Exception:
-            pass
-
-    # fallback: consulta rápida
-    tem_drh = (
-        db.session.query(Obm.id)
-        .filter(Obm.id.in_(obm_ids), Obm.sigla.ilike("%DRH%"))
-        .first()
-        is not None
-    )
-    return tem_drh
+        return wrapper
+    return decorator
 
 
-def _to_hhmm(s: str) -> str:
-    """Normaliza 'HH:MM' ou 'HH:MM:SS' para 'HH:MM'."""
-    if not s:
-        return ""
-    s = str(s)
-    if ":" not in s:
-        return s
-    parts = s.split(":")
-    # garante dois dígitos
-    h = parts[0].zfill(2)
-    m = (parts[1] if len(parts) > 1 else "00").zfill(2)
-    return f"{h}:{m}"
-
-
-def _digits(s: str) -> str:
-    return "".join(ch for ch in (s or "") if ch.isdigit())
-
-
-def _ymd(s: str) -> str:
-    """Aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY' e devolve 'YYYY-MM-DD'.
-       Se já estiver OK, devolve como veio."""
-    if not s:
-        return ""
-    s = s.strip()
-    try:
-        # já no formato correto?
-        if "-" in s and len(s.split("-")) == 3:
-            datetime.strptime(s, "%Y-%m-%d")
-            return s
-    except Exception:
-        pass
-    # tenta converter de DD/MM/YYYY
-    try:
-        return datetime.strptime(s, "%d/%m/%Y").strftime("%Y-%m-%d")
-    except Exception:
-        return s
-
-
-def _is_privilegiado() -> bool:
-    # SUPER USER sempre é privilegiado
-    if _is_super_user():
-        return True
-
-    # Tenta ler via relação (pode ser lista ou objeto único)
-    ocup = None
-    try:
-        fu = getattr(current_user, "user_funcao", None)
-        if isinstance(fu, (list, tuple)):
-            for f in fu:
-                o = getattr(f, "ocupacao", None)
-                if o:
-                    ocup = o
-                    break
-        elif fu is not None:
-            ocup = getattr(fu, "ocupacao", None)
-    except Exception:
-        pass
-
-    # Fallback: campo simples no User
-    if not ocup:
-        ocup = getattr(current_user, "ocupacao", None)
-
-    up = (ocup or "").upper()
-    # marque aqui todos os cargos “VIP” que devem ver TUDO
-    return ("SUPER USER" in up) or ("DIRETOR DRH" in up)
-
+# Se tu quiser, preenche isso com IDs de users auditores.
+# Por enquanto deixa vazio pra não quebrar o import.
+USERS_ANALISE_VINCULO = set()  # type: set[int]
 
 ANO_ATUAL = date.today().year
 
 
+def _upper(x) -> str:
+    return (str(x).strip().upper()) if x is not None else ""
+
+
+def _get_user_ocupacoes_set() -> set[str]:
+    """
+    Mesmo conceito do teu _get_user_ocupacoes, mas garantindo SET[str] UPPER.
+    Se tu já tiver essa função no arquivo, pode reaproveitar e remover esta.
+    """
+    ocupacoes: set[str] = set()
+
+    fu = getattr(current_user, "funcao_user", None)
+    if fu is not None:
+        oc = getattr(fu, "ocupacao", None) or getattr(fu, "nome", None)
+        if oc:
+            ocupacoes.add(_upper(oc))
+
+    back = getattr(current_user, "user_funcao", None)
+    if back:
+        if isinstance(back, (list, tuple, set)):
+            for item in back:
+                oc = getattr(item, "ocupacao", None) or getattr(
+                    item, "nome", None)
+                if oc:
+                    ocupacoes.add(_upper(oc))
+        else:
+            oc = getattr(back, "ocupacao", None) or getattr(back, "nome", None)
+            if oc:
+                ocupacoes.add(_upper(oc))
+
+    oc_direct = getattr(current_user, "ocupacao", None) or getattr(
+        current_user, "perfil", None)
+    if oc_direct:
+        ocupacoes.add(_upper(oc_direct))
+
+    ocupacoes.discard("")
+    return ocupacoes
+
+
+# -----------------------------------------------------------------------------
+# Aliases pro teu "control novo" (mantém compat com imports antigos)
+# Se tu já tem is_super_user() e user_obm_ids() definidos acima,
+# esses aliases vão funcionar.
+# -----------------------------------------------------------------------------
+
+def _is_super_user() -> bool:
+    # tenta chamar o novo se existir; senão cai no fallback por texto
+    fn = globals().get("is_super_user")
+    if callable(fn):
+        return bool(fn())
+    return any("SUPER" in oc for oc in _get_user_ocupacoes_set())
+
+
+def _user_obm_ids() -> set[int]:
+    fn = globals().get("user_obm_ids")
+    if callable(fn):
+        return set(fn())
+    # fallback básico
+    ids = {getattr(current_user, "obm_id_1", None),
+           getattr(current_user, "obm_id_2", None)}
+    ids.discard(None)
+    return ids
+
+
+# -----------------------------------------------------------------------------
+# Regras de perfil (ajusta depois conforme tua realidade)
+# -----------------------------------------------------------------------------
+
+def _is_auditor_vinculo() -> bool:
+    uid = getattr(current_user, "id", None)
+    if uid is None:
+        return False
+    if uid in USERS_ANALISE_VINCULO:
+        return True
+    oc = _get_user_ocupacoes_set()
+    # se você tiver uma ocupação específica pra auditoria, adiciona aqui:
+    return ("AUDITOR" in " ".join(oc)) or ("AUDITOR VINCULO" in oc)
+
+
+def _is_drh_like() -> bool:
+    if _is_super_user() or _is_auditor_vinculo():
+        return True
+    oc = _get_user_ocupacoes_set()
+    # qualquer coisa com DRH entra como DRH-like
+    return any("DRH" in x for x in oc)
+
+
+def _is_privilegiado() -> bool:
+    if _is_super_user() or _is_auditor_vinculo():
+        return True
+    oc = _get_user_ocupacoes_set()
+    # Ajusta conforme teus nomes reais:
+    priv = {
+        "DIRETOR DRH",
+        "CHEFE DRH",
+        "DRH CHEFE",
+        "CHEMG",
+        "DIRETOR",
+        "CHEFE",
+    }
+    return bool(oc.intersection(priv))
+
+
+def _can_analise_vinculo() -> bool:
+    # quem pode entrar no recebimento/análise
+    if _is_drh_like() or _is_privilegiado():
+        return True
+    # se você quiser permitir DIRETOR/CHEFE da OBM:
+    oc = _get_user_ocupacoes_set()
+    return bool(oc.intersection({"DIRETOR", "CHEFE"}))
+
+
+def _militar_permitido(militar_id: int) -> bool:
+    """
+    Regra de escopo por OBM: super/auditor vê tudo.
+    Caso contrário, só permite se o militar tiver OBM ativa dentro das OBMs do usuário.
+    """
+    if _is_super_user() or _is_auditor_vinculo() or _is_drh_like():
+        return True
+
+    user_obms = _user_obm_ids()
+    if not user_obms:
+        return False
+
+    # Importa models dentro pra evitar circular import
+    try:
+        from src.models import database as db, MilitarObmFuncao
+        from sqlalchemy import and_
+        rows = (
+            db.session.query(MilitarObmFuncao.obm_id)
+            .filter(
+                MilitarObmFuncao.militar_id == militar_id,
+                MilitarObmFuncao.data_fim.is_(None),
+            )
+            .all()
+        )
+        mil_obms = {oid for (oid,) in rows if oid}
+        return bool(mil_obms.intersection(user_obms))
+    except Exception:
+        # se der ruim no DB, por segurança nega
+        return False
+
+
+def _can_editar_declaracao(militar_id: int) -> bool:
+    # DRH-like e privilegiado pode; chefia só dentro do escopo
+    if _is_drh_like() or _is_privilegiado() or _is_super_user():
+        return True
+    return _militar_permitido(militar_id)
+
+
+# -----------------------------------------------------------------------------
+# Prazo (configurável)
+# -----------------------------------------------------------------------------
+
 def _prazo_envio_ate() -> date:
-    # Prazo final fixo (inclusive) para envio em 2025
-    return date(2025, 9, 22)
+    """
+    Tenta ler do config/env:
+      - PRAZO_DECLARACAO_MM_DD="03-31"  (fallback: 03-31)
+      - PRAZO_DECLARACAO_YYYY_MM_DD="2026-03-31" (se quiser fixar)
+    """
+    # 1) data completa fixa
+    full = os.getenv("PRAZO_DECLARACAO_YYYY_MM_DD") or current_app.config.get(
+        "PRAZO_DECLARACAO_YYYY_MM_DD")
+    if full:
+        try:
+            return datetime.strptime(full, "%Y-%m-%d").date()
+        except Exception:
+            pass
+
+    # 2) mês-dia (usa ano atual)
+    md = os.getenv("PRAZO_DECLARACAO_MM_DD") or current_app.config.get(
+        "PRAZO_DECLARACAO_MM_DD") or "03-31"
+    try:
+        mm, dd = md.split("-")
+        return date(date.today().year, int(mm), int(dd))
+    except Exception:
+        # fallback seguro
+        return date(date.today().year, 3, 31)
 
 
 def _prazo_fechado() -> bool:
     return date.today() > _prazo_envio_ate()
 
 
-# Decorador para verificar a ocupação do usuário
-
-
-def checar_ocupacao(*ocupacoes_permitidas):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Verifica se o usuário tem uma ocupação associada
-            if not current_user.user_funcao or current_user.user_funcao.ocupacao not in ocupacoes_permitidas:
-                flash('Acesso negado', 'alert-danger')
-                return redirect(url_for('acesso_negado'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-
-# >>> Whitelist de usuários que podem analisar (ex: id=394)
-USERS_ANALISE_VINCULO = {394}
-
-
-def _is_auditor_vinculo() -> bool:
+def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
+    """
+    Depende do teu modelo: pelo teu routes_acumulo, Declaração é por militar_id.
+    Aqui a gente tenta inferir pelo current_user.militar_id quando fizer sentido.
+    """
     try:
-        return getattr(current_user, "id", None) in USERS_ANALISE_VINCULO
+        from src.models import database as db, DeclaracaoAcumulo
+        mid = getattr(current_user, "militar_id", None)
+        if not mid:
+            return False
+        return db.session.query(DeclaracaoAcumulo.id).filter(
+            DeclaracaoAcumulo.militar_id == mid,
+            DeclaracaoAcumulo.ano_referencia == ano
+        ).first() is not None
     except Exception:
         return False
 
 
-def _can_analise_vinculo() -> bool:
-    """Permite análise de declarações por perfil OU por whitelist de user.id."""
+# -----------------------------------------------------------------------------
+# Parsers
+# -----------------------------------------------------------------------------
+
+def _parse_date(s) -> date | None:
+    s = (s or "").strip()
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except Exception:
+            pass
+    return None
+
+
+def _parse_time(s) -> dtime | None:
+    s = (s or "").strip()
+    if not s:
+        return None
     try:
-        if getattr(current_user, "id", None) in USERS_ANALISE_VINCULO:
-            return True
+        hh, mm = s.split(":")
+        return dtime(int(hh), int(mm))
     except Exception:
-        pass
-
-    # Mantém sua regra atual (DRH-like, super, etc.)
-    # Ajuste aqui se quiser ser mais/menos permissivo.
-    if _is_super_user():
-        return True
-    if _is_drh_like():
-        return True
-
-    # Se quiser incluir CHEFE/DIRETOR fora do DRH, deixe:
-    ocup = _ocupacao_nome()  # já existe no seu arquivo
-    if ocup in {"CHEFE", "DIRETOR"}:
-        return True
-
-    return False
+        return None
 
 
-def require_analise_vinculo(fn):
-    """Decorator para rotas de recebimento/análise."""
-    @wraps(fn)
+# -----------------------------------------------------------------------------
+# Decorator de permissão usado nas rotas
+# -----------------------------------------------------------------------------
+
+def require_analise_vinculo(view_func):
+    @wraps(view_func)
     def wrapper(*args, **kwargs):
-        if not _can_analise_vinculo():
-            abort(403)
-        return fn(*args, **kwargs)
+        if not getattr(current_user, "is_authenticated", False):
+            return redirect(url_for("login"))
+
+        if _can_analise_vinculo():
+            return view_func(*args, **kwargs)
+
+        flash("Você não tem permissão para acessar esta página.", "alert-danger")
+        return redirect(url_for("home"))
     return wrapper
-
-
-def _usuario_ja_tem_declaracao(user_id: int, ano: int) -> bool:
-    return db.session.query(DeclaracaoAcumulo.id)\
-        .filter(DeclaracaoAcumulo.usuario_id == user_id,
-                DeclaracaoAcumulo.ano_referencia == ano).first() is not None
