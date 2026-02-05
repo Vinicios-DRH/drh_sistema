@@ -57,6 +57,19 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_MIL_INATIVOS_ADD",
         "nome": "Menu: Militares Inativos > Adicionar Militar Inativo"},
 
+    # ===== Militar (CRUD) =====
+    {"codigo": "MILITAR_READ",   "nome": "Militares: Ler ficha"},
+    {"codigo": "MILITAR_CREATE", "nome": "Militares: Adicionar"},
+    {"codigo": "MILITAR_UPDATE", "nome": "Militares: Atualizar ficha"},
+    {"codigo": "MILITAR_DELETE", "nome": "Militares: Excluir/Inativar"},
+
+    # ===== Férias (CRUD) =====
+    {"codigo": "FERIAS_READ",   "nome": "Férias: Ler"},
+    {"codigo": "FERIAS_CREATE", "nome": "Férias: Criar"},
+    {"codigo": "FERIAS_UPDATE", "nome": "Férias: Atualizar"},
+    {"codigo": "FERIAS_DELETE", "nome": "Férias: Deletar"},
+
+
     # ===== Motoristas / Viaturas =====
     {"codigo": "NAV_MOTORISTAS", "nome": "Menu: Motoristas (grupo)"},
     {"codigo": "NAV_MOTORISTAS_ADD", "nome": "Menu: Motoristas > Adicionar Motorista"},

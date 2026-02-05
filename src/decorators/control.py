@@ -13,6 +13,7 @@ from src.models import Militar, MilitarObmFuncao, ObmGestao, User, UserObmAcesso
 from src import database
 from sqlalchemy.event import listens_for
 from sqlalchemy import and_
+from src.security.perms import has_perm
 
 ADMIN_FUNCOES = {"DIRETOR", "CHEFE", "SUPER USER", "DIRETOR DRH", "CHEFE DRH"}
 
@@ -89,6 +90,17 @@ def checar_ocupacao(*permitidas: str):
 
         return wrapper
     return decorator
+
+
+def require_perm(codigo: str):
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            if not has_perm(codigo):
+                abort(403)
+            return fn(*args, **kwargs)
+        return wrapper
+    return deco
 
 
 def user_obm_ids() -> set[int]:

@@ -4,6 +4,10 @@
 <!-- Scripts existentes -->
 <script src="{{ url_for('static', filename='js/exibir_militar.js') }}"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script>
+  window.CAN_EDIT = {{ 'true' if can_edit else 'false' }};
+</script>
 <style>
   :root {
     /* ===== PALETA CBMAM (Vermelho/Âmbar) ===== */
@@ -674,7 +678,8 @@
                     <select id="situacao2_id" name="situacao2_id" class="form-select">
                       <option value="">-- Selecione --</option>
                       {% for val, label in form_militar.situacao_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.situacao2_id==val else '' }}>{{ label }}</option>
+                      <option value="{{ val }}" {{ 'selected' if militar.situacao2_id==val else '' }}>{{ label }}
+                      </option>
                       {% endfor %}
                     </select>
                   </div>
@@ -685,7 +690,8 @@
                     <select id="agregacoes2_id" name="agregacoes2_id" class="form-select">
                       <option value="">-- Selecione --</option>
                       {% for val, label in form_militar.agregacoes_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id==val else '' }}>{{ label }}</option>
+                      <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id==val else '' }}>{{ label }}
+                      </option>
                       {% endfor %}
                     </select>
                   </div>
@@ -693,36 +699,21 @@
                   <!-- Início/Fim -->
                   <div class="col-md-3">
                     <label for="inicio_situacao2" class="form-label">Início</label>
-                    <input
-                      type="date"
-                      id="inicio_situacao2"
-                      name="inicio_situacao2"
-                      class="form-control"
-                      value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}"
-                    >
+                    <input type="date" id="inicio_situacao2" name="inicio_situacao2" class="form-control"
+                      value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}">
                   </div>
                   <div class="col-md-3">
                     <label for="fim_situacao2" class="form-label">Término</label>
-                    <input
-                      type="date"
-                      id="fim_situacao2"
-                      name="fim_situacao2"
-                      class="form-control"
-                      value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}"
-                    >
+                    <input type="date" id="fim_situacao2" name="fim_situacao2" class="form-control"
+                      value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}">
                   </div>
 
                   <!-- Publicação (texto vai para publicacaobg.tipo_bg='situacao_militar_2') -->
                   <div class="col-md-6">
                     <label for="situacao_militar_2" class="form-label">Publicação (BG) — Situação 2</label>
-                    <input
-                      type="text"
-                      id="situacao_militar_2"
-                      name="situacao_militar_2"
-                      class="form-control"
+                    <input type="text" id="situacao_militar_2" name="situacao_militar_2" class="form-control"
                       placeholder="Ex.: BG nº 1234/2025, p. 45"
-                      value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}"
-                    >
+                      value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}">
                   </div>
                 </div>
               </div>
@@ -1020,7 +1011,7 @@
                   placeholder="Ex.: Prazo para entrega até 15/10. Assine e devolva ao DRH."></textarea>
                 <div class="form-text">Essa mensagem aparece para o militar em “Meus Documentos”.</div>
               </div>
-              
+
               <!-- só os campos; continuam dentro do form externo -->
               <div class="row g-3">
                 <div class="col-12">
@@ -1047,7 +1038,8 @@
             <!-- ========== AÇÕES ========== -->
             <div class="action-bar mt-2">
               {{ form_militar.botao_submit(class="btn btn-primary") }}
-              <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#inativarMilitarModal">
+              <button type="button" class="btn btn-outline-light" data-bs-toggle="modal"
+                data-bs-target="#inativarMilitarModal">
                 <i class="bi bi-person-slash"></i> Inativar
               </button>
             </div>
@@ -1059,7 +1051,8 @@
 </section>
 
 <!-- Modal Inativar -->
-<div class="modal fade" id="inativarMilitarModal" tabindex="-1" aria-labelledby="inativarMilitarLabel" aria-hidden="true">
+<div class="modal fade" id="inativarMilitarModal" tabindex="-1" aria-labelledby="inativarMilitarLabel"
+  aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content glass-card">
       <div class="modal-header">
@@ -1074,7 +1067,8 @@
         <!-- (Opcional) Motivo -->
         <div class="mt-3">
           <label class="form-label">Motivo (opcional)</label>
-          <input type="text" name="motivo_inativacao" form="formInativarMilitar" class="form-control" placeholder="Ex.: desligamento, falecimento, transferência definitiva, etc.">
+          <input type="text" name="motivo_inativacao" form="formInativarMilitar" class="form-control"
+            placeholder="Ex.: desligamento, falecimento, transferência definitiva, etc.">
         </div>
       </div>
       <div class="modal-footer">
@@ -1251,6 +1245,35 @@
   })();
 </script>
 
+<script>
+  (function () {
+    if (window.CAN_EDIT) return;
+
+    // desabilita inputs/selects/textarea (mantém leitura)
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      // mantém navegação e campos hidden/csrf ok
+      if (el.type === 'hidden') return;
+      if (el.name === 'csrf_token') return;
+
+      el.setAttribute('disabled', 'disabled');
+      el.classList.add('opacity-75');
+    });
+
+    // some com botões perigosos
+    document.querySelectorAll('button[type="submit"], .action-bar, #fileInput').forEach(el => {
+      el.style.display = 'none';
+    });
+
+    // se quiser mostrar um aviso
+    const header = document.querySelector('.brand-header');
+    if (header) {
+      const warn = document.createElement('div');
+      warn.className = 'alert alert-warning mt-3 mb-0';
+      warn.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Você está em modo leitura (sem permissão para editar).';
+      header.appendChild(warn);
+    }
+  })();
+</script>
 
 <!-- Script original (se necessário após DOM) -->
 <script src="{{ url_for('static', filename='js/exibir_militar_down.js') }}"></script>

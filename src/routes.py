@@ -57,6 +57,7 @@ import statistics
 from collections import defaultdict
 from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
+from src.security.perms import has_perm
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -779,6 +780,14 @@ def verificar_arquivos():
 @login_required
 @checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def exibir_militar(militar_id):
+
+    if request.method == "GET":
+        if not has_perm("MILITAR_READ"):
+            abort(403)
+    else:  # POST
+        if not has_perm("MILITAR_UPDATE"):
+            abort(403)
+
     militar = Militar.query.get_or_404(militar_id)
     database.session.expire_all()
 
@@ -964,6 +973,9 @@ def exibir_militar(militar_id):
             for disp in disposicoes_vigentes:
                 disp.fim_periodo_disposicao = ontem  # <<< e aqui também
                 disp.atualizar_status()
+
+    can_edit = has_perm("MILITAR_UPDATE")
+    can_delete = has_perm("MILITAR_DELETE")
 
     if form_militar.validate_on_submit():
         form_militar.process(request.form)
@@ -1289,6 +1301,8 @@ def exibir_militar(militar_id):
         militar=militar,
         documentos_militar=documentos_militar,
         bg_sit2_val=bg_sit2_val,
+        can_edit=can_edit,
+        can_delete=can_delete,
     )
 
 
@@ -4698,7 +4712,7 @@ def listar_por_pelotao(slug):
                            cnh_chart=cnh_chart,
                            comportamento_chart=comportamento_chart,
                            ano_atual=datetime.now().year
-                           ) 
+                           )
 
 
 @app.route('/fichas/<int:aluno_id>/lts', methods=['GET', 'POST'])
