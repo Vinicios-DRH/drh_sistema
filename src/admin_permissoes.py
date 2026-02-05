@@ -65,7 +65,7 @@ def index():
 
     # Se o admin selecionou um "codigo", o template pode filtrar visualmente
     return render_template(
-        "admin/permissoes.html",
+        "admin/permissoes.html", hide_navbar=True,
         users=users,
         pagination=pagination,
         q=q,

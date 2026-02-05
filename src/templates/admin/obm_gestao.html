@@ -1,63 +1,88 @@
-{% extends "base.html" %}
-{% block body %}
-<div class="container py-4">
+{# templates/admin/obm_gestao.html #}
+{% extends "admin/base_admin.html" %}
 
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h4 class="mb-0">Gestão de OBMs</h4>
-            <small class="text-muted">Defina quais OBMs são geridas por uma OBM gestora.</small>
-        </div>
-        <span class="badge bg-primary">Admin</span>
+{% block admin_breadcrumbs %}
+<a href="{{ url_for('home') }}">Início</a>
+<span class="crumb-sep">›</span>
+<span>Admin</span>
+<span class="crumb-sep">›</span>
+<span>Gestão de OBMs</span>
+{% endblock %}
+
+{% block admin_actions %}
+<a class="tb-btn" href="{{ url_for('admin_obm_gestao.index') }}">
+    <i class="fas fa-sync-alt me-2"></i> Recarregar
+</a>
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="adm-hero mb-3 d-flex align-items-start justify-content-between gap-3" style="background: linear-gradient(135deg, rgba(79,140,255,.16), rgba(255,255,255,.02));
+              border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:16px 18px;">
+    <div>
+        <h3 class="mb-1" style="font-weight:900;">Gestão de OBMs</h3>
+        <div class="adm-muted">Defina OBMs gestoras e suas OBMs geridas (subordinadas).</div>
     </div>
+    <span class="badge rounded-pill"
+        style="background: rgba(79,140,255,.18); border:1px solid rgba(79,140,255,.35); color:#eaf0ff; font-weight:800;">
+        Painel
+    </span>
+</div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
+<div class="adm-card">
+    <div class="card-body">
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">OBM Gestora</label>
-                    <select id="obmGestora" class="form-select">
-                        <option value="">-- selecione --</option>
-                        {% for o in obms %}
-                        <option value="{{ o.id }}">
-                            {{ o.sigla }}{% if o.id in gestoras_ids %} (já é gestora){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div class="form-text">
-                        Ao selecionar uma gestora, carregamos as OBMs geridas atuais.
-                    </div>
-                </div>
+        <div class="row g-3">
 
-                <div class="col-md-6">
-                    <label class="form-label">OBMs Geridas</label>
-                    <select id="obmsGeridas" class="form-select" multiple>
-                        {% for o in obms %}
-                        <option value="{{ o.id }}">{{ o.sigla }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="form-text">
-                        Use Ctrl/Shift (ou pesquisa) para selecionar várias.
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="d-flex gap-2">
-                        <button id="btnSalvar" class="btn btn-success">
-                            <i class="bi bi-check2-circle"></i> Salvar
-                        </button>
-                        <button id="btnLimpar" class="btn btn-outline-secondary">
-                            Limpar seleção
-                        </button>
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div id="msg" class="mt-2"></div>
+            <div class="col-md-6">
+                <label class="form-label" style="color: rgba(234,240,255,.65); font-weight:800;">OBM Gestora</label>
+                <select id="obmGestora" class="form-select"
+                    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;">
+                    <option value="">-- selecione --</option>
+                    {% for o in obms %}
+                    <option value="{{ o.id }}">
+                        {{ o.sigla }}{% if o.id in gestoras_ids %} (já é gestora){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text" style="color: rgba(234,240,255,.55);">
+                    Ao selecionar uma gestora, carregamos automaticamente a relação atual.
                 </div>
             </div>
 
+            <div class="col-md-6">
+                <label class="form-label" style="color: rgba(234,240,255,.65); font-weight:800;">OBMs Geridas</label>
+                <select id="obmsGeridas" class="form-select" multiple
+                    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;">
+                    {% for o in obms %}
+                    <option value="{{ o.id }}">{{ o.sigla }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text" style="color: rgba(234,240,255,.55);">
+                    Use pesquisa para adicionar/remover rapidamente.
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2">
+                    <button id="btnSalvar" class="btn" style="border-radius:12px;font-weight:900;background:linear-gradient(135deg, rgba(79,140,255,.95), rgba(79,140,255,.65));
+                           border:1px solid rgba(79,140,255,.55);color:#fff;">
+                        Salvar relação
+                    </button>
+
+                    <button id="btnLimpar" class="btn" style="border-radius:12px;font-weight:900;border:1px solid rgba(255,255,255,.12);
+                           background:rgba(255,255,255,.04);color:#eaf0ff;">
+                        Limpar seleção
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div id="msg" class="mt-2"></div>
+            </div>
+
         </div>
+
     </div>
 </div>
 
@@ -66,24 +91,59 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<style>
+    /* Select2 dark compat */
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        background: rgba(255, 255, 255, .06);
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 12px;
+        min-height: 42px;
+        color: #eaf0ff;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #eaf0ff;
+        line-height: 40px;
+    }
+
+    .select2-dropdown {
+        background: rgba(12, 18, 32, .98);
+        border: 1px solid rgba(255, 255, 255, .12);
+        color: #eaf0ff;
+    }
+
+    .select2-results__option {
+        color: #eaf0ff;
+    }
+
+    .select2-results__option--highlighted.select2-results__option--selectable {
+        background: rgba(79, 140, 255, .25);
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background: rgba(79, 140, 255, .18);
+        border: 1px solid rgba(79, 140, 255, .30);
+        color: #eaf0ff;
+        border-radius: 999px;
+        padding: 4px 10px;
+    }
+
+    .select2-container--default .select2-search--inline .select2-search__field {
+        color: #eaf0ff;
+    }
+</style>
+
 <script>
     function setMsg(html, kind = "info") {
         const el = document.getElementById("msg");
         el.innerHTML = `<div class="alert alert-${kind} py-2 mb-0">${html}</div>`;
     }
-
-    function clearMsg() {
-        document.getElementById("msg").innerHTML = "";
-    }
+    function clearMsg() { document.getElementById("msg").innerHTML = ""; }
 
     $(function () {
-        // Select2 com pesquisa
         $("#obmGestora").select2({ width: "100%" });
-        $("#obmsGeridas").select2({
-            width: "100%",
-            placeholder: "Selecione as OBMs geridas",
-            allowClear: true
-        });
+        $("#obmsGeridas").select2({ width: "100%", placeholder: "Selecione as OBMs geridas", allowClear: true });
 
         $("#btnLimpar").on("click", function () {
             $("#obmsGeridas").val(null).trigger("change");
@@ -94,7 +154,6 @@
             const gestoraId = this.value;
             $("#obmsGeridas").val(null).trigger("change");
             clearMsg();
-
             if (!gestoraId) return;
 
             try {
@@ -120,7 +179,6 @@
                 return;
             }
 
-            // não deixa incluir a própria gestora
             const filtradas = geridas.filter(x => x !== String(gestoraId));
 
             try {
@@ -132,9 +190,9 @@
                         obms_geridas: filtradas.map(Number)
                     })
                 });
+
                 const j = await r.json();
                 if (!j.ok) throw new Error(j.error || "Erro ao salvar.");
-
                 setMsg("Salvo com sucesso ✅", "success");
             } catch (e) {
                 setMsg(e.message, "danger");
@@ -142,4 +200,5 @@
         });
     });
 </script>
+
 {% endblock %}

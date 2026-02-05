@@ -32,7 +32,7 @@ def index():
     gestoras_ids = {gid for (gid,) in gestoras_ids if gid}
 
     return render_template(
-        "admin/obm_gestao.html",
+        "admin/obm_gestao.html", hide_navbar=True,
         obms=obms,
         gestoras_ids=gestoras_ids,
     )

@@ -1,0 +1,433 @@
+{# templates/admin/base_admin.html #}
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    :root {
+        --adm-bg1: #0b1220;
+        --adm-bg2: #0a1628;
+        --adm-card: rgba(255, 255, 255, .06);
+        --adm-brd: rgba(255, 255, 255, .12);
+        --adm-txt: #eaf0ff;
+        --adm-muted: rgba(234, 240, 255, .65);
+        --adm-accent: #4f8cff;
+
+        --sb-w: 280px;
+        --top-h: 62px;
+    }
+
+    body {
+        background:
+            radial-gradient(1200px 600px at 20% -10%, rgba(79, 140, 255, .18), transparent 55%),
+            radial-gradient(900px 500px at 110% 10%, rgba(46, 229, 157, .10), transparent 55%),
+            linear-gradient(135deg, var(--adm-bg1), var(--adm-bg2)) fixed !important;
+    }
+
+    .admin-shell {
+        min-height: 100vh;
+        min-height: 100dvh;
+        color: var(--adm-txt);
+    }
+
+    /* ===== Topbar ===== */
+    .admin-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1050;
+        height: var(--top-h);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border-bottom: 1px solid var(--adm-brd);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* ===== Sidebar fixa (desktop) ===== */
+    .admin-sidebar {
+        position: fixed;
+        top: var(--top-h);
+        left: 0;
+        width: var(--sb-w);
+        height: calc(100vh - var(--top-h));
+        height: calc(100dvh - var(--top-h));
+        border-right: 1px solid var(--adm-brd);
+        background: linear-gradient(135deg, rgba(12, 18, 32, .98), rgba(10, 22, 40, .98));
+        overflow: hidden;
+        z-index: 1040;
+    }
+
+    .admin-sidebar-inner {
+        height: 100%;
+        overflow-y: auto;
+        padding: 14px;
+    }
+
+    /* ===== Conteúdo “empurrado” pra direita ===== */
+    .admin-content {
+        margin-left: var(--sb-w);
+        min-height: calc(100vh - var(--top-h));
+        padding: 16px 18px 26px;
+    }
+
+    /* ===== Sidebar UI ===== */
+    .sb-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .03);
+        margin-bottom: 12px;
+    }
+
+    .sb-brand .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        object-fit: cover;
+    }
+
+    .sb-brand .title {
+        font-weight: 900;
+        line-height: 1.1;
+    }
+
+    .sb-brand .sub {
+        color: var(--adm-muted);
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .sb-section {
+        margin-top: 10px;
+        margin-bottom: 8px;
+        color: rgba(234, 240, 255, .55);
+        font-weight: 800;
+        font-size: 12px;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        padding: 8px 8px 4px;
+    }
+
+    .sb-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        color: rgba(234, 240, 255, .88);
+        text-decoration: none;
+        border: 1px solid transparent;
+        background: transparent;
+    }
+
+    .sb-link:hover {
+        background: rgba(255, 255, 255, .04);
+        border-color: rgba(255, 255, 255, .08);
+        color: var(--adm-txt);
+    }
+
+    .sb-link.active {
+        background: rgba(79, 140, 255, .18);
+        border-color: rgba(79, 140, 255, .28);
+    }
+
+    .sb-icon {
+        width: 26px;
+        display: grid;
+        place-items: center;
+        opacity: .95;
+    }
+
+    /* Select do admin */
+    .admin-shell .form-select,
+    .admin-shell .form-control {
+        background-color: rgba(255, 255, 255, .06) !important;
+        border: 1px solid rgba(255, 255, 255, .12) !important;
+        color: #eaf0ff !important;
+    }
+
+    /* Dropdown do select (options) — força preto */
+    .admin-shell select option {
+        color: #000 !important;
+        background: #fff !important;
+    }
+
+    /* Alguns browsers respeitam isso também */
+    .admin-shell select optgroup {
+        color: #000 !important;
+        background: #fff !important;
+    }
+
+    /* ===== Cards/crumbs/botões ===== */
+    .adm-card {
+        background: var(--adm-card);
+        border: 1px solid var(--adm-brd);
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, .25);
+        overflow: hidden;
+    }
+
+    .adm-muted {
+        color: var(--adm-muted) !important;
+    }
+
+    .crumbs {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--adm-muted);
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .crumbs a {
+        color: rgba(234, 240, 255, .86);
+        text-decoration: none;
+    }
+
+    .crumbs a:hover {
+        text-decoration: underline;
+    }
+
+    .crumb-sep {
+        opacity: .55;
+    }
+
+    .tb-btn {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        background: rgba(255, 255, 255, .05);
+        color: var(--adm-txt);
+        padding: 9px 12px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    .tb-btn:hover {
+        background: rgba(255, 255, 255, .08);
+    }
+
+    /* ===== Mobile: sidebar vira drawer ===== */
+    @media (max-width: 991.98px) {
+        .admin-sidebar {
+            transform: translateX(-105%);
+            transition: transform .22s ease;
+            box-shadow: 18px 0 60px rgba(0, 0, 0, .45);
+        }
+
+        .admin-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .admin-content {
+            margin-left: 0;
+        }
+
+        .admin-backdrop {
+            display: none;
+            position: fixed;
+            inset: var(--top-h) 0 0 0;
+            background: rgba(0, 0, 0, .48);
+            z-index: 1039;
+        }
+
+        .admin-backdrop.show {
+            display: block;
+        }
+    }
+
+    /* Grid compacta de permissões */
+    .perm-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(260px, 1fr));
+        /* 2 colunas */
+        gap: 10px;
+        max-height: 140px;
+        /* colapsado */
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* quando expandir */
+    .perm-grid.expanded {
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* responsivo */
+    @media (max-width: 1200px) {
+        .perm-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .perm-chip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: rgba(255, 255, 255, .04);
+        border: 1px solid rgba(255, 255, 255, .10);
+        border-radius: 14px;
+        padding: 10px 12px;
+        min-width: 0;
+    }
+
+    .perm-chip-main {
+        min-width: 0;
+    }
+
+    .perm-name {
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .perm-code {
+        opacity: .7;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+    }
+</style>
+
+<div class="admin-shell">
+
+    <!-- ===== Topbar ===== -->
+    <div class="admin-topbar">
+        <button class="tb-btn d-lg-none" id="btnSb">
+            <i class="fas fa-bars"></i> Menu
+        </button>
+
+        <div class="d-flex align-items-center gap-2 flex-grow-1">
+            <div class="crumbs">
+                {% block admin_breadcrumbs %}
+                <a href="{{ url_for('home') }}">Início</a>
+                <span class="crumb-sep">›</span>
+                <span>Admin</span>
+                {% endblock %}
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            {% block admin_actions %}{% endblock %}
+            <a class="tb-btn" href="{{ url_for('home') }}" title="Voltar ao sistema">
+                <i class="fas fa-arrow-left"></i> Sistema
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="admin-sidebar" id="sidebar">
+        <div class="admin-sidebar-inner">
+
+            <div class="sb-brand">
+                <img class="logo" src="{{ url_for('static', filename='img/logobm.png') }}" alt="Logo">
+                <div>
+                    <div class="title">SIGDP · Admin</div>
+                    <div class="sub">Gerência & permissões</div>
+                </div>
+            </div>
+
+            <div class="sb-section">Gerência</div>
+
+            <a class="sb-link {% if request.endpoint and request.endpoint.startswith('admin_permissoes') %}active{% endif %}"
+                href="{{ url_for('admin_permissoes.index') }}">
+                <span class="sb-icon"><i class="fas fa-user-shield"></i></span>
+                <span>Permissões</span>
+            </a>
+
+            <a class="sb-link {% if request.endpoint and request.endpoint.startswith('admin_obm_gestao') %}active{% endif %}"
+                href="{{ url_for('admin_obm_gestao.index') }}">
+                <span class="sb-icon"><i class="fas fa-sitemap"></i></span>
+                <span>Gestão de OBMs</span>
+            </a>
+
+            <div class="sb-section">Atalhos</div>
+
+            <a class="sb-link" href="{{ url_for('usuarios') }}">
+                <span class="sb-icon"><i class="fas fa-users"></i></span>
+                <span>Usuários</span>
+            </a>
+
+            <a class="sb-link" href="{{ url_for('home') }}">
+                <span class="sb-icon"><i class="fas fa-home"></i></span>
+                <span>Início</span>
+            </a>
+
+            <div class="sb-section">Conta</div>
+
+            <a class="sb-link" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                <span class="sb-icon"><i class="fas fa-id-badge"></i></span>
+                <span>Meu perfil</span>
+            </a>
+
+            <a class="sb-link" href="{{ url_for('sair') }}">
+                <span class="sb-icon"><i class="fas fa-sign-out-alt"></i></span>
+                <span>Sair</span>
+            </a>
+
+        </div>
+    </aside>
+
+    <div class="admin-backdrop" id="backdrop"></div>
+
+    <!-- ===== Content ===== -->
+    <main class="admin-content">
+        {% block admin_content %}{% endblock %}
+    </main>
+
+</div>
+
+<script>
+    (function () {
+        const sb = document.getElementById("sidebar");
+        const bd = document.getElementById("backdrop");
+        const btn = document.getElementById("btnSb");
+
+        function open() { sb.classList.add("open"); bd.classList.add("show"); }
+        function close() { sb.classList.remove("open"); bd.classList.remove("show"); }
+
+        if (btn) btn.addEventListener("click", () => sb.classList.contains("open") ? close() : open());
+        if (bd) bd.addEventListener("click", close);
+    })();
+</script>
+
+<script>
+    (function () {
+        // Colapsa automaticamente quem tiver muita permissão
+        document.querySelectorAll(".perm-grid").forEach(grid => {
+            const chips = grid.querySelectorAll(".perm-chip");
+            if (chips.length <= 6) return; // pouco -> deixa aberto
+
+            // mantém colapsado por padrão
+            grid.classList.remove("expanded");
+        });
+
+        // Botão ver mais / ver menos
+        document.querySelectorAll(".perm-more").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const uid = btn.dataset.user;
+                const grid = document.querySelector(`.perm-grid[data-user="${uid}"]`);
+                if (!grid) return;
+
+                const expanded = grid.classList.toggle("expanded");
+                btn.textContent = expanded ? "Ver menos" : "Ver mais";
+            });
+        });
+    })();
+</script>
+
+{% endblock %}

@@ -1,154 +1,224 @@
-{% extends "base.html" %}
-{% block body %}
+{# templates/admin/permissoes.html #}
+{% extends "admin/base_admin.html" %}
 
-<div class="container py-3">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h3 class="mb-1">Permissões de Usuários</h3>
-            <div class="text-muted">Gerencie acessos por código (ex.: recebimento/análise).</div>
-        </div>
+{% block admin_breadcrumbs %}
+<a href="{{ url_for('home') }}">Início</a>
+<span class="crumb-sep">›</span>
+<span>Admin</span>
+<span class="crumb-sep">›</span>
+<span>Permissões</span>
+{% endblock %}
+
+{% block admin_actions %}
+{# exemplo: botão de limpar filtros #}
+<a class="tb-btn" href="{{ url_for('admin_permissoes.index') }}">
+    <i class="fas fa-broom me-2"></i> Limpar
+</a>
+{% endblock %}
+
+{% block admin_content %}
+{# === AQUI VAI O CONTEÚDO ATUAL (tabela, modal, scripts) === #}
+
+<div class="adm-hero mb-3 d-flex align-items-start justify-content-between gap-3" style="background: linear-gradient(135deg, rgba(79,140,255,.16), rgba(255,255,255,.02));
+              border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:16px 18px;">
+    <div>
+        <h3 class="mb-1" style="font-weight:900;">Permissões de Usuários</h3>
+        <div class="adm-muted">Gerencie acessos por código. SUPER USER sempre tem acesso total.</div>
     </div>
+    <span class="badge rounded-pill"
+        style="background: rgba(79,140,255,.18); border:1px solid rgba(79,140,255,.35); color:#eaf0ff; font-weight:800;">
+        Painel
+    </span>
+</div>
 
-    <div class="card mb-3">
-        <div class="card-body">
-            <form class="row g-2" method="GET" action="{{ url_for('admin_permissoes.index') }}">
-                <div class="col-md-6">
-                    <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nome, CPF ou email...">
-                </div>
-
-                <div class="col-md-4">
-                    <select class="form-select" name="codigo">
-                        <option value="">Todas as permissões</option>
-                        {% for p in catalogo %}
-                        <option value="{{ p.codigo }}" {% if codigo==p.codigo %}selected{% endif %}>
-                            {{ p.nome }} ({{ p.codigo }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="col-md-2 d-grid">
-                    <button class="btn btn-primary">Filtrar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="min-width: 260px;">Usuário</th>
-                        <th style="min-width: 200px;">Função</th>
-                        <th style="min-width: 180px;">Email</th>
-                        <th style="min-width: 160px;">CPF</th>
-                        <th>Permissões</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr>
-                        <td>
-                            <div class="fw-semibold">{{ u.nome }}</div>
-                            <div class="text-muted small">ID: {{ u.id }}</div>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 btn-obms"
-                                data-user-id="{{ u.id }}" data-user-nome="{{ u.nome }}">
-                                OBMs delegadas
-                            </button>
-
-                        </td>
-                        <td>
-                            <span class="badge text-bg-secondary">
-                                {{ u.funcao_user.ocupacao if u.funcao_user else "—" }}
-                            </span>
-                        </td>
-                        <td class="text-muted">{{ u.email or "—" }}</td>
-                        <td class="text-muted">{{ u.cpf or "—" }}</td>
-                        <td>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for p in catalogo %}
-                                {# Se o filtro "codigo" foi selecionado, escondemos os outros #}
-                                {% if (not codigo) or (codigo == p.codigo) %}
-                                {% set ativo = user_perm.get(u.id, {}).get(p.codigo, False) %}
-                                <div class="border rounded px-2 py-1 d-flex align-items-center gap-2"
-                                    style="min-width: 280px;">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold small">{{ p.nome }}</div>
-                                        <div class="text-muted small">{{ p.codigo }}</div>
-                                    </div>
-
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input perm-toggle" type="checkbox"
-                                            data-user-id="{{ u.id }}" data-codigo="{{ p.codigo }}" {% if ativo
-                                            %}checked{% endif %}>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card-footer d-flex align-items-center justify-content-between">
-            <div class="text-muted small">
-                Página {{ pagination.page }} de {{ pagination.pages }} — {{ pagination.total }} usuários
+<div class="adm-card mb-3">
+    <div class="card-body">
+        <form class="row g-2 align-items-end" method="GET" action="{{ url_for('admin_permissoes.index') }}">
+            <div class="col-md-6">
+                <label class="form-label adm-muted mb-1">Buscar</label>
+                <input class="form-control" name="q" value="{{ q }}"
+                    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;"
+                    placeholder="Nome, CPF ou email...">
             </div>
 
-            <nav>
-                <ul class="pagination mb-0">
-                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link"
-                            href="{{ url_for('admin_permissoes.index', page=pagination.prev_num, q=q, codigo=codigo) }}">Anterior</a>
-                    </li>
+            <div class="col-md-4">
+                <label class="form-label adm-muted mb-1">Permissão</label>
+                <select class="form-select" name="codigo"
+                    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;">
+                    <option value="">Todas</option>
+                    {% for p in catalogo %}
+                    <option value="{{ p.codigo }}" {% if codigo==p.codigo %}selected{% endif %}>
+                        {{ p.nome }} ({{ p.codigo }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link"
-                            href="{{ url_for('admin_permissoes.index', page=pagination.next_num, q=q, codigo=codigo) }}">Próxima</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn" style="border-radius:12px;font-weight:900;background:linear-gradient(135deg, rgba(79,140,255,.95), rgba(79,140,255,.65));
+                         border:1px solid rgba(79,140,255,.55);color:#fff;">
+                    Aplicar
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
+<div class="adm-card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0" style="color:#eaf0ff;">
+            <thead>
+                <tr>
+                    <th
+                        style="min-width: 280px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                        Usuário</th>
+                    <th
+                        style="min-width: 200px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                        Função</th>
+                    <th
+                        style="min-width: 220px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                        Email</th>
+                    <th
+                        style="min-width: 170px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                        CPF</th>
+                    <th style="background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                        Permissões</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-top:1px solid rgba(255,255,255,.08);">
+                    <td>
+                        <div class="fw-bold">{{ u.nome }}</div>
+                        <div class="adm-muted small">ID: {{ u.id }}</div>
+
+                        <button type="button" class="btn btn-sm mt-2 btn-obms"
+                            style="border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eaf0ff;"
+                            data-user-id="{{ u.id }}" data-user-nome="{{ u.nome }}">
+                            Gerenciar OBMs delegadas
+                        </button>
+                    </td>
+
+                    <td>
+                        <span class="badge text-bg-secondary">
+                            {{ u.funcao_user.ocupacao if u.funcao_user else "—" }}
+                        </span>
+                    </td>
+
+                    <td class="adm-muted">{{ u.email or "—" }}</td>
+                    <td class="adm-muted">{{ u.cpf or "—" }}</td>
+
+                    <td>
+                        <div class="perm-grid" data-user="{{ u.id }}">
+                            {% for p in catalogo %}
+                            {% if (not codigo) or (codigo == p.codigo) %}
+                            {% set ativo = user_perm.get(u.id, {}).get(p.codigo, False) %}
+                            <div class="perm-chip">
+                                <div class="perm-chip-main">
+                                    <div class="perm-name">{{ p.nome }}</div>
+                                    <div class="perm-code">{{ p.codigo }}</div>
+                                </div>
+
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input perm-toggle" type="checkbox"
+                                        data-user-id="{{ u.id }}" data-codigo="{{ p.codigo }}" {% if ativo %}checked{%
+                                        endif %}>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        {% if (not codigo) and (catalogo|length > 10) %}
+                        <div class="mt-2">
+                            <button class="btn btn-sm perm-more"
+                                style="border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eaf0ff;"
+                                data-user="{{ u.id }}">
+                                Ver mais
+                            </button>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-footer d-flex align-items-center justify-content-between"
+        style="border-top:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.02);">
+        <div class="adm-muted small">
+            Página {{ pagination.page }} de {{ pagination.pages }} — {{ pagination.total }} usuários
+        </div>
+
+        <nav>
+            <ul class="pagination mb-0">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link"
+                        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;"
+                        href="{{ url_for('admin_permissoes.index', page=pagination.prev_num, q=q, codigo=codigo) }}">
+                        Anterior
+                    </a>
+                </li>
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link"
+                        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;"
+                        href="{{ url_for('admin_permissoes.index', page=pagination.next_num, q=q, codigo=codigo) }}">
+                        Próxima
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+{# Modal mantém como está (só deixa escuro) #}
 <div class="modal fade" id="modalObms" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">OBMs delegadas — <span id="obmsUserNome"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content" style="background: linear-gradient(135deg, rgba(12,18,32,.98), rgba(10,22,40,.98));
+                  border:1px solid rgba(255,255,255,.12); border-radius: 18px; color:#eaf0ff;">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.12);">
+                <div>
+                    <h5 class="modal-title mb-0">OBMs delegadas</h5>
+                    <div class="adm-muted small">Usuário: <span id="obmsUserNome"></span></div>
+                </div>
+                <button type="button" class="btn-close" style="filter:invert(1)" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body">
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-md-7">
-                        <label class="form-label">Adicionar OBM</label>
-                        <select class="form-select" id="selectObm"></select>
+                        <label class="form-label adm-muted">Adicionar OBM</label>
+                        <select class="form-select" id="selectObm"
+                            style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;"></select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Tipo</label>
-                        <select class="form-select" id="selectTipo">
+                        <label class="form-label adm-muted">Tipo</label>
+                        <select class="form-select" id="selectTipo"
+                            style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eaf0ff;border-radius:12px;">
                             <option value="DELEGADO">DELEGADO</option>
                             <option value="SUPERVISAO">SUPERVISÃO</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-grid">
-                        <button class="btn btn-primary" id="btnAddObm">Adicionar</button>
+                        <button class="btn" style="border-radius:12px;font-weight:900;background:linear-gradient(135deg, rgba(79,140,255,.95), rgba(79,140,255,.65));
+                             border:1px solid rgba(79,140,255,.55);color:#fff;" id="btnAddObm">Adicionar</button>
                     </div>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table table-sm table-hover align-middle mb-0" style="color:#eaf0ff;">
+                        <thead>
                             <tr>
-                                <th>OBM</th>
-                                <th>Tipo</th>
-                                <th>Status</th>
+                                <th
+                                    style="background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                                    OBM</th>
+                                <th
+                                    style="background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                                    Tipo</th>
+                                <th
+                                    style="background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.12);">
+                                    Status</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDelegadas"></tbody>
@@ -159,6 +229,7 @@
     </div>
 </div>
 
+{# === Seus scripts originais (iguais) === #}
 <script>
     (function () {
         const toggles = document.querySelectorAll(".perm-toggle");
@@ -171,9 +242,7 @@
             });
 
             const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.ok) {
-                throw new Error(data.error || "Falha ao atualizar permissão.");
-            }
+            if (!res.ok || !data.ok) throw new Error(data.error || "Falha ao atualizar permissão.");
             return data;
         }
 
@@ -185,16 +254,9 @@
                 const ativo = el.checked;
 
                 el.disabled = true;
-
-                try {
-                    await postToggle(userId, codigo, ativo);
-                } catch (err) {
-                    // volta o toggle pro estado anterior
-                    el.checked = !ativo;
-                    alert(err.message || "Erro ao atualizar.");
-                } finally {
-                    el.disabled = false;
-                }
+                try { await postToggle(userId, codigo, ativo); }
+                catch (err) { el.checked = !ativo; alert(err.message || "Erro ao atualizar."); }
+                finally { el.disabled = false; }
             });
         });
     })();
@@ -219,19 +281,18 @@
             delegadas.forEach(d => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-        <td>${d.obm_sigla} (ID ${d.obm_id})</td>
-        <td><span class="badge text-bg-secondary">${d.tipo}</span></td>
-        <td>
-          <div class="form-check form-switch m-0">
-            <input class="form-check-input obm-toggle" type="checkbox"
-              data-id="${d.id}" ${d.ativo ? "checked" : ""}>
-          </div>
-        </td>
-      `;
+            <td>${d.obm_sigla} (ID ${d.obm_id})</td>
+            <td><span class="badge text-bg-secondary">${d.tipo}</span></td>
+            <td>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input obm-toggle" type="checkbox"
+                  data-id="${d.id}" ${d.ativo ? "checked" : ""}>
+              </div>
+            </td>
+          `;
                 tb.appendChild(tr);
             });
 
-            // bind toggles
             tb.querySelectorAll(".obm-toggle").forEach(el => {
                 el.addEventListener("change", async (e) => {
                     const id = e.currentTarget.dataset.id;
@@ -259,7 +320,6 @@
 
             const data = await fetchJson(`{{ url_for('admin_permissoes.get_obms_user', user_id=0) }}`.replace("/0", `/${userId}`));
 
-            // preencher select de OBMs
             const sel = document.getElementById("selectObm");
             sel.innerHTML = "";
             data.obms.forEach(o => {
@@ -275,14 +335,12 @@
             modal.show();
         }
 
-        // botão abrir modal
         document.querySelectorAll(".btn-obms").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 openModal(e.currentTarget.dataset.userId, e.currentTarget.dataset.userNome);
             });
         });
 
-        // adicionar
         document.getElementById("btnAddObm").addEventListener("click", async () => {
             const obmId = parseInt(document.getElementById("selectObm").value, 10);
             const tipo = document.getElementById("selectTipo").value;
@@ -294,7 +352,6 @@
                     body: JSON.stringify({ user_id: currentUserId, obm_id: obmId, tipo: tipo })
                 });
 
-                // recarrega lista
                 const data = await fetchJson(`{{ url_for('admin_permissoes.get_obms_user', user_id=0) }}`.replace("/0", `/${currentUserId}`));
                 renderDelegadas(data.delegadas);
 
@@ -305,6 +362,5 @@
 
     })();
 </script>
-
 
 {% endblock %}
