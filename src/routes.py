@@ -2512,7 +2512,7 @@ def paf_ano_vigente():
 
 @app.route('/ferias_dados', methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH', 'DRH')
 def ferias_dados():
     draw = request.form.get('draw', type=int)
     start = request.form.get('start', type=int)
