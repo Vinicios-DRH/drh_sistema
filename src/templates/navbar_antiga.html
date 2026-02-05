@@ -1,0 +1,469 @@
+{% set user_funcao = current_user.funcao_user_id %}
+{% set user_obm = current_user.obm1.sigla if current_user.obm1 else '' %}
+{% set funcao_id = current_user.funcao_user_id %}
+{% set pode_novo = (funcao_id == 12) %}
+{% set is_user_394 = (current_user.id == 394) %}
+{% set pode_recebimento = funcao_id in [1, 2, 5, 6, 7] %}
+{% set pode_ver_validacoes = pode_recebimento or is_user_394 %}
+
+<nav class="navbar fixed-top navbar-glass">
+    <div class="container-fluid">
+        <!-- Brand -->
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="Logo CBMAM" class="brand-logo">
+            <span class="brand-title d-none d-sm-inline">SIGDP</span>
+        </a>
+
+        <!-- Toggler -->
+        <button id="buttonNav" class="navbar-toggler shadow-0" type="button" data-bs-toggle="offcanvas"
+            data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Abrir menu">
+            <img class="img-responsive" style="width:40px;max-width:100% !important"
+                src="{{ url_for('static', filename='img/menu.png') }}" alt="Menu">
+        </button>
+
+        <!-- Offcanvas -->
+        <div class="offcanvas offcanvas-end offcanvas-glass" tabindex="-1" id="offcanvasNavbar" data-bs-scroll="false">
+            <div class="offcanvas-header border-bottom-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-mini">
+                        {{ (current_user.nome or 'U')[:1] }}
+                    </div>
+                    <div>
+                        <a class="offcanvas-title text-decoration-none"
+                            href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                            <strong>{{ current_user.nome }}</strong>
+                        </a>
+                        <div class="small text-muted">
+                            {% if current_user.obm1 %}{{ current_user.obm1.sigla }}{% endif %}
+                            {% if current_user.obm2 %} · {{ current_user.obm2.sigla }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                    aria-label="Fechar"></button>
+            </div>
+
+            <div class="offcanvas-body">
+                <ul class="navbar-nav menu-root">
+
+                    <!-- Início -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('home') }}">
+                            <i class="fas fa-home me-2"></i> Início
+                        </a>
+                    </li>
+
+                    {# --- Declaração de Vínculo (apenas para funcao_user_id == 12) --- #}
+                    {% if pode_novo %}
+                    <li class="nav-item">
+                        {% if militar_id_atual %}
+                        {# Link mantido comentado como estava #}
+                        {# <a class="nav-link" href="{{ url_for('acumulo.novo', militar_id=militar_id_atual) }}">
+                            <i class="fas fa-user me-2"></i> Declaração de Vínculo
+                        </a> #}
+                        {% else %}
+                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                            <i class="fas fa-user me-2"></i> Declaração de Vínculo
+                        </a>
+                        {% endif %}
+                    </li>
+                    {% endif %}
+
+                    {# --- Validações: aparece para funcao_user_id em {1,2,5,6,7} OU usuário id 394 --- #}
+                    {% if pode_ver_validacoes %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i>Validações
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('acumulo.recebimento') }}">
+                                    Declarações — Recebimento
+                                </a>
+                            </li>
+                            {# Itens extras: só para funções com permissão (não aparece pro id 394 se ele não tiver a
+                            função) #}
+                            {% if pode_recebimento %}
+                            <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dep.drh_lista_processos') }}">Processos
+                                    Inclusão de Dependentes</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    {% set PG_SUP = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] %}
+
+                    {# regra final: precisa ser usuário func 12 E ter PG 12/13/14 #}
+                    {% set pode_paf = (
+                    current_user.is_authenticated
+                    and current_user.funcao_user_id == 12
+                    and (session.get('pg_id') in PG_SUP)
+                    ) %}
+
+                    {% if pode_paf %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Plano Anual de Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('paf.novo') }}">Solicitação</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('paf.minhas') }}">Minhas Solicitações</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Inclusão de Dependentes
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('dep.requerimento_form') }}">Solicitar
+                                    Inclusão</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dep.militar_acompanhar') }}">Acompanhar
+                                    solicitação</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    {# Se o usuário é da OBM DRH ou SUPER USER #}
+                    {% if user_funcao in [5, 6, 7] %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-id-card me-2"></i> Documentação
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_le') }}">📄 Licença Especial</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('indeferimento_le') }}">📄 Indeferida Licença
+                                    Especial</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_lp') }}">📄 Licença Paternidade</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_certidao_casamento') }}">📄 Certidão de
+                                    Casamento</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_certidao_obito') }}">📄 Certidão de
+                                    Óbito</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('certidao_tempo_servico') }}">📄 Tempo de
+                                    Serviço</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('certidao_exercicio_atv_atipica') }}">📄
+                                    Exercício de Atividade Atípica</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('declaracao') }}">📄
+                                    Declaracao</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('nota_elogio') }}">📄
+                                    Nota de Elogio</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Militares Ativos
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('militares') }}">👥 Mapa da Força</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('adicionar_militar') }}">➕ Adicionar
+                                    Militar</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('militares_a_disposicao') }}">🔄 Militares a
+                                    disposição</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('militares_agregados') }}">➖ Militares
+                                    agregados</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('licenca_especial') }}">🗓️ Licença
+                                    Especial</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('lts') }}">🏥 Licença para Tratamento de
+                                    Saúde</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('gerar_qrcodes') }}"> Gerar QrCodes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('relatorio_cadetes_militares') }}">📄
+                                    Militares por cadete</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-friends me-2"></i> Militares Inativos
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('listar_militares_inativos') }}">👥 Mapa da
+                                    Força Inativos</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('adicionar_militar_inativo') }}">➕ Adicionar
+                                    Militar Inativo</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-id-card me-2"></i> Motoristas
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('adicionar_motorista') }}">➕ Adicionar
+                                    Motorista</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('motoristas') }}">📍 Mapa Motoristas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('motoristas_desclassificados') }}">📍
+                                    Motoristas Desclassificados</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_cnhs') }}">📄 Listar CNHs</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('escolher_obm') }}">🚗 Viaturas</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-dollar-sign me-2"></i> Pagadoria
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('novo_vencimento') }}">📝 Nova Tabela de
+                                    Vencimentos</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('calcular_impacto') }}">📈 Cálculo de
+                                    Impacto</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-id-card me-2"></i> Convocação Concurso
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('relatorio_convocacao') }}">📄 Relatório
+                                    Convocação</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('adicionar_convocacao') }}">➕ Adicionar
+                                    Convocado</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('importar_convocados') }}">➕ Importar
+                                    Convocados</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('controle_convocacao') }}">📄 Controle
+                                    Convocacao</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">📈 Dashboard</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    {% set funcao = current_user.funcao_user_id %}
+                    {% set obm = current_user.obm_id_1 %}
+
+                    {% if (funcao == 2 and obm == 26) or funcao == 6 or funcao == 5 %}
+                    <!-- ACESSO TOTAL -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-graduate me-2"></i> Alunos Soldados
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('ficha_aluno') }}">➕ Nova Ficha</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_fichas') }}">📄 Ver Fichas</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_alunos_inativos') }}">📄 Ver Alunos
+                                    Inativos</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_alunos_em_lts') }}">📄 Ver Alunos em
+                                    LTS</a></li>
+                            <li><a class="dropdown-item"
+                                    href="{{ url_for('listar_por_pelotao', slug='rio-javari') }}">📊 Pelotão Rio
+                                    Javari</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_por_pelotao', slug='rio-jurua') }}">📊
+                                    Pelotão Rio Juruá</a></li>
+                            <li><a class="dropdown-item"
+                                    href="{{ url_for('listar_por_pelotao', slug='rio-japura') }}">📊 Pelotão Rio
+                                    Japurá</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('listar_por_pelotao', slug='rio-purus') }}">📊
+                                    Pelotão Rio Purus</a></li>
+                        </ul>
+                    </li>
+
+                    {% elif funcao == 8 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-javari') }}">📊 Pelotão Rio
+                            Javari</a>
+                    </li>
+
+                    {% elif funcao == 9 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-jurua') }}">📊 Pelotão Rio
+                            Juruá</a>
+                    </li>
+
+                    {% elif funcao == 10 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-japura') }}">📊 Pelotão Rio
+                            Japurá</a>
+                    </li>
+
+                    {% elif funcao == 11 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_por_pelotao', slug='rio-purus') }}">📊 Pelotão Rio
+                            Purus</a>
+                    </li>
+                    {% endif %}
+
+                    {% if user_funcao == 6 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools me-2"></i> Utilidades
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li><a class="dropdown-item" href="{{ url_for('usuarios') }}">👤 Usuários</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('criar_conta') }}">➕ Adicionar Usuário</a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    {# Férias (perfis) #}
+                    {% if user_funcao in [1, 2, 7] %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools me-2"></i> Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('exibir_ferias_chefe') }}">Férias</a>
+                            </li>
+                            <!-- <li><a class="dropdown-item" href="{{ url_for('paf.recebimento') }}">Validação PAF</a>
+                            </li> -->
+                        </ul>
+                    </li>
+                    {% endif %}
+                    {% if user_funcao == 6 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools me-2"></i> Férias
+                        </a>
+                        <ul class="dropdown-menu dropdown-glass">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('exibir_ferias') }}">Férias</a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item mt-3">
+                        <a class="btn btn-danger w-100" href="{{ url_for('sair') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Estilos -->
+<style>
+    :root {
+        --brand-red: #B5121B;
+        --brand-red-600: #9f1119;
+        --glass-bg: rgba(255, 255, 255, .08);
+        --glass-brd: rgba(255, 255, 255, .18);
+    }
+
+    .navbar-glass {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border-bottom: 1px solid var(--glass-brd);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .brand-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+    }
+
+    .brand-title {
+        font-weight: 700;
+        letter-spacing: .3px;
+        color: #fff;
+        opacity: .9;
+    }
+
+    .navbar-toggler {
+        border: 1px solid var(--glass-brd);
+        background: rgba(255, 255, 255, .06);
+        border-radius: 10px;
+    }
+
+    /* Offcanvas “glass” */
+    .offcanvas-glass {
+        background: linear-gradient(135deg, rgba(15, 25, 40, .96), rgba(8, 18, 32, .96));
+        color: #e8eef6;
+        border-left: 1px solid var(--glass-brd);
+    }
+
+    .offcanvas-glass .offcanvas-title {
+        color: #fff;
+    }
+
+    .offcanvas-glass .nav-link {
+        color: #e8eef6;
+        border-radius: 10px;
+        padding: .55rem .75rem;
+    }
+
+    .offcanvas-glass .nav-link:hover {
+        background: rgba(255, 255, 255, .06);
+    }
+
+    .offcanvas-glass .dropdown-menu {
+        border: 1px solid var(--glass-brd);
+    }
+
+    .dropdown-glass {
+        background: rgba(20, 30, 46, .98);
+        color: #e8eef6;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .dropdown-glass .dropdown-item {
+        color: #e8eef6;
+    }
+
+    .dropdown-glass .dropdown-item:hover {
+        background: rgba(255, 255, 255, .06);
+    }
+
+    .menu-root {
+        padding-top: 6px;
+    }
+
+    .menu-root .nav-item {
+        margin-bottom: 6px;
+    }
+
+    .avatar-mini {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid var(--glass-brd);
+        font-weight: 700;
+    }
+</style>
+
+<style>
+    /* Largura do painel (Bootstrap usa essa custom prop) */
+    #offcanvasNavbar {
+        --bs-offcanvas-width: min(92vw, 380px);
+    }
+
+    /* Offcanvas ocupa a viewport toda e vira flex col */
+    .offcanvas-glass {
+        height: 100vh;
+        height: 100dvh;
+        /* corrige barras de endereço mobile */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Header não cresce, body cresce e rola */
+    .offcanvas-glass .offcanvas-header {
+        flex: 0 0 auto;
+    }
+
+    .offcanvas-glass .offcanvas-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        /* iOS */
+        padding-bottom: .75rem;
+        /* respiro no fim do scroll */
+    }
+
+    /* Itens do menu: sem limite de altura escondido */
+    .offcanvas-glass .menu-root {
+        max-height: none;
+    }
+</style>

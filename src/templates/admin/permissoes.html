@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="container py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h3 class="mb-1">Permissões de Usuários</h3>
+            <div class="text-muted">Gerencie acessos por código (ex.: recebimento/análise).</div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form class="row g-2" method="GET" action="{{ url_for('admin_permissoes.index') }}">
+                <div class="col-md-6">
+                    <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nome, CPF ou email...">
+                </div>
+
+                <div class="col-md-4">
+                    <select class="form-select" name="codigo">
+                        <option value="">Todas as permissões</option>
+                        {% for p in catalogo %}
+                        <option value="{{ p.codigo }}" {% if codigo==p.codigo %}selected{% endif %}>
+                            {{ p.nome }} ({{ p.codigo }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="min-width: 260px;">Usuário</th>
+                        <th style="min-width: 200px;">Função</th>
+                        <th style="min-width: 180px;">Email</th>
+                        <th style="min-width: 160px;">CPF</th>
+                        <th>Permissões</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ u.nome }}</div>
+                            <div class="text-muted small">ID: {{ u.id }}</div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 btn-obms"
+                                data-user-id="{{ u.id }}" data-user-nome="{{ u.nome }}">
+                                OBMs delegadas
+                            </button>
+
+                        </td>
+                        <td>
+                            <span class="badge text-bg-secondary">
+                                {{ u.funcao_user.ocupacao if u.funcao_user else "—" }}
+                            </span>
+                        </td>
+                        <td class="text-muted">{{ u.email or "—" }}</td>
+                        <td class="text-muted">{{ u.cpf or "—" }}</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for p in catalogo %}
+                                {# Se o filtro "codigo" foi selecionado, escondemos os outros #}
+                                {% if (not codigo) or (codigo == p.codigo) %}
+                                {% set ativo = user_perm.get(u.id, {}).get(p.codigo, False) %}
+                                <div class="border rounded px-2 py-1 d-flex align-items-center gap-2"
+                                    style="min-width: 280px;">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold small">{{ p.nome }}</div>
+                                        <div class="text-muted small">{{ p.codigo }}</div>
+                                    </div>
+
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input perm-toggle" type="checkbox"
+                                            data-user-id="{{ u.id }}" data-codigo="{{ p.codigo }}" {% if ativo
+                                            %}checked{% endif %}>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer d-flex align-items-center justify-content-between">
+            <div class="text-muted small">
+                Página {{ pagination.page }} de {{ pagination.pages }} — {{ pagination.total }} usuários
+            </div>
+
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link"
+                            href="{{ url_for('admin_permissoes.index', page=pagination.prev_num, q=q, codigo=codigo) }}">Anterior</a>
+                    </li>
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link"
+                            href="{{ url_for('admin_permissoes.index', page=pagination.next_num, q=q, codigo=codigo) }}">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalObms" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">OBMs delegadas — <span id="obmsUserNome"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label">Adicionar OBM</label>
+                        <select class="form-select" id="selectObm"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="selectTipo">
+                            <option value="DELEGADO">DELEGADO</option>
+                            <option value="SUPERVISAO">SUPERVISÃO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button class="btn btn-primary" id="btnAddObm">Adicionar</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>OBM</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDelegadas"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const toggles = document.querySelectorAll(".perm-toggle");
+
+        async function postToggle(userId, codigo, ativo) {
+            const res = await fetch("{{ url_for('admin_permissoes.toggle') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId, codigo: codigo, ativo: ativo })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) {
+                throw new Error(data.error || "Falha ao atualizar permissão.");
+            }
+            return data;
+        }
+
+        toggles.forEach(t => {
+            t.addEventListener("change", async (e) => {
+                const el = e.currentTarget;
+                const userId = el.dataset.userId;
+                const codigo = el.dataset.codigo;
+                const ativo = el.checked;
+
+                el.disabled = true;
+
+                try {
+                    await postToggle(userId, codigo, ativo);
+                } catch (err) {
+                    // volta o toggle pro estado anterior
+                    el.checked = !ativo;
+                    alert(err.message || "Erro ao atualizar.");
+                } finally {
+                    el.disabled = false;
+                }
+            });
+        });
+    })();
+</script>
+
+<script>
+    (function () {
+        let currentUserId = null;
+        let modal = null;
+
+        async function fetchJson(url, opts) {
+            const res = await fetch(url, opts);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.ok === false) throw new Error(data.error || "Erro.");
+            return data;
+        }
+
+        function renderDelegadas(delegadas) {
+            const tb = document.getElementById("tbodyDelegadas");
+            tb.innerHTML = "";
+
+            delegadas.forEach(d => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+        <td>${d.obm_sigla} (ID ${d.obm_id})</td>
+        <td><span class="badge text-bg-secondary">${d.tipo}</span></td>
+        <td>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input obm-toggle" type="checkbox"
+              data-id="${d.id}" ${d.ativo ? "checked" : ""}>
+          </div>
+        </td>
+      `;
+                tb.appendChild(tr);
+            });
+
+            // bind toggles
+            tb.querySelectorAll(".obm-toggle").forEach(el => {
+                el.addEventListener("change", async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const ativo = e.currentTarget.checked;
+                    e.currentTarget.disabled = true;
+                    try {
+                        await fetchJson("{{ url_for('admin_permissoes.toggle_obm_delegada') }}", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: id, ativo: ativo })
+                        });
+                    } catch (err) {
+                        e.currentTarget.checked = !ativo;
+                        alert(err.message);
+                    } finally {
+                        e.currentTarget.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function openModal(userId, userNome) {
+            currentUserId = userId;
+            document.getElementById("obmsUserNome").textContent = userNome;
+
+            const data = await fetchJson(`{{ url_for('admin_permissoes.get_obms_user', user_id=0) }}`.replace("/0", `/${userId}`));
+
+            // preencher select de OBMs
+            const sel = document.getElementById("selectObm");
+            sel.innerHTML = "";
+            data.obms.forEach(o => {
+                const opt = document.createElement("option");
+                opt.value = o.id;
+                opt.textContent = `${o.sigla} (ID ${o.id})`;
+                sel.appendChild(opt);
+            });
+
+            renderDelegadas(data.delegadas);
+
+            if (!modal) modal = new bootstrap.Modal(document.getElementById("modalObms"));
+            modal.show();
+        }
+
+        // botão abrir modal
+        document.querySelectorAll(".btn-obms").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                openModal(e.currentTarget.dataset.userId, e.currentTarget.dataset.userNome);
+            });
+        });
+
+        // adicionar
+        document.getElementById("btnAddObm").addEventListener("click", async () => {
+            const obmId = parseInt(document.getElementById("selectObm").value, 10);
+            const tipo = document.getElementById("selectTipo").value;
+
+            try {
+                await fetchJson("{{ url_for('admin_permissoes.add_obm_delegada') }}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id: currentUserId, obm_id: obmId, tipo: tipo })
+                });
+
+                // recarrega lista
+                const data = await fetchJson(`{{ url_for('admin_permissoes.get_obms_user', user_id=0) }}`.replace("/0", `/${currentUserId}`));
+                renderDelegadas(data.delegadas);
+
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+    })();
+</script>
+
+
+{% endblock %}

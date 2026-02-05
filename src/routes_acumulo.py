@@ -424,258 +424,258 @@ def lista():
     )
 
 
-def _obms_ativas_do_militar(militar_id: int):
-    MOF = MilitarObmFuncao
-    rows = (db.session.query(MOF.obm_id)
-            .filter(and_(MOF.militar_id == militar_id, MOF.data_fim.is_(None)))
-            # ajuste a ordenação se você tiver prioridade
-            .order_by(MOF.id.asc())
-            .all())
-    ids = [r.obm_id for r in rows]
-    obm_id_1 = ids[0] if len(ids) > 0 else None
-    obm_id_2 = ids[1] if len(ids) > 1 else None
-    return obm_id_1, obm_id_2
+# def _obms_ativas_do_militar(militar_id: int):
+#     MOF = MilitarObmFuncao
+#     rows = (db.session.query(MOF.obm_id)
+#             .filter(and_(MOF.militar_id == militar_id, MOF.data_fim.is_(None)))
+#             # ajuste a ordenação se você tiver prioridade
+#             .order_by(MOF.id.asc())
+#             .all())
+#     ids = [r.obm_id for r in rows]
+#     obm_id_1 = ids[0] if len(ids) > 0 else None
+#     obm_id_2 = ids[1] if len(ids) > 1 else None
+#     return obm_id_1, obm_id_2
 
 
-@bp_acumulo.route("/novo/<int:militar_id>", methods=["GET", "POST"])
-@login_required
-def novo(militar_id):
-    # Se for usuário comum, força militar_id a ser o do próprio usuário
-    if current_user.funcao_user_id == 12:
-        militar = get_militar_por_user(current_user)
-        if not militar:
-            flash("Não foi possível localizar seus dados de militar.", "danger")
-            return redirect(url_for("home"))
-        militar_id = militar.id
+# @bp_acumulo.route("/novo/<int:militar_id>", methods=["GET", "POST"])
+# @login_required
+# def novo(militar_id):
+#     # Se for usuário comum, força militar_id a ser o do próprio usuário
+#     if current_user.funcao_user_id == 12:
+#         militar = get_militar_por_user(current_user)
+#         if not militar:
+#             flash("Não foi possível localizar seus dados de militar.", "danger")
+#             return redirect(url_for("home"))
+#         militar_id = militar.id
 
-    ano = request.values.get("ano", type=int) or datetime.now().year
+#     ano = request.values.get("ano", type=int) or datetime.now().year
 
-    if _prazo_fechado() and not _is_drh_like():
-        ja_tem = db.session.query(DeclaracaoAcumulo.id).filter(
-            DeclaracaoAcumulo.militar_id == militar_id,
-            DeclaracaoAcumulo.ano_referencia == ano
-        ).first()
-        if ja_tem:
-            flash("Prazo encerrado. Reaberto apenas para: (1) quem não enviou nenhuma declaração; ou (2) corrigir declarações INCONFORME.", "warning")
-            return redirect(url_for("acumulo.minhas_declaracoes", ano=ano))
+#     if _prazo_fechado() and not _is_drh_like():
+#         ja_tem = db.session.query(DeclaracaoAcumulo.id).filter(
+#             DeclaracaoAcumulo.militar_id == militar_id,
+#             DeclaracaoAcumulo.ano_referencia == ano
+#         ).first()
+#         if ja_tem:
+#             flash("Prazo encerrado. Reaberto apenas para: (1) quem não enviou nenhuma declaração; ou (2) corrigir declarações INCONFORME.", "warning")
+#             return redirect(url_for("acumulo.minhas_declaracoes", ano=ano))
 
-    pendente = db.session.query(DeclaracaoAcumulo.id).filter_by(
-        militar_id=militar_id, ano_referencia=ano, status='pendente'
-    ).first()
-    if pendente:
-        flash("Você já possui uma declaração enviada e pendente de análise para este ano.", "warning")
-        return redirect(url_for("acumulo.lista", ano=ano))
+#     pendente = db.session.query(DeclaracaoAcumulo.id).filter_by(
+#         militar_id=militar_id, ano_referencia=ano, status='pendente'
+#     ).first()
+#     if pendente:
+#         flash("Você já possui uma declaração enviada e pendente de análise para este ano.", "warning")
+#         return redirect(url_for("acumulo.lista", ano=ano))
 
-    MOF = MilitarObmFuncao
-    row = (
-        db.session.query(Militar, PostoGrad.sigla.label(
-            "pg_sigla"), Obm.sigla.label("obm_sigla"))
-        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
-        .outerjoin(MOF, and_(MOF.militar_id == Militar.id, MOF.data_fim.is_(None)))
-        .outerjoin(Obm, Obm.id == MOF.obm_id)
-        .filter(Militar.id == militar_id)
-        .first()
-    )
-    if not row:
-        abort(404)
-    militar, pg_sigla, obm_sigla = row
+#     MOF = MilitarObmFuncao
+#     row = (
+#         db.session.query(Militar, PostoGrad.sigla.label(
+#             "pg_sigla"), Obm.sigla.label("obm_sigla"))
+#         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+#         .outerjoin(MOF, and_(MOF.militar_id == Militar.id, MOF.data_fim.is_(None)))
+#         .outerjoin(Obm, Obm.id == MOF.obm_id)
+#         .filter(Militar.id == militar_id)
+#         .first()
+#     )
+#     if not row:
+#         abort(404)
+#     militar, pg_sigla, obm_sigla = row
 
-    if request.method == "GET":
-        # carrega rascunho (se existir)
-        draft_row = (
-            db.session.query(DraftDeclaracaoAcumulo)
-            .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
-                    DraftDeclaracaoAcumulo.ano_referencia == ano)
-            .first()
-        )
-        draft_payload = draft_row.payload if draft_row else None
+#     if request.method == "GET":
+#         # carrega rascunho (se existir)
+#         draft_row = (
+#             db.session.query(DraftDeclaracaoAcumulo)
+#             .filter(DraftDeclaracaoAcumulo.militar_id == militar.id,
+#                     DraftDeclaracaoAcumulo.ano_referencia == ano)
+#             .first()
+#         )
+#         draft_payload = draft_row.payload if draft_row else None
 
-        return render_template(
-            "acumulo_novo.html",
-            militar_id=militar.id,
-            militar=militar,
-            posto_grad_sigla=pg_sigla or "-",
-            obm_sigla=obm_sigla or "-",
-            ano=ano,
-            draft=draft_payload,
-        )
+#         return render_template(
+#             "acumulo_novo.html",
+#             militar_id=militar.id,
+#             militar=militar,
+#             posto_grad_sigla=pg_sigla or "-",
+#             obm_sigla=obm_sigla or "-",
+#             ano=ano,
+#             draft=draft_payload,
+#         )
 
-    # ----------------- POST -----------------
-    tipo = (request.form.get("tipo") or "").strip().lower()
-    if tipo not in {"positiva", "negativa"}:
-        flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
-        return redirect(request.url)
+#     # ----------------- POST -----------------
+#     tipo = (request.form.get("tipo") or "").strip().lower()
+#     if tipo not in {"positiva", "negativa"}:
+#         flash("Informe o tipo de declaração (positiva/negativa).", "alert-danger")
+#         return redirect(request.url)
 
-    meio_entrega = (request.form.get("meio_entrega")
-                    or "digital").strip().lower()
-    if meio_entrega not in {"digital", "presencial"}:
-        meio_entrega = "digital"
+#     meio_entrega = (request.form.get("meio_entrega")
+#                     or "digital").strip().lower()
+#     if meio_entrega not in {"digital", "presencial"}:
+#         meio_entrega = "digital"
 
-    observacoes = (request.form.get("observacoes") or "").strip()
+#     observacoes = (request.form.get("observacoes") or "").strip()
 
-    # arquivo obrigatório
-    arquivo_fs = request.files.get("arquivo_declaracao")
-    if not arquivo_fs or not (arquivo_fs.filename or "").strip():
-        flash("Anexe o arquivo da declaração (PDF/JPG/PNG).", "alert-danger")
-        return redirect(request.url)
+#     # arquivo obrigatório
+#     arquivo_fs = request.files.get("arquivo_declaracao")
+#     if not arquivo_fs or not (arquivo_fs.filename or "").strip():
+#         flash("Anexe o arquivo da declaração (PDF/JPG/PNG).", "alert-danger")
+#         return redirect(request.url)
 
-    # vínculo único (apenas se positiva)
-    vinculo_row = None
-    if tipo == "positiva":
-        emp_nome = (request.form.get("empregador_nome") or "").strip()
+#     # vínculo único (apenas se positiva)
+#     vinculo_row = None
+#     if tipo == "positiva":
+#         emp_nome = (request.form.get("empregador_nome") or "").strip()
 
-        # AGORA: esfera do órgão público (municipal/estadual/federal)
-        emp_esfera = (request.form.get("empregador_tipo")
-                      or "").strip().lower()
+#         # AGORA: esfera do órgão público (municipal/estadual/federal)
+#         emp_esfera = (request.form.get("empregador_tipo")
+#                       or "").strip().lower()
 
-        licenca = (request.form.get("licenca") or "").strip().lower()
-        emp_doc = _digits(request.form.get("empregador_doc") or "")
+#         licenca = (request.form.get("licenca") or "").strip().lower()
+#         emp_doc = _digits(request.form.get("empregador_doc") or "")
 
-        # natureza é fixa = efetivo (não ler mais do form)
-        natureza = "efetivo"
+#         # natureza é fixa = efetivo (não ler mais do form)
+#         natureza = "efetivo"
 
-        jornada = (request.form.get("jornada_trabalho") or "").strip().lower()
-        cargo = (request.form.get("cargo_funcao") or "").strip()
-        try:
-            carga = int(
-                (request.form.get("carga_horaria_semanal") or "0").strip() or "0")
-        except Exception:
-            carga = 0
-        h_ini = _parse_time(request.form.get("horario_inicio"))
-        h_fim = _parse_time(request.form.get("horario_fim"))
-        d_ini = _parse_date(request.form.get("data_inicio"))
+#         jornada = (request.form.get("jornada_trabalho") or "").strip().lower()
+#         cargo = (request.form.get("cargo_funcao") or "").strip()
+#         try:
+#             carga = int(
+#                 (request.form.get("carga_horaria_semanal") or "0").strip() or "0")
+#         except Exception:
+#             carga = 0
+#         h_ini = _parse_time(request.form.get("horario_inicio"))
+#         h_fim = _parse_time(request.form.get("horario_fim"))
+#         d_ini = _parse_date(request.form.get("data_inicio"))
 
-        # validações atualizadas
-        if emp_esfera not in {"municipal", "estadual", "federal"}:
-            flash(
-                "Esfera do órgão inválida. Use Municipal, Estadual ou Federal.", "alert-danger")
-            return redirect(request.url)
-        if jornada not in {"escala", "expediente"}:
-            flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
-            return redirect(request.url)
-        if not (emp_nome and emp_doc and cargo and carga > 0 and h_ini and h_fim and d_ini):
-            flash("Preencha todos os campos do vínculo externo.", "alert-danger")
-            return redirect(request.url)
+#         # validações atualizadas
+#         if emp_esfera not in {"municipal", "estadual", "federal"}:
+#             flash(
+#                 "Esfera do órgão inválida. Use Municipal, Estadual ou Federal.", "alert-danger")
+#             return redirect(request.url)
+#         if jornada not in {"escala", "expediente"}:
+#             flash("Jornada de trabalho do vínculo inválida.", "alert-danger")
+#             return redirect(request.url)
+#         if not (emp_nome and emp_doc and cargo and carga > 0 and h_ini and h_fim and d_ini):
+#             flash("Preencha todos os campos do vínculo externo.", "alert-danger")
+#             return redirect(request.url)
 
-        vinculo_row = dict(
-            empregador_nome=emp_nome,
-            empregador_tipo=emp_esfera,      # << agora guarda a ESFERA
-            licenca=licenca,
-            empregador_doc=emp_doc,
-            natureza_vinculo=natureza,       # << sempre 'efetivo'
-            jornada_trabalho=jornada,
-            cargo_funcao=cargo,
-            carga_horaria_semanal=carga,
-            horario_inicio=h_ini,
-            horario_fim=h_fim,
-            data_inicio=d_ini,
-        )
+#         vinculo_row = dict(
+#             empregador_nome=emp_nome,
+#             empregador_tipo=emp_esfera,      # << agora guarda a ESFERA
+#             licenca=licenca,
+#             empregador_doc=emp_doc,
+#             natureza_vinculo=natureza,       # << sempre 'efetivo'
+#             jornada_trabalho=jornada,
+#             cargo_funcao=cargo,
+#             carga_horaria_semanal=carga,
+#             horario_inicio=h_ini,
+#             horario_fim=h_fim,
+#             data_inicio=d_ini,
+#         )
 
-    # ✅ Antes de salvar a declaração, atualize o User (apenas se for o próprio militar)
-    if current_user.funcao_user_id == 12:
-        # não dá pop aqui se você quiser reutilizar depois
-        email_sess = session.get('email_atualizacao')
-        obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
-        localidade_id = getattr(militar, 'localidade_id', None)
+#     # ✅ Antes de salvar a declaração, atualize o User (apenas se for o próprio militar)
+#     if current_user.funcao_user_id == 12:
+#         # não dá pop aqui se você quiser reutilizar depois
+#         email_sess = session.get('email_atualizacao')
+#         obm_id_1, obm_id_2 = _obms_ativas_do_militar(militar.id)
+#         localidade_id = getattr(militar, 'localidade_id', None)
 
-        user_changed = False
-        # e-mail: prioriza o que veio da sessão
-        if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
-            current_user.email = email_sess
-            user_changed = True
+#         user_changed = False
+#         # e-mail: prioriza o que veio da sessão
+#         if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
+#             current_user.email = email_sess
+#             user_changed = True
 
-        # OBMs e localidade (só se as colunas existirem em User)
-        if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
-            current_user.obm_id_1 = obm_id_1
-            user_changed = True
-        if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
-            current_user.obm_id_2 = obm_id_2
-            user_changed = True
-        if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
-            current_user.localidade_id = localidade_id
-            user_changed = True
+#         # OBMs e localidade (só se as colunas existirem em User)
+#         if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
+#             current_user.obm_id_1 = obm_id_1
+#             user_changed = True
+#         if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
+#             current_user.obm_id_2 = obm_id_2
+#             user_changed = True
+#         if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
+#             current_user.localidade_id = localidade_id
+#             user_changed = True
 
-        if user_changed:
-            try:
-                db.session.add(current_user)
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                # Não bloqueia o fluxo da declaração; apenas avisa
-                flash(
-                    f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
+#         if user_changed:
+#             try:
+#                 db.session.add(current_user)
+#                 db.session.commit()
+#             except Exception as e:
+#                 db.session.rollback()
+#                 # Não bloqueia o fluxo da declaração; apenas avisa
+#                 flash(
+#                     f"Não foi possível atualizar seus dados de usuário: {e}", "warning")
 
-    # upload Backblaze
-    try:
-        object_key = b2_upload_fileobj(
-            arquivo_fs, key_prefix=f"acumulo/{ano}/{militar_id}")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Falha no upload do arquivo: {e}", "alert-danger")
-        return redirect(request.url)
+#     # upload Backblaze
+#     try:
+#         object_key = b2_upload_fileobj(
+#             arquivo_fs, key_prefix=f"acumulo/{ano}/{militar_id}")
+#     except Exception as e:
+#         db.session.rollback()
+#         flash(f"Falha no upload do arquivo: {e}", "alert-danger")
+#         return redirect(request.url)
 
-    # UPSERT
-    try:
-        decl = (
-            db.session.query(DeclaracaoAcumulo)
-            .filter(
-                DeclaracaoAcumulo.militar_id == militar_id,
-                DeclaracaoAcumulo.ano_referencia == ano
-            ).first()
-        )
+#     # UPSERT
+#     try:
+#         decl = (
+#             db.session.query(DeclaracaoAcumulo)
+#             .filter(
+#                 DeclaracaoAcumulo.militar_id == militar_id,
+#                 DeclaracaoAcumulo.ano_referencia == ano
+#             ).first()
+#         )
 
-        if decl:
-            de_status = decl.status
-            decl.tipo = tipo
-            decl.meio_entrega = meio_entrega
-            decl.observacoes = observacoes or None
-            decl.arquivo_declaracao = object_key
-            decl.status = "pendente"
-            decl.updated_at = datetime.utcnow()
-        else:
-            de_status = None
-            decl = DeclaracaoAcumulo(
-                militar_id=militar_id,
-                ano_referencia=ano,
-                tipo=tipo,
-                meio_entrega=meio_entrega,
-                arquivo_declaracao=object_key,
-                observacoes=observacoes or None,
-                status="pendente",
-                created_at=datetime.utcnow(),
-            )
-            db.session.add(decl)
-            db.session.flush()
+#         if decl:
+#             de_status = decl.status
+#             decl.tipo = tipo
+#             decl.meio_entrega = meio_entrega
+#             decl.observacoes = observacoes or None
+#             decl.arquivo_declaracao = object_key
+#             decl.status = "pendente"
+#             decl.updated_at = datetime.utcnow()
+#         else:
+#             de_status = None
+#             decl = DeclaracaoAcumulo(
+#                 militar_id=militar_id,
+#                 ano_referencia=ano,
+#                 tipo=tipo,
+#                 meio_entrega=meio_entrega,
+#                 arquivo_declaracao=object_key,
+#                 observacoes=observacoes or None,
+#                 status="pendente",
+#                 created_at=datetime.utcnow(),
+#             )
+#             db.session.add(decl)
+#             db.session.flush()
 
-        # zera vínculos antigos (uma vez só)
-        for v in list(getattr(decl, "vinculos", [])):
-            db.session.delete(v)
+#         # zera vínculos antigos (uma vez só)
+#         for v in list(getattr(decl, "vinculos", [])):
+#             db.session.delete(v)
 
-        # insere vínculo único se positiva
-        if tipo == "positiva" and vinculo_row:
-            db.session.add(VinculoExterno(
-                declaracao_id=decl.id, **vinculo_row))
+#         # insere vínculo único se positiva
+#         if tipo == "positiva" and vinculo_row:
+#             db.session.add(VinculoExterno(
+#                 declaracao_id=decl.id, **vinculo_row))
 
-        # auditoria opcional se mudou
-        if de_status and de_status != decl.status:
-            db.session.add(AuditoriaDeclaracao(
-                declaracao_id=decl.id,
-                de_status=de_status,
-                para_status=decl.status,
-                motivo="Reenvio/atualização de declaração.",
-                alterado_por_user_id=getattr(current_user, "id", None),
-                data_alteracao=datetime.utcnow()
-            ))
+#         # auditoria opcional se mudou
+#         if de_status and de_status != decl.status:
+#             db.session.add(AuditoriaDeclaracao(
+#                 declaracao_id=decl.id,
+#                 de_status=de_status,
+#                 para_status=decl.status,
+#                 motivo="Reenvio/atualização de declaração.",
+#                 alterado_por_user_id=getattr(current_user, "id", None),
+#                 data_alteracao=datetime.utcnow()
+#             ))
 
-        db.session.commit()
-        flash("Declaração salva com sucesso!", "alert-success")
-        return redirect(url_for("home", ano=ano))
+#         db.session.commit()
+#         flash("Declaração salva com sucesso!", "alert-success")
+#         return redirect(url_for("home", ano=ano))
 
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Erro ao salvar a declaração: {e}", "alert-danger")
-        print(f"Erro ao salvar a declaração: {e}")
-        return redirect(request.url)
+#     except Exception as e:
+#         db.session.rollback()
+#         flash(f"Erro ao salvar a declaração: {e}", "alert-danger")
+#         print(f"Erro ao salvar a declaração: {e}")
+#         return redirect(request.url)
 
 
 def _digits(s: str) -> str:

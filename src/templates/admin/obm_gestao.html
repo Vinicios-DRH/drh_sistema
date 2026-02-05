@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h4 class="mb-0">Gestão de OBMs</h4>
+            <small class="text-muted">Defina quais OBMs são geridas por uma OBM gestora.</small>
+        </div>
+        <span class="badge bg-primary">Admin</span>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">OBM Gestora</label>
+                    <select id="obmGestora" class="form-select">
+                        <option value="">-- selecione --</option>
+                        {% for o in obms %}
+                        <option value="{{ o.id }}">
+                            {{ o.sigla }}{% if o.id in gestoras_ids %} (já é gestora){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        Ao selecionar uma gestora, carregamos as OBMs geridas atuais.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">OBMs Geridas</label>
+                    <select id="obmsGeridas" class="form-select" multiple>
+                        {% for o in obms %}
+                        <option value="{{ o.id }}">{{ o.sigla }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        Use Ctrl/Shift (ou pesquisa) para selecionar várias.
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button id="btnSalvar" class="btn btn-success">
+                            <i class="bi bi-check2-circle"></i> Salvar
+                        </button>
+                        <button id="btnLimpar" class="btn btn-outline-secondary">
+                            Limpar seleção
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div id="msg" class="mt-2"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    function setMsg(html, kind = "info") {
+        const el = document.getElementById("msg");
+        el.innerHTML = `<div class="alert alert-${kind} py-2 mb-0">${html}</div>`;
+    }
+
+    function clearMsg() {
+        document.getElementById("msg").innerHTML = "";
+    }
+
+    $(function () {
+        // Select2 com pesquisa
+        $("#obmGestora").select2({ width: "100%" });
+        $("#obmsGeridas").select2({
+            width: "100%",
+            placeholder: "Selecione as OBMs geridas",
+            allowClear: true
+        });
+
+        $("#btnLimpar").on("click", function () {
+            $("#obmsGeridas").val(null).trigger("change");
+            clearMsg();
+        });
+
+        $("#obmGestora").on("change", async function () {
+            const gestoraId = this.value;
+            $("#obmsGeridas").val(null).trigger("change");
+            clearMsg();
+
+            if (!gestoraId) return;
+
+            try {
+                const r = await fetch(`/admin/obm-gestao/api/gestora/${gestoraId}`);
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || "Falha ao carregar relação.");
+
+                const ids = (j.geridas || []).map(x => String(x.id));
+                $("#obmsGeridas").val(ids).trigger("change");
+
+                setMsg(`Relação carregada: <b>${ids.length}</b> OBM(s) gerida(s).`, "primary");
+            } catch (e) {
+                setMsg(e.message, "danger");
+            }
+        });
+
+        $("#btnSalvar").on("click", async function () {
+            const gestoraId = $("#obmGestora").val();
+            const geridas = $("#obmsGeridas").val() || [];
+
+            if (!gestoraId) {
+                setMsg("Selecione uma OBM gestora antes de salvar.", "warning");
+                return;
+            }
+
+            // não deixa incluir a própria gestora
+            const filtradas = geridas.filter(x => x !== String(gestoraId));
+
+            try {
+                const r = await fetch(`/admin/obm-gestao/salvar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        obm_gestora_id: Number(gestoraId),
+                        obms_geridas: filtradas.map(Number)
+                    })
+                });
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || "Erro ao salvar.");
+
+                setMsg("Salvo com sucesso ✅", "success");
+            } catch (e) {
+                setMsg(e.message, "danger");
+            }
+        });
+    });
+</script>
+{% endblock %}

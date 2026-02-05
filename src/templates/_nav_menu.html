@@ -1,0 +1,45 @@
+{# templates/_nav_menu.html #}
+{% macro render_menu(items) %}
+{% for it in items %}
+{% set children = it.children or [] %}
+
+{% if children|length > 0 %}
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+        {% if it.icon %}<i class="{{ it.icon }} me-2"></i>{% endif %} {{ it.label }}
+    </a>
+
+    <ul class="dropdown-menu dropdown-glass">
+        {% for ch in children %}
+        {% if ch.disabled %}
+        <li>
+            <a class="dropdown-item disabled" href="#" tabindex="-1" aria-disabled="true">
+                {{ ch.label }}
+            </a>
+        </li>
+        {% else %}
+        <li>
+            <a class="dropdown-item" href="{{ ch.href }}">
+                {{ ch.label }}
+            </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</li>
+
+{% else %}
+<li class="nav-item">
+    {% if it.disabled %}
+    <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+        {% if it.icon %}<i class="{{ it.icon }} me-2"></i>{% endif %} {{ it.label }}
+    </a>
+    {% else %}
+    <a class="nav-link" href="{{ it.href }}">
+        {% if it.icon %}<i class="{{ it.icon }} me-2"></i>{% endif %} {{ it.label }}
+    </a>
+    {% endif %}
+</li>
+{% endif %}
+{% endfor %}
+{% endmacro %}

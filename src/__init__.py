@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from supabase import create_client  # ← importa aqui
 from dotenv import load_dotenv
 import os, pathlib
@@ -115,6 +115,18 @@ def br_currency(value):
     except:
         return value
 
+
+@app.context_processor
+def inject_nav():
+    try:
+        if getattr(current_user, "is_authenticated", False):
+            # ✅ import lazy (evita circular)
+            from src.nav import build_nav
+            return {"nav_items": build_nav()}
+    except Exception:
+        pass
+    return {"nav_items": []}
+
 # if pathlib.Path(".env").exists():
 #     from dotenv import load_dotenv
 #     load_dotenv() 
@@ -127,11 +139,15 @@ from src.routes_paf import bp_paf
 from src.bp_paf_auto import bp_paf_auto
 from src.routes_dependentes import bp_dep
 from src.route_ferias import bp_ferias
+from src.admin_permissoes import bp_admin_permissoes
+from src.admin_obm_gestao import bp_admin_obm_gestao
 app.register_blueprint(bp_acumulo)
 app.register_blueprint(bp_paf)
 app.register_blueprint(bp_ferias)
 app.register_blueprint(bp_paf_auto)
 app.register_blueprint(bp_dep)
+app.register_blueprint(bp_admin_permissoes)
+app.register_blueprint(bp_admin_obm_gestao)
 
 # Torna o supabase acessível de fora
 app.supabase = supabase

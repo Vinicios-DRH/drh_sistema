@@ -5,31 +5,142 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
     :root {
-        --brand-red:#B5121B; --brand-red-600:#9e1119;
-        --glass-bg:rgba(255,255,255,.06); --glass-brd:rgba(255,255,255,.16);
-        --ink-200:#e8eef6; --ink-400:#c0cfda;
+        --brand-red: #B5121B;
+        --brand-red-600: #9e1119;
+        --glass-bg: rgba(255, 255, 255, .06);
+        --glass-brd: rgba(255, 255, 255, .16);
+        --ink-200: #e8eef6;
+        --ink-400: #c0cfda;
     }
-    body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
-    .brand-header{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
-        border:1px solid var(--glass-brd);border-radius:16px;color:var(--ink-200);
-        backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
-    .glass-card{background:var(--glass-bg);border:1px solid var(--glass-brd);border-radius:16px;color:var(--ink-200);
-        box-shadow:0 10px 30px rgba(0,0,0,.35);}
-    .card-soft{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.08);}
-    .kpi .title{font-size:.85rem;color:#475569}.kpi .value{font-size:1.6rem;font-weight:700}
-    .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .55rem;font-size:.78rem;border-radius:999px;border:1px solid var(--glass-brd)}
-    .list-plain{margin:0;padding:0;list-style:none}
-    .list-plain li{display:flex;justify-content:space-between;gap:8px;padding:.4rem 0;border-bottom:1px dashed #e5e7eb}
-    .list-plain li:last-child{border-bottom:0}
-    .muted{color:#64748b}
-    .avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:rgba(255,255,255,.1);color:#fff;border:1px solid var(--glass-brd)}
-    .btn-primary{background:var(--brand-red);border-color:var(--brand-red)}
-    .btn-primary:hover{background:var(--brand-red-600);border-color:var(--brand-red-600)}
-    .btn-outline-primary{color:var(--brand-red);border-color:var(--brand-red)}
-    .btn-outline-primary:hover{color:#fff;background:var(--brand-red)}
-    .modal-backdrop-home,.modal-backdrop-home2{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1050}
-    .modal-backdrop-home.show,.modal-backdrop-home2.show{display:flex}
-    .modal-card-home,.modal-card-home2{background:#fff;color:#0f172a;border:1px solid rgba(0,0,0,.08);border-radius:12px;width:min(640px,96vw);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .card-soft {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+    }
+
+    .kpi .title {
+        font-size: .85rem;
+        color: #475569
+    }
+
+    .kpi .value {
+        font-size: 1.6rem;
+        font-weight: 700
+    }
+
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .2rem .55rem;
+        font-size: .78rem;
+        border-radius: 999px;
+        border: 1px solid var(--glass-brd)
+    }
+
+    .list-plain {
+        margin: 0;
+        padding: 0;
+        list-style: none
+    }
+
+    .list-plain li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: .4rem 0;
+        border-bottom: 1px dashed #e5e7eb
+    }
+
+    .list-plain li:last-child {
+        border-bottom: 0
+    }
+
+    .muted {
+        color: #64748b
+    }
+
+    .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+        border: 1px solid var(--glass-brd)
+    }
+
+    .btn-primary {
+        background: var(--brand-red);
+        border-color: var(--brand-red)
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-red-600);
+        border-color: var(--brand-red-600)
+    }
+
+    .btn-outline-primary {
+        color: var(--brand-red);
+        border-color: var(--brand-red)
+    }
+
+    .btn-outline-primary:hover {
+        color: #fff;
+        background: var(--brand-red)
+    }
+
+    .modal-backdrop-home,
+    .modal-backdrop-home2 {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050
+    }
+
+    .modal-backdrop-home.show,
+    .modal-backdrop-home2.show {
+        display: flex
+    }
+
+    .modal-card-home,
+    .modal-card-home2 {
+        background: #fff;
+        color: #0f172a;
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 12px;
+        width: min(640px, 96vw);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .25)
+    }
 </style>
 {% endblock %}
 
@@ -44,14 +155,18 @@
                     <div class="avatar">{{ (nome_exibicao or 'U')[:1] }}</div>
                     <div>
                         <h1 class="h5 m-0">Olá, {{ nome_exibicao or 'Usuário' }}</h1>
-                        <div class="small opacity-75">Último acesso: {{ last_login_dt.strftime('%d/%m/%Y %H:%M') if last_login_dt else '—' }}</div>
+                        <div class="small opacity-75">Último acesso: {{ last_login_dt.strftime('%d/%m/%Y %H:%M') if
+                            last_login_dt else '—' }}</div>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     {% if user_pg %}<span class="chip"><i class="bi bi-award me-1"></i>{{ user_pg }}</span>{% endif %}
-                    {% if user_obm_siglas %}<span class="chip"><i class="bi bi-building me-1"></i>OBM: {{ ", ".join(user_obm_siglas) }}</span>{% endif %}
-                    {% if drh_like %}<span class="chip"><i class="bi bi-shield-lock me-1"></i>Perfil DRH</span>{% endif %}
-                    <a class="btn btn-outline-light" href="{{ url_for('perfil', id_usuario=current_user.id) }}"><i class="bi bi-person-gear me-1"></i> Editar cadastro</a>
+                    {% if user_obm_siglas %}<span class="chip"><i class="bi bi-building me-1"></i>OBM: {{ ",
+                        ".join(user_obm_siglas) }}</span>{% endif %}
+                    {% if drh_like %}<span class="chip"><i class="bi bi-shield-lock me-1"></i>Perfil DRH</span>{% endif
+                    %}
+                    <a class="btn btn-outline-light" href="{{ url_for('perfil', id_usuario=current_user.id) }}"><i
+                            class="bi bi-person-gear me-1"></i> Editar cadastro</a>
                 </div>
             </div>
         </div>
@@ -95,19 +210,26 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <ul class="list-plain">
-                                <li><span>Nome completo</span><strong>{{ (militar.nome_completo if militar else None) or current_user.nome or current_user.login or '—' }}</strong></li>
-                                <li><span>Matrícula</span><strong>{{ (militar.matricula if militar else None) or '—' }}</strong></li>
-                                <li><span>CPF</span><strong>{{ (militar.cpf if militar else current_user.cpf) or '—' }}</strong></li>
+                                <li><span>Nome completo</span><strong>{{ (militar.nome_completo if militar else None) or
+                                        current_user.nome or current_user.login or '—' }}</strong></li>
+                                <li><span>Matrícula</span><strong>{{ (militar.matricula if militar else None) or '—'
+                                        }}</strong></li>
+                                <li><span>CPF</span><strong>{{ (militar.cpf if militar else current_user.cpf) or '—'
+                                        }}</strong></li>
                                 <li><span>Posto/Graduação</span><strong>{{ user_pg or '—' }}</strong></li>
                             </ul>
                         </div>
                         <div class="col-12 col-md-6">
                             <ul class="list-plain">
-                                {% set email_exibir = (militar.email if militar and militar.email else current_user.email) %}
+                                {% set email_exibir = (militar.email if militar and militar.email else
+                                current_user.email) %}
                                 <li><span>E-mail</span><strong>{{ email_exibir or '—' }}</strong></li>
-                                <li><span>Telefone</span><strong>{{ (militar.celular if militar and militar.celular else current_user.telefone) or '—' }}</strong></li>
-                                <li><span>Função</span><strong>{{ militar_funcoes|join(', ') if militar_funcoes else '—' }}</strong></li>
-                                <li><span>OBM(s)</span><strong>{{ user_obm_siglas|join(', ') if user_obm_siglas else '—' }}</strong></li>
+                                <li><span>Telefone</span><strong>{{ (militar.celular if militar and militar.celular else
+                                        current_user.telefone) or '—' }}</strong></li>
+                                <li><span>Função</span><strong>{{ militar_funcoes|join(', ') if militar_funcoes else '—'
+                                        }}</strong></li>
+                                <li><span>OBM(s)</span><strong>{{ user_obm_siglas|join(', ') if user_obm_siglas else '—'
+                                        }}</strong></li>
                             </ul>
                         </div>
                     </div>
@@ -119,92 +241,99 @@
                         <a class="btn btn-sm btn-outline-light" href="#">Ver tudo</a>
                     </div>
                     {% if atividades %}
-                        <ul class="list-plain">
-                            {% for a in atividades %}
-                                <li><span class="muted">{{ a.quando.strftime('%d/%m/%Y %H:%M') }}</span><span>{{ a.texto }}</span></li>
-                            {% endfor %}
-                        </ul>
+                    <ul class="list-plain">
+                        {% for a in atividades %}
+                        <li><span class="muted">{{ a.quando.strftime('%d/%m/%Y %H:%M') }}</span><span>{{ a.texto
+                                }}</span></li>
+                        {% endfor %}
+                    </ul>
                     {% else %}
-                        <div class="muted small">Sem atividades recentes.</div>
+                    <div class="muted small">Sem atividades recentes.</div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Direita -->
             <div class="col-12 col-lg-5">
-                <div class="glass-card p-3 p-md-4">
+                <!-- <div class="glass-card p-3 p-md-4">
                     <h2 class="h6"><i class="bi bi-lightning-charge me-1"></i> Ações rápidas</h2>
                     <div class="d-grid gap-2">
-                        <button id="btn-nova-declaracao" class="btn btn-primary" type="button"><i class="bi bi-file-earmark-plus me-1"></i> Nova declaração</button>
+                        <button id="btn-nova-declaracao" class="btn btn-primary" type="button"><i
+                                class="bi bi-file-earmark-plus me-1"></i> Nova declaração</button>
                         <a class="btn btn-outline-primary" href="{{ url_for('acumulo.minhas_declaracoes') }}">
                             <i class="bi bi-folder2-open me-1"></i> Minhas declarações
                         </a>
                         {% if drh_like %}
-                            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}"><i class="bi bi-inboxes me-1"></i> Recebimento (DRH)</a>
+                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}"><i
+                                class="bi bi-inboxes me-1"></i> Recebimento (DRH)</a>
                         {% endif %}
                     </div>
-                </div>
+                </div> -->
 
-                <div class="glass-card p-3 p-md-4 mt-3">
+                <div class="glass-card p-3 p-md-4">
                     <div class="d-flex align-items-center justify-content-between">
                         <h2 class="h6 m-0"><i class="bi bi-envelope-paper me-1"></i> Documentos para você</h2>
                         {% if docs_pendentes_qtd %}
-                            <span class="chip"><i class="bi bi-bell-fill me-1"></i>{{ docs_pendentes_qtd }} pendente{{ 's' if docs_pendentes_qtd != 1 else '' }}</span>
+                        <span class="chip"><i class="bi bi-bell-fill me-1"></i>{{ docs_pendentes_qtd }} pendente{{ 's'
+                            if docs_pendentes_qtd != 1 else '' }}</span>
                         {% endif %}
                     </div>
 
                     {% if docs_pendentes_qtd %}
-                        <ul class="list-plain mt-2">
-                            {% for d in docs_pendentes %}
-                                <li>
-                                    <span class="text-truncate" style="max-width:60%">
-                                        <i class="bi bi-file-earmark-text me-1"></i>{{ d.nome_original }}
-                                    </span>
-                                    <span class="muted small text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        <div class="d-grid mt-3">
-                            <a class="btn btn-primary" href="{{ url_for('meus_documentos') }}"><i class="bi bi-download me-1"></i> Abrir meus documentos</a>
-                        </div>
+                    <ul class="list-plain mt-2">
+                        {% for d in docs_pendentes %}
+                        <li>
+                            <span class="text-truncate" style="max-width:60%">
+                                <i class="bi bi-file-earmark-text me-1"></i>{{ d.nome_original }}
+                            </span>
+                            <span class="muted small text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="d-grid mt-3">
+                        <a class="btn btn-primary" href="{{ url_for('meus_documentos') }}"><i
+                                class="bi bi-download me-1"></i> Abrir meus documentos</a>
+                    </div>
                     {% else %}
-                        <div class="muted small mt-2">Nenhum documento disponível no momento.</div>
-                        <div class="d-grid mt-3">
-                            <a class="btn btn-outline-primary" href="{{ url_for('meus_documentos') }}"><i class="bi bi-folder2-open me-1"></i> Ver histórico</a>
-                        </div>
+                    <div class="muted small mt-2">Nenhum documento disponível no momento.</div>
+                    <div class="d-grid mt-3">
+                        <a class="btn btn-outline-primary" href="{{ url_for('meus_documentos') }}"><i
+                                class="bi bi-folder2-open me-1"></i> Ver histórico</a>
+                    </div>
                     {% endif %}
                 </div>
 
-                <div class="glass-card p-3 p-md-4 mt-3">
+                <!-- <div class="glass-card p-3 p-md-4 mt-3">
                     <h2 class="h6"><i class="bi bi-clipboard-check me-1"></i> Minhas declarações ({{ ano_atual }})</h2>
                     {% if minhas_declaracoes %}
-                        <ul class="list-plain">
-                            {% for d in minhas_declaracoes %}
-                                <li>
-                                    {% if d.status == 'inconforme' %}
-                                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
-                                            {{ d.ano_referencia }} — {{ d.tipo or '—' }} — Editar
-                                        </a>
-                                    {% else %}
-                                        <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
-                                    {% endif %}
-                                    <span>
-                                        {% if d.status == 'validado' %}
-                                            <span class="chip"><span class="badge text-bg-success">validado</span></span>
-                                        {% elif d.status == 'inconforme' %}
-                                            <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
-                                            <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo" data-decl-id="{{ d.id }}">Ver motivo</button>
-                                        {% else %}
-                                            <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
-                                        {% endif %}
-                                    </span>
-                                </li>
-                            {% endfor %}
-                        </ul>
+                    <ul class="list-plain">
+                        {% for d in minhas_declaracoes %}
+                        <li>
+                            {% if d.status == 'inconforme' %}
+                            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
+                                {{ d.ano_referencia }} — {{ d.tipo or '—' }} — Editar
+                            </a>
+                            {% else %}
+                            <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
+                            {% endif %}
+                            <span>
+                                {% if d.status == 'validado' %}
+                                <span class="chip"><span class="badge text-bg-success">validado</span></span>
+                                {% elif d.status == 'inconforme' %}
+                                <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
+                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo"
+                                    data-decl-id="{{ d.id }}">Ver motivo</button>
+                                {% else %}
+                                <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
                     {% else %}
-                        <div class="muted small">Nenhuma declaração sua para {{ ano_atual }}.</div>
+                    <div class="muted small">Nenhuma declaração sua para {{ ano_atual }}.</div>
                     {% endif %}
-                </div>
+                </div> -->
 
                 <div class="glass-card p-3 p-md-4 mt-3">
                     <h2 class="h6"><i class="bi bi-shield-lock me-1"></i> Segurança</h2>
@@ -237,41 +366,17 @@
 
 <!-- Modal: prazo encerrado -->
 <div id="modal-prazo-fechado" class="modal-backdrop-home2" aria-hidden="true">
-  <div class="modal-card-home2">
-    <div class="p-3 border-bottom"><h5 class="m-0">Prazo encerrado</h5></div>
-    <div class="p-3">
-      <p>O prazo para envio da declaração <strong>encerrou em {{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.</p>
-      <p class="mb-0">Caso necessário, procure sua chefia ou a DRH.</p>
-    </div>
-    <div class="p-3 border-top d-flex justify-content-end gap-2">
-      <button type="button" class="btn btn-primary" id="btn-ok-prazo">OK</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: alerta ao criar nova declaração -->
-<div id="modal-alerta-envio" class="modal-backdrop-home2" aria-hidden="true">
     <div class="modal-card-home2">
         <div class="p-3 border-bottom">
-            <h5 class="m-0">Você já enviou uma declaração</h5>
-            <div class="small text-muted mt-1" id="alerta-subtitle"></div>
+            <h5 class="m-0">Prazo encerrado</h5>
         </div>
-        <div class="p-3" id="alerta-body"></div>
+        <div class="p-3">
+            <p>O prazo para envio da declaração <strong>encerrou em {{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.
+            </p>
+            <p class="mb-0">Caso necessário, procure sua chefia ou a DRH.</p>
+        </div>
         <div class="p-3 border-top d-flex justify-content-end gap-2">
-            <a id="btn-ver-ou-editar" class="btn btn-outline-primary d-none" href="#" target="_self">Abrir</a>
-
-            {# href seguro para "Continuar mesmo assim" (mantido, mas oculto no nosso fluxo) #}
-            {% set href_continuar = (
-                militar_id_atual and url_for('acumulo.novo', militar_id=militar_id_atual)
-            ) or (
-                pessoa_id_atual and url_for('acumulo.novo_generico', pessoa_tipo=pessoa_tipo_atual, pessoa_id=pessoa_id_atual)
-            ) or '' %}
-            {% if href_continuar %}
-                <a id="btn-continuar-novo" class="btn btn-warning d-none" href="{{ href_continuar }}">Continuar mesmo assim</a>
-            {% else %}
-                <a id="btn-continuar-novo" class="btn btn-warning d-none" href="#" data-disabled="1">Continuar mesmo assim</a>
-            {% endif %}
-            <button type="button" class="btn btn-outline-secondary" id="btn-fechar-alerta">Fechar</button>
+            <button type="button" class="btn btn-primary" id="btn-ok-prazo">OK</button>
         </div>
     </div>
 </div>
@@ -284,143 +389,145 @@
 {% set ultima_tipo = (ultima.tipo if ultima else '') %}
 
 <script>
-(() => {
-  const ctx = {
-    tem: {{ tem_decl | tojson }},
-    status: {{ ultima_status | tojson }},
-    declId: {{ ultima_id | tojson }},
-    tipo: {{ ultima_tipo | tojson }},
-    pessoaTipo: {{ (pessoa_tipo_atual or '') | tojson }},
-    pessoaId: {{ (pessoa_id_atual or '') | tojson }},
-    urlNovoMil: {{ (url_for('acumulo.novo', militar_id=(militar_id_atual or 0)) if militar_id_atual else '') | tojson }},
-    urlNovoGen: {{ (url_for('acumulo.novo_generico', pessoa_tipo=(pessoa_tipo_atual or 'militar'), pessoa_id=(pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson }},
-    urlEditar: {{ url_for('acumulo.editar', decl_id=0) | tojson }},
-    urlDetalhe: {{ url_for('acumulo.detalhe', decl_id=0) | tojson }},
+    (() => {
+        const ctx = {
+            tem: {{ tem_decl | tojson
+    }},
+    status: { { ultima_status | tojson } },
+    declId: { { ultima_id | tojson } },
+    tipo: { { ultima_tipo | tojson } },
+    pessoaTipo: { { (pessoa_tipo_atual or '') | tojson } },
+    pessoaId: { { (pessoa_id_atual or '') | tojson } },
+    urlNovoMil: { { (url_for('acumulo.novo', militar_id = (militar_id_atual or 0)) if militar_id_atual else '') | tojson } },
+    urlNovoGen: { { (url_for('acumulo.novo_generico', pessoa_tipo = (pessoa_tipo_atual or 'militar'), pessoa_id = (pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson } },
+    urlEditar: { { url_for('acumulo.editar', decl_id = 0) | tojson } },
+    urlDetalhe: { { url_for('acumulo.detalhe', decl_id = 0) | tojson } },
   };
 
-  const btnNova   = document.getElementById('btn-nova-declaracao');
-  const modal     = document.getElementById('modal-alerta-envio');
-  const sub       = document.getElementById('alerta-subtitle');
-  const body      = document.getElementById('alerta-body');
-  const btnAbrir  = document.getElementById('btn-ver-ou-editar');
-  const btnCont   = document.getElementById('btn-continuar-novo');
-  const btnClose  = document.getElementById('btn-fechar-alerta');
+    const btnNova = document.getElementById('btn-nova-declaracao');
+    const modal = document.getElementById('modal-alerta-envio');
+    const sub = document.getElementById('alerta-subtitle');
+    const body = document.getElementById('alerta-body');
+    const btnAbrir = document.getElementById('btn-ver-ou-editar');
+    const btnCont = document.getElementById('btn-continuar-novo');
+    const btnClose = document.getElementById('btn-fechar-alerta');
 
-  function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
-    if (sub) sub.textContent = subtitle || '';
-    if (body) body.innerHTML = htmlBody || '';
-    if (btnAbrir) {
-      if (abrirHref) { btnAbrir.href = abrirHref; btnAbrir.textContent = abrirLabel || 'Abrir'; btnAbrir.classList.remove('d-none'); }
-      else { btnAbrir.classList.add('d-none'); }
+    function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
+        if (sub) sub.textContent = subtitle || '';
+        if (body) body.innerHTML = htmlBody || '';
+        if (btnAbrir) {
+            if (abrirHref) { btnAbrir.href = abrirHref; btnAbrir.textContent = abrirLabel || 'Abrir'; btnAbrir.classList.remove('d-none'); }
+            else { btnAbrir.classList.add('d-none'); }
+        }
+        if (btnCont) {
+            if (mostrarContinuar) btnCont.classList.remove('d-none');
+            else btnCont.classList.add('d-none');
+        }
+        modal?.classList.add('show'); modal?.setAttribute('aria-hidden', 'false');
     }
-    if (btnCont) {
-      if (mostrarContinuar) btnCont.classList.remove('d-none');
-      else btnCont.classList.add('d-none');
-    }
-    modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false');
-  }
-  function hideModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
-  btnClose?.addEventListener('click', hideModal);
-  modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+    function hideModal() { modal?.classList.remove('show'); modal?.setAttribute('aria-hidden', 'true'); }
+    btnClose?.addEventListener('click', hideModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
 
-  const prazoFechado = {{ (prazo_fechado or False) | tojson }};
-  const modalPrazo   = document.getElementById('modal-prazo-fechado');
-  const btnOkPrazo   = document.getElementById('btn-ok-prazo');
-  function showPrazo(){ modalPrazo?.classList.add('show'); modalPrazo?.setAttribute('aria-hidden','false'); }
-  function hidePrazo(){ modalPrazo?.classList.remove('show'); modalPrazo?.setAttribute('aria-hidden','true'); }
-  btnOkPrazo?.addEventListener('click', hidePrazo);
-  modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) hidePrazo(); });
+    const prazoFechado = {{ (prazo_fechado or False) | tojson }};
+    const modalPrazo = document.getElementById('modal-prazo-fechado');
+    const btnOkPrazo = document.getElementById('btn-ok-prazo');
+    function showPrazo() { modalPrazo?.classList.add('show'); modalPrazo?.setAttribute('aria-hidden', 'false'); }
+    function hidePrazo() { modalPrazo?.classList.remove('show'); modalPrazo?.setAttribute('aria-hidden', 'true'); }
+    btnOkPrazo?.addEventListener('click', hidePrazo);
+    modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) hidePrazo(); });
 
-  btnNova?.addEventListener('click', () => {
-    // ✅ Liberação: se NÃO tem declaração no ano, pode criar mesmo com prazo fechado
-    if (!ctx.tem) {
-        const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
-        if (href) window.location.href = href; else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
-        return;
-    }
+    btnNova?.addEventListener('click', () => {
+        // ✅ Liberação: se NÃO tem declaração no ano, pode criar mesmo com prazo fechado
+        if (!ctx.tem) {
+            const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
+            if (href) window.location.href = href; else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
+            return;
+        }
 
-    const st = (ctx.status || '').toLowerCase();
+        const st = (ctx.status || '').toLowerCase();
 
-    if (st === 'inconforme') {
-        // continua igual: pode editar mesmo com prazo fechado
-        const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
-        showModal(
-        `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
+        if (st === 'inconforme') {
+            // continua igual: pode editar mesmo com prazo fechado
+            const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
+            showModal(
+                `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
         <p>Você pode editar para corrigir as pendências.</p>`,
-        'Status atual: inconforme',
-        hrefEditar,
-        'Editar declaração',
-        false
-        );
-        return;
-    }
+                'Status atual: inconforme',
+                hrefEditar,
+                'Editar declaração',
+                false
+            );
+            return;
+        }
 
-    if (st === 'validado') {
+        if (st === 'validado') {
+            const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
+            showModal(
+                `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
+                'Status atual: validado',
+                hrefDet,
+                'Ver declaração',
+                false
+            );
+            return;
+        }
+
+        // pendente
         const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
         showModal(
-        `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
-        'Status atual: validado',
-        hrefDet,
-        'Ver declaração',
-        false
+            `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
+            'Status atual: pendente',
+            hrefDet,
+            'Ver envio',
+            false
         );
-        return;
-    }
-
-    // pendente
-    const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-    showModal(
-        `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
-        'Status atual: pendente',
-        hrefDet,
-        'Ver envio',
-        false
-    );
- });
-})();
+    });
+}) ();
 </script>
 
 <script>
-(() => {
-  // Map: { decl_id: {motivo: "...", quando: "..."} }
-  const inconformeInfo = {{ (inconforme_info_map or {}) | tojson }};
-  const modal   = document.getElementById('modal-motivo-inconforme');
-  const txt     = document.getElementById('motivo-texto');
-  const quandoE = document.getElementById('motivo-quando');
-  const btnF    = document.getElementById('btn-fechar-motivo');
+    (() => {
+        // Map: { decl_id: {motivo: "...", quando: "..."} }
+        const inconformeInfo = {{ (inconforme_info_map or { }) | tojson
+    }};
+    const modal = document.getElementById('modal-motivo-inconforme');
+    const txt = document.getElementById('motivo-texto');
+    const quandoE = document.getElementById('motivo-quando');
+    const btnF = document.getElementById('btn-fechar-motivo');
 
-  function showMotivo(motivo, quandoStr){
-    if (txt) txt.textContent = motivo || '(sem motivo informado)';
-    if (quandoE) quandoE.textContent = quandoStr ? ('Registrado em ' + quandoStr) : '';
-    modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false');
-  }
-  function hideMotivo(){
-    modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true');
-    if (txt) txt.textContent=''; if (quandoE) quandoE.textContent='';
-  }
-  btnF?.addEventListener('click', hideMotivo);
-  modal?.addEventListener('click', (e)=>{ if(e.target===modal) hideMotivo(); });
+    function showMotivo(motivo, quandoStr) {
+        if (txt) txt.textContent = motivo || '(sem motivo informado)';
+        if (quandoE) quandoE.textContent = quandoStr ? ('Registrado em ' + quandoStr) : '';
+        modal?.classList.add('show'); modal?.setAttribute('aria-hidden', 'false');
+    }
+    function hideMotivo() {
+        modal?.classList.remove('show'); modal?.setAttribute('aria-hidden', 'true');
+        if (txt) txt.textContent = ''; if (quandoE) quandoE.textContent = '';
+    }
+    btnF?.addEventListener('click', hideMotivo);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) hideMotivo(); });
 
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-ver-motivo'); if(!btn) return;
-    e.preventDefault();
-    const id = btn.getAttribute('data-decl-id');
-    const info = inconformeInfo?.[id];
-    if(!info){ showMotivo('(sem motivo encontrado)',''); return; }
-    let quandoStr=''; try{
-      if(info.quando){
-        const d=new Date(info.quando);
-        const dd=String(d.getDate()).padStart(2,'0');
-        const mm=String(d.getMonth()+1).padStart(2,'0');
-        const yy=d.getFullYear();
-        const hh=String(d.getHours()).padStart(2,'0');
-        const mi=String(d.getMinutes()).padStart(2,'0');
-        quandoStr=`${dd}/${mm}/${yy} ${hh}:${mi}`;
-      }
-    }catch(_){}
-    showMotivo(info.motivo || '(sem motivo informado)', quandoStr);
-  });
-})();
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-ver-motivo'); if (!btn) return;
+        e.preventDefault();
+        const id = btn.getAttribute('data-decl-id');
+        const info = inconformeInfo?.[id];
+        if (!info) { showMotivo('(sem motivo encontrado)', ''); return; }
+        let quandoStr = ''; try {
+            if (info.quando) {
+                const d = new Date(info.quando);
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yy = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                quandoStr = `${dd}/${mm}/${yy} ${hh}:${mi}`;
+            }
+        } catch (_) { }
+        showMotivo(info.motivo || '(sem motivo informado)', quandoStr);
+    });
+}) ();
 </script>
 
 {% endblock %}

@@ -283,7 +283,14 @@ class User(database.Model, UserMixin):
     id = database.Column(database.Integer, primary_key=True)
     nome = database.Column(database.String(100))
     email = database.Column(database.String(50))
-    cpf = database.Column(database.String(50), unique=True)
+    cpf = database.Column(database.String(50), index=True)  # NÃO usa mais unique aqui
+    cpf_norm = database.Column(database.String(11), index=True, unique=True)  # CPF só números, único
+
+    tipo_perfil = database.Column(database.String(20), default="MILITAR")  
+    # "MILITAR" | "ADMIN"
+
+    militar_id = database.Column(database.Integer, database.ForeignKey("militar.id"), index=True)
+
     senha = database.Column(database.String(500))
     funcao_user_id = database.Column(
         database.Integer, database.ForeignKey('funcao_user.id'))
@@ -305,6 +312,8 @@ class User(database.Model, UserMixin):
         'FuncaoUser', foreign_keys=[funcao_user_id])
     localidade = database.relationship(
         'Localidade', foreign_keys=[localidade_id])
+    permissoes = database.relationship(
+        "UserPermissao", backref="user", lazy="select")
 
 
 class Comportamento(database.Model):
@@ -1430,3 +1439,64 @@ class DepAcaoLog(database.Model):
 
     processo = database.relationship("DepProcesso", back_populates="acoes")
     user = database.relationship("User")
+
+
+class UserPermissao(database.Model):
+    __tablename__ = "user_permissao"
+    id = database.Column(database.Integer, primary_key=True)
+    user_id = database.Column(database.Integer, database.ForeignKey(
+        "user.id"), nullable=False, index=True)
+    codigo = database.Column(database.String(50), nullable=False,
+                             index=True)  # ex: "ANALISE_VINCULO"
+    ativo = database.Column(database.Boolean, nullable=False, default=True)
+    created_at = database.Column(database.DateTime, default=lambda: datetime.now(
+        ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            "user_id", "codigo", name="uq_user_perm_codigo"),
+    )
+
+
+class UserObmAcesso(database.Model):
+    __tablename__ = "user_obm_acesso"
+
+    id = database.Column(database.Integer, primary_key=True)
+    user_id = database.Column(database.Integer, database.ForeignKey(
+        "user.id"), nullable=False, index=True)
+    obm_id = database.Column(database.Integer, database.ForeignKey(
+        "obm.id"), nullable=False, index=True)
+
+    # opcional: pra você distinguir “delegado” vs “supervisão” etc
+    # DELEGADO | SUPERVISAO | TEMPORARIO...
+    tipo = database.Column(database.String(30), default="DELEGADO")
+    ativo = database.Column(database.Boolean, nullable=False, default=True)
+
+    created_at = database.Column(
+        database.DateTime,
+        default=lambda: datetime.now(ZoneInfo("America/Manaus"))
+    )
+
+    user = database.relationship(
+        "User", backref=database.backref("obms_delegadas", lazy="selectin"))
+    obm = database.relationship("Obm")
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            "user_id", "obm_id", name="uq_user_obm_acesso"),
+    )
+
+
+class ObmGestao(database.Model):
+    __tablename__ = "obm_gestao"
+    id = database.Column(database.Integer, primary_key=True)
+    obm_gestora_id = database.Column(
+        database.Integer, database.ForeignKey("obm.id"), nullable=False, index=True)
+    obm_gerida_id = database.Column(
+        database.Integer, database.ForeignKey("obm.id"), nullable=False, index=True)
+    ativo = database.Column(database.Boolean, nullable=False, default=True)
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            "obm_gestora_id", "obm_gerida_id", name="uq_obm_gestao"),
+    )

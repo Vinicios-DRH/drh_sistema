@@ -31,7 +31,7 @@ from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlu
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
                         Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar)
 from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
-from src.decorators.control import checar_ocupacao
+from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar, bloquear_obm_fora_do_escopo
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
 from datetime import datetime, date, timedelta, timezone
@@ -52,7 +52,6 @@ from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_s
 import re
 import plotly.graph_objs as go
 import plotly.io as pio
-from src.routes_acumulo import _obms_ativas_do_militar, bp_acumulo
 import time
 import statistics
 from collections import defaultdict
@@ -1270,6 +1269,9 @@ def exibir_militar(militar_id):
                 form_militar.fim_periodo.data)
             militar_lts.publicacao_bg_id = bg_id
             militar_lts.atualizar_status()
+
+        database.session.flush()
+        sync_user_admin_obms_from_militar(militar.id)
 
         try:
             database.session.commit()
@@ -2494,18 +2496,18 @@ def paf_ano_vigente():
     return current_app.config.get('PAF_ANO_VIGENTE', datetime.now().year)
 
 
-def obms_permitidas_para_usuario(user):
-    ids = set()
-    if getattr(user, "obm_id_1", None):
-        ids.add(user.obm_id_1)
-    if getattr(user, "obm_id_2", None):
-        ids.add(user.obm_id_2)
+# def obms_permitidas_para_usuario(user):
+#     ids = set()
+#     if getattr(user, "obm_id_1", None):
+#         ids.add(user.obm_id_1)
+#     if getattr(user, "obm_id_2", None):
+#         ids.add(user.obm_id_2)
 
-    # regra especial do teu sistema (quando obm_id_1 == 16)
-    if getattr(user, "obm_id_1", None) == 16:
-        ids.update([16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
+#     # regra especial do teu sistema (quando obm_id_1 == 16)
+#     if getattr(user, "obm_id_1", None) == 16:
+#         ids.update([16, 17, 18, 19, 20, 21, 22, 23, 24, 25])
 
-    return ids
+#     return ids
 
 
 @app.route('/ferias_dados', methods=['GET', 'POST'])
@@ -2738,27 +2740,11 @@ def debug_militar_full(militar_id):
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def exibir_ferias_chefe():
-    meses = {
-        "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
-        "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
-    }
-
     dia_atual = datetime.now().day
-    obms_adicionais = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
-    lista_obms = []
 
-    obm1 = Obm.query.get(current_user.obm_id_1)
-    if obm1:
-        lista_obms.append(obm1)
-
-    if current_user.obm_id_2:
-        obm2 = Obm.query.get(current_user.obm_id_2)
-        if obm2:
-            lista_obms.append(obm2)
-
-    if current_user.obm_id_1 == 16:
-        adicionais = Obm.query.filter(Obm.id.in_(obms_adicionais)).all()
-        lista_obms.extend(adicionais)
+    permitidas = obms_permitidas_para_usuario(current_user)
+    lista_obms = Obm.query.filter(Obm.id.in_(
+        sorted(permitidas))).order_by(Obm.sigla.asc()).all()
 
     ano_vigente = paf_ano_vigente()
     return render_template(
@@ -2780,6 +2766,12 @@ def first_day_next_month(d: date) -> date:
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def carregar_tabela_obm(obm_id):
+    # ✅ BLOQUEIA acesso a OBM fora do escopo (exceto SUPER)
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if obm_id not in permitidas:
+            return "<div class='alert alert-danger'>Sem permissão para esta OBM.</div>", 403
+
     ano = int(request.args.get("ano") or datetime.now().year)
 
     meses = {
@@ -3012,14 +3004,22 @@ def now_manaus_naive() -> datetime:
 @login_required
 def update_paf():
     hoje = datetime.now().day
+    is_super = (getattr(current_user, 'funcao_user_id', None) == 6)
+
     if (hoje < 10 or hoje > 20) and getattr(current_user, 'funcao_user_id', None) != 6:
         return jsonify({"message": "Alterações só são permitidas de 10 a 20 de cada mês."}), 403
 
     data = request.form
     militar_id = int(data.get('militar_id') or 0)
-
-    # ✅ novo: ano do form, se não vier usa ano atual do servidor
     ano = int(data.get('ano_referencia') or datetime.now().year)
+
+    if not militar_id:
+        return jsonify({"error": "militar_id inválido"}), 400
+
+    if not is_super:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if not militar_esta_no_escopo(militar_id, permitidas):
+            return jsonify({"error": "Sem permissão para alterar PAF deste militar."}), 403
 
     # ✅ novo: busca por militar + ano
     paf = Paf.query.filter_by(militar_id=militar_id,
@@ -4698,7 +4698,7 @@ def listar_por_pelotao(slug):
                            cnh_chart=cnh_chart,
                            comportamento_chart=comportamento_chart,
                            ano_atual=datetime.now().year
-                           )
+                           ) 
 
 
 @app.route('/fichas/<int:aluno_id>/lts', methods=['GET', 'POST'])
@@ -4925,89 +4925,89 @@ def confirmar_matricula():
                            matricula=matricula_oficial)
 
 
-@app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
-def criar_senha(cpf):
-    cpf = formatar_cpf(cpf)
+# @app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
+# def criar_senha(cpf):
+#     cpf = formatar_cpf(cpf)
 
-    # 🔒 checagem de fluxo e correspondência
-    if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
-        flash("Valide sua identidade antes de criar a senha.", "warning")
-        return redirect(url_for('atualizacao_cadastral'))
+#     # 🔒 checagem de fluxo e correspondência
+#     if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
+#         flash("Valide sua identidade antes de criar a senha.", "warning")
+#         return redirect(url_for('atualizacao_cadastral'))
 
-    pessoa_tipo = session.get('pessoa_tipo')
-    pessoa_id = session.get('pessoa_id')
-    if not pessoa_tipo or not pessoa_id:
-        flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
-        return redirect(url_for('atualizacao_cadastral'))
+#     pessoa_tipo = session.get('pessoa_tipo')
+#     pessoa_id = session.get('pessoa_id')
+#     if not pessoa_tipo or not pessoa_id:
+#         flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
+#         return redirect(url_for('atualizacao_cadastral'))
 
-    form = CriarSenhaForm()
+#     form = CriarSenhaForm()
 
-    # Já tem conta?
-    if User.query.filter_by(cpf=cpf).first():
-        flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
-        _limpa_sessao_validacao()
-        return redirect(url_for('login'))
+#     # Já tem conta?
+#     if User.query.filter_by(cpf=cpf).first():
+#         flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
+#         _limpa_sessao_validacao()
+#         return redirect(url_for('login'))
 
-    # Carrega a pessoa do tipo correto
-    if pessoa_tipo == 'militar':
-        pessoa = Militar.query.get(pessoa_id)
-        if not pessoa:
-            flash("❌ Militar não encontrado para este CPF.", "danger")
-            _limpa_sessao_validacao()
-            return redirect(url_for('atualizacao_cadastral'))
-        nome_user = getattr(pessoa, 'nome_completo',
-                            getattr(pessoa, 'nome', ''))
-    else:
-        pessoa = FichaAlunos.query.get(pessoa_id)
-        if not pessoa:
-            flash("❌ Aluno não encontrado para este CPF.", "danger")
-            _limpa_sessao_validacao()
-            return redirect(url_for('atualizacao_cadastral'))
-        nome_user = getattr(pessoa, 'nome_completo', '')
+#     # Carrega a pessoa do tipo correto
+#     if pessoa_tipo == 'militar':
+#         pessoa = Militar.query.get(pessoa_id)
+#         if not pessoa:
+#             flash("❌ Militar não encontrado para este CPF.", "danger")
+#             _limpa_sessao_validacao()
+#             return redirect(url_for('atualizacao_cadastral'))
+#         nome_user = getattr(pessoa, 'nome_completo',
+#                             getattr(pessoa, 'nome', ''))
+#     else:
+#         pessoa = FichaAlunos.query.get(pessoa_id)
+#         if not pessoa:
+#             flash("❌ Aluno não encontrado para este CPF.", "danger")
+#             _limpa_sessao_validacao()
+#             return redirect(url_for('atualizacao_cadastral'))
+#         nome_user = getattr(pessoa, 'nome_completo', '')
 
-    if form.validate_on_submit():
-        senha_hash = bcrypt.generate_password_hash(
-            form.senha.data).decode('utf-8')
+#     if form.validate_on_submit():
+#         senha_hash = bcrypt.generate_password_hash(
+#             form.senha.data).decode('utf-8')
 
-        novo_usuario = User(
-            nome=nome_user or '',
-            cpf=cpf,  # com máscara
-            email=session.get('email_atualizacao'),
-            senha=senha_hash,
-            funcao_user_id=12  # USUÁRIO COMUM
-        )
+#         novo_usuario = User(
+#             nome=nome_user or '',
+#             cpf=cpf,  # com máscara
+#             email=session.get('email_atualizacao'),
+#             senha=senha_hash,
+#             funcao_user_id=12  # USUÁRIO COMUM
+#         )
 
-        if pessoa_tipo == 'militar':
-            # Mantém suas atribuições extras para militar
-            obm_id_1, obm_id_2 = _obms_ativas_do_militar(pessoa.id)
-            if hasattr(novo_usuario, 'obm_id_1'):
-                novo_usuario.obm_id_1 = obm_id_1
-            if hasattr(novo_usuario, 'obm_id_2'):
-                novo_usuario.obm_id_2 = obm_id_2
-            if hasattr(novo_usuario, 'localidade_id'):
-                novo_usuario.localidade_id = getattr(
-                    pessoa, 'localidade_id', None)
-        else:
-            # 👉 Requisito: todos os alunos são da OBM 26
-            if hasattr(novo_usuario, 'obm_id_1'):
-                novo_usuario.obm_id_1 = 26
-            if hasattr(novo_usuario, 'obm_id_2'):
-                novo_usuario.obm_id_2 = None
-            if hasattr(novo_usuario, 'localidade_id'):
-                novo_usuario.localidade_id = None  # ajuste se necessário
+#         if pessoa_tipo == 'militar':
+#             # Mantém suas atribuições extras para militar
+#             obm_id_1, obm_id_2 = _obms_ativas_do_militar(pessoa.id)
+#             if hasattr(novo_usuario, 'obm_id_1'):
+#                 novo_usuario.obm_id_1 = obm_id_1
+#             if hasattr(novo_usuario, 'obm_id_2'):
+#                 novo_usuario.obm_id_2 = obm_id_2
+#             if hasattr(novo_usuario, 'localidade_id'):
+#                 novo_usuario.localidade_id = getattr(
+#                     pessoa, 'localidade_id', None)
+#         else:
+#             # 👉 Requisito: todos os alunos são da OBM 26
+#             if hasattr(novo_usuario, 'obm_id_1'):
+#                 novo_usuario.obm_id_1 = 26
+#             if hasattr(novo_usuario, 'obm_id_2'):
+#                 novo_usuario.obm_id_2 = None
+#             if hasattr(novo_usuario, 'localidade_id'):
+#                 novo_usuario.localidade_id = None  # ajuste se necessário
 
-        database.session.add(novo_usuario)
-        database.session.flush()
-        database.session.commit()
+#         database.session.add(novo_usuario)
+#         database.session.flush()
+#         database.session.commit()
 
-        if pessoa_tipo == 'militar':
-            pessoa.usuario_id = novo_usuario.id
+#         if pessoa_tipo == 'militar':
+#             pessoa.usuario_id = novo_usuario.id
 
-        _limpa_sessao_validacao()
-        flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
-        return redirect(url_for('login_atualizacao'))
+#         _limpa_sessao_validacao()
+#         flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
+#         return redirect(url_for('login_atualizacao'))
 
-    return render_template('atualizacao/criar_senha.html', form=form, cpf=cpf)
+#     return render_template('atualizacao/criar_senha.html', form=form, cpf=cpf)
 
 
 def _limpa_sessao_validacao():
