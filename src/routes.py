@@ -58,6 +58,7 @@ from collections import defaultdict
 from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
+from src.authz import is_super_or_perm
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -780,6 +781,8 @@ def verificar_arquivos():
 @login_required
 @checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
 def exibir_militar(militar_id):
+    if not is_super_or_perm("MILITAR_READ"):
+        abort(403)
 
     if request.method == "GET":
         if not has_perm("MILITAR_READ"):
@@ -2598,6 +2601,8 @@ def ferias_dados():
 @login_required
 @checar_ocupacao('SUPER USER', 'DRH')
 def exibir_ferias():
+    if not is_super_or_perm("NAV_FERIAS_SUPER"):
+        abort(403)
     ano_vigente = 2026
     # se quiser depois, a gente busca do banco automaticamente
     anos_disponiveis = [2025, 2026]

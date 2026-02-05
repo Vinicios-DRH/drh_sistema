@@ -23,7 +23,7 @@ def _catalogo_map():
 
 @bp_admin_permissoes.get("/")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def index():
     q = (request.args.get("q") or "").strip()
     codigo = (request.args.get("codigo") or "").strip().upper()
@@ -77,7 +77,7 @@ def index():
 
 @bp_admin_permissoes.post("/toggle")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def toggle():
     data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")
@@ -117,7 +117,7 @@ def toggle():
 
 @bp_admin_permissoes.post("/grant")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def grant_bulk():
     """
     Concede uma permissão para vários usuários de uma vez.
@@ -154,7 +154,7 @@ def grant_bulk():
 
 @bp_admin_permissoes.get("/obms/<int:user_id>")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def get_obms_user(user_id):
     user = db.session.query(User).get_or_404(user_id)
 
@@ -185,7 +185,7 @@ def get_obms_user(user_id):
 
 @bp_admin_permissoes.post("/obms/add")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def add_obm_delegada():
     data = request.get_json(silent=True) or {}
     user_id = int(data.get("user_id") or 0)
@@ -215,7 +215,7 @@ def add_obm_delegada():
 
 @bp_admin_permissoes.post("/obms/toggle")
 @login_required
-@checar_ocupacao("SUPER USER", "DIRETOR", "DIRETOR DRH", "CHEFE", "CHEFE DRH")
+@checar_ocupacao("SUPER USER")
 def toggle_obm_delegada():
     data = request.get_json(silent=True) or {}
     delegacao_id = int(data.get("id") or 0)

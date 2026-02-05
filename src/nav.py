@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from flask import session, url_for
 from flask_login import current_user
+from src.authz import has_perm, is_super, is_super_or_perm
 
 
 def _safe_url(endpoint: str, **values) -> str:
@@ -19,46 +20,7 @@ def _safe_url(endpoint: str, **values) -> str:
 
 
 def _is_super() -> bool:
-    # 1) se você tiver funcao_user_id == 6 como SUPER USER, mantém
-    if getattr(current_user, "funcao_user_id", None) == 6:
-        return True
-
-    # 2) fallback por ocupação (robusto)
-    try:
-        from src.decorators.control import _get_user_ocupacoes
-        return any("SUPER" in oc for oc in _get_user_ocupacoes())
-    except Exception:
-        return False
-
-
-def _has_perm(codigo: str) -> bool:
-    """
-    Permissão por código (UserPermissao).
-    SUPER sempre passa.
-    """
-    if _is_super():
-        return True
-
-    # se você preferir cache, pode guardar em g / session.
-    try:
-        from src import database as db
-        from src.models import UserPermissao
-        uid = getattr(current_user, "id", None)
-        if not uid:
-            return False
-        row = (
-            db.session.query(UserPermissao.id)
-            .filter(
-                UserPermissao.user_id == uid,
-                UserPermissao.codigo == codigo,
-                UserPermissao.ativo.is_(True),
-            )
-            .first()
-        )
-        return row is not None
-    except Exception:
-        # se der qualquer erro, por segurança, nega (exceto super acima)
-        return False
+    return is_super()
 
 
 def _rule_true() -> bool:
@@ -141,7 +103,7 @@ def _is_visible(node: Dict[str, Any]) -> bool:
 
     # permissão (se houver)
     perm = node.get("perm")
-    if perm and not _has_perm(perm):
+    if perm and not has_perm(perm):
         return False
 
     # grupo: precisa ter pelo menos 1 filho visível
@@ -154,6 +116,10 @@ def _is_visible(node: Dict[str, Any]) -> bool:
     return True
 
 
+def pode_ver_ferias_super() -> bool:
+    return is_super_or_perm("NAV_FERIAS_SUPER")
+
+
 def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     Retorna a árvore de menus (itens e grupos).
@@ -162,6 +128,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
       mas mantendo algumas regras antigas onde faz sentido (funcao/obm/pg_id).
     """
     is_super = _is_super()
+    is_super_or_perm = pode_ver_ferias_super()
     funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
 
     # ===== Regras antigas equivalentes =====
@@ -445,7 +412,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
             "Férias",
             icon="fas fa-tools",
             perm="NAV_FERIAS",
-            rule=(lambda: is_super or _rule_funcao_in([6])),
+            rule=(lambda: pode_ver_ferias_super() or _rule_funcao_in([6])),
             children=[_mk_item("Férias", "exibir_ferias",
                                perm="NAV_FERIAS_SUPER")],
         )

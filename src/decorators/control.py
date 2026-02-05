@@ -9,13 +9,43 @@ import os
 
 from flask import flash, redirect, url_for, request, abort, current_app
 from flask_login import current_user
-from src.models import Militar, MilitarObmFuncao, ObmGestao, User, UserObmAcesso
+from src.models import Militar, MilitarObmFuncao, ObmGestao, User, UserObmAcesso, UserPermissao
 from src import database
 from sqlalchemy.event import listens_for
 from sqlalchemy import and_
 from src.security.perms import has_perm
+from src.authz import is_super
 
 ADMIN_FUNCOES = {"DIRETOR", "CHEFE", "SUPER USER", "DIRETOR DRH", "CHEFE DRH"}
+
+
+def has_perm(codigo: str) -> bool:
+    codigo = (codigo or "").strip().upper()
+    if not codigo:
+        return False
+
+    # super "real" sempre vence
+    if getattr(current_user, "funcao_user_id", None) == 6:
+        return True
+
+    # override tipo super via painel
+    if codigo != "SYS_SUPER":
+        # se ele tiver SYS_SUPER, ele vira super pra tudo
+        if _has_perm_db("SYS_SUPER"):
+            return True
+
+    return _has_perm_db(codigo)
+
+
+def _has_perm_db(codigo: str) -> bool:
+    uid = getattr(current_user, "id", None)
+    if not uid:
+        return False
+    row = (database.session.query(UserPermissao.ativo)
+           .filter(UserPermissao.user_id == uid,
+                   UserPermissao.codigo == codigo)
+           .scalar())
+    return bool(row)
 
 
 def _upper(x) -> str:
@@ -121,11 +151,7 @@ def user_obm_ids() -> set[int]:
 
 
 def _is_super_user() -> bool:
-    # tenta chamar o novo se existir; senão cai no fallback por texto
-    fn = globals().get("is_super_user")
-    if callable(fn):
-        return bool(fn())
-    return any("SUPER" in oc for oc in _get_user_ocupacoes())
+    return is_super()
 
 
 def exigir_obm(*obm_ids: int):

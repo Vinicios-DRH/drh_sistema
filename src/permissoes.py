@@ -120,4 +120,5 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_ADMIN", "nome": "Menu: Administração (grupo)"},
     {"codigo": "NAV_ADMIN_PERMISSOES", "nome": "Menu: Administração > Permissões"},
     {"codigo": "NAV_ADMIN_OBM_GESTAO", "nome": "Menu: Administração > OBM Gestão"},
+    {"codigo": "SYS_SUPER", "nome": "Sistema: Acesso tipo SUPER (override)"},
 ]
