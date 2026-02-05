@@ -2582,7 +2582,7 @@ def ferias_dados():
 
 @app.route('/ferias', methods=['GET'])
 @login_required
-@checar_ocupacao('SUPER USER')
+@checar_ocupacao('SUPER USER', 'DRH')
 def exibir_ferias():
     ano_vigente = 2026
     # se quiser depois, a gente busca do banco automaticamente
