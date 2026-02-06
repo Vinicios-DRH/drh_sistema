@@ -58,7 +58,7 @@ from collections import defaultdict
 from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
-from src.authz import is_super_or_perm
+from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -3023,10 +3023,13 @@ def now_manaus_naive() -> datetime:
 @login_required
 def update_paf():
     hoje = datetime.now().day
-    is_super = (getattr(current_user, 'funcao_user_id', None) == 6)
 
-    if (hoje < 10 or hoje > 20) and getattr(current_user, 'funcao_user_id', None) != 6:
+    if (hoje < 10 or hoje > 20) and not can_ferias_bypass_janela():
         return jsonify({"message": "Alterações só são permitidas de 10 a 20 de cada mês."}), 403
+
+    # permissão de ação (importante!)
+    if not (is_super() or is_super_or_perm("FERIAS_UPDATE") or is_super_or_perm("FERIAS_SUPER")):
+        return jsonify({"error": "Sem permissão para atualizar PAF."}), 403
 
     data = request.form
     militar_id = int(data.get('militar_id') or 0)
@@ -3035,7 +3038,8 @@ def update_paf():
     if not militar_id:
         return jsonify({"error": "militar_id inválido"}), 400
 
-    if not is_super:
+    # ✅ escopo OBM: só exige para quem NÃO é super real e NÃO tem super de férias
+    if not (is_super() or is_super_or_perm("FERIAS_SUPER")):
         permitidas = obms_permitidas_para_usuario(current_user)
         if not militar_esta_no_escopo(militar_id, permitidas):
             return jsonify({"error": "Sem permissão para alterar PAF deste militar."}), 403

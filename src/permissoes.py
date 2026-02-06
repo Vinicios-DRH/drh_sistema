@@ -115,6 +115,11 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_FERIAS", "nome": "Menu: Férias (grupo)"},
     {"codigo": "NAV_FERIAS_CHEFIA", "nome": "Menu: Férias > (Chefia)"},
     {"codigo": "NAV_FERIAS_SUPER", "nome": "Menu: Férias > (Super)"},
+    {"codigo": "FERIAS_SUPER",
+        "nome": "Férias: Super (bypass regras e ações especiais)"},
+    {"codigo": "FERIAS_UPDATE", "nome": "Férias: Atualizar PAF"},
+    {"codigo": "FERIAS_EDITAR_FORA_JANELA",
+        "nome": "Férias: Editar fora do período 10–20"},
 
     # ===== Admin (opcional) =====
     {"codigo": "NAV_ADMIN", "nome": "Menu: Administração (grupo)"},

@@ -40,3 +40,7 @@ def is_super() -> bool:
 def is_super_or_perm(codigo: str) -> bool:
     # super real sempre passa
     return is_super() or has_perm(codigo)
+
+
+def can_ferias_bypass_janela() -> bool:
+    return is_super() or has_perm("FERIAS_EDITAR_FORA_JANELA") or has_perm("FERIAS_SUPER")
