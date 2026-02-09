@@ -7,7 +7,7 @@ from typing import Iterable, Set
 from datetime import date, datetime, time as dtime
 import os
 
-from flask import flash, redirect, url_for, request, abort, current_app
+from flask import flash, redirect, url_for, request, abort, current_app, session
 from flask_login import current_user
 from src.models import Militar, MilitarObmFuncao, ObmGestao, User, UserObmAcesso, UserPermissao
 from src import database
@@ -17,6 +17,26 @@ from src.security.perms import has_perm
 from src.authz import is_super
 
 ADMIN_FUNCOES = {"DIRETOR", "CHEFE", "SUPER USER", "DIRETOR DRH", "CHEFE DRH"}
+
+
+def _get_pg_id_user():
+    # 1) tenta sessão
+    pg = session.get("pg_id")
+    if pg is not None:
+        try:
+            return int(pg)
+        except Exception:
+            pass
+
+    # 2) tenta via militar_id do user
+    mid = getattr(current_user, "militar_id", None)
+    if mid:
+        pg_db = (database.session.query(Militar.posto_grad_id)
+                 .filter(Militar.id == mid)
+                 .scalar())
+        return int(pg_db) if pg_db else None
+
+    return None
 
 
 def has_perm(codigo: str) -> bool:

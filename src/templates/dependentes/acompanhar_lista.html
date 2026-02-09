@@ -159,7 +159,9 @@
 <div class="container page-wrap">
 
     {# ===== Banner flutuante (sempre acima da navbar) ===== #}
+    {% set p = (pag.items[0] if pag and pag.items and (pag.items|length > 0) else None) %}
     {% set has_p = (p is not none) %}
+    {% set arquivos = arquivos if arquivos is defined else [] %}
     {% if not has_p %}
     <div class="alert alert-info alert-float alert-dismissible fade show" role="alert">
         Você ainda não enviou nenhum protocolo de inclusão de dependentes.

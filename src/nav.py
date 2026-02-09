@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 from flask import session, url_for
 from flask_login import current_user
 from src.authz import has_perm, is_super, is_super_or_perm
+from src.decorators.control import _get_pg_id_user
 
 
 def _safe_url(endpoint: str, **values) -> str:
@@ -36,20 +37,16 @@ def _rule_user_id_is(uid: int) -> bool:
 
 
 def _rule_paf_solicitante() -> bool:
-    """
-    Regra original:
-      - funcao_user_id == 12
-      - pg_id em [1..17] (teu PG_SUP)
-    """
     if not getattr(current_user, "is_authenticated", False):
         return False
+
     funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
     if funcao_id != 12:
         return False
 
     PG_SUP = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-    pg_id = session.get("pg_id")
-    return int(pg_id) in PG_SUP if pg_id is not None else False
+    pg_id = _get_pg_id_user()
+    return (pg_id in PG_SUP) if pg_id is not None else False
 
 
 def _rule_alunos_total() -> bool:
@@ -433,6 +430,10 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
             ],
         )
     )
+
+    print("DEBUG funcao_user_id:", getattr(
+        current_user, "funcao_user_id", None))
+    print("DEBUG session pg_id:", session.get("pg_id"))
 
     # Filtra por visibilidade/permissão
     visible = [n for n in nav if _is_visible(n)]
