@@ -5,8 +5,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from flask import session, url_for
 from flask_login import current_user
-from src.authz import has_perm, is_super, is_super_or_perm
-from src.decorators.control import _get_pg_id_user
+from src.decorators.control import has_perm, _get_pg_id_user
+from src.authz import is_super, is_super_or_perm
 
 
 def _safe_url(endpoint: str, **values) -> str:
@@ -204,7 +204,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
             "Inclusão de Dependentes",
             icon="fas fa-user-friends",
             perm="NAV_DEP_SOLICITANTE",
-            rule=(lambda: is_super or pode_paf),
+            rule=_rule_true,  # regra específica em cada item, pois pode ser diferente
             children=[
                 _mk_item("Solicitar Inclusão", "dep.requerimento_form",
                          perm="NAV_DEP_REQUERER"),
