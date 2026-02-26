@@ -6,7 +6,7 @@ from src import database, login_manager
 from flask_login import UserMixin
 from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
-from sqlalchemy import func, CheckConstraint, text
+from sqlalchemy import func, CheckConstraint, text, Index
 from sqlalchemy.dialects.postgresql import JSONB
 
 from zoneinfo import ZoneInfo
@@ -283,13 +283,16 @@ class User(database.Model, UserMixin):
     id = database.Column(database.Integer, primary_key=True)
     nome = database.Column(database.String(100))
     email = database.Column(database.String(50))
-    cpf = database.Column(database.String(50), index=True)  # NÃO usa mais unique aqui
-    cpf_norm = database.Column(database.String(11), index=True, unique=True)  # CPF só números, único
+    # NÃO usa mais unique aqui
+    cpf = database.Column(database.String(50), index=True)
+    cpf_norm = database.Column(database.String(
+        11), index=True, unique=True)  # CPF só números, único
 
-    tipo_perfil = database.Column(database.String(20), default="MILITAR")  
+    tipo_perfil = database.Column(database.String(20), default="MILITAR")
     # "MILITAR" | "ADMIN"
 
-    militar_id = database.Column(database.Integer, database.ForeignKey("militar.id"), index=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey("militar.id"), index=True)
 
     senha = database.Column(database.String(500))
     funcao_user_id = database.Column(
@@ -1499,4 +1502,50 @@ class ObmGestao(database.Model):
     __table_args__ = (
         database.UniqueConstraint(
             "obm_gestora_id", "obm_gerida_id", name="uq_obm_gestao"),
+    )
+
+
+class TafAvaliacao(database.Model):
+    __tablename__ = "taf_avaliacao"
+
+    id = database.Column(database.Integer, primary_key=True)
+
+    # quem foi avaliado
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        "militar.id"), nullable=False, index=True)
+
+    # quem lançou (user do avaliador no sistema)
+    avaliador_user_id = database.Column(database.Integer, database.ForeignKey(
+        "user.id"), nullable=False, index=True)
+
+    # atividade
+    atividade = database.Column(database.String(30), nullable=False, index=True)
+    # valores lançados
+    idade = database.Column(database.Integer, nullable=False)
+    valor = database.Column(database.Numeric(10, 2), nullable=False)  # metros/rep/segundos
+
+    # “cabeçalho” do avaliador no momento (pra auditoria)
+    # ex: "Avaliador Barra Estática"
+    avaliador_label = database.Column(database.String(80))
+    substituto_nome = database.Column(database.String(100))           # se houve
+    observacoes = database.Column(database.Text)
+
+    # resultado calculado (o app pode mandar, e/ou você recalcula depois)
+    resultado_ok = database.Column(database.Boolean, nullable=False, default=False)
+    # ex: '>= 60"' ou '2400'
+    referencia = database.Column(database.String(50))
+    # vem da planilha (G:P)
+    score_linha = database.Column(database.String(50))
+
+    # Data/hora de Manaus (naive)
+    criado_em = database.Column(database.DateTime, nullable=False,
+                          default=now_manaus_naive, index=True)
+
+    # relacionamentos opcionais (se quiser)
+    militar = database.relationship("Militar", backref="taf_avaliacoes")
+    avaliador_user = database.relationship("User", foreign_keys=[avaliador_user_id])
+
+    __table_args__ = (
+        Index("ix_taf_avaliacao_militar_data", "militar_id", "criado_em"),
+        Index("ix_taf_avaliacao_atividade_data", "atividade", "criado_em"),
     )
