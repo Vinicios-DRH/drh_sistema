@@ -20,6 +20,7 @@ ATIV_PERMS = {
     "flexao": "APP_TAF_FLEXAO",
     "abdominal": "APP_TAF_ABDOMINAL",
     "barra_dinamica": "APP_TAF_BARRA_DINAMICA",
+    "barra_estatica": "APP_TAF_BARRA_ESTATICA",
     "natacao": "APP_TAF_NATACAO",
 }
 
