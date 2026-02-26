@@ -22,6 +22,16 @@ ATIV_PERMS = {
     "natacao": "APP_TAF_NATACAO",
 }
 
+def verify_password(stored: str, provided: str) -> bool:
+        if not stored:
+            return False
+
+        # 1) tenta werkzeug
+        try:
+            return check_password_hash(stored, provided)
+        except ValueError:
+            # 2) fallback: texto puro (MVP)
+            return stored == provided
 
 @bp_api_taf.post("/login")
 def login():
@@ -46,7 +56,8 @@ def login():
         return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
 
     # valida senha hash (ajusta pro teu padrão real)
-    if not user.senha or not check_password_hash(user.senha, senha):
+
+    if not verify_password(user.senha, senha):
         return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
 
     # precisa permissão guarda-chuva
