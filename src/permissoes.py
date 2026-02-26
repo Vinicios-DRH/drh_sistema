@@ -133,5 +133,6 @@ PERMISSOES_CATALOGO = [
     {"codigo": "APP_TAF_FLEXAO", "nome": "App TAF: Avaliar Flexão (Apoio)"},
     {"codigo": "APP_TAF_ABDOMINAL", "nome": "App TAF: Avaliar Abdominal"},
     {"codigo": "APP_TAF_BARRA_DINAMICA", "nome": "App TAF: Avaliar Barra dinâmica"},
+    {"codigo": "APP_TAF_BARRA_ESTATICA", "nome": "App TAF: Avaliar Barra estática"},
     {"codigo": "APP_TAF_NATACAO", "nome": "App TAF: Avaliar Natação 50m"},
 ]
