@@ -141,6 +141,8 @@ from src.routes_dependentes import bp_dep
 from src.route_ferias import bp_ferias
 from src.admin_permissoes import bp_admin_permissoes
 from src.admin_obm_gestao import bp_admin_obm_gestao
+from src.api_taf import bp_api_taf
+app.register_blueprint(bp_api_taf)
 app.register_blueprint(bp_acumulo)
 app.register_blueprint(bp_paf)
 app.register_blueprint(bp_ferias)

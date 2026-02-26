@@ -1,4 +1,4 @@
-# Cole/mescle no teu PERMISSOES_CATALOGO (src/permissoes.py)
+# PERMISSOES_CATALOGO (src/permissoes.py)
 
 PERMISSOES_CATALOGO = [
     # ===== NAV (geral) =====
@@ -126,4 +126,12 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_ADMIN_PERMISSOES", "nome": "Menu: Administração > Permissões"},
     {"codigo": "NAV_ADMIN_OBM_GESTAO", "nome": "Menu: Administração > OBM Gestão"},
     {"codigo": "SYS_SUPER", "nome": "Sistema: Acesso tipo SUPER (override)"},
+
+    # ===== APP TAF =====
+    {"codigo": "APP_TAF_LOGIN", "nome": "App TAF: Pode logar no aplicativo"},
+    {"codigo": "APP_TAF_CORRIDA", "nome": "App TAF: Avaliar Corrida 12 min"},
+    {"codigo": "APP_TAF_FLEXAO", "nome": "App TAF: Avaliar Flexão (Apoio)"},
+    {"codigo": "APP_TAF_ABDOMINAL", "nome": "App TAF: Avaliar Abdominal"},
+    {"codigo": "APP_TAF_BARRA_DINAMICA", "nome": "App TAF: Avaliar Barra dinâmica"},
+    {"codigo": "APP_TAF_NATACAO", "nome": "App TAF: Avaliar Natação 50m"},
 ]
