@@ -39,6 +39,15 @@ def calc_age(birth_date):
     return years
 
 
+def norm_sexo(s):
+    s = (s or "").strip().lower()
+    if s.startswith("m"):
+        return "M"
+    if s.startswith("f"):
+        return "F"
+    return None
+
+
 @bp_api_taf.post("/login")
 def login():
     data = request.get_json(silent=True) or {}
@@ -111,10 +120,6 @@ def buscar_militares():
 
     like = f"%{q}%"
 
-    # JOINs:
-    # - posto/grad
-    # - quadro
-    # - obm atual via MilitarObmFuncao com data_fim IS NULL
     query = (
         db.session.query(Militar, PostoGrad, Quadro, Obm)
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
@@ -147,6 +152,7 @@ def buscar_militares():
             "nome_guerra": m.nome_guerra,
             "matricula": m.matricula,
             "cpf": m.cpf,
+            "sexo": norm_sexo(m.sexo),  # ✅ NOVO
             "idade": calc_age(m.data_nascimento),
             "posto_grad": (pg.sigla if pg else None),
             "quadro": (qd.quadro if qd else None),
@@ -186,6 +192,7 @@ def militar_detalhe(militar_id):
             "nome_guerra": m.nome_guerra,
             "matricula": m.matricula,
             "cpf": m.cpf,
+            "sexo": norm_sexo(m.sexo),  # ✅ NOVO
             "idade": calc_age(m.data_nascimento),
             "posto_grad": (pg.sigla if pg else None),
             "quadro": (qd.quadro if qd else None),
