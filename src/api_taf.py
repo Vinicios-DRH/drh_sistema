@@ -369,6 +369,9 @@ def criar_avaliacao():
     avaliador_label = (data.get("avaliador_label") or "").strip() or None
     substituto_nome = (data.get("substituto_nome") or "").strip() or None
     observacoes = (data.get("observacoes") or "").strip() or None
+    referencia = (data.get("referencia") or None)
+    score_linha = (data.get("score_linha") or None)
+    resultado_ok = data.get("resultado_ok")
 
     if not militar_id or not modalidade or not sexo or idade is None or not atividade or valor is None:
         return jsonify({"ok": False, "error": "Campos obrigatórios: militar_id, modalidade, sexo, idade, atividade, valor."}), 400
@@ -392,6 +395,18 @@ def criar_avaliacao():
 
     if not _validate_activity_allowed_by_table(sexo, modalidade, atividade):
         return jsonify({"ok": False, "error": f"Atividade '{atividade}' não disponível para sexo={sexo} modalidade={modalidade}."}), 400
+
+    # resultado_ok opcional: se vier do app, respeita; se não vier, deixa False
+    if resultado_ok is None:
+        resultado_ok = False
+    else:
+        resultado_ok = bool(resultado_ok)
+
+    if referencia is not None:
+        referencia = str(referencia).strip() or None
+
+    if score_linha is not None:
+        score_linha = str(score_linha).strip() or None
 
     # permissão por atividade
     ok_perm, perm_needed = _require_activity_perm(user_id, atividade)
@@ -436,6 +451,9 @@ def criar_avaliacao():
         avaliador_label=avaliador_label,
         substituto_nome=substituto_nome,
         observacoes=observacoes,
+        resultado_ok=resultado_ok,
+        referencia=referencia,
+        score_linha=score_linha,
     )
 
     db.session.add(row)

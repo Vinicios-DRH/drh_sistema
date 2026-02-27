@@ -99,6 +99,17 @@ def agg_valores_sql(atividade: str):
     return literal_column(sql)
 
 
+def agg_scores_sql(atividade: str):
+    sql = f"""
+    array_to_string(
+        array_agg((taf_avaliacao.score_linha) ORDER BY taf_avaliacao.criado_em)
+        FILTER (WHERE taf_avaliacao.atividade = '{atividade}'),
+        ' | '
+    )
+    """
+    return literal_column(sql)
+
+
 def _status_from_any_fail(qtd: int, any_fail: bool) -> str:
     if qtd <= 0:
         return "SEM_NOTA"
@@ -155,7 +166,8 @@ def painel():
     ]
 
     for ativ_id, _label in ALL_ATIVS:
-        base_cols.append(agg_valores_sql(ativ_id).label(ativ_id))
+        base_cols.append(agg_valores_sql(ativ_id).label(f"{ativ_id}__valor"))
+        base_cols.append(agg_scores_sql(ativ_id).label(f"{ativ_id}__nota"))
 
     base = (
         db.session.query(*base_cols)
@@ -220,7 +232,8 @@ def painel():
         }
 
         for ativ_id, _label in ALL_ATIVS:
-            item[ativ_id] = getattr(r, ativ_id, None)
+            item[f"{ativ_id}__valor"] = getattr(r, f"{ativ_id}__valor", None)
+            item[f"{ativ_id}__nota"] = getattr(r, f"{ativ_id}__nota", None)
 
         out.append(item)
 

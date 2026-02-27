@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}TAF — Histórico do Militar{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0">Histórico do Militar</h3>
+            <small class="text-muted">
+                Auditoria completa (todos os lançamentos)
+            </small>
+        </div>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            <a class="btn btn-outline-secondary" href="{{ url_for('taf_admin.painel') }}">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-lg-8">
+                    <div class="fw-semibold fs-5">{{ militar.nome_completo }}</div>
+                    <div class="text-muted">
+                        {{ posto or "-" }} • {{ quadro or "-" }}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4 text-lg-end">
+                    {% if status == "APTO" %}
+                    <span class="badge bg-success fs-6 px-3 py-2">APTO</span>
+                    {% elif status == "INAPTO" %}
+                    <span class="badge bg-danger fs-6 px-3 py-2">INAPTO</span>
+                    {% else %}
+                    <span class="badge bg-secondary fs-6 px-3 py-2">SEM NOTA</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="fw-semibold mb-2">Lançamentos</div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-nowrap">Data/Hora</th>
+                            <th>Atividade</th>
+                            <th class="text-center">Modalidade</th>
+                            <th class="text-center">Sexo</th>
+                            <th class="text-center">Idade</th>
+                            <th class="text-center">Valor</th>
+                            <th class="text-center">Resultado</th>
+                            <th>Avaliador</th>
+                            <th>Obs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in itens %}
+                        <tr>
+                            <td class="text-nowrap">
+                                {{ i.criado_em.strftime("%d/%m/%Y %H:%M:%S") if i.criado_em else "-" }}
+                            </td>
+                            <td class="fw-semibold text-nowrap">{{ i.atividade_label or i.atividade }}</td>
+                            <td class="text-center">{{ i.modalidade or "-" }}</td>
+                            <td class="text-center">{{ i.sexo or "-" }}</td>
+                            <td class="text-center">{{ i.idade }}</td>
+                            <td class="text-center">{{ i.valor }}</td>
+                            <td class="text-center">
+                                {% if i.resultado_ok %}
+                                <span class="badge bg-success">OK</span>
+                                {% else %}
+                                <span class="badge bg-danger">Fora</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ i.avaliador_nome }}</div>
+                                <div class="text-muted small">{{ i.avaliador_label or "" }}</div>
+                                {% if i.substituto_nome %}
+                                <div class="text-warning small">
+                                    Substituto: {{ i.substituto_nome }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td style="max-width: 360px;">
+                                {% if i.observacoes %}
+                                <span class="text-muted">{{ i.observacoes }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
