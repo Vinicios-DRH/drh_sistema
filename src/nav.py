@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 from flask import session, url_for
 from flask_login import current_user
 from src.decorators.control import has_perm, _get_pg_id_user
-from src.authz import is_super, is_super_or_perm
+from src.authz import can_see_taf_panel, is_super, is_super_or_perm
 
 
 def _safe_url(endpoint: str, **values) -> str:
@@ -178,6 +178,24 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                     "dep.drh_lista_processos",
                     perm="NAV_VALIDACOES_DEP_PROCESSOS",
                     rule=(lambda: is_super or pode_recebimento),
+                ),
+            ],
+        )
+    )
+
+    nav.append(
+        _mk_group(
+            "TAF",
+            icon="fas fa-stopwatch",
+            perm="NAV_TAF",
+            rule=(lambda: is_super or can_see_taf_panel()),
+            children=[
+                _mk_item(
+                    "Painel de Avaliações",
+                    "taf_admin.painel",
+                    icon="fas fa-clipboard-check",
+                    perm="NAV_TAF_PAINEL",
+                    rule=(lambda: is_super or can_see_taf_panel()),
                 ),
             ],
         )

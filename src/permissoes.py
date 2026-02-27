@@ -135,4 +135,10 @@ PERMISSOES_CATALOGO = [
     {"codigo": "APP_TAF_BARRA_DINAMICA", "nome": "App TAF: Avaliar Barra dinâmica"},
     {"codigo": "APP_TAF_BARRA_ESTATICA", "nome": "App TAF: Avaliar Barra estática"},
     {"codigo": "APP_TAF_NATACAO", "nome": "App TAF: Avaliar Natação 50m"},
+
+    # ===== PAINEL TAF (WEB) =====
+    {"codigo": "NAV_TAF", "nome": "Menu: TAF (grupo)"},
+    {"codigo": "NAV_TAF_PAINEL", "nome": "Menu: TAF > Painel de Avaliações"},
+    {"codigo": "TAF_PAINEL_READ", "nome": "TAF Painel: Consultar avaliações"},
+    {"codigo": "TAF_PAINEL_EXPORT", "nome": "TAF Painel: Exportar relatórios"},
 ]

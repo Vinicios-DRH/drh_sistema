@@ -1,0 +1,125 @@
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+            <div class="fw-semibold">Resultados</div>
+            <div class="text-muted small">
+                Clique em “Detalhes” para auditoria completa por dia.
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table id="tafTable" class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Militar</th>
+                        <th>PG</th>
+                        <th>Quadro</th>
+                        <th>OBM</th>
+
+                        <th class="text-center">Corrida</th>
+                        <th class="text-center">Flexão</th>
+                        <th class="text-center">Abd</th>
+                        <th class="text-center">Barra Din</th>
+                        <th class="text-center">Barra Est</th>
+                        <th class="text-center">Natação</th>
+
+                        <th class="text-center">Menor</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td class="text-nowrap">
+                            {{ r.primeira_data }} → {{ r.ultima_data }}
+                        </td>
+
+                        <td class="fw-semibold">
+                            {{ r.nome }}
+                            <div class="text-muted small">
+                                Lançamentos: {{ r.qtd_lancamentos }}
+                            </div>
+                        </td>
+
+                        <td class="text-nowrap">{{ r.posto or "-" }}</td>
+                        <td class="text-nowrap">{{ r.quadro or "-" }}</td>
+                        <td class="text-nowrap">{{ r.obm or "-" }}</td>
+
+                        {% macro nota_cell(v) -%}
+                        {% if v %}
+                        <span class="badge bg-secondary">{{ v }}</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                        {%- endmacro %}
+
+                        <td class="text-center">{{ nota_cell(r.corrida) }}</td>
+                        <td class="text-center">{{ nota_cell(r.flexao) }}</td>
+                        <td class="text-center">{{ nota_cell(r.abdominal) }}</td>
+                        <td class="text-center">{{ nota_cell(r.barra_dinamica) }}</td>
+                        <td class="text-center">{{ nota_cell(r.barra_estatica) }}</td>
+                        <td class="text-center">{{ nota_cell(r.natacao) }}</td>
+
+                        <td class="text-center">
+                            {% if r.min_score is not none %}
+                            {% if r.min_score < 6 %} <span class="badge bg-danger">{{ "%.1f"|format(r.min_score)
+                                }}</span>
+                                {% else %}
+                                <span class="badge bg-success">{{ "%.1f"|format(r.min_score) }}</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            {% if r.status == "APTO" %}
+                            <span class="badge bg-success">APTO</span>
+                            {% elif r.status == "INAPTO" %}
+                            <span class="badge bg-danger">INAPTO</span>
+                            {% else %}
+                            <span class="badge bg-secondary">SEM NOTA</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <a class="btn btn-sm btn-outline-primary"
+                                href="{{ url_for('taf_admin.historico_militar', militar_id=r.militar_id) }}">
+                                <i class="fas fa-magnifying-glass me-1"></i> Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+        <!-- Paginação simples -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted small">
+                Página {{ page }} • exibindo {{ rows|length }} de ~{{ total }}
+            </div>
+
+            <div class="d-flex gap-2">
+                {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-secondary"
+                    href="{{ url_for('taf_admin.painel', page=page-1, per_page=per_page, q=q, status=status, obm=obm, dt_ini=dt_ini, dt_fim=dt_fim) }}">
+                    <i class="fas fa-chevron-left me-1"></i> Anterior
+                </a>
+                {% endif %}
+
+                {% if rows|length == per_page %}
+                <a class="btn btn-sm btn-outline-secondary"
+                    href="{{ url_for('taf_admin.painel', page=page+1, per_page=per_page, q=q, status=status, obm=obm, dt_ini=dt_ini, dt_fim=dt_fim) }}">
+                    Próxima <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>

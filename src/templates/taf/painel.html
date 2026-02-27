@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Painel TAF — Avaliações{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0">Painel TAF — Avaliações</h3>
+            <small class="text-muted">
+                Dashboard de consultas e auditoria do TAF (CBMAM)
+            </small>
+        </div>
+
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            {% if can_export %}
+            <a class="btn btn-outline-secondary"
+                href="{{ url_for('taf_admin.export_csv', q=q, status=status, obm=obm, dt_ini=dt_ini, dt_fim=dt_fim) }}">
+                <i class="fas fa-file-csv me-1"></i> Exportar CSV
+            </a>
+            {% endif %}
+            <a class="btn btn-primary" href="{{ url_for('taf_admin.painel') }}">
+                <i class="fas fa-rotate-right me-1"></i> Atualizar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    {% include "taf/_partials/_filters.html" %}
+
+    <!-- Cards -->
+    {% include "taf/_partials/_cards.html" %}
+
+    <!-- Table -->
+    {% include "taf/_partials/_table.html" %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% include "taf/_partials/_scripts.html" %}
+{% endblock %}

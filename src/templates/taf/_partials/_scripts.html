@@ -1,0 +1,37 @@
+<script>
+    (function () {
+        // só inicializa DataTable se estiver disponível
+        const table = document.getElementById("tafTable");
+        if (!table) return;
+
+        // jQuery/DataTables são opcionais (se teu base.html já tiver, ativa)
+        if (window.jQuery && jQuery.fn && jQuery.fn.DataTable) {
+            jQuery(function () {
+                jQuery("#tafTable").DataTable({
+                    pageLength: 25,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[0, "desc"]],
+                    language: {
+                        url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
+                    }
+                });
+            });
+        }
+    })();
+</script>
+
+<style>
+    /* Ajustes “dashboard” */
+    .card {
+        border-radius: 14px;
+    }
+
+    .badge {
+        border-radius: 999px;
+    }
+
+    .table td,
+    .table th {
+        vertical-align: middle;
+    }
+</style>

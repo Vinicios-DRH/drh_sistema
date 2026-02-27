@@ -44,3 +44,25 @@ def is_super_or_perm(codigo: str) -> bool:
 
 def can_ferias_bypass_janela() -> bool:
     return is_super() or has_perm("FERIAS_EDITAR_FORA_JANELA") or has_perm("FERIAS_SUPER")
+
+
+OBM_BM3_ID = 10
+FUNCOES_CHEFE_DIRETOR = {1, 2}  # DIRETOR=1, CHEFE=2
+
+
+def can_see_taf_panel() -> bool:
+    # SUPER sempre
+    if is_super():
+        return True
+
+    # Liberação explícita via painel admin (permissão)
+    if has_perm("TAF_PAINEL_READ") or has_perm("NAV_TAF_PAINEL") or has_perm("NAV_TAF"):
+        return True
+
+    # Padrão BM-3: CHEFE/DIRETOR lotados na OBM 10
+    funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
+    obm1 = int(getattr(current_user, "obm_id_1", 0) or 0)
+    if funcao_id in FUNCOES_CHEFE_DIRETOR and obm1 == OBM_BM3_ID:
+        return True
+
+    return False

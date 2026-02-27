@@ -1506,46 +1506,113 @@ class ObmGestao(database.Model):
 
 
 class TafAvaliacao(database.Model):
+    """
+    NOVO MODELO (por sessão):
+    - 1 linha = 1 sessão de TAF de um militar (NORMAL ou ESPECIAL)
+    - Colunas de atividades são NULL quando não aplicáveis/realizadas
+    - Não guarda "nota/score": só valores brutos (metros/rep/segundos)
+    """
     __tablename__ = "taf_avaliacao"
 
     id = database.Column(database.Integer, primary_key=True)
 
     # quem foi avaliado
-    militar_id = database.Column(database.Integer, database.ForeignKey(
-        "militar.id"), nullable=False, index=True)
+    militar_id = database.Column(
+        database.Integer,
+        database.ForeignKey("militar.id"),
+        nullable=False,
+        index=True
+    )
 
     # quem lançou (user do avaliador no sistema)
-    avaliador_user_id = database.Column(database.Integer, database.ForeignKey(
-        "user.id"), nullable=False, index=True)
+    avaliador_user_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id"),
+        nullable=False,
+        index=True
+    )
 
-    # atividade
-    atividade = database.Column(database.String(30), nullable=False, index=True)
-    # valores lançados
+    # contexto da sessão
+    # NORMAL | ESPECIAL
+    modalidade = database.Column(
+        database.String(10), nullable=False, index=True)
+
+    # sexo do militar no momento do registro: M | F
+    # (você pode puxar do Militar.sexo automaticamente e gravar aqui por auditoria)
+    sexo = database.Column(database.String(1), nullable=False, index=True)
+
+    # idade usada na tabela/regra (pode ser calculada pela data_nascimento, mas salva por auditoria)
     idade = database.Column(database.Integer, nullable=False)
-    valor = database.Column(database.Numeric(10, 2), nullable=False)  # metros/rep/segundos
 
-    # “cabeçalho” do avaliador no momento (pra auditoria)
-    # ex: "Avaliador Barra Estática"
+    # auditoria
     avaliador_label = database.Column(database.String(80))
-    substituto_nome = database.Column(database.String(100))           # se houve
+    substituto_nome = database.Column(database.String(100))
     observacoes = database.Column(database.Text)
 
-    # resultado calculado (o app pode mandar, e/ou você recalcula depois)
-    resultado_ok = database.Column(database.Boolean, nullable=False, default=False)
-    # ex: '>= 60"' ou '2400'
-    referencia = database.Column(database.String(50))
-    # vem da planilha (G:P)
-    score_linha = database.Column(database.String(50))
+    criado_em = database.Column(
+        database.DateTime,
+        nullable=False,
+        default=now_manaus_naive,
+        index=True
+    )
 
-    # Data/hora de Manaus (naive)
-    criado_em = database.Column(database.DateTime, nullable=False,
-                          default=now_manaus_naive, index=True)
+    # =========================================================
+    # TAF NORMAL (valores brutos)
+    # =========================================================
+    # Corrida 12 min -> METROS (ex: 3000)
+    corrida_12min_m = database.Column(database.Integer)
 
-    # relacionamentos opcionais (se quiser)
+    # Flexão (apoio) -> REPETIÇÕES
+    flexao_rep = database.Column(database.Integer)
+
+    # Abdominal -> REPETIÇÕES
+    abdominal_rep = database.Column(database.Integer)
+
+    # Barra dinâmica -> REPETIÇÕES (somente masc normal)
+    barra_dinamica_rep = database.Column(database.Integer)
+
+    # Barra estática -> SEGUNDOS (somente masc normal)
+    barra_estatica_s = database.Column(database.Integer)
+
+    # Natação 50m -> SEGUNDOS (normal masc/fem)
+    natacao_50m_s = database.Column(database.Integer)
+
+    # =========================================================
+    # TAF ESPECIAL (valores brutos)
+    # =========================================================
+    # Caminhada 3.000m -> TEMPO EM SEGUNDOS
+    caminhada_3000m_s = database.Column(database.Integer)
+
+    # Caminhada 12 minutos -> METROS
+    caminhada_12min_m = database.Column(database.Integer)
+
+    # Supino 40% do peso -> REPETIÇÕES
+    supino_40pct_rep = database.Column(database.Integer)
+
+    # Prancha sobre o solo -> TEMPO EM SEGUNDOS
+    prancha_s = database.Column(database.Integer)
+
+    # Puxador frontal (Dinâmico) 40% peso -> REPETIÇÕES (masc especial)
+    puxador_frontal_dinamico_rep = database.Column(database.Integer)
+
+    # Puxador frontal (Estático) 40% peso -> TEMPO EM SEGUNDOS (masc/fem especial)
+    puxador_frontal_estatico_s = database.Column(database.Integer)
+
+    # Flutuação (Vertical) -> TEMPO EM SEGUNDOS
+    flutuacao_vertical_s = database.Column(database.Integer)
+
+    # Natação (12 minutos) -> DISTÂNCIA EM METROS
+    natacao_12min_m = database.Column(database.Integer)
+
+    # relacionamentos
     militar = database.relationship("Militar", backref="taf_avaliacoes")
-    avaliador_user = database.relationship("User", foreign_keys=[avaliador_user_id])
+    avaliador_user = database.relationship(
+        "User", foreign_keys=[avaliador_user_id])
 
     __table_args__ = (
+        # busca rápida por militar no tempo
         Index("ix_taf_avaliacao_militar_data", "militar_id", "criado_em"),
-        Index("ix_taf_avaliacao_atividade_data", "atividade", "criado_em"),
+        # filtros do painel
+        Index("ix_taf_avaliacao_modalidade_data", "modalidade", "criado_em"),
+        Index("ix_taf_avaliacao_sexo_data", "sexo", "criado_em"),
     )

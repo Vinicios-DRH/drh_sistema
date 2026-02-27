@@ -1,28 +1,65 @@
 # src/api_taf.py
 from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import jwt
-from sqlalchemy import or_, and_
+
+from sqlalchemy import or_, and_, func
 from src import database as db
-from src.models import TafAvaliacao, User, Militar, PostoGrad, Quadro, Obm, MilitarObmFuncao
+from src.models import (
+    TafAvaliacao, User, Militar, PostoGrad, Quadro, Obm, MilitarObmFuncao
+)
 from src.authz_api import user_has_perm
-from src import bcrypt  # <<< IMPORTANTE: usar o mesmo bcrypt do sistema
+from src import bcrypt
 from src.auth_jwt import require_taf_auth
-from datetime import date
 
 bp_api_taf = Blueprint("api_taf", __name__, url_prefix="/api/taf")
 
 JWT_EXP_MINUTES = 60 * 12
 JWT_ISSUER = "cbmam-drh"
 
+# Permissões por atividade (mantive tua estrutura)
 ATIV_PERMS = {
-    "corrida": "APP_TAF_CORRIDA",
-    "flexao": "APP_TAF_FLEXAO",
-    "abdominal": "APP_TAF_ABDOMINAL",
-    "barra_dinamica": "APP_TAF_BARRA_DINAMICA",
-    "barra_estatica": "APP_TAF_BARRA_ESTATICA",
-    "natacao": "APP_TAF_NATACAO",
+    # NORMAL
+    "corrida_12min_m": "APP_TAF_CORRIDA",
+    "flexao_rep": "APP_TAF_FLEXAO",
+    "abdominal_rep": "APP_TAF_ABDOMINAL",
+    "barra_dinamica_rep": "APP_TAF_BARRA_DINAMICA",
+    "barra_estatica_s": "APP_TAF_BARRA_ESTATICA",
+    "natacao_50m_s": "APP_TAF_NATACAO",
+
+    # ESPECIAL (usei as mais próximas; se quiser granular, criamos novas perms)
+    "caminhada_3000m_s": "APP_TAF_CORRIDA",
+    "caminhada_12min_m": "APP_TAF_CORRIDA",
+    "supino_40pct_rep": "APP_TAF_FLEXAO",
+    "prancha_s": "APP_TAF_ABDOMINAL",
+    "puxador_frontal_dinamico_rep": "APP_TAF_BARRA_DINAMICA",
+    "puxador_frontal_estatico_s": "APP_TAF_BARRA_ESTATICA",
+    "flutuacao_vertical_s": "APP_TAF_NATACAO",
+    "natacao_12min_m": "APP_TAF_NATACAO",
 }
+
+# Campos permitidos no payload por modalidade
+NORMAL_FIELDS = [
+    "corrida_12min_m",
+    "flexao_rep",
+    "abdominal_rep",
+    "barra_dinamica_rep",
+    "barra_estatica_s",
+    "natacao_50m_s",
+]
+
+ESPECIAL_FIELDS = [
+    "caminhada_3000m_s",
+    "caminhada_12min_m",
+    "supino_40pct_rep",
+    "prancha_s",
+    "puxador_frontal_dinamico_rep",
+    "puxador_frontal_estatico_s",
+    "flutuacao_vertical_s",
+    "natacao_12min_m",
+]
+
+ALL_FIELDS = set(NORMAL_FIELDS + ESPECIAL_FIELDS)
 
 
 def _cpf_norm(txt: str) -> str:
@@ -48,6 +85,59 @@ def norm_sexo(s):
     return None
 
 
+def _parse_int(v):
+    if v is None or v == "":
+        return None
+    try:
+        return int(str(v).strip())
+    except Exception:
+        return None
+
+
+def _now_utc():
+    return datetime.utcnow()
+
+
+def _validate_modalidade(modalidade: str):
+    mod = (modalidade or "").strip().upper()
+    if mod not in {"NORMAL", "ESPECIAL"}:
+        return None
+    return mod
+
+
+def _validate_sexo(sexo: str):
+    sx = (sexo or "").strip().upper()
+    if sx not in {"M", "F"}:
+        return None
+    return sx
+
+
+def _validate_required_perm(user_id: int):
+    if not user_has_perm(user_id, "APP_TAF_LOGIN"):
+        return False
+    return True
+
+
+def _validate_activity_perms(user_id: int, payload: dict):
+    """
+    Se o payload tiver um campo de atividade preenchido (não None),
+    exige permissão correspondente (quando mapeada).
+    """
+    for field, perm in ATIV_PERMS.items():
+        if field in payload and payload.get(field) is not None:
+            if perm and not user_has_perm(user_id, perm):
+                return False, field
+    return True, None
+
+
+def _militar_exists(militar_id: int) -> bool:
+    return bool(
+        db.session.query(Militar.id)
+        .filter(Militar.id == militar_id, Militar.inativo.is_(False))
+        .scalar()
+    )
+
+
 @bp_api_taf.post("/login")
 def login():
     data = request.get_json(silent=True) or {}
@@ -58,12 +148,10 @@ def login():
     if not cpf or not senha:
         return jsonify({"ok": False, "error": "CPF e senha são obrigatórios."}), 400
 
-    # Busca pelo cpf_norm (11 dígitos)
     user = db.session.query(User).filter(User.cpf_norm == cpf).first()
     if user is None:
         return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
 
-    # Valida senha com o MESMO bcrypt do teu sistema
     try:
         ok = bcrypt.check_password_hash(user.senha, senha)
     except Exception:
@@ -72,17 +160,15 @@ def login():
     if not ok:
         return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
 
-    # Permissão guarda-chuva
     if not user_has_perm(user.id, "APP_TAF_LOGIN"):
         return jsonify({"ok": False, "error": "Usuário sem permissão para o App TAF."}), 403
 
-    # Atividades liberadas (opcional)
+    # "atividades liberadas" baseado nas permissões que já existem
     allowed = []
-    for ativ_id, perm in ATIV_PERMS.items():
-        if user_has_perm(user.id, perm):
-            allowed.append(ativ_id)
+    for field, perm in ATIV_PERMS.items():
+        if perm and user_has_perm(user.id, perm):
+            allowed.append(field)
 
-    # JWT secret vindo do ENV / config
     secret = current_app.config.get(
         "JWT_SECRET") or current_app.config.get("SECRET_KEY")
     if not secret:
@@ -91,8 +177,8 @@ def login():
     payload = {
         "sub": str(user.id),
         "name": user.nome,
-        "iat": int(datetime.utcnow().timestamp()),
-        "exp": int((datetime.utcnow() + timedelta(minutes=JWT_EXP_MINUTES)).timestamp()),
+        "iat": int(_now_utc().timestamp()),
+        "exp": int((_now_utc() + timedelta(minutes=JWT_EXP_MINUTES)).timestamp()),
         "iss": JWT_ISSUER,
     }
     token = jwt.encode(payload, secret, algorithm="HS256")
@@ -101,7 +187,7 @@ def login():
         "ok": True,
         "token": token,
         "user": {"id": user.id, "nome": user.nome, "cpf": user.cpf},
-        "allowed_activities": allowed,
+        "allowed_fields": allowed,
     }), 200
 
 
@@ -152,7 +238,7 @@ def buscar_militares():
             "nome_guerra": m.nome_guerra,
             "matricula": m.matricula,
             "cpf": m.cpf,
-            "sexo": norm_sexo(m.sexo),  # ✅ NOVO
+            "sexo": norm_sexo(m.sexo),
             "idade": calc_age(m.data_nascimento),
             "posto_grad": (pg.sigla if pg else None),
             "quadro": (qd.quadro if qd else None),
@@ -192,7 +278,7 @@ def militar_detalhe(militar_id):
             "nome_guerra": m.nome_guerra,
             "matricula": m.matricula,
             "cpf": m.cpf,
-            "sexo": norm_sexo(m.sexo),  # ✅ NOVO
+            "sexo": norm_sexo(m.sexo),
             "idade": calc_age(m.data_nascimento),
             "posto_grad": (pg.sigla if pg else None),
             "quadro": (qd.quadro if qd else None),
@@ -203,67 +289,78 @@ def militar_detalhe(militar_id):
 
 @bp_api_taf.post("/avaliacoes")
 @require_taf_auth
-def criar_avaliacao():
+def criar_sessao_taf():
+    """
+    NOVO: cria 1 sessão de TAF (1 linha na tabela).
+    O payload pode conter várias atividades (colunas).
+    """
     data = request.get_json(silent=True) or {}
 
     user_id = int(getattr(request, "taf_user_id", 0) or 0)
     if not user_id:
         return jsonify({"ok": False, "error": "Token inválido."}), 401
 
-    # permissão guarda-chuva
-    if not user_has_perm(user_id, "APP_TAF_LOGIN"):
+    if not _validate_required_perm(user_id):
         return jsonify({"ok": False, "error": "Sem permissão para o App TAF."}), 403
 
     militar_id = int(data.get("militar_id") or 0)
-    atividade = (data.get("atividade") or "").strip().lower()
+    modalidade = _validate_modalidade(data.get("modalidade"))
+    sexo = _validate_sexo(data.get("sexo"))
     idade = data.get("idade")
-    valor = data.get("valor")
 
-    avaliador_label = (data.get("avaliador_label") or "").strip()
-    substituto_nome = (data.get("substituto_nome") or "").strip()
-    observacoes = (data.get("observacoes") or "").strip()
+    avaliador_label = (data.get("avaliador_label") or "").strip() or None
+    substituto_nome = (data.get("substituto_nome") or "").strip() or None
+    observacoes = (data.get("observacoes") or "").strip() or None
 
-    # campos calculados (por enquanto vem do app)
-    resultado_ok = bool(data.get("resultado_ok"))
-    referencia = (data.get("referencia") or None)
-    score_linha = (data.get("score_linha") or None)
+    if not militar_id or not modalidade or not sexo or idade is None:
+        return jsonify({"ok": False, "error": "Campos obrigatórios: militar_id, modalidade(NORMAL/ESPECIAL), sexo(M/F), idade."}), 400
 
-    if not militar_id or not atividade or idade is None or valor is None:
-        return jsonify({"ok": False, "error": "Campos obrigatórios: militar_id, atividade, idade, valor."}), 400
-
-    if atividade not in ATIV_PERMS:
-        return jsonify({"ok": False, "error": "Atividade inválida."}), 400
-
-    # permissão por atividade (opcional mas recomendado)
-    perm_ativ = ATIV_PERMS.get(atividade)
-    if perm_ativ and not user_has_perm(user_id, perm_ativ):
-        return jsonify({"ok": False, "error": "Sem permissão para essa atividade."}), 403
-
-    # valida militar existe e está ativo
-    m = db.session.query(Militar.id).filter(
-        Militar.id == militar_id, Militar.inativo.is_(False)).scalar()
-    if not m:
+    if not _militar_exists(militar_id):
         return jsonify({"ok": False, "error": "Militar não encontrado/inativo."}), 404
 
-    # valida tipos
     try:
         idade = int(idade)
-        valor = float(str(valor).replace(",", "."))
     except Exception:
-        return jsonify({"ok": False, "error": "Idade/valor inválidos."}), 400
+        return jsonify({"ok": False, "error": "Idade inválida."}), 400
+
+    # monta payload só com colunas de atividades válidas
+    atividades_payload = {}
+    for k in ALL_FIELDS:
+        if k in data:
+            atividades_payload[k] = _parse_int(data.get(k))
+
+    # valida se mandou ao menos 1 atividade
+    if not any(v is not None for v in atividades_payload.values()):
+        return jsonify({"ok": False, "error": "Envie pelo menos 1 atividade no payload."}), 400
+
+    # valida permissão por atividade preenchida
+    ok, field = _validate_activity_perms(user_id, atividades_payload)
+    if not ok:
+        return jsonify({"ok": False, "error": f"Sem permissão para lançar a atividade/campo: {field}."}), 403
+
+    # (opcional) valida compatibilidade básica modalidade x campos
+    if modalidade == "NORMAL":
+        invalid = [k for k, v in atividades_payload.items(
+        ) if v is not None and k not in NORMAL_FIELDS]
+        if invalid:
+            return jsonify({"ok": False, "error": f"Campos inválidos para NORMAL: {', '.join(invalid)}"}), 400
+
+    if modalidade == "ESPECIAL":
+        invalid = [k for k, v in atividades_payload.items(
+        ) if v is not None and k not in ESPECIAL_FIELDS]
+        if invalid:
+            return jsonify({"ok": False, "error": f"Campos inválidos para ESPECIAL: {', '.join(invalid)}"}), 400
 
     row = TafAvaliacao(
         militar_id=militar_id,
         avaliador_user_id=user_id,
-        atividade=atividade,
+        modalidade=modalidade,
+        sexo=sexo,
         idade=idade,
-        valor=valor,
-        avaliador_label=avaliador_label or None,
-        substituto_nome=substituto_nome or None,
-        observacoes=observacoes or None,
-        resultado_ok=resultado_ok,
-        referencia=str(referencia) if referencia is not None else None,
-        score_linha=str(score_linha) if score_linha is not None else None,
+        avaliador_label=avaliador_label,
+        substituto_nome=substituto_nome,
+        observacoes=observacoes,
+        **atividades_payload
     )
 
     db.session.add(row)
@@ -274,17 +371,24 @@ def criar_avaliacao():
 
 @bp_api_taf.get("/avaliacoes")
 @require_taf_auth
-def listar_avaliacoes():
+def listar_sessoes_taf():
+    """
+    NOVO: lista sessões (1 linha por sessão).
+    Filtros:
+      - data=YYYY-MM-DD (filtra por dia)
+      - militar_id
+      - modalidade (NORMAL/ESPECIAL)
+    """
     user_id = int(getattr(request, "taf_user_id", 0) or 0)
     if not user_id:
         return jsonify({"ok": False, "error": "Token inválido."}), 401
 
-    if not user_has_perm(user_id, "APP_TAF_LOGIN"):
+    if not _validate_required_perm(user_id):
         return jsonify({"ok": False, "error": "Sem permissão para o App TAF."}), 403
 
-    data_str = (request.args.get("data") or "").strip()  # YYYY-MM-DD
-    atividade = (request.args.get("atividade") or "").strip().lower()
+    data_str = (request.args.get("data") or "").strip()
     militar_id = request.args.get("militar_id")
+    modalidade = (request.args.get("modalidade") or "").strip().upper()
 
     q = db.session.query(TafAvaliacao)
 
@@ -297,8 +401,10 @@ def listar_avaliacoes():
         except Exception:
             return jsonify({"ok": False, "error": "Parâmetro data inválido. Use YYYY-MM-DD."}), 400
 
-    if atividade:
-        q = q.filter(TafAvaliacao.atividade == atividade)
+    if modalidade:
+        if modalidade not in {"NORMAL", "ESPECIAL"}:
+            return jsonify({"ok": False, "error": "modalidade inválida. Use NORMAL ou ESPECIAL."}), 400
+        q = q.filter(TafAvaliacao.modalidade == modalidade)
 
     if militar_id:
         try:
@@ -311,20 +417,25 @@ def listar_avaliacoes():
 
     items = []
     for r in q.all():
-        items.append({
+        item = {
             "id": r.id,
             "militar_id": r.militar_id,
             "avaliador_user_id": r.avaliador_user_id,
-            "atividade": r.atividade,
+            "modalidade": r.modalidade,
+            "sexo": r.sexo,
             "idade": r.idade,
-            "valor": float(r.valor),
-            "resultado_ok": bool(r.resultado_ok),
-            "referencia": r.referencia,
-            "score_linha": r.score_linha,
             "avaliador_label": r.avaliador_label,
             "substituto_nome": r.substituto_nome,
             "observacoes": r.observacoes,
             "criado_em": r.criado_em.strftime("%Y-%m-%d %H:%M:%S"),
-        })
+        }
+
+        # inclui só campos de atividades que existirem
+        for k in ALL_FIELDS:
+            v = getattr(r, k, None)
+            if v is not None:
+                item[k] = int(v)
+
+        items.append(item)
 
     return jsonify({"ok": True, "items": items}), 200

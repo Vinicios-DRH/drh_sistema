@@ -1,0 +1,83 @@
+{% set total_rows = rows|length %}
+{% set aptos = 0 %}
+{% set inaptos = 0 %}
+{% set sem_nota = 0 %}
+{% set incompletos = 0 %}
+
+{% for r in rows %}
+{% if r.status == "APTO" %}{% set aptos = aptos + 1 %}{% endif %}
+{% if r.status == "INAPTO" %}{% set inaptos = inaptos + 1 %}{% endif %}
+{% if r.status == "SEM_NOTA" %}{% set sem_nota = sem_nota + 1 %}{% endif %}
+
+{# incompleto se menos de 5 lançamentos (ajusta se quiser considerar 6 atividades) #}
+{% if r.qtd_lancamentos < 5 %} {% set incompletos=incompletos + 1 %} {% endif %} {% endfor %} <div class="row g-3 mb-3">
+
+    <div class="col-12 col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted small">Registros no filtro</div>
+                        <div class="h3 mb-0">{{ total_rows }}</div>
+                    </div>
+                    <div class="text-muted">
+                        <i class="fas fa-database fa-2x"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Linhas (militar + dia)</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted small">Aptos</div>
+                        <div class="h3 mb-0">{{ aptos }}</div>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-circle-check fa-2x"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Sem nota &lt; 6</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted small">Inaptos</div>
+                        <div class="h3 mb-0">{{ inaptos }}</div>
+                    </div>
+                    <div class="text-danger">
+                        <i class="fas fa-triangle-exclamation fa-2x"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Qualquer nota &lt; 6</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted small">Incompletos</div>
+                        <div class="h3 mb-0">{{ incompletos }}</div>
+                    </div>
+                    <div class="text-warning">
+                        <i class="fas fa-hourglass-half fa-2x"></i>
+                    </div>
+                </div>
+                <small class="text-muted">Menos de 5 lançamentos</small>
+            </div>
+        </div>
+    </div>
+
+    </div>

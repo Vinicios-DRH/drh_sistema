@@ -1,0 +1,44 @@
+<form method="GET" class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-12 col-md-4 col-lg-3">
+                <label class="form-label">Buscar por nome</label>
+                <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Ex: JOÃO SILVA">
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Data inicial</label>
+                <input type="date" class="form-control" name="dt_ini" value="{{ dt_ini }}">
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Data final</label>
+                <input type="date" class="form-control" name="dt_fim" value="{{ dt_fim }}">
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="" {% if not status %}selected{% endif %}>Todos</option>
+                    <option value="APTO" {% if status=="APTO" %}selected{% endif %}>APTO</option>
+                    <option value="INAPTO" {% if status=="INAPTO" %}selected{% endif %}>INAPTO</option>
+                    <option value="SEM_NOTA" {% if status=="SEM_NOTA" %}selected{% endif %}>SEM NOTA</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">OBM (ID)</label>
+                <input type="number" class="form-control" name="obm" value="{{ obm }}" placeholder="Ex: 10">
+                <small class="text-muted">Se quiser, depois trocamos por dropdown.</small>
+            </div>
+
+            <div class="col-12 col-md-12 col-lg-1 d-grid">
+                <button class="btn btn-dark" type="submit">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</form>
