@@ -1510,55 +1510,36 @@ class TafAvaliacao(database.Model):
 
     id = database.Column(database.BigInteger, primary_key=True)
 
-    militar_id = database.Column(
-        database.Integer,
-        database.ForeignKey("militar.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
+    militar_id = database.Column(database.BigInteger, database.ForeignKey(
+        "militar.id"), nullable=False, index=True)
+    avaliador_user_id = database.Column(database.BigInteger, database.ForeignKey(
+        "user.id"), nullable=False, index=True)
 
-    avaliador_user_id = database.Column(
-        database.Integer,
-        database.ForeignKey("user.id", ondelete="RESTRICT"),
-        nullable=False,
-        index=True
-    )
+    sexo = database.Column(database.String(1), nullable=False,
+                     index=True)            # 'M' / 'F'
+    modalidade = database.Column(database.String(10), nullable=False,
+                           index=True)     # 'NORMAL' / 'ESPECIAL'
+    atividade = database.Column(database.String(60), nullable=False, index=True)
 
-    modalidade = database.Column(database.String(
-        10), nullable=False, index=True)  # NORMAL | ESPECIAL
-    sexo = database.Column(database.String(
-        1), nullable=False, index=True)        # M | F
     idade = database.Column(database.Integer, nullable=False)
-
-    atividade = database.Column(
-        database.String(60), nullable=False, index=True)
-
-    # valor bruto: metros / rep / segundos (sempre int)
-    valor = database.Column(database.Integer, nullable=False)
+    valor = database.Column(database.Numeric(10, 2), nullable=False)
 
     avaliador_label = database.Column(database.String(80))
     substituto_nome = database.Column(database.String(100))
     observacoes = database.Column(database.Text)
 
-    criado_em = database.Column(
-        database.DateTime,
-        nullable=False,
-        server_default=database.text("timezone('America/Manaus', now())"),
-        index=True
-    )
+    resultado_ok = database.Column(database.Boolean, nullable=False, default=False)
+
+    referencia = database.Column(database.String(50))
+    score_linha = database.Column(database.String(50))
+
+    criado_em = database.Column(database.DateTime, nullable=False,
+                          default=now_manaus_naive, index=True)
 
     militar = database.relationship("Militar", backref="taf_avaliacoes")
-    avaliador_user = database.relationship(
-        "User", foreign_keys=[avaliador_user_id])
+    avaliador_user = database.relationship("User", foreign_keys=[avaliador_user_id])
 
     __table_args__ = (
-        database.Index("ix_taf_avaliacao_militar_data",
-                       "militar_id", "criado_em"),
-        database.Index("ix_taf_avaliacao_atividade_data",
-                       "atividade", "criado_em"),
-        database.Index("ix_taf_avaliacao_modalidade_data",
-                       "modalidade", "criado_em"),
-        database.Index("ix_taf_avaliacao_sexo_data", "sexo", "criado_em"),
-        database.Index("ix_taf_avaliacao_avaliador_data",
-                       "avaliador_user_id", "criado_em"),
+        Index("ix_taf_avaliacao_militar_data", "militar_id", "criado_em"),
+        Index("ix_taf_avaliacao_atividade_data", "atividade", "criado_em"),
     )

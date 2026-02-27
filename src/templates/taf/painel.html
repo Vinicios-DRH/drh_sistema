@@ -16,7 +16,7 @@
         <div class="d-flex gap-2 mt-2 mt-md-0">
             {% if can_export %}
             <a class="btn btn-outline-secondary"
-                href="{{ url_for('taf_admin.export_csv', q=q, status=status, obm=obm, dt_ini=dt_ini, dt_fim=dt_fim) }}">
+                href="{{ url_for('taf_admin.export_csv', q=q, status=status, obm=obm, modalidade=modalidade, sexo=sexo, dt_ini=dt_ini, dt_fim=dt_fim) }}">
                 <i class="fas fa-file-csv me-1"></i> Exportar CSV
             </a>
             {% endif %}

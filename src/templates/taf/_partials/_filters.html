@@ -27,13 +27,31 @@
                 </select>
             </div>
 
+            <div class="col-6 col-md-1">
+                <label class="form-label">Sexo</label>
+                <select class="form-select" name="sexo">
+                    <option value="" {% if not sexo %}selected{% endif %}>Todos</option>
+                    <option value="M" {% if sexo=="M" %}selected{% endif %}>M</option>
+                    <option value="F" {% if sexo=="F" %}selected{% endif %}>F</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label">Modalidade</label>
+                <select class="form-select" name="modalidade">
+                    <option value="" {% if not modalidade %}selected{% endif %}>Todas</option>
+                    <option value="NORMAL" {% if modalidade=="NORMAL" %}selected{% endif %}>NORMAL</option>
+                    <option value="ESPECIAL" {% if modalidade=="ESPECIAL" %}selected{% endif %}>ESPECIAL</option>
+                </select>
+            </div>
+
             <div class="col-6 col-md-2">
                 <label class="form-label">OBM (ID)</label>
                 <input type="number" class="form-control" name="obm" value="{{ obm }}" placeholder="Ex: 10">
-                <small class="text-muted">Se quiser, depois trocamos por dropdown.</small>
+                <small class="text-muted">Depois dá pra virar dropdown.</small>
             </div>
 
-            <div class="col-12 col-md-12 col-lg-1 d-grid">
+            <div class="col-12 col-lg-1 d-grid">
                 <button class="btn btn-dark" type="submit">
                     <i class="fas fa-filter me-1"></i> Filtrar
                 </button>
