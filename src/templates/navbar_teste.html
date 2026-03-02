@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview Navbar CBMAM</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: #f2f4f7;
+        }
+
+        /* ===== NAVBAR CBMAM MODERNA ===== */
+        .cbmam-nav {
+            position: sticky;
+            top: 0;
+            z-index: 60;
+            background: #0b0f14;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .cbmam-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .cbmam-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #fff;
+            min-width: 240px;
+        }
+
+        /* Logo real */
+        .cbmam-logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .cbmam-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.05;
+        }
+
+        .cbmam-brand-text strong {
+            font-size: 18px;
+            letter-spacing: .02em;
+        }
+
+        .cbmam-brand-text small {
+            font-size: 12px;
+            opacity: .75;
+        }
+
+        .cbmam-burger {
+            display: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            cursor: pointer;
+        }
+
+        .cbmam-burger span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            margin: 4px auto;
+            background: #fff;
+            opacity: .9;
+        }
+
+        .cbmam-menu {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .cbmam-links {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .cbmam-links>li {
+            position: relative;
+        }
+
+        .cbmam-links a,
+        .cbmam-links .dropbtn {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12.5px;
+            letter-spacing: .05em;
+            padding: 10px 10px;
+            border-radius: 12px;
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cbmam-links a:hover,
+        .cbmam-links .dropbtn:hover {
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .cbmam-links a:focus,
+        .cbmam-links .dropbtn:focus {
+            outline: 2px solid rgba(255, 255, 255, .28);
+            outline-offset: 2px;
+        }
+
+        .caret {
+            opacity: .75;
+            font-size: 12px;
+        }
+
+        /* Dropdown padrão */
+        .dropdown {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 10px);
+            min-width: 260px;
+            background: #101723;
+            border: 1px solid rgba(255, 255, 255, .10);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .40);
+            display: none;
+        }
+
+        .dropdown a {
+            display: flex;
+            padding: 10px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 600;
+            color: #e9eef7;
+        }
+
+        .dropdown a:hover {
+            background: rgba(255, 255, 255, .08);
+        }
+
+        /* ===== FIX: dropdown não fechar ao mover o mouse (ponte invisível) ===== */
+        @media (min-width: 993px) {
+            .has-dropdown {
+                position: relative;
+            }
+
+            /* cria uma área invisível entre o botão e o dropdown */
+            .has-dropdown>.dropdown::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: -12px;
+                /* cobre o "gap" acima do dropdown */
+                width: 100%;
+                height: 12px;
+                /* mesmo tamanho do gap (10px) + folga */
+            }
+
+            /* se você tiver dropdown grid também */
+            .has-dropdown>.dropdown-grid::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: -12px;
+                width: 100%;
+                height: 12px;
+            }
+        }
+
+        /* ========= ABRIR NO HOVER (DESKTOP) ========= */
+        @media (min-width: 993px) {
+
+            .has-dropdown:hover>.dropdown,
+            .has-dropdown:focus-within>.dropdown {
+                display: block;
+            }
+
+            .has-dropdown:hover>.dropdown-grid,
+            .has-dropdown:focus-within>.dropdown-grid {
+                display: grid;
+            }
+        }
+
+        /* Dropdown mosaico (Acesso à Informação) */
+        .dropdown-grid {
+            width: 440px;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .grid-item {
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .04);
+            min-height: 62px;
+            gap: 10px;
+        }
+
+        .grid-item .ico {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .grid-item .txt {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .grid-item .txt strong {
+            font-size: 13px;
+            color: #fff;
+        }
+
+        .grid-item .txt small {
+            font-size: 12px;
+            opacity: .75;
+        }
+
+        /* Busca */
+        .cbmam-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 6px;
+        }
+
+        .cbmam-search input {
+            width: 260px;
+            max-width: 36vw;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .06);
+            color: #fff;
+            outline: none;
+        }
+
+        .cbmam-search input::placeholder {
+            color: rgba(255, 255, 255, .65);
+        }
+
+        .cbmam-search button {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .cbmam-search button:hover {
+            background: rgba(255, 255, 255, .18);
+        }
+
+        /* Conteúdo fake do preview */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 22px 16px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .06);
+        }
+
+        .card h2 {
+            margin: 0 0 10px;
+        }
+
+        .muted {
+            color: #5f6b7a;
+        }
+
+        /* Responsivo */
+        @media (max-width: 992px) {
+            .cbmam-burger {
+                display: block;
+            }
+
+            .cbmam-menu {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 100%;
+                background: #0b0f14;
+                border-bottom: 1px solid rgba(255, 255, 255, .08);
+                padding: 12px 16px;
+                display: none;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .cbmam-menu.open {
+                display: flex;
+            }
+
+            .cbmam-links {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .cbmam-links a,
+            .cbmam-links .dropbtn {
+                width: 100%;
+                justify-content: space-between;
+                text-transform: none;
+                letter-spacing: 0;
+                font-size: 14px;
+            }
+
+            .dropdown,
+            .dropdown-grid {
+                position: static;
+                width: 100%;
+                min-width: 100%;
+                box-shadow: none;
+                margin-top: 8px;
+                display: none;
+                /* no mobile fica fechado por padrão */
+            }
+
+            .dropdown-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .has-dropdown.open>.dropdown {
+                display: block;
+            }
+
+            .has-dropdown.open>.dropdown-grid {
+                display: grid;
+            }
+
+            .cbmam-search {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .cbmam-search input {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* ====== THEME CBMAM: preto + vermelho institucional ====== */
+        :root {
+            --cb-red: #b31217;
+            /* vermelho bombeiro (sólido) */
+            --cb-red2: #e11d2e;
+            /* vermelho vivo para hover/CTA */
+            --cb-dark: #0b0f14;
+            --cb-dark2: #0f1622;
+            --cb-text: #ffffff;
+        }
+
+        /* barra com detalhe vermelho */
+        .cbmam-nav {
+            background: linear-gradient(180deg, #0b0f14 0%, #070b10 100%);
+            border-bottom: 2px solid rgba(179, 18, 23, .65);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+        }
+
+        /* “filete” vermelho em cima (bem CBM) */
+        .cbmam-nav::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cb-red2), var(--cb-red), var(--cb-red2));
+            opacity: .95;
+        }
+
+        /* links com underline vermelho ao hover */
+        .cbmam-links a,
+        .cbmam-links .dropbtn {
+            position: relative;
+            color: var(--cb-text);
+        }
+
+        .cbmam-links a::after,
+        .cbmam-links .dropbtn::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 6px;
+            height: 2px;
+            background: var(--cb-red2);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .15s ease;
+            opacity: .95;
+        }
+
+        .cbmam-links a:hover::after,
+        .cbmam-links .dropbtn:hover::after,
+        .has-dropdown:hover>.dropbtn::after {
+            transform: scaleX(1);
+        }
+
+        /* hover mais “quente” */
+        .cbmam-links a:hover,
+        .cbmam-links .dropbtn:hover {
+            background: rgba(179, 18, 23, .12);
+        }
+
+        /* dropdown com borda vermelha e fundo um pouco mais “quente” */
+        .dropdown {
+            background: linear-gradient(180deg, #121a28 0%, #0f1622 100%);
+            border: 1px solid rgba(255, 255, 255, .10);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .55);
+        }
+
+        .dropdown::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            top: 8px;
+            height: 2px;
+            background: rgba(225, 29, 46, .85);
+            border-radius: 99px;
+        }
+
+        /* item do dropdown com “ponto” vermelho */
+        .dropdown a {
+            position: relative;
+            padding-left: 14px;
+        }
+
+        .dropdown a::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(225, 29, 46, .9);
+            display: inline-block;
+            margin-right: 10px;
+            transform: translateY(1px);
+        }
+
+        .dropdown a:hover {
+            background: rgba(179, 18, 23, .14);
+        }
+
+        /* mosaico do Acesso à Informação com acento vermelho */
+        .grid-item {
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .grid-item:hover {
+            border-color: rgba(225, 29, 46, .55);
+            background: rgba(179, 18, 23, .12);
+        }
+
+        /* busca com identidade (borda vermelha e botão vermelho) */
+        .cbmam-search input {
+            border: 1px solid rgba(225, 29, 46, .25);
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .cbmam-search input:focus {
+            border-color: rgba(225, 29, 46, .65);
+            box-shadow: 0 0 0 3px rgba(225, 29, 46, .15);
+        }
+
+        .cbmam-search button {
+            background: linear-gradient(180deg, var(--cb-red2), var(--cb-red));
+            border: 1px solid rgba(255, 255, 255, .12);
+        }
+
+        .cbmam-search button:hover {
+            filter: brightness(1.06);
+        }
+
+        /* burger no mobile com detalhe vermelho */
+        .cbmam-burger {
+            border-color: rgba(225, 29, 46, .35);
+        }
+
+        .cbmam-burger:hover {
+            background: rgba(179, 18, 23, .12);
+        }
+
+        /* ===== ÍCONES SVG no mosaico ===== */
+        .grid-item .ico {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, .92);
+            /* cor do ícone */
+            flex: 0 0 22px;
+        }
+
+        /* SVG herda a cor via currentColor */
+        .grid-item .ico-svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ao hover, dá um toque vermelho no ícone */
+        .grid-item:hover .ico {
+            color: rgba(225, 29, 46, .95);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="cbmam-nav" role="navigation" aria-label="Menu principal CBMAM">
+        <div class="cbmam-container">
+
+            <!-- Logo/Marca -->
+            <a class="cbmam-brand" href="#">
+                <!-- Cake: Paginas/index -->
+                <img class="cbmam-logo-img" src="static/img/logo_cbmam_branca.png"
+                    alt="CBMAM - Corpo de Bombeiros Militar do Amazonas" />
+
+            </a>
+
+            <!-- Botão mobile -->
+            <button class="cbmam-burger" type="button" aria-label="Abrir menu" aria-expanded="false"
+                aria-controls="cbmamMenu">
+                <span></span><span></span><span></span>
+            </button>
+
+            <div class="cbmam-menu" id="cbmamMenu">
+                <ul class="cbmam-links">
+
+                    <li><a href="#">Início <!-- Cake: Paginas/index --></a></li>
+
+                    <li class="has-dropdown">
+                        <button class="dropbtn" type="button" aria-expanded="false">
+                            Instituição <span class="caret">▾</span>
+                        </button>
+                        <div class="dropdown">
+                            <a href="#">Sobre <!-- Cake: Institucional/sobre --></a>
+                            <a href="#">Nossa Missão <!-- Cake: Institucional/missao --></a>
+                            <a href="#">Comando <!-- Cake: Institucional/comando --></a>
+                            <a href="#">Legislação <!-- Cake: Legislacaos/listar --></a>
+                            <a href="#">Concurso <!-- Cake: Paginas/concurso --></a>
+                            <a href="#">Manuais <!-- Cake: Institucional/manuais --></a>
+                        </div>
+                    </li>
+
+                    <li class="has-dropdown">
+                        <button class="dropbtn" type="button" aria-expanded="false">
+                            Projetos <span class="caret">▾</span>
+                        </button>
+                        <div class="dropdown">
+                            <a href="#">ProeBom <!-- Cake: Paginas/proebom --></a>
+                            <a href="#">Terceira Chama <!-- Cake: Paginas/manutencao --></a>
+                        </div>
+                    </li>
+
+                    <li><a href="#">Serviços <!-- Cake: Paginas/servicos --></a></li>
+
+                    <li class="has-dropdown">
+                        <button class="dropbtn" type="button" aria-expanded="false">
+                            Acesso à Informação <span class="caret">▾</span>
+                        </button>
+
+                        <div class="dropdown dropdown-grid" aria-label="Acesso à Informação">
+
+                            <!-- 1) CBMAM / FUNESBOM (ícone: camadas/integração) -->
+                            <a class="grid-item" href="#">
+                                <!-- Cake: Transparencias/index -->
+                                <span class="ico" aria-hidden="true">
+                                    <svg class="ico-svg" viewBox="0 0 24 24">
+                                        <path d="M12 3 3 8l9 5 9-5-9-5Z"></path>
+                                        <path d="M3 12l9 5 9-5"></path>
+                                        <path d="M3 16l9 5 9-5"></path>
+                                    </svg>
+                                </span>
+                                <span class="txt">
+                                    <strong>CBMAM / FUNESBOM</strong>
+                                    <small>Transparência integrada</small>
+                                </span>
+                            </a>
+
+                            <!-- 2) CBMAM (ícone: prédio/instituição) -->
+                            <a class="grid-item" href="#">
+                                <!-- Cake: Transparencias/index/cbmam -->
+                                <span class="ico" aria-hidden="true">
+                                    <svg class="ico-svg" viewBox="0 0 24 24">
+                                        <path d="M4 20V9"></path>
+                                        <path d="M20 20V9"></path>
+                                        <path d="M2 9l10-6 10 6"></path>
+                                        <path d="M8 20v-6h8v6"></path>
+                                    </svg>
+                                </span>
+                                <span class="txt">
+                                    <strong>CBMAM</strong>
+                                    <small>Dados institucionais</small>
+                                </span>
+                            </a>
+
+                            <!-- 3) FUNESBOM (ícone: moeda/finanças) -->
+                            <a class="grid-item" href="#">
+                                <!-- Cake: Transparencias/index/funesbom -->
+                                <span class="ico" aria-hidden="true">
+                                    <svg class="ico-svg" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="8"></circle>
+                                        <path
+                                            d="M9.5 10.5c0-1 1-1.8 2.5-1.8s2.5.8 2.5 1.8-1 1.6-2.5 1.8-2.5.8-2.5 1.8 1 1.8 2.5 1.8 2.5-.8 2.5-1.8">
+                                        </path>
+                                        <path d="M12 7.5v9"></path>
+                                    </svg>
+                                </span>
+                                <span class="txt">
+                                    <strong>FUNESBOM</strong>
+                                    <small>Fundo e relatórios</small>
+                                </span>
+                            </a>
+
+                            <!-- 4) Agenda do CMT-Geral (ícone: calendário) -->
+                            <a class="grid-item" href="#">
+                                <!-- Cake: Paginas/agenda -->
+                                <span class="ico" aria-hidden="true">
+                                    <svg class="ico-svg" viewBox="0 0 24 24">
+                                        <path d="M7 3v3"></path>
+                                        <path d="M17 3v3"></path>
+                                        <rect x="3" y="6" width="18" height="15" rx="2"></rect>
+                                        <path d="M3 10h18"></path>
+                                        <path d="M8 14h3"></path>
+                                        <path d="M8 17h5"></path>
+                                    </svg>
+                                </span>
+                                <span class="txt">
+                                    <strong>Agenda do CMT-Geral</strong>
+                                    <small>Compromissos oficiais</small>
+                                </span>
+                            </a>
+
+                            <!-- 5) Relatório de Auditoria (ícone: documento/check) -->
+                            <a class="grid-item" href="https://www.cbm.am.gov.br/cbmam/paginas/relatorio"
+                                target="_blank" rel="noopener">
+                                <span class="ico" aria-hidden="true">
+                                    <svg class="ico-svg" viewBox="0 0 24 24">
+                                        <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path>
+                                        <path d="M14 2v5h5"></path>
+                                        <path d="M9 13h6"></path>
+                                        <path d="M9 17h4"></path>
+                                        <path d="M9 9h2"></path>
+                                    </svg>
+                                </span>
+                                <span class="txt">
+                                    <strong>Relatório de Auditoria</strong>
+                                    <small>Prestação de contas</small>
+                                </span>
+                            </a>
+
+                        </div>
+                    </li>
+
+                    <li class="has-dropdown">
+                        <button class="dropbtn" type="button" aria-expanded="false">
+                            Público Interno <span class="caret">▾</span>
+                        </button>
+                        <div class="dropdown">
+                            <a href="https://drhsistema-production.up.railway.app/" target="_blank"
+                                rel="noopener">Sistema de Férias</a>
+                            <a href="https://gestao-cbm.ssp.am.gov.br/softexpert/login" target="_blank"
+                                rel="noopener">SE Suite</a>
+                            <a href="#">ADM Transparência <!-- Cake: /cbmam/transparencias/index2 --></a>
+                        </div>
+                    </li>
+
+                    <li><a href="#">Contato <!-- Cake: Paginas/faleConosco --></a></li>
+                </ul>
+
+                <form class="cbmam-search" method="get" action="#" role="search">
+                    <!-- Cake real: action="https://www.cbm.am.gov.br/cbmam/paginas/pesquisa" -->
+                    <input type="text" name="q" placeholder="Pesquisar no site..." />
+                    <button type="submit">Buscar</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="card">
+            <h2>Preview da Navbar (Hover no Desktop ✅)</h2>
+            <p class="muted">
+                No desktop: passe o mouse nas abas para abrir. <br />
+                No mobile: clique para abrir (touch).
+            </p>
+            <div style="height: 900px;"></div>
+            <p class="muted">Fim do conteúdo fake.</p>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const nav = document.querySelector('.cbmam-nav');
+            if (!nav) return;
+
+            const burger = nav.querySelector('.cbmam-burger');
+            const menu = nav.querySelector('.cbmam-menu');
+            const dropdownLis = nav.querySelectorAll('.has-dropdown');
+
+            function isMobile() {
+                return window.matchMedia('(max-width: 992px)').matches;
+            }
+
+            function closeAllDropdowns() {
+                dropdownLis.forEach(li => {
+                    li.classList.remove('open');
+                    const btn = li.querySelector('.dropbtn');
+                    if (btn) btn.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            // Mobile menu
+            burger?.addEventListener('click', () => {
+                const open = menu.classList.toggle('open');
+                burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (!open) closeAllDropdowns();
+            });
+
+            // Dropdowns: no desktop abre no hover (CSS), mas mantemos clique para teclado/foco.
+            // No mobile: clique abre/fecha (classe .open)
+            dropdownLis.forEach(li => {
+                const btn = li.querySelector('.dropbtn');
+                btn?.addEventListener('click', (e) => {
+                    // no desktop, deixa o hover dominar (não precisamos travar com open)
+                    if (!isMobile()) return;
+
+                    e.preventDefault();
+                    dropdownLis.forEach(other => {
+                        if (other !== li) {
+                            other.classList.remove('open');
+                            const b = other.querySelector('.dropbtn');
+                            if (b) b.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+
+                    const isOpen = li.classList.toggle('open');
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            });
+
+            // Clicar fora fecha dropdowns (mobile e desktop)
+            document.addEventListener('click', (e) => {
+                if (!nav.contains(e.target)) {
+                    closeAllDropdowns();
+                    if (isMobile()) {
+                        menu.classList.remove('open');
+                        burger?.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+
+            // ESC fecha tudo
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeAllDropdowns();
+                    menu.classList.remove('open');
+                    burger?.setAttribute('aria-expanded', 'false');
+                }
+            });
+        })();
+    </script>
+
+</body>
+
+</html>

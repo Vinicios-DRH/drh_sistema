@@ -72,6 +72,10 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
     except Exception:
         return False
 
+@app.route("/navbar")
+def navbar():
+    return render_template("navbar_teste.html")
+
 
 @app.route("/db-ping-10")
 def db_ping_10():
