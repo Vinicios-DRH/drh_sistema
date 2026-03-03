@@ -1943,6 +1943,7 @@ def tabela_militares():
                 'inclusao': inclusao_fmt,
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
                 'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
+                'data_nascimento': militar.data_nascimento.strftime('%d/%m/%Y') if militar.data_nascimento else 'N/A',
             })
 
         return render_template(

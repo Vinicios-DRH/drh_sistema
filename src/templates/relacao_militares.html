@@ -145,6 +145,7 @@
                             <th>Função 1</th>
                             <th>OBM 2</th>
                             <th>Função 2</th>
+                            <th>Data de Nascimento</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -173,11 +174,12 @@
                             <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}</td>
                             <td>{{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}</td>
                             <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}</td>
+                            <td>{{ militar.data_nascimento }}</td>
                         </tr>
                         {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="17" class="text-center">Nenhum dado encontrado.</td>
+                            <td colspan="18" class="text-center">Nenhum dado encontrado.</td>
                         </tr>
                         {% endif %}
                     </tbody>
