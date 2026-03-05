@@ -72,6 +72,7 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
     except Exception:
         return False
 
+
 @app.route("/navbar")
 def navbar():
     return render_template("navbar_teste.html")
@@ -200,7 +201,7 @@ def home():
 
         militares_lts = LicencaParaTratamentoDeSaude.query.all()
 
-        # estatísticas dos militares para o dashboard
+        # estatísticas dos militares para o dashboard -> você encontra em src/querys.py, função obter_estatisticas_militares() - é só chamar ela aqui e passar os dados pro template
         estatisticas = obter_estatisticas_militares()
 
         return render_template('home.html', **estatisticas, militares_le=militares_le, militares_lts=militares_lts)
