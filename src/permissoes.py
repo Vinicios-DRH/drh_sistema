@@ -56,6 +56,9 @@ PERMISSOES_CATALOGO = [
         "nome": "Menu: Militares Inativos > Mapa da Força Inativos"},
     {"codigo": "NAV_MIL_INATIVOS_ADD",
         "nome": "Menu: Militares Inativos > Adicionar Militar Inativo"},
+    {"codigo": "NAV_HISTORICO_MILITAR", "nome": "Menu: Histórico do Militar"},
+    {"codigo": "HISTORICO_MILITAR_READ",
+        "nome": "Histórico do Militar: Consultar timeline"},
 
     # ===== Militar (CRUD) =====
     {"codigo": "MILITAR_READ",   "nome": "Militares: Ler ficha"},

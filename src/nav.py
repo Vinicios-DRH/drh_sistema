@@ -285,6 +285,14 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                          perm="NAV_MIL_ATIVOS_QR"),
                 _mk_item("Militares por cadete", "relatorio_cadetes_militares",
                          perm="NAV_MIL_ATIVOS_CADETES"),
+                _mk_item(
+                    "Histórico do Militar",
+                    "historico_militar.pagina_historico",
+                    icon="fas fa-history",
+                    perm="NAV_HISTORICO_MILITAR",
+                    # ou só (lambda: True) se quiser liberar pra qualquer função, desde que tenha perm
+                    rule=rule_drh_like,
+                ),
             ],
         )
     )
