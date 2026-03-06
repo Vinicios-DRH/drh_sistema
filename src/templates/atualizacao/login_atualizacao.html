@@ -162,7 +162,14 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 justify-content-between">
+                                        <div class="form-group">
+                                            {{ form_login.lembrar_dados(class="form-check-input") }}
+                                            {{ form_login.lembrar_dados.label(class="form-check-label") }}
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="col-12">
                                     <div class="d-grid my-3">
                                         {{ form_login.botao_submit_login(class="btn btn-outline-primary mt-2") }}

@@ -185,6 +185,7 @@ def api_login():
 
 # RESET DE SENHA - ROTA PÚBLICA PARA SOLICITAÇÃO DE LINK POR E-MAIL, SEM REQUERER LOGIN
 
+
 @app.route("/esqueci-senha", methods=["GET", "POST"])
 def esqueci_senha_admin():
     if current_user.is_authenticated:
