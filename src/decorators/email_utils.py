@@ -5,16 +5,21 @@ from itsdangerous import URLSafeTimedSerializer
 CBMAM_EMAIL_GATEWAY_URL = "https://www.cbm.am.gov.br/drh/servidor/apiEnviarEmail"
 
 
+def build_public_reset_url(token: str) -> str:
+    base_url = current_app.config["PUBLIC_BASE_URL"].rstrip("/")
+    return f"{base_url}/resetar-senha/{token}"
+
+
 def send_email(to: str, name: str, subject: str, html_message: str, timeout: int = 30) -> dict:
-    params = {
+    payload = {
         "to": to,
         "name": name or "",
         "subject": subject,
         "message": html_message,
     }
 
-    response = requests.get(CBMAM_EMAIL_GATEWAY_URL,
-                            params=params, timeout=timeout)
+    response = requests.post(CBMAM_EMAIL_GATEWAY_URL,
+                             data=payload, timeout=timeout)
     response.raise_for_status()
     return response.json()
 
@@ -46,7 +51,7 @@ def verify_password_reset_token(token: str, max_age: int = 1800) -> dict | None:
 
 def send_reset_password_email(user, area: str) -> dict:
     token = generate_password_reset_token(user.id, area)
-    reset_url = url_for("resetar_senha_publica", token=token, _external=True)
+    reset_url = build_public_reset_url(token)
 
     area_label = "área administrativa" if area == "admin" else "área militar"
 
