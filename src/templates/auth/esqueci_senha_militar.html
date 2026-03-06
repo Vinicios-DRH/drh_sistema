@@ -1,37 +1,234 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<style>
+    :root {
+        --overlay-alpha: .22;
+        --card-alpha: .34;
+        --glass-blur: 7px;
+    }
+
+    .hero-bg {
+        min-height: 100vh;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-color: #0b0e14;
+        position: relative;
+        background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_4_1280.webp') }}") 1x,
+            url("{{ url_for('static', filename='img/bombeiros_4_1920.webp') }}") 2x);
+    }
+
+    .hero-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, var(--overlay-alpha));
+        pointer-events: none;
+    }
+
+    .recovery-shell {
+        position: relative;
+        z-index: 2;
+    }
+
+    .recovery-card {
+        background: rgba(17, 17, 17, var(--card-alpha));
+        backdrop-filter: blur(var(--glass-blur));
+        -webkit-backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid rgba(255, 255, 255, .12);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, .38);
+        color: #f1f5f9;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .recovery-card .card-body {
+        padding: 2rem;
+    }
+
+    .recovery-badge {
+        display: inline-block;
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #dbeafe;
+        background: rgba(15, 79, 191, .28);
+        border: 1px solid rgba(147, 197, 253, .25);
+        padding: .45rem .75rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+    }
+
+    .recovery-title {
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: .65rem;
+    }
+
+    .recovery-subtitle {
+        color: rgba(255, 255, 255, .78);
+        font-size: .97rem;
+        line-height: 1.65;
+        margin-bottom: 1.4rem;
+    }
+
+    .recovery-card .form-label {
+        color: #f8fafc;
+        font-weight: 600;
+        margin-bottom: .45rem;
+    }
+
+    .recovery-card .form-control {
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #fff;
+        min-height: 48px;
+        border-radius: 10px;
+    }
+
+    .recovery-card .form-control::placeholder {
+        color: rgba(255, 255, 255, .55);
+    }
+
+    .recovery-card .form-control:focus {
+        background: rgba(255, 255, 255, .12);
+        border-color: rgba(59, 130, 246, .85);
+        box-shadow: 0 0 0 .25rem rgba(59, 130, 246, .22);
+        color: #fff;
+    }
+
+    .btn-recovery {
+        background: linear-gradient(135deg, #0f4fbf, #2563eb);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        min-height: 48px;
+        border-radius: 10px;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, .22);
+    }
+
+    .btn-recovery:hover {
+        color: #fff;
+        background: linear-gradient(135deg, #0c45a7, #1d4ed8);
+    }
+
+    .security-box {
+        margin-top: 1.2rem;
+        padding: .95rem 1rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .06);
+        border: 1px solid rgba(255, 255, 255, .09);
+    }
+
+    .security-box-title {
+        color: #fff;
+        font-size: .88rem;
+        font-weight: 700;
+        margin-bottom: .35rem;
+    }
+
+    .security-box-text {
+        color: rgba(255, 255, 255, .72);
+        font-size: .88rem;
+        line-height: 1.55;
+        margin: 0;
+    }
+
+    .back-link {
+        color: #cbd5e1;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .back-link:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+    .brand-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent);
+        margin: 1.25rem 0 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .hero-bg {
+            background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_4_768.webp') }}") 1x);
+        }
+
+        .recovery-card .card-body {
+            padding: 1.5rem 1.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="container py-5 mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-5">
-            <div class="card shadow border-0">
-                <div class="card-body p-4">
-                    <h3 class="mb-3 text-center">Recuperar senha militar</h3>
-                    <p class="text-muted text-center">
-                        Informe seu CPF para receber o link de redefinição de senha.
-                    </p>
-
-                    <form method="POST">
-                        {{ form.csrf_token }}
-
-                        <div class="mb-3">
-                            {{ form.cpf.label(class="form-label") }}
-                            {{ form.cpf(class="form-control", placeholder="000.000.000-00") }}
+<section class="hero-bg py-4 py-md-5">
+    <div class="container recovery-shell py-4 py-md-5 mt-4 mt-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-9 col-lg-7 col-xl-6">
+                <div class="card recovery-card border-0">
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <img src="{{ url_for('static', filename='img/logobm.png') }}" width="92" height="92"
+                                alt="Logo CBMAM">
                         </div>
 
-                        <div class="d-grid">
-                            {{ form.botao_submit(class="btn btn-primary") }}
+                        <div class="text-center">
+                            <span class="recovery-badge">Recuperação de acesso</span>
+                            <h2 class="recovery-title">Redefinir senha da área militar</h2>
+                            <p class="recovery-subtitle">
+                                Informe seu CPF para receber, em seu e-mail cadastrado, o link de redefinição de senha
+                                do sistema da Diretoria de Pessoal.
+                            </p>
                         </div>
 
-                        <div class="text-center mt-3">
-                            <a href="{{ url_for('login_atualizacao') }}">Voltar ao login militar</a>
-                        </div>
-                    </form>
+                        <div class="brand-divider"></div>
+
+                        <form method="POST" novalidate>
+                            {{ form.csrf_token }}
+
+                            <div class="mb-3">
+                                {{ form.cpf.label(class="form-label") }}
+                                {% if form.cpf.errors %}
+                                {{ form.cpf(class="form-control is-invalid", placeholder="000.000.000-00") }}
+                                <div class="invalid-feedback">
+                                    {% for erro in form.cpf.errors %}
+                                    {{ erro }}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                {{ form.cpf(class="form-control", placeholder="000.000.000-00") }}
+                                {% endif %}
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                {{ form.botao_submit(class="btn btn-recovery") }}
+                            </div>
+
+                            <div class="security-box">
+                                <div class="security-box-title">Importante</div>
+                                <p class="security-box-text">
+                                    O link de recuperação será enviado apenas se houver um usuário militar com e-mail
+                                    válido vinculado ao CPF informado.
+                                </p>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <a href="{{ url_for('login_atualizacao') }}" class="back-link">
+                                    ← Voltar ao login militar
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
 <script src="https://unpkg.com/vanilla-masker/build/vanilla-masker.min.js"></script>
 <script>

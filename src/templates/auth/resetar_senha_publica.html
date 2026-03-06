@@ -1,36 +1,224 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<style>
+    :root {
+        --overlay-alpha: .22;
+        --card-alpha: .34;
+        --glass-blur: 7px;
+    }
+
+    .hero-bg {
+        min-height: 100vh;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-color: #0b0e14;
+        position: relative;
+        background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_5_1280.webp') }}") 1x,
+            url("{{ url_for('static', filename='img/bombeiros_5_1920.webp') }}") 2x);
+    }
+
+    .hero-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, var(--overlay-alpha));
+        pointer-events: none;
+    }
+
+    .reset-shell {
+        position: relative;
+        z-index: 2;
+    }
+
+    .reset-card {
+        background: rgba(17, 17, 17, var(--card-alpha));
+        backdrop-filter: blur(var(--glass-blur));
+        -webkit-backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid rgba(255, 255, 255, .12);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, .38);
+        color: #f1f5f9;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .reset-card .card-body {
+        padding: 2rem;
+    }
+
+    .reset-badge {
+        display: inline-block;
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #dcfce7;
+        background: rgba(22, 163, 74, .20);
+        border: 1px solid rgba(134, 239, 172, .20);
+        padding: .45rem .75rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+    }
+
+    .reset-title {
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: .65rem;
+    }
+
+    .reset-subtitle {
+        color: rgba(255, 255, 255, .78);
+        font-size: .97rem;
+        line-height: 1.65;
+        margin-bottom: 1.4rem;
+    }
+
+    .reset-card .form-label {
+        color: #f8fafc;
+        font-weight: 600;
+        margin-bottom: .45rem;
+    }
+
+    .reset-card .form-control {
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #fff;
+        min-height: 48px;
+        border-radius: 10px;
+    }
+
+    .reset-card .form-control:focus {
+        background: rgba(255, 255, 255, .12);
+        border-color: rgba(34, 197, 94, .85);
+        box-shadow: 0 0 0 .25rem rgba(34, 197, 94, .18);
+        color: #fff;
+    }
+
+    .btn-reset-save {
+        background: linear-gradient(135deg, #15803d, #16a34a);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        min-height: 48px;
+        border-radius: 10px;
+        box-shadow: 0 10px 24px rgba(22, 163, 74, .22);
+    }
+
+    .btn-reset-save:hover {
+        color: #fff;
+        background: linear-gradient(135deg, #166534, #15803d);
+    }
+
+    .tips-box {
+        margin-top: 1.2rem;
+        padding: .95rem 1rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .06);
+        border: 1px solid rgba(255, 255, 255, .09);
+    }
+
+    .tips-box-title {
+        color: #fff;
+        font-size: .88rem;
+        font-weight: 700;
+        margin-bottom: .35rem;
+    }
+
+    .tips-box-text {
+        color: rgba(255, 255, 255, .72);
+        font-size: .88rem;
+        line-height: 1.55;
+        margin: 0;
+    }
+
+    .brand-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent);
+        margin: 1.25rem 0 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .hero-bg {
+            background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_5_768.webp') }}") 1x);
+        }
+
+        .reset-card .card-body {
+            padding: 1.5rem 1.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="container py-5 mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-5">
-            <div class="card shadow border-0">
-                <div class="card-body p-4">
-                    <h3 class="mb-3 text-center">Definir nova senha</h3>
-                    <p class="text-muted text-center">
-                        Digite sua nova senha de acesso.
-                    </p>
-
-                    <form method="POST">
-                        {{ form.csrf_token }}
-
-                        <div class="mb-3">
-                            {{ form.senha.label(class="form-label") }}
-                            {{ form.senha(class="form-control") }}
+<section class="hero-bg py-4 py-md-5">
+    <div class="container reset-shell py-4 py-md-5 mt-4 mt-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-9 col-lg-7 col-xl-6">
+                <div class="card reset-card border-0">
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <img src="{{ url_for('static', filename='img/logobm.png') }}" width="92" height="92"
+                                alt="Logo CBMAM">
                         </div>
 
-                        <div class="mb-3">
-                            {{ form.confirmar_senha.label(class="form-label") }}
-                            {{ form.confirmar_senha(class="form-control") }}
+                        <div class="text-center">
+                            <span class="reset-badge">Atualização de credencial</span>
+                            <h2 class="reset-title">Definir nova senha de acesso</h2>
+                            <p class="reset-subtitle">
+                                Cadastre uma nova senha para concluir a recuperação de acesso ao sistema.
+                            </p>
                         </div>
 
-                        <div class="d-grid">
-                            {{ form.botao_submit(class="btn btn-success") }}
-                        </div>
-                    </form>
+                        <div class="brand-divider"></div>
+
+                        <form method="POST" novalidate>
+                            {{ form.csrf_token }}
+
+                            <div class="mb-3">
+                                {{ form.senha.label(class="form-label") }}
+                                {% if form.senha.errors %}
+                                {{ form.senha(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for erro in form.senha.errors %}
+                                    {{ erro }}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                {{ form.senha(class="form-control") }}
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.confirmar_senha.label(class="form-label") }}
+                                {% if form.confirmar_senha.errors %}
+                                {{ form.confirmar_senha(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for erro in form.confirmar_senha.errors %}
+                                    {{ erro }}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                {{ form.confirmar_senha(class="form-control") }}
+                                {% endif %}
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                {{ form.botao_submit(class="btn btn-reset-save") }}
+                            </div>
+
+                            <div class="tips-box">
+                                <div class="tips-box-title">Orientação de segurança</div>
+                                <p class="tips-box-text">
+                                    Utilize uma senha de fácil memorização para você, mas que não seja óbvia para outras
+                                    pessoas.
+                                </p>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
