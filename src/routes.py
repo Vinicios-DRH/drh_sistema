@@ -14,8 +14,6 @@ import matplotlib.pyplot as plt
 from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete_all_versions, b2_upload_fileobj
 from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
 from src.formatar_cpf import cadete_restantes, formatar_cpf, get_militar_por_user, is_cadete
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from flask import render_template, redirect, url_for, request, flash, jsonify, session, send_file, make_response, \
     Response, stream_with_context
 from flask_login import login_user, logout_user, login_required, current_user
