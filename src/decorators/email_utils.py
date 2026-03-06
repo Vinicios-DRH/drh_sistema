@@ -62,30 +62,54 @@ def send_reset_password_email(user, area: str) -> dict:
     subject = "CBMAM | DP - Redefinição de Senha"
 
     html = f"""
-    <div style="font:14px Arial,sans-serif;background:#f4f6f8;padding:20px">
-      <div style="max-width:560px;margin:auto;background:#fff;border:1px solid #dbe2ea">
-        <div style="background:#0f4fbf;color:#fff;padding:16px;text-align:center;font-weight:700">
-          CBMAM | Diretoria de Pessoal
+    <div style="font-family:Arial,sans-serif;background:#f4f6f8;padding:20px">
+    <div style="max-width:540px;margin:auto;background:#fff;border:1px solid #d0d7de">
+        
+        <div style="background:#0f4fbf;color:#fff;padding:16px;text-align:center">
+        <b>Corpo de Bombeiros Militar do Amazonas</b><br>
+        Diretoria de Pessoal
         </div>
+
         <div style="padding:22px;color:#1f2937">
-          <p>Prezado(a), <b>{user.nome or 'usuário(a)'}</b>.</p>
-          <p>Recebemos uma solicitação para redefinição de senha da <b>{area_label}</b>.</p>
-          <p style="text-align:center;margin:22px 0">
-            <a href="{reset_url}" style="background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700;display:inline-block">
-              REDEFINIR SENHA
+
+        <p>Prezado(a) <b>{user.nome or 'usuário(a)'}</b>,</p>
+
+        <p>
+        Foi registrada uma solicitação de redefinição de senha para acesso à
+        <b>{area_label}</b>.
+        </p>
+
+        <p style="text-align:center;margin:24px 0">
+            <a href="{reset_url}"
+            style="background:#dc2626;color:#fff;text-decoration:none;
+            padding:12px 20px;border-radius:6px;font-weight:bold">
+            REDEFINIR SENHA
             </a>
-          </p>
-          <p><b>Validade:</b> 30 minutos.</p>
-          <p style="font-size:12px;word-break:break-all;color:#0f4fbf">{reset_url}</p>
-          <p>Se não foi você, ignore esta mensagem.</p>
+        </p>
+
+        <p><b>Validade do link:</b> 30 minutos.</p>
+
+        <p style="font-size:12px;color:#555">
+        Caso o botão não funcione, utilize o link abaixo:
+        </p>
+
+        <p style="font-size:12px;color:#0f4fbf;word-break:break-all">
+        {reset_url}
+        </p>
+
+        <p style="font-size:13px;color:#555">
+        Se você não solicitou esta alteração, ignore este e-mail.
+        </p>
+
         </div>
+
         <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:12px;color:#6b7280">
-          Mensagem automática do sistema BM-6/CBMAM.
+        Sistema BM-6 / CBMAM • Mensagem automática
         </div>
-      </div>
+
+    </div>
     </div>
     """
-
     # minifica o HTML para caber melhor na URL
     html = re.sub(r">\s+<", "><", html)
     html = re.sub(r"\s{2,}", " ", html).strip()
