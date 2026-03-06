@@ -85,6 +85,32 @@
             background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_4_768.webp') }}") 1x);
         }
     }
+
+    /* BOTÃO ESQUECI SENHA ULTRA VISÍVEL */
+    .btn-reset-senha {
+        background: linear-gradient(135deg, #dc3545, #ff4d5a);
+        border: none;
+        color: white;
+        font-weight: 700;
+        letter-spacing: .5px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 15px;
+        box-shadow: 0 6px 20px rgba(220, 53, 69, .45);
+        transition: all .25s ease;
+    }
+
+    .btn-reset-senha:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(220, 53, 69, .6);
+        background: linear-gradient(135deg, #c82333, #ff3a47);
+    }
+
+    .reset-hint {
+        font-size: 12px;
+        color: rgba(255, 255, 255, .75);
+        margin-top: 6px;
+    }
 </style>
 {% endblock %}
 
@@ -140,6 +166,15 @@
                                 <div class="col-12">
                                     <div class="d-grid my-3">
                                         {{ form_login.botao_submit_login(class="btn btn-outline-primary mt-2") }}
+                                    </div>
+                                    <div class="d-grid mt-2">
+                                        <a href="{{ url_for('esqueci_senha_militar') }}" class="btn btn-reset-senha">
+                                            🔑 ESQUECI MINHA SENHA
+                                        </a>
+                                        <div class="reset-hint text-center">
+                                            Esqueceu a senha? NÃO precisa ligar para a DP.
+                                            Clique aqui e recupere sozinho.
+                                        </div>
                                     </div>
                                 </div>
                             </div>

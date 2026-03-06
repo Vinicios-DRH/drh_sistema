@@ -33,7 +33,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 app.config['PAF_ANO_VIGENTE'] = 2026
-
+PUBLIC_BASE_URL = "https://drhsistema-production.up.railway.app"
 # --- flags para rodar só uma vez por worker ---
 _pool_warmed = False
 _pool_warm_lock = threading.Lock()

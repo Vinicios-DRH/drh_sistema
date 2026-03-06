@@ -22,7 +22,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormFiltroMilitar, FormMilitarInativo,
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
@@ -49,6 +49,8 @@ from collections import defaultdict, Counter
 from docx.shared import Pt
 from docx.oxml.ns import qn
 from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
+from src.decorators.email_utils import send_email, send_reset_password_email, verify_password_reset_token
+from src.decorators.password_utils import generate_temp_password
 import re
 import plotly.graph_objs as go
 import plotly.io as pio
@@ -182,6 +184,95 @@ def api_login():
         }), 200
     else:
         return jsonify({"status": "erro", "mensagem": "CPF ou senha inválidos"}), 401
+
+# RESET DE SENHA - ROTA PÚBLICA PARA SOLICITAÇÃO DE LINK POR E-MAIL, SEM REQUERER LOGIN
+
+@app.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha_admin():
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+
+    form = FormEsqueciSenha()
+
+    if form.validate_on_submit():
+        cpf_informado = form.cpf.data.strip()
+
+        # mesma lógica do login admin
+        usuario = User.query.filter_by(cpf=cpf_informado).first()
+
+        # resposta genérica para não ficar revelando conta válida/inválida
+        if usuario and usuario.email and usuario.funcao_user_id != 12:
+            try:
+                send_reset_password_email(usuario, area="admin")
+            except Exception as e:
+                print(f"Erro ao enviar e-mail admin: {e}")
+
+        flash("Se existir uma conta com esse CPF e e-mail válido, enviaremos um link de recuperação.", "info")
+        return redirect(url_for("login"))
+
+    return render_template("auth/esqueci_senha_admin.html", form=form)
+
+
+@app.route("/esqueci-senha-militar", methods=["GET", "POST"])
+def esqueci_senha_militar():
+    if current_user.is_authenticated:
+        return redirect(url_for("home_atualizacao"))
+
+    form = FormEsqueciSenha()
+
+    if form.validate_on_submit():
+        cpf_formatado = form.cpf.data.strip()
+
+        # mesma lógica do login militar
+        usuario = User.query.filter_by(
+            cpf=cpf_formatado, funcao_user_id=12).first()
+
+        if usuario and usuario.email:
+            try:
+                send_reset_password_email(usuario, area="militar")
+            except Exception as e:
+                print(f"Erro ao enviar e-mail militar: {e}")
+
+        flash("Se existir uma conta com esse CPF e e-mail válido, enviaremos um link de recuperação.", "info")
+        return redirect(url_for("login_atualizacao"))
+
+    return render_template("auth/esqueci_senha_militar.html", form=form)
+
+
+@app.route("/resetar-senha/<token>", methods=["GET", "POST"])
+def resetar_senha_publica(token):
+    if current_user.is_authenticated:
+        logout_user()
+
+    data = verify_password_reset_token(token)
+
+    if not data:
+        flash("Este link é inválido ou expirou.", "danger")
+        return redirect(url_for("login"))
+
+    user_id = data.get("user_id")
+    area = data.get("area")
+
+    usuario = User.query.get(user_id)
+    if not usuario:
+        flash("Usuário não encontrado.", "danger")
+        return redirect(url_for("login"))
+
+    form = FormResetarSenhaPublica()
+
+    if form.validate_on_submit():
+        usuario.senha = bcrypt.generate_password_hash(
+            form.senha.data).decode("utf-8")
+        database.session.commit()
+
+        flash(
+            "Sua senha foi redefinida com sucesso. Faça login com a nova senha.", "success")
+
+        if area == "militar":
+            return redirect(url_for("login_atualizacao"))
+        return redirect(url_for("login"))
+
+    return render_template("auth/resetar_senha_publica.html", form=form, area=area)
 
 
 @app.route("/")
@@ -4952,91 +5043,6 @@ def confirmar_matricula():
     return render_template('atualizacao/confirmar_matricula.html',
                            form=form, cpf=cpf, militar_nome=nome_pessoa,
                            matricula=matricula_oficial)
-
-
-# @app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
-# def criar_senha(cpf):
-#     cpf = formatar_cpf(cpf)
-
-#     # 🔒 checagem de fluxo e correspondência
-#     if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
-#         flash("Valide sua identidade antes de criar a senha.", "warning")
-#         return redirect(url_for('atualizacao_cadastral'))
-
-#     pessoa_tipo = session.get('pessoa_tipo')
-#     pessoa_id = session.get('pessoa_id')
-#     if not pessoa_tipo or not pessoa_id:
-#         flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
-#         return redirect(url_for('atualizacao_cadastral'))
-
-#     form = CriarSenhaForm()
-
-#     # Já tem conta?
-#     if User.query.filter_by(cpf=cpf).first():
-#         flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
-#         _limpa_sessao_validacao()
-#         return redirect(url_for('login'))
-
-#     # Carrega a pessoa do tipo correto
-#     if pessoa_tipo == 'militar':
-#         pessoa = Militar.query.get(pessoa_id)
-#         if not pessoa:
-#             flash("❌ Militar não encontrado para este CPF.", "danger")
-#             _limpa_sessao_validacao()
-#             return redirect(url_for('atualizacao_cadastral'))
-#         nome_user = getattr(pessoa, 'nome_completo',
-#                             getattr(pessoa, 'nome', ''))
-#     else:
-#         pessoa = FichaAlunos.query.get(pessoa_id)
-#         if not pessoa:
-#             flash("❌ Aluno não encontrado para este CPF.", "danger")
-#             _limpa_sessao_validacao()
-#             return redirect(url_for('atualizacao_cadastral'))
-#         nome_user = getattr(pessoa, 'nome_completo', '')
-
-#     if form.validate_on_submit():
-#         senha_hash = bcrypt.generate_password_hash(
-#             form.senha.data).decode('utf-8')
-
-#         novo_usuario = User(
-#             nome=nome_user or '',
-#             cpf=cpf,  # com máscara
-#             email=session.get('email_atualizacao'),
-#             senha=senha_hash,
-#             funcao_user_id=12  # USUÁRIO COMUM
-#         )
-
-#         if pessoa_tipo == 'militar':
-#             # Mantém suas atribuições extras para militar
-#             obm_id_1, obm_id_2 = _obms_ativas_do_militar(pessoa.id)
-#             if hasattr(novo_usuario, 'obm_id_1'):
-#                 novo_usuario.obm_id_1 = obm_id_1
-#             if hasattr(novo_usuario, 'obm_id_2'):
-#                 novo_usuario.obm_id_2 = obm_id_2
-#             if hasattr(novo_usuario, 'localidade_id'):
-#                 novo_usuario.localidade_id = getattr(
-#                     pessoa, 'localidade_id', None)
-#         else:
-#             # 👉 Requisito: todos os alunos são da OBM 26
-#             if hasattr(novo_usuario, 'obm_id_1'):
-#                 novo_usuario.obm_id_1 = 26
-#             if hasattr(novo_usuario, 'obm_id_2'):
-#                 novo_usuario.obm_id_2 = None
-#             if hasattr(novo_usuario, 'localidade_id'):
-#                 novo_usuario.localidade_id = None  # ajuste se necessário
-
-#         database.session.add(novo_usuario)
-#         database.session.flush()
-#         database.session.commit()
-
-#         if pessoa_tipo == 'militar':
-#             pessoa.usuario_id = novo_usuario.id
-
-#         _limpa_sessao_validacao()
-#         flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
-#         return redirect(url_for('login_atualizacao'))
-
-#     return render_template('atualizacao/criar_senha.html', form=form, cpf=cpf)
 
 
 def _limpa_sessao_validacao():

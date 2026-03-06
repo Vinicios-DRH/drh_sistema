@@ -4,7 +4,6 @@ from src.models import (
     MilitaresAgregados, MilitaresADisposicao,
     LicencaEspecial, LicencaParaTratamentoDeSaude
 )
-from src.decorators.email_utils import enviar_email
 
 
 def _hoje():
