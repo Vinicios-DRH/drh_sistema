@@ -2022,6 +2022,7 @@ def tabela_militares():
                 'nome_completo': militar.nome_completo,
                 'nome_guerra': militar.nome_guerra,
                 'sexo': sexo_exibe,  # <-- NOVO
+                'raca': militar.raca or 'N/A',  # <-- NOVO
                 'cpf': militar.cpf,
                 'rg': militar.rg,
                 'matricula': militar.matricula,
