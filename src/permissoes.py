@@ -144,4 +144,15 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_TAF_PAINEL", "nome": "Menu: TAF > Painel de Avaliações"},
     {"codigo": "TAF_PAINEL_READ", "nome": "TAF Painel: Consultar avaliações"},
     {"codigo": "TAF_PAINEL_EXPORT", "nome": "TAF Painel: Exportar relatórios"},
+
+    # ===== Atualização Cadastral =====
+    {"codigo": "NAV_ATUALIZACAO_CADASTRAL", "nome": "Menu: Atualização Cadastral"},
+    {"codigo": "NAV_ATUALIZACAO_CADASTRAL_PAINEL",
+        "nome": "Menu: Gestão Cadastral (grupo)"},
+    {"codigo": "NAV_ATUALIZACAO_CADASTRAL_AUDITORIA",
+        "nome": "Menu: Gestão Cadastral > Auditoria"},
+    {"codigo": "ATUALIZACAO_CADASTRAL_PAINEL_READ",
+        "nome": "Atualização Cadastral: Consultar painel"},
+    {"codigo": "ATUALIZACAO_CADASTRAL_AUDITORIA_READ",
+        "nome": "Atualização Cadastral: Consultar auditoria"},
 ]

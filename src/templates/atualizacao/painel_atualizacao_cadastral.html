@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    .panel-page {
+        background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+        min-height: 100vh;
+        padding: 2rem 0 3rem;
+    }
+
+    .panel-shell {
+        max-width: 1350px;
+        margin: 0 auto;
+    }
+
+    .panel-hero {
+        border: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        background:
+            linear-gradient(135deg, rgba(8, 38, 74, .96), rgba(22, 92, 160, .94));
+        color: #fff;
+        box-shadow: 0 18px 45px rgba(13, 59, 102, .18);
+    }
+
+    .panel-hero .card-body {
+        padding: 1.5rem;
+    }
+
+    .panel-hero h2 {
+        font-weight: 800;
+        margin-bottom: .35rem;
+    }
+
+    .hero-text {
+        color: rgba(255, 255, 255, .86);
+        margin-bottom: 0;
+    }
+
+    .kpi-card {
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(16, 24, 40, .08);
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .kpi-card .card-body {
+        padding: 1.2rem 1.25rem;
+    }
+
+    .kpi-label {
+        color: #64748b;
+        font-weight: 700;
+        font-size: .9rem;
+        margin-bottom: .35rem;
+    }
+
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: .35rem;
+        color: #0f172a;
+    }
+
+    .kpi-sub {
+        color: #6b7280;
+        font-size: .9rem;
+    }
+
+    .filter-card,
+    .table-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 14px 32px rgba(16, 24, 40, .08);
+        overflow: hidden;
+    }
+
+    .filter-card .card-body,
+    .table-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid #d9e3ef;
+        box-shadow: none !important;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #2b6cb0;
+        box-shadow: 0 0 0 .2rem rgba(43, 108, 176, .12) !important;
+    }
+
+    .btn-filter {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #0b4a7d, #1769aa);
+        color: #fff;
+    }
+
+    .btn-filter:hover {
+        color: #fff;
+    }
+
+    .btn-outline-soft {
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 700;
+        border: 1px solid #d6e1ed;
+        background: #fff;
+        color: #294b73;
+    }
+
+    .table thead th {
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #5b6f87;
+        border-bottom: 1px solid #e8eef5;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding-top: .95rem;
+        padding-bottom: .95rem;
+        border-color: #eef3f7;
+    }
+
+    .militar-name {
+        font-weight: 800;
+        color: #17375e;
+        margin-bottom: .15rem;
+    }
+
+    .militar-meta {
+        color: #6b7f96;
+        font-size: .88rem;
+    }
+
+    .status-badge {
+        border-radius: 999px;
+        padding: .55rem .8rem;
+        font-weight: 800;
+        font-size: .8rem;
+        display: inline-block;
+    }
+
+    .status-ok {
+        background: #e9f9ef;
+        color: #177245;
+        border: 1px solid #bfe9cb;
+    }
+
+    .status-pending {
+        background: #fff7e8;
+        color: #9a6700;
+        border: 1px solid #f5daa4;
+    }
+
+    .progress-wrap {
+        background: #edf3f9;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .progress-bar-soft {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+    }
+
+    .empty-box {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+
+        .panel-hero .card-body,
+        .filter-card .card-body,
+        .table-card .card-body {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="panel-page">
+    <div class="container-fluid panel-shell">
+
+        <div class="card panel-hero mb-4">
+            <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <h2>Painel de Atualização Cadastral</h2>
+                    <p class="hero-text">
+                        Acompanhe os militares que concluíram ou ainda não concluíram a atualização dos dados
+                        cadastrais.
+                    </p>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('atualizacao_cadastral.auditoria') }}" class="btn btn-light fw-bold px-4">
+                        Ver auditoria
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card">
+                    <div class="card-body">
+                        <div class="kpi-label">Total de militares</div>
+                        <div class="kpi-value">{{ total }}</div>
+                        <div class="kpi-sub">Base monitorada no sistema</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card">
+                    <div class="card-body">
+                        <div class="kpi-label">Cadastros concluídos</div>
+                        <div class="kpi-value text-success">{{ total_atualizado }}</div>
+                        <div class="kpi-sub">Militares com atualização completa</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card">
+                    <div class="card-body">
+                        <div class="kpi-label">Cadastros pendentes</div>
+                        <div class="kpi-value text-warning">{{ total_pendente }}</div>
+                        <div class="kpi-sub">Militares com pendência cadastral</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card">
+                    <div class="card-body">
+                        <div class="kpi-label">Percentual concluído</div>
+                        <div class="kpi-value text-primary">{{ percentual }}%</div>
+                        <div class="kpi-sub mb-2">Taxa geral de conclusão</div>
+                        <div class="progress-wrap">
+                            <div class="progress-bar-soft" style="width: {{ percentual }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label fw-bold">Busca</label>
+                        <input type="text" name="q" class="form-control"
+                            placeholder="Digite nome completo, matrícula ou nome de guerra" value="{{ q }}">
+                    </div>
+
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="atualizado" {% if status=='atualizado' %}selected{% endif %}>Atualizados
+                            </option>
+                            <option value="pendente" {% if status=='pendente' %}selected{% endif %}>Pendentes</option>
+                        </select>
+                    </div>
+
+                    <div class="col-6 col-lg-2 d-grid">
+                        <button class="btn btn-filter">Filtrar</button>
+                    </div>
+
+                    <div class="col-6 col-lg-1 d-grid">
+                        <a href="{{ url_for('atualizacao_cadastral.painel') }}" class="btn btn-outline-soft">Limpar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1 fw-bold">Militares monitorados</h5>
+                        <div class="text-muted small">Resultado da consulta no painel administrativo.</div>
+                    </div>
+                    <span class="badge text-bg-secondary px-3 py-2">{{ militares|length }} registro(s)</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Militar</th>
+                                <th>Matrícula</th>
+                                <th>Posto/Grad</th>
+                                <th>Status</th>
+                                <th>Última atualização</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for militar in militares %}
+                            <tr>
+                                <td>
+                                    <div class="militar-name">{{ militar.nome_completo }}</div>
+                                    <div class="militar-meta">
+                                        {% if militar.nome_guerra %}Nome de guerra: {{ militar.nome_guerra }}{% else
+                                        %}Sem nome de guerra informado{% endif %}
+                                    </div>
+                                </td>
+                                <td>{{ militar.matricula or "-" }}</td>
+                                <td>{{ militar.posto_grad.sigla if militar.posto_grad else "-" }}</td>
+                                <td>
+                                    {% if militar.cadastro_atualizado %}
+                                    <span class="status-badge status-ok">Atualizado</span>
+                                    {% else %}
+                                    <span class="status-badge status-pending">Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if militar.atualizacao_cadastral_em %}
+                                    {{ militar.atualizacao_cadastral_em.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                    <span class="text-muted">Sem registro</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-box">
+                                        Nenhum militar encontrado com os filtros informados.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

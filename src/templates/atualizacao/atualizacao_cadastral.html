@@ -1,0 +1,632 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    .cad-page {
+        background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+        min-height: 100vh;
+        padding: 2rem 0 3rem;
+    }
+
+    .cad-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .hero-card {
+        border: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        background:
+            linear-gradient(135deg, rgba(7, 40, 83, .96), rgba(11, 84, 155, .92)),
+            linear-gradient(135deg, #0d3b66, #145da0);
+        color: #fff;
+        box-shadow: 0 18px 45px rgba(13, 59, 102, .18);
+    }
+
+    .hero-content {
+        padding: 1.5rem 1.5rem;
+    }
+
+    .hero-title {
+        font-weight: 800;
+        letter-spacing: .2px;
+        margin-bottom: .35rem;
+    }
+
+    .hero-subtitle {
+        color: rgba(255, 255, 255, .88);
+        margin-bottom: 0;
+    }
+
+    .hero-badge {
+        background: rgba(255, 255, 255, .14);
+        border: 1px solid rgba(255, 255, 255, .18);
+        color: #fff;
+        border-radius: 999px;
+        padding: .55rem .95rem;
+        font-weight: 600;
+        font-size: .9rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .status-alert {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(19, 33, 68, .08);
+    }
+
+    .status-alert strong {
+        font-weight: 800;
+    }
+
+    .main-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 15px 35px rgba(16, 24, 40, .08);
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .main-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .section-block {
+        border: 1px solid #e7edf5;
+        border-radius: 18px;
+        padding: 1.15rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        height: 100%;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        margin-bottom: 1rem;
+        font-weight: 800;
+        color: #123b6d;
+        font-size: 1.02rem;
+    }
+
+    .section-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+        color: #0f4c81;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .form-label {
+        font-weight: 700;
+        color: #26415f;
+        margin-bottom: .45rem;
+        font-size: .92rem;
+    }
+
+    .form-control,
+    .form-select,
+    textarea.form-control {
+        border-radius: 14px;
+        border: 1px solid #d7e2ef;
+        min-height: 46px;
+        box-shadow: none !important;
+        padding-left: .95rem;
+        padding-right: .95rem;
+    }
+
+    textarea.form-control {
+        min-height: 110px;
+        padding-top: .8rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #2b6cb0;
+        box-shadow: 0 0 0 .2rem rgba(43, 108, 176, .12) !important;
+    }
+
+    .static-field {
+        min-height: 46px;
+        border-radius: 14px;
+        padding: .75rem .95rem;
+        background: #f6f9fc;
+        border: 1px solid #e4ebf3;
+        color: #26415f;
+        font-weight: 600;
+    }
+
+    .switch-box {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        min-height: 46px;
+        padding: .75rem .95rem;
+        border-radius: 14px;
+        border: 1px solid #d7e2ef;
+        background: #fbfdff;
+    }
+
+    .switch-box .form-check-input {
+        width: 2.5rem;
+        height: 1.25rem;
+        margin-top: 0;
+    }
+
+    .switch-box .form-check-label {
+        font-weight: 700;
+        color: #26415f;
+    }
+
+    .pending-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: .85rem;
+    }
+
+    .pending-pill {
+        background: #fff8e6;
+        color: #8a6116;
+        border: 1px solid #f3d596;
+        border-radius: 999px;
+        padding: .35rem .7rem;
+        font-size: .85rem;
+        font-weight: 700;
+    }
+
+    .action-bar {
+        position: sticky;
+        bottom: 12px;
+        z-index: 5;
+        margin-top: 1.5rem;
+    }
+
+    .action-card {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 26px rgba(16, 24, 40, .12);
+        background: rgba(255, 255, 255, .92);
+        backdrop-filter: blur(8px);
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #0b4a7d, #1769aa);
+        color: #fff;
+        border: 0;
+        border-radius: 14px;
+        font-weight: 800;
+        padding: .85rem 1.35rem;
+    }
+
+    .btn-save:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .subtext {
+        color: #5a718c;
+        font-size: .92rem;
+    }
+
+    @media (max-width: 768px) {
+        .hero-content {
+            padding: 1.25rem;
+        }
+
+        .main-card .card-body {
+            padding: 1rem;
+        }
+
+        .section-block {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="cad-page">
+    <div class="container-fluid cad-shell">
+
+        <div class="card hero-card mb-4">
+            <div class="hero-content">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div>
+                        <h2 class="hero-title">Atualização Cadastral</h2>
+                        <p class="hero-subtitle">
+                            Mantenha seus dados pessoais, de contato e medidas atualizados no sistema institucional.
+                        </p>
+                    </div>
+
+                    <div class="text-md-end">
+                        <div class="hero-badge mb-2 d-inline-flex">
+                            Matrícula: {{ militar.matricula or "-" }}
+                        </div>
+                        <div>
+                            {% if militar.atualizacao_cadastral_em %}
+                            <span class="hero-badge">
+                                Última atualização: {{ militar.atualizacao_cadastral_em.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
+                            {% else %}
+                            <span class="hero-badge">Nenhuma atualização registrada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <div class="fw-bold fs-5">{{ militar.nome_completo }}</div>
+                    <div class="hero-subtitle">
+                        {{ militar.posto_grad.sigla if militar.posto_grad else "Posto/Graduação não informado" }}
+                        {% if militar.nome_guerra %}• Nome de guerra: {{ militar.nome_guerra }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% set labels_campos = {
+        'grau_instrucao': 'Grau de instrução',
+        'raca': 'Raça/Cor',
+        'nome_pai': 'Nome do pai',
+        'nome_mae': 'Nome da mãe',
+        'estado_civil': 'Estado civil',
+        'data_nascimento': 'Data de nascimento',
+        'inclusao': 'Data de inclusão',
+        'endereco': 'Endereço',
+        'cidade': 'Cidade',
+        'estado': 'UF',
+        'cep': 'CEP',
+        'celular': 'Celular',
+        'email': 'E-mail',
+        'local_nascimento': 'Local de nascimento',
+        'altura': 'Altura',
+        'cor_olhos': 'Cor dos olhos',
+        'cor_cabelos': 'Cor dos cabelos',
+        'medida_cabeca': 'Medida da cabeça',
+        'numero_sapato': 'Número do sapato',
+        'medida_calca': 'Medida da calça',
+        'medida_camisa': 'Medida da camisa',
+        'tipo_sanguineo': 'Tipo sanguíneo',
+        'local_tatuagem': 'Local da tatuagem'
+        } %}
+
+        {% if not cadastro_completo %}
+        <div class="alert alert-warning status-alert mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <div class="fw-bold fs-5 mb-1">Seu cadastro ainda está incompleto</div>
+                    <div class="subtext">
+                        Ainda faltam <strong>{{ campos_pendentes|length }}</strong> campo(s) obrigatório(s) para
+                        concluir sua atualização cadastral.
+                    </div>
+
+                    {% if campos_pendentes %}
+                    <div class="pending-list">
+                        {% for campo in campos_pendentes %}
+                        <span class="pending-pill">{{ labels_campos.get(campo, campo|replace('_', ' ')|title) }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <span class="badge text-bg-warning px-3 py-2 fs-6">Pendente</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success status-alert mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <div class="fw-bold fs-5 mb-1">Cadastro completo</div>
+                    <div class="subtext">
+                        Seus dados obrigatórios já estão preenchidos e atualizados no sistema.
+                    </div>
+                </div>
+                <span class="badge text-bg-success px-3 py-2 fs-6">Concluído</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card main-card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.csrf_token }}
+
+                    <div class="row g-4">
+                        <div class="col-12 col-xl-6">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">1</span>
+                                    Dados funcionais básicos
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nome completo</label>
+                                        <div class="static-field">{{ militar.nome_completo or "-" }}</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">CPF</label>
+                                        <div class="static-field">{{ militar.cpf or "-" }}</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Matrícula</label>
+                                        <div class="static-field">{{ militar.matricula or "-" }}</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Posto/Graduação</label>
+                                        <div class="static-field">{{ militar.posto_grad.sigla if militar.posto_grad else
+                                            "-" }}</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nome de guerra</label>
+                                        <div class="static-field">{{ militar.nome_guerra or "-" }}</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">RG</label>
+                                        <div class="static-field">{{ militar.rg or "-" }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-xl-6">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">2</span>
+                                    Formação acadêmica
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        {{ form.grau_instrucao.label(class="form-label") }}
+                                        {{ form.grau_instrucao(class="form-select") }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.graduacao.label(class="form-label") }}
+                                        {{ form.graduacao(class="form-control", placeholder="Informe sua graduação") }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.pos_graduacao.label(class="form-label") }}
+                                        {{ form.pos_graduacao(class="form-control", placeholder="Informe sua
+                                        pós-graduação") }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.mestrado.label(class="form-label") }}
+                                        {{ form.mestrado(class="form-control", placeholder="Informe seu mestrado") }}
+                                    </div>
+                                    <div class="col-md-12">
+                                        {{ form.doutorado.label(class="form-label") }}
+                                        {{ form.doutorado(class="form-control", placeholder="Informe seu doutorado") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">3</span>
+                                    Dados pessoais
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        {{ form.nome_pai.label(class="form-label") }}
+                                        {{ form.nome_pai(class="form-control", placeholder="Informe o nome do pai") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {{ form.nome_mae.label(class="form-label") }}
+                                        {{ form.nome_mae(class="form-control", placeholder="Informe o nome da mãe") }}
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        {{ form.data_nascimento.label(class="form-label") }}
+                                        {{ form.data_nascimento(class="form-control", type="date") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.inclusao.label(class="form-label") }}
+                                        {{ form.inclusao(class="form-control", type="date") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.raca.label(class="form-label") }}
+                                        {{ form.raca(class="form-select") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.estado_civil.label(class="form-label") }}
+                                        {{ form.estado_civil(class="form-select") }}
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        {{ form.local_nascimento.label(class="form-label") }}
+                                        {{ form.local_nascimento(class="form-control", placeholder="Cidade/UF de
+                                        nascimento") }}
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        {{ form.altura.label(class="form-label") }}
+                                        {{ form.altura(class="form-control", step="0.01", placeholder="Ex: 1.75") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.cor_olhos.label(class="form-label") }}
+                                        {{ form.cor_olhos(class="form-control", placeholder="Ex: Castanho") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.cor_cabelos.label(class="form-label") }}
+                                        {{ form.cor_cabelos(class="form-control", placeholder="Ex: Preto") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-xl-6">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">4</span>
+                                    Endereço e contato
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        {{ form.endereco.label(class="form-label") }}
+                                        {{ form.endereco(class="form-control", placeholder="Rua, avenida, número") }}
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        {{ form.complemento.label(class="form-label") }}
+                                        {{ form.complemento(class="form-control", placeholder="Apartamento, bloco,
+                                        referência") }}
+                                    </div>
+
+                                    <div class="col-md-5">
+                                        {{ form.cidade.label(class="form-label") }}
+                                        {{ form.cidade(class="form-control", placeholder="Cidade") }}
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        {{ form.estado.label(class="form-label") }}
+                                        {{ form.estado(class="form-select") }}
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        {{ form.cep.label(class="form-label") }}
+                                        {{ form.cep(class="form-control", placeholder="00000-000") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {{ form.celular.label(class="form-label") }}
+                                        {{ form.celular(class="form-control", placeholder="(92) 99999-9999") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {{ form.email.label(class="form-label") }}
+                                        {{ form.email(class="form-control", placeholder="voce@email.com") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-xl-6">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">5</span>
+                                    Medidas e características
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        {{ form.medida_cabeca.label(class="form-label") }}
+                                        {{ form.medida_cabeca(class="form-control", placeholder="Ex: 58") }}
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        {{ form.numero_sapato.label(class="form-label") }}
+                                        {{ form.numero_sapato(class="form-control", placeholder="Ex: 41") }}
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        {{ form.tipo_sanguineo.label(class="form-label") }}
+                                        {{ form.tipo_sanguineo(class="form-select") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {{ form.medida_calca.label(class="form-label") }}
+                                        {{ form.medida_calca(class="form-control", placeholder="Ex: 42") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {{ form.medida_camisa.label(class="form-label") }}
+                                        {{ form.medida_camisa(class="form-control", placeholder="Ex: M, G ou 3") }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label d-block">Bigode</label>
+                                        <div class="switch-box">
+                                            {{ form.bigode(class="form-check-input") }}
+                                            {{ form.bigode.label(class="form-check-label mb-0") }}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label d-block">Tatuagem</label>
+                                        <div class="switch-box">
+                                            {{ form.tatuagem(class="form-check-input", id="tatuagemCheck") }}
+                                            {{ form.tatuagem.label(class="form-check-label mb-0") }}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12" id="localTatuagemWrapper">
+                                        {{ form.local_tatuagem.label(class="form-label") }}
+                                        {{ form.local_tatuagem(class="form-control", placeholder="Informe o local da
+                                        tatuagem") }}
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        {{ form.sinais_particulares.label(class="form-label") }}
+                                        {{ form.sinais_particulares(class="form-control", rows="4",
+                                        placeholder="Descreva sinais particulares, se houver") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-bar">
+                        <div class="card action-card">
+                            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div>
+                                    <div class="fw-bold text-dark">Revise os dados antes de salvar</div>
+                                    <div class="subtext">
+                                        As informações registradas serão utilizadas para fins administrativos e
+                                        cadastrais.
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <a href="javascript:history.back()" class="btn btn-light px-4">Voltar</a>
+                                    {{ form.botao_submit(class="btn btn-save") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function toggleLocalTatuagem() {
+        const check = document.getElementById("tatuagemCheck");
+        const wrapper = document.getElementById("localTatuagemWrapper");
+        if (!check || !wrapper) return;
+        wrapper.style.display = check.checked ? "block" : "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleLocalTatuagem();
+        const check = document.getElementById("tatuagemCheck");
+        if (check) {
+            check.addEventListener("change", toggleLocalTatuagem);
+        }
+    });
+</script>
+{% endblock %}

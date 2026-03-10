@@ -1,0 +1,298 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask_login import login_required, current_user
+from sqlalchemy import or_
+from src.authz import require_perm
+from src import database
+from src.models import (
+    Militar,
+    EstadoCivil,
+    PostoGrad,
+    AuditoriaAtualizacaoCadastral,
+)
+from src.forms import AtualizacaoCadastralForm
+from src.utils.cadastro_status import (
+    cadastro_esta_completo,
+    get_campos_pendentes_cadastro,
+)
+
+# Se tu tiver decorator de permissão, descomenta
+# from src.authz import require_perm
+
+bp_atualizacao_cadastral = Blueprint(
+    "atualizacao_cadastral",
+    __name__,
+    url_prefix="/atualizacao-cadastral"
+)
+
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def agora_manaus():
+    return datetime.now(MANAUS_TZ)
+
+
+def _get_client_ip():
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.remote_addr
+
+
+def _get_militar_do_usuario():
+    if not current_user.is_authenticated:
+        return None
+
+    if not current_user.militar_id:
+        return None
+
+    return Militar.query.get(current_user.militar_id)
+
+
+def _registrar_auditoria(militar_id, observacao="Militar realizou atualização cadastral."):
+    auditoria = AuditoriaAtualizacaoCadastral(
+        militar_id=militar_id,
+        user_id=current_user.id,
+        acao="ATUALIZACAO_CADASTRAL",
+        ip_address=_get_client_ip(),
+        user_agent=request.headers.get("User-Agent"),
+        criado_em=agora_manaus(),
+        observacao=observacao
+    )
+    database.session.add(auditoria)
+
+
+@bp_atualizacao_cadastral.route("/", methods=["GET", "POST"])
+@login_required
+def atualizar():
+    militar = _get_militar_do_usuario()
+
+    if not militar:
+        flash("Seu usuário não está vinculado a um cadastro de militar.", "danger")
+        return redirect(url_for("home"))
+
+    form = AtualizacaoCadastralForm()
+
+    # carrega estado civil do banco
+    form.estado_civil.choices = [("", "Selecione")] + [
+        (str(item.id), item.estado)
+        for item in EstadoCivil.query.order_by(EstadoCivil.estado.asc()).all()
+    ]
+
+    if form.validate_on_submit():
+        try:
+            # Campos já existentes
+            militar.grau_instrucao = form.grau_instrucao.data or None
+            militar.graduacao = form.graduacao.data or None
+            militar.pos_graduacao = form.pos_graduacao.data or None
+            militar.mestrado = form.mestrado.data or None
+            militar.doutorado = form.doutorado.data or None
+            militar.raca = form.raca.data or None
+
+            militar.nome_pai = form.nome_pai.data or None
+            militar.nome_mae = form.nome_mae.data or None
+            militar.estado_civil = int(
+                form.estado_civil.data) if form.estado_civil.data else None
+            militar.data_nascimento = form.data_nascimento.data
+            militar.inclusao = form.inclusao.data
+
+            militar.endereco = form.endereco.data or None
+            militar.complemento = form.complemento.data or None
+            militar.cidade = form.cidade.data or None
+            militar.estado = form.estado.data or None
+            militar.cep = form.cep.data or None
+            militar.celular = form.celular.data or None
+            militar.email = form.email.data or None
+
+            # Novos campos
+            militar.local_nascimento = form.local_nascimento.data or None
+            militar.altura = form.altura.data
+            militar.cor_olhos = form.cor_olhos.data or None
+            militar.cor_cabelos = form.cor_cabelos.data or None
+            militar.bigode = bool(form.bigode.data)
+
+            militar.medida_cabeca = form.medida_cabeca.data or None
+            militar.numero_sapato = form.numero_sapato.data or None
+            militar.medida_calca = form.medida_calca.data or None
+            militar.medida_camisa = form.medida_camisa.data or None
+
+            militar.tipo_sanguineo = form.tipo_sanguineo.data or None
+            militar.sinais_particulares = form.sinais_particulares.data or None
+
+            militar.tatuagem = bool(form.tatuagem.data)
+            militar.local_tatuagem = (
+                form.local_tatuagem.data or None
+                if form.tatuagem.data else None
+            )
+
+            # Auditoria / controle
+            militar.atualizacao_cadastral_em = agora_manaus()
+            militar.ip_address = _get_client_ip()
+            militar.cadastro_atualizado = cadastro_esta_completo(militar)
+
+            _registrar_auditoria(
+                militar_id=militar.id,
+                observacao="Militar realizou atualização cadastral no próprio perfil."
+            )
+
+            database.session.commit()
+
+            if militar.cadastro_atualizado:
+                flash(
+                    "Atualização cadastral salva com sucesso. Seu cadastro está completo.", "success")
+            else:
+                pendentes = get_campos_pendentes_cadastro(militar)
+                flash(
+                    f"Atualização salva, mas ainda existem {len(pendentes)} campo(s) pendente(s).",
+                    "warning"
+                )
+
+            return redirect(url_for("atualizacao_cadastral.atualizar"))
+
+        except Exception as e:
+            database.session.rollback()
+            flash(f"Erro ao salvar atualização cadastral: {str(e)}", "danger")
+
+    elif request.method == "GET":
+        # pré-carrega dados existentes
+        form.grau_instrucao.data = militar.grau_instrucao
+        form.graduacao.data = militar.graduacao
+        form.pos_graduacao.data = militar.pos_graduacao
+        form.mestrado.data = militar.mestrado
+        form.doutorado.data = militar.doutorado
+        form.raca.data = militar.raca
+
+        form.nome_pai.data = militar.nome_pai
+        form.nome_mae.data = militar.nome_mae
+        form.estado_civil.data = str(
+            militar.estado_civil) if militar.estado_civil else ""
+        form.data_nascimento.data = militar.data_nascimento
+        form.inclusao.data = militar.inclusao
+
+        form.endereco.data = militar.endereco
+        form.complemento.data = militar.complemento
+        form.cidade.data = militar.cidade
+        form.estado.data = militar.estado
+        form.cep.data = militar.cep
+        form.celular.data = militar.celular
+        form.email.data = militar.email
+
+        form.local_nascimento.data = militar.local_nascimento
+        form.altura.data = militar.altura
+        form.cor_olhos.data = militar.cor_olhos
+        form.cor_cabelos.data = militar.cor_cabelos
+        form.bigode.data = militar.bigode
+
+        form.medida_cabeca.data = militar.medida_cabeca
+        form.numero_sapato.data = militar.numero_sapato
+        form.medida_calca.data = militar.medida_calca
+        form.medida_camisa.data = militar.medida_camisa
+        form.tipo_sanguineo.data = militar.tipo_sanguineo
+        form.sinais_particulares.data = militar.sinais_particulares
+
+        form.tatuagem.data = militar.tatuagem
+        form.local_tatuagem.data = militar.local_tatuagem
+
+    campos_pendentes = get_campos_pendentes_cadastro(militar)
+    cadastro_completo = len(campos_pendentes) == 0
+
+    return render_template(
+        "atualizacao/atualizacao_cadastral.html",
+        form=form,
+        militar=militar,
+        cadastro_completo=cadastro_completo,
+        campos_pendentes=campos_pendentes
+    )
+
+
+@bp_atualizacao_cadastral.route("/painel", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_AUDITORIA_READ")
+def painel():
+    q = (request.args.get("q") or "").strip()
+    status = (request.args.get("status") or "").strip()
+
+    query = (
+        Militar.query
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+    )
+
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Militar.nome_completo.ilike(like),
+                Militar.matricula.ilike(like),
+                Militar.nome_guerra.ilike(like),
+            )
+        )
+
+    if status == "atualizado":
+        query = query.filter(Militar.cadastro_atualizado.is_(True))
+    elif status == "pendente":
+        query = query.filter(
+            or_(
+                Militar.cadastro_atualizado.is_(False),
+                Militar.cadastro_atualizado.is_(None)
+            )
+        )
+
+    militares = query.order_by(Militar.nome_completo.asc()).all()
+
+    total = Militar.query.count()
+    total_atualizado = Militar.query.filter(
+        Militar.cadastro_atualizado.is_(True)).count()
+    total_pendente = Militar.query.filter(
+        or_(
+            Militar.cadastro_atualizado.is_(False),
+            Militar.cadastro_atualizado.is_(None)
+        )
+    ).count()
+
+    percentual = round((total_atualizado / total * 100), 1) if total else 0
+
+    return render_template(
+        "atualizacao/painel_atualizacao_cadastral.html",
+        militares=militares,
+        total=total,
+        total_atualizado=total_atualizado,
+        total_pendente=total_pendente,
+        percentual=percentual,
+        q=q,
+        status=status
+    )
+
+
+@bp_atualizacao_cadastral.route("/painel/auditoria", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_PAINEL_READ")
+def auditoria():
+    q = (request.args.get("q") or "").strip()
+
+    query = (
+        AuditoriaAtualizacaoCadastral.query
+        .join(Militar, Militar.id == AuditoriaAtualizacaoCadastral.militar_id)
+    )
+
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Militar.nome_completo.ilike(like),
+                Militar.matricula.ilike(like),
+                Militar.nome_guerra.ilike(like),
+                AuditoriaAtualizacaoCadastral.ip_address.ilike(like),
+            )
+        )
+
+    auditorias = query.order_by(
+        AuditoriaAtualizacaoCadastral.criado_em.desc()
+    ).limit(500).all()
+
+    return render_template(
+        "atualizacao/auditoria_atualizacao_cadastral.html",
+        auditorias=auditorias,
+        q=q
+    )

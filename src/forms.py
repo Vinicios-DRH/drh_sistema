@@ -507,72 +507,121 @@ class CriarSenhaForm(FlaskForm):
     submit = SubmitField('Criar Conta')
 
 
+GRAU_INSTRUCAO_CHOICES = [
+    ("", "Selecione"),
+    ("ENSINO FUNDAMENTAL INCOMPLETO", "Ensino Fundamental Incompleto"),
+    ("ENSINO FUNDAMENTAL COMPLETO", "Ensino Fundamental Completo"),
+    ("ENSINO MEDIO INCOMPLETO", "Ensino Médio Incompleto"),
+    ("ENSINO MEDIO COMPLETO", "Ensino Médio Completo"),
+    ("ENSINO SUPERIOR INCOMPLETO", "Ensino Superior Incompleto"),
+    ("ENSINO SUPERIOR COMPLETO", "Ensino Superior Completo"),
+    ("ESPECIALIZACAO", "Especialização"),
+    ("POS_GRADUACAO", "Pós-graduação"),
+    ("MESTRADO", "Mestrado"),
+    ("DOUTORADO", "Doutorado"),
+    ("POS_DOUTORADO", "Pós-doutorado"),
+]
+
+RACA_CHOICES = [
+    ("", "Selecione"),
+    ("BRANCA", "Branca"),
+    ("PRETA", "Preta"),
+    ("PARDA", "Parda"),
+    ("AMARELA", "Amarela"),
+    ("INDIGENA", "Indígena"),
+    ("NAO_DECLARADA", "Não declarada"),
+]
+
+ESTADO_CIVIL_CHOICES = [
+    ("", "Selecione"),
+    ("1", "Solteiro(a)"),
+    ("2", "Casado(a)"),
+    ("3", "União Estável"),
+    ("4", "Divorciado(a)"),
+    ("5", "Viúvo(a)"),
+]
+
+UF_CHOICES = [
+    ("", "Selecione"),
+    ("AC", "AC"), ("AL", "AL"), ("AP", "AP"), ("AM", "AM"), ("BA", "BA"),
+    ("CE", "CE"), ("DF", "DF"), ("ES", "ES"), ("GO", "GO"), ("MA", "MA"),
+    ("MT", "MT"), ("MS", "MS"), ("MG", "MG"), ("PA", "PA"), ("PB", "PB"),
+    ("PR", "PR"), ("PE", "PE"), ("PI", "PI"), ("RJ", "RJ"), ("RN", "RN"),
+    ("RS", "RS"), ("RO", "RO"), ("RR", "RR"), ("SC", "SC"), ("SP", "SP"),
+    ("SE", "SE"), ("TO", "TO"),
+]
+
+TIPO_SANGUINEO_CHOICES = [
+    ("", "Selecione"),
+    ("A+", "A+"), ("A-", "A-"),
+    ("B+", "B+"), ("B-", "B-"),
+    ("AB+", "AB+"), ("AB-", "AB-"),
+    ("O+", "O+"), ("O-", "O-"),
+]
+
+
 class AtualizacaoCadastralForm(FlaskForm):
-    celular = StringField('Celular', validators=[DataRequired()])
-    email = StringField('E-mail', validators=[DataRequired(), Email()])
-    endereco = StringField('Endereço', validators=[DataRequired()])
-    complemento = StringField('Complemento', validators=[Optional()])
-    cidade = StringField('Cidade', validators=[DataRequired()])
-    estado = SelectField('Estado', choices=[
-        ('', '-- Selecione o Estado --'),
-        ('AC', 'Acre'),
-        ('AL', 'Alagoas'),
-        ('AP', 'Amapá'),
-        ('AM', 'Amazonas'),
-        ('BA', 'Bahia'),
-        ('CE', 'Ceará'),
-        ('DF', 'Distrito Federal'),
-        ('ES', 'Espírito Santo'),
-        ('GO', 'Goiás'),
-        ('MA', 'Maranhão'),
-        ('MT', 'Mato Grosso'),
-        ('MS', 'Mato Grosso do Sul'),
-        ('MG', 'Minas Gerais'),
-        ('PA', 'Pará'),
-        ('PB', 'Paraíba'),
-        ('PR', 'Paraná'),
-        ('PE', 'Pernambuco'),
-        ('PI', 'Piauí'),
-        ('RJ', 'Rio de Janeiro'),
-        ('RN', 'Rio Grande do Norte'),
-        ('RS', 'Rio Grande do Sul'),
-        ('RO', 'Rondônia'),
-        ('RR', 'Roraima'),
-        ('SC', 'Santa Catarina'),
-        ('SP', 'São Paulo'),
-        ('SE', 'Sergipe'),
-        ('TO', 'Tocantins')
-    ], validators=[DataRequired()])
+    # Formação
+    grau_instrucao = SelectField(
+        "Grau de instrução", choices=GRAU_INSTRUCAO_CHOICES, validators=[Optional()])
+    graduacao = StringField("Graduação", validators=[
+                            Optional(), Length(max=255)])
+    pos_graduacao = StringField(
+        "Pós-graduação", validators=[Optional(), Length(max=255)])
+    mestrado = StringField("Mestrado", validators=[
+                           Optional(), Length(max=255)])
+    doutorado = StringField("Doutorado", validators=[
+                            Optional(), Length(max=255)])
 
-    grau_instrucao = SelectField('Grau de Instrução', choices=[
-        ('', '-- Selecione --'),
-        ('Ensino Médio Incompleto', 'Ensino Médio Incompleto'),
-        ('Ensino Médio Completo', 'Ensino Médio Completo'),
-        ('Ensino Técnico', 'Ensino Técnico'),
-        ('Ensino Superior Incompleto', 'Ensino Superior Incompleto'),
-        ('Ensino Superior Completo', 'Ensino Superior Completo'),
-        ('Pós-graduação', 'Pós-graduação'),
-        ('Mestrado', 'Mestrado'),
-        ('Doutorado', 'Doutorado'),
-        ('Pós-doutorado', 'Pós-doutorado')
-    ], validators=[Optional()])
+    # Dados pessoais já existentes
+    nome_pai = StringField('Nome do Pai')
+    nome_mae = StringField('Nome da Mãe')
+    raca = SelectField("Raça/Cor", choices=RACA_CHOICES,
+                       validators=[Optional()])
+    estado_civil = SelectField(
+        "Estado civil", choices=ESTADO_CIVIL_CHOICES, validators=[Optional()])
+    data_nascimento = DateField(
+        "Data de nascimento", format="%Y-%m-%d", validators=[Optional()])
+    inclusao = DateField("Data de inclusão",
+                         format="%Y-%m-%d", validators=[Optional()])
+    endereco = StringField("Endereço", validators=[
+                           Optional(), Length(max=100)])
+    complemento = StringField("Complemento", validators=[
+                              Optional(), Length(max=100)])
+    cidade = StringField("Cidade", validators=[Optional(), Length(max=50)])
+    estado = SelectField("UF", choices=UF_CHOICES, validators=[Optional()])
+    cep = StringField("CEP", validators=[Optional(), Length(max=20)])
+    celular = StringField("Celular", validators=[Optional(), Length(max=50)])
+    email = StringField(
+        "E-mail", validators=[Optional(), Email(), Length(max=100)])
 
-    possui_vinculo = BooleanField('Possui segundo vínculo?', default=False)
-    quantidade_vinculos = IntegerField('Quantidade de vínculos', validators=[
-                                       Optional(), NumberRange(min=1, max=5)])
-    descricao_vinculo = StringField(
-        'Descrição do vínculo', validators=[Optional()])
-    horario_inicio = TimeField(
-        'Horário de início do serviço', validators=[Optional()])
-    horario_fim = TimeField(
-        'Horário de término do serviço', validators=[Optional()])
+    # Novos campos
+    local_nascimento = StringField("Local de nascimento", validators=[
+                                   Optional(), Length(max=120)])
+    altura = DecimalField("Altura", validators=[
+                          Optional(), NumberRange(min=0.5, max=2.5)], places=2)
+    cor_olhos = StringField("Cor dos olhos", validators=[
+                            Optional(), Length(max=40)])
+    cor_cabelos = StringField("Cor dos cabelos", validators=[
+                              Optional(), Length(max=40)])
+    bigode = BooleanField("Possui bigode?")
+    medida_cabeca = StringField("Medida da cabeça", validators=[
+                                Optional(), Length(max=20)])
+    numero_sapato = StringField("Número do sapato", validators=[
+                                Optional(), Length(max=10)])
+    medida_calca = StringField("Medida da calça", validators=[
+                               Optional(), Length(max=20)])
+    medida_camisa = StringField("Medida da camisa", validators=[
+                                Optional(), Length(max=20)])
+    tipo_sanguineo = SelectField(
+        "Tipo sanguíneo", choices=TIPO_SANGUINEO_CHOICES, validators=[Optional()])
+    sinais_particulares = TextAreaField("Sinais particulares", validators=[
+                                        Optional(), Length(max=255)])
+    tatuagem = BooleanField("Possui tatuagem?")
+    local_tatuagem = StringField("Local da tatuagem", validators=[
+                                 Optional(), Length(max=255)])
 
-    numero_emergencia = StringField(
-        'Telefone de Emergência', validators=[DataRequired()])
-    responsavel_emergencia = StringField(
-        'Responsável pelo Número', validators=[DataRequired()])
-
-    submit = SubmitField('Salvar Alterações')
+    botao_submit = SubmitField("Salvar atualização cadastral")
 
 
 class MatriculaConfirmForm(FlaskForm):

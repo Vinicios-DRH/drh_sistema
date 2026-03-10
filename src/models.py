@@ -11,6 +11,13 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from zoneinfo import ZoneInfo
 
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def now_manaus_naive() -> datetime:
+    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
+    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
+
 
 class PostoGrad(database.Model):
     __tablename__ = "posto_grad"
@@ -488,6 +495,33 @@ class Militar(database.Model):
         database.Integer, database.ForeignKey('user.id'))
     motivo_inativacao = database.Column(database.String(255))
 
+    # Dados pessoais complementares
+    local_nascimento = database.Column(database.String(120))
+    altura = database.Column(database.Numeric(4, 2))  # ex: 1.75
+    cor_olhos = database.Column(database.String(40))
+    cor_cabelos = database.Column(database.String(40))
+    bigode = database.Column(database.Boolean, default=False)
+
+    # Medidas
+    medida_cabeca = database.Column(database.String(20))
+    numero_sapato = database.Column(database.String(10))
+    medida_calca = database.Column(database.String(20))
+    medida_camisa = database.Column(database.String(20))
+
+    # Saúde / sinais
+    tipo_sanguineo = database.Column(database.String(10))
+    sinais_particulares = database.Column(database.String(255))
+
+    # Tatuagem
+    tatuagem = database.Column(database.Boolean, default=False)
+    local_tatuagem = database.Column(database.String(255))
+
+    # Controle da atualização cadastral
+    atualizacao_cadastral_em = database.Column(
+        database.DateTime, default=now_manaus_naive, onupdate=now_manaus_naive)
+
+    cadastro_atualizado = database.Column(database.Boolean, default=False)
+
     # ---- relationships
     publicacoes_bg = database.relationship(
         'PublicacaoBg', backref='militar_pub', lazy=True)
@@ -545,14 +579,6 @@ class Meses(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     mes = database.Column(database.String(50))
-
-
-MANAUS_TZ = ZoneInfo("America/Manaus")
-
-
-def now_manaus_naive() -> datetime:
-    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
-    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
 
 
 class Paf(database.Model):
@@ -1516,10 +1542,11 @@ class TafAvaliacao(database.Model):
         "user.id"), nullable=False, index=True)
 
     sexo = database.Column(database.String(1), nullable=False,
-                     index=True)            # 'M' / 'F'
+                           index=True)            # 'M' / 'F'
     modalidade = database.Column(database.String(10), nullable=False,
-                           index=True)     # 'NORMAL' / 'ESPECIAL'
-    atividade = database.Column(database.String(60), nullable=False, index=True)
+                                 index=True)     # 'NORMAL' / 'ESPECIAL'
+    atividade = database.Column(
+        database.String(60), nullable=False, index=True)
 
     idade = database.Column(database.Integer, nullable=False)
     valor = database.Column(database.Numeric(10, 2), nullable=False)
@@ -1528,18 +1555,40 @@ class TafAvaliacao(database.Model):
     substituto_nome = database.Column(database.String(100))
     observacoes = database.Column(database.Text)
 
-    resultado_ok = database.Column(database.Boolean, nullable=False, default=False)
+    resultado_ok = database.Column(
+        database.Boolean, nullable=False, default=False)
 
     referencia = database.Column(database.String(50))
     score_linha = database.Column(database.String(50))
 
     criado_em = database.Column(database.DateTime, nullable=False,
-                          default=now_manaus_naive, index=True)
+                                default=now_manaus_naive, index=True)
 
     militar = database.relationship("Militar", backref="taf_avaliacoes")
-    avaliador_user = database.relationship("User", foreign_keys=[avaliador_user_id])
+    avaliador_user = database.relationship(
+        "User", foreign_keys=[avaliador_user_id])
 
     __table_args__ = (
         Index("ix_taf_avaliacao_militar_data", "militar_id", "criado_em"),
         Index("ix_taf_avaliacao_atividade_data", "atividade", "criado_em"),
     )
+
+
+class AuditoriaAtualizacaoCadastral(database.Model):
+    __tablename__ = "auditoria_atualizacao_cadastral"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey("militar.id"), nullable=False)
+    user_id = database.Column(
+        database.Integer, database.ForeignKey("user.id"), nullable=False)
+    acao = database.Column(database.String(50), nullable=False)
+    ip_address = database.Column(database.String(45))
+    user_agent = database.Column(database.String(255))
+    criado_em = database.Column(
+        database.DateTime, default=now_manaus_naive, onupdate=now_manaus_naive, nullable=False)
+    observacao = database.Column(database.String(255))
+
+    militar = database.relationship(
+        "Militar", backref="auditorias_atualizacao")
+    user = database.relationship("User", backref="auditorias_atualizacao")

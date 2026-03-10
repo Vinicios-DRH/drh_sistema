@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    .audit-page {
+        background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+        min-height: 100vh;
+        padding: 2rem 0 3rem;
+    }
+
+    .audit-shell {
+        max-width: 1350px;
+        margin: 0 auto;
+    }
+
+    .audit-hero {
+        border: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(20, 35, 70, .97), rgba(46, 93, 170, .95));
+        color: #fff;
+        box-shadow: 0 18px 45px rgba(13, 59, 102, .18);
+    }
+
+    .audit-hero .card-body {
+        padding: 1.5rem;
+    }
+
+    .audit-hero h2 {
+        font-weight: 800;
+        margin-bottom: .35rem;
+    }
+
+    .audit-sub {
+        color: rgba(255, 255, 255, .86);
+        margin-bottom: 0;
+    }
+
+    .filter-card,
+    .table-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 14px 32px rgba(16, 24, 40, .08);
+        overflow: hidden;
+    }
+
+    .filter-card .card-body,
+    .table-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .form-control {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid #d9e3ef;
+        box-shadow: none !important;
+    }
+
+    .form-control:focus {
+        border-color: #2b6cb0;
+        box-shadow: 0 0 0 .2rem rgba(43, 108, 176, .12) !important;
+    }
+
+    .btn-filter {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #0b4a7d, #1769aa);
+        color: #fff;
+    }
+
+    .btn-filter:hover {
+        color: #fff;
+    }
+
+    .btn-outline-soft {
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 700;
+        border: 1px solid #d6e1ed;
+        background: #fff;
+        color: #294b73;
+    }
+
+    .table thead th {
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #5b6f87;
+        border-bottom: 1px solid #e8eef5;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding-top: .95rem;
+        padding-bottom: .95rem;
+        border-color: #eef3f7;
+    }
+
+    .person-name {
+        font-weight: 800;
+        color: #17375e;
+        margin-bottom: .15rem;
+    }
+
+    .person-meta {
+        color: #6b7f96;
+        font-size: .88rem;
+    }
+
+    .audit-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .5rem .75rem;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: .8rem;
+        background: #eef6ff;
+        color: #18508f;
+        border: 1px solid #cfe0f5;
+    }
+
+    .obs-box {
+        color: #475569;
+        font-size: .92rem;
+        max-width: 360px;
+    }
+
+    .empty-box {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+
+        .audit-hero .card-body,
+        .filter-card .card-body,
+        .table-card .card-body {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="audit-page">
+    <div class="container-fluid audit-shell">
+
+        <div class="card audit-hero mb-4">
+            <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <h2>Auditoria da Atualização Cadastral</h2>
+                    <p class="audit-sub">
+                        Histórico de alterações realizadas pelos militares no módulo de atualização cadastral.
+                    </p>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('atualizacao_cadastral.painel') }}" class="btn btn-light fw-bold px-4">
+                        Voltar ao painel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-9">
+                        <label class="form-label fw-bold">Busca</label>
+                        <input type="text" name="q" class="form-control"
+                            placeholder="Buscar por nome, matrícula, nome de guerra ou IP" value="{{ q }}">
+                    </div>
+
+                    <div class="col-6 col-lg-2 d-grid">
+                        <button class="btn btn-filter">Filtrar</button>
+                    </div>
+
+                    <div class="col-6 col-lg-1 d-grid">
+                        <a href="{{ url_for('atualizacao_cadastral.auditoria') }}"
+                            class="btn btn-outline-soft">Limpar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1 fw-bold">Histórico de auditoria</h5>
+                        <div class="text-muted small">Últimos registros gerados no módulo.</div>
+                    </div>
+                    <span class="badge text-bg-secondary px-3 py-2">{{ auditorias|length }} registro(s)</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Militar</th>
+                                <th>Usuário</th>
+                                <th>Ação</th>
+                                <th>IP</th>
+                                <th>Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in auditorias %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ item.criado_em.strftime('%d/%m/%Y') if item.criado_em else
+                                        '-' }}</div>
+                                    <div class="text-muted small">{{ item.criado_em.strftime('%H:%M:%S') if
+                                        item.criado_em else '-' }}</div>
+                                </td>
+
+                                <td>
+                                    <div class="person-name">
+                                        {{ item.militar.nome_completo if item.militar else '-' }}
+                                    </div>
+                                    <div class="person-meta">
+                                        Matrícula: {{ item.militar.matricula if item.militar and item.militar.matricula
+                                        else '-' }}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="person-name">
+                                        {{ item.user.nome if item.user else '-' }}
+                                    </div>
+                                    <div class="person-meta">
+                                        {{ item.user.email if item.user and item.user.email else 'Sem e-mail' }}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="audit-chip">{{ item.acao or '-' }}</span>
+                                </td>
+
+                                <td>
+                                    <span class="fw-semibold">{{ item.ip_address or '-' }}</span>
+                                </td>
+
+                                <td>
+                                    <div class="obs-box">{{ item.observacao or '-' }}</div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-box">
+                                        Nenhum registro de auditoria encontrado.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

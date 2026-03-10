@@ -441,6 +441,37 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
+    nav.append(
+        _mk_item(
+            "Atualização Cadastral",
+            "atualizacao_cadastral.atualizar",
+            icon="fas fa-address-card",
+            perm="NAV_ATUALIZACAO_CADASTRAL",
+            rule=(lambda: getattr(current_user, "is_authenticated", False)),
+        )
+    )
+
+    nav.append(
+        _mk_group(
+            "Gestão Cadastral",
+            icon="fas fa-folder-open",
+            perm="NAV_ATUALIZACAO_CADASTRAL_PAINEL",
+            rule=(lambda: getattr(current_user, "is_authenticated", False)),
+            children=[
+                _mk_item(
+                    "Painel de Atualização",
+                    "atualizacao_cadastral.painel",
+                    perm="NAV_ATUALIZACAO_CADASTRAL_PAINEL",
+                ),
+                _mk_item(
+                    "Auditoria Cadastral",
+                    "atualizacao_cadastral.auditoria",
+                    perm="NAV_ATUALIZACAO_CADASTRAL_AUDITORIA",
+                ),
+            ],
+        )
+    )
+
     # Admin (se quiser encaixar no menu do super)
     nav.append(
         _mk_group(

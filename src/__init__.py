@@ -144,6 +144,9 @@ from src.admin_obm_gestao import bp_admin_obm_gestao
 from src.api_taf import bp_api_taf
 from src.routes_taf import taf_admin_bp
 from src.routes_historico import bp_historico
+from src.routes_atualizacao_cadastral import bp_atualizacao_cadastral
+
+app.register_blueprint(bp_atualizacao_cadastral)
 app.register_blueprint(bp_historico)
 app.register_blueprint(taf_admin_bp)
 app.register_blueprint(bp_api_taf)
