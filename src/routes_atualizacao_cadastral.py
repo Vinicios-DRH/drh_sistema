@@ -9,6 +9,9 @@ from src import database
 from src.models import (
     Militar,
     EstadoCivil,
+    MilitarConjuge,
+    MilitarContatoEmergencia,
+    MilitarGraduacao,
     PostoGrad,
     AuditoriaAtualizacaoCadastral,
 )
@@ -75,15 +78,24 @@ def atualizar():
 
     form = AtualizacaoCadastralForm()
 
-    # carrega estado civil do banco
     form.estado_civil.choices = [("", "Selecione")] + [
         (str(item.id), item.estado)
         for item in EstadoCivil.query.order_by(EstadoCivil.estado.asc()).all()
     ]
 
+    graduacoes = MilitarGraduacao.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarGraduacao.id.asc()).all()
+
+    contatos_emergencia = MilitarContatoEmergencia.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarContatoEmergencia.id.asc()).all()
+
+    conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
+
     if form.validate_on_submit():
         try:
-            # Campos já existentes
+            # ===== Campos principais =====
             militar.grau_instrucao = form.grau_instrucao.data or None
             militar.graduacao = form.graduacao.data or None
             militar.pos_graduacao = form.pos_graduacao.data or None
@@ -106,7 +118,7 @@ def atualizar():
             militar.celular = form.celular.data or None
             militar.email = form.email.data or None
 
-            # Novos campos
+            # ===== Novos campos =====
             militar.local_nascimento = form.local_nascimento.data or None
             militar.altura = form.altura.data
             militar.cor_olhos = form.cor_olhos.data or None
@@ -123,11 +135,117 @@ def atualizar():
 
             militar.tatuagem = bool(form.tatuagem.data)
             militar.local_tatuagem = (
-                form.local_tatuagem.data or None
-                if form.tatuagem.data else None
+                form.local_tatuagem.data or None if form.tatuagem.data else None
             )
 
-            # Auditoria / controle
+            # ===== Graduações múltiplas =====
+            graduacoes_curso = request.form.getlist("graduacoes_curso[]")
+            graduacoes_instituicao = request.form.getlist(
+                "graduacoes_instituicao[]")
+            graduacoes_ano = request.form.getlist("graduacoes_ano[]")
+
+            MilitarGraduacao.query.filter_by(militar_id=militar.id).delete()
+
+            for i, curso in enumerate(graduacoes_curso):
+                curso = (curso or "").strip()
+                if not curso:
+                    continue
+
+                instituicao = (graduacoes_instituicao[i] or "").strip(
+                ) if i < len(graduacoes_instituicao) else ""
+                ano_raw = (graduacoes_ano[i] or "").strip(
+                ) if i < len(graduacoes_ano) else ""
+
+                nova_graduacao = MilitarGraduacao(
+                    militar_id=militar.id,
+                    curso=curso,
+                    instituicao=instituicao or None,
+                    ano_conclusao=int(ano_raw) if ano_raw.isdigit() else None,
+                    criado_em=agora_manaus()
+                )
+                database.session.add(nova_graduacao)
+
+            # ===== Contatos de emergência =====
+            contato_nome = request.form.getlist("contato_nome[]")
+            contato_parentesco = request.form.getlist("contato_parentesco[]")
+            contato_telefone = request.form.getlist("contato_telefone[]")
+            contato_telefone_secundario = request.form.getlist(
+                "contato_telefone_secundario[]")
+            contato_observacao = request.form.getlist("contato_observacao[]")
+
+            MilitarContatoEmergencia.query.filter_by(
+                militar_id=militar.id).delete()
+
+            for i, nome in enumerate(contato_nome):
+                nome = (nome or "").strip()
+                telefone = (contato_telefone[i] or "").strip(
+                ) if i < len(contato_telefone) else ""
+
+                if not nome or not telefone:
+                    continue
+
+                novo_contato = MilitarContatoEmergencia(
+                    militar_id=militar.id,
+                    nome=nome,
+                    parentesco=(contato_parentesco[i] or "").strip(
+                    ) if i < len(contato_parentesco) else None,
+                    telefone=telefone,
+                    telefone_secundario=(contato_telefone_secundario[i] or "").strip(
+                    ) if i < len(contato_telefone_secundario) else None,
+                    observacao=(contato_observacao[i] or "").strip(
+                    ) if i < len(contato_observacao) else None,
+                    criado_em=agora_manaus()
+                )
+                database.session.add(novo_contato)
+
+            # ===== Cônjuge =====
+            estado_civil_obj = EstadoCivil.query.get(
+                militar.estado_civil) if militar.estado_civil else None
+            estado_nome = (estado_civil_obj.estado or "").strip(
+            ).upper() if estado_civil_obj else ""
+            tem_conjuge = estado_nome in {
+                "CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
+
+            conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
+            conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
+            conjuge_telefone = (request.form.get(
+                "conjuge_telefone") or "").strip()
+            conjuge_data_nascimento = request.form.get(
+                "conjuge_data_nascimento")
+            conjuge_endereco = (request.form.get(
+                "conjuge_endereco") or "").strip()
+            conjuge_observacao = (request.form.get(
+                "conjuge_observacao") or "").strip()
+
+            conjuge = MilitarConjuge.query.filter_by(
+                militar_id=militar.id).first()
+
+            if tem_conjuge:
+                if conjuge_nome:
+                    if not conjuge:
+                        conjuge = MilitarConjuge(
+                            militar_id=militar.id,
+                            criado_em=agora_manaus()
+                        )
+                        database.session.add(conjuge)
+
+                    conjuge.nome = conjuge_nome
+                    conjuge.cpf = conjuge_cpf or None
+                    conjuge.telefone = conjuge_telefone or None
+                    conjuge.data_nascimento = datetime.strptime(
+                        conjuge_data_nascimento, "%Y-%m-%d"
+                    ).date() if conjuge_data_nascimento else None
+                    conjuge.endereco = conjuge_endereco or None
+                    conjuge.observacao = conjuge_observacao or None
+                    conjuge.atualizado_em = agora_manaus()
+                else:
+                    if conjuge:
+                        database.session.delete(conjuge)
+            else:
+                if conjuge:
+                    database.session.delete(conjuge)
+
+            # ===== Auditoria / controle =====
             militar.atualizacao_cadastral_em = agora_manaus()
             militar.ip_address = _get_client_ip()
             militar.cadastro_atualizado = cadastro_esta_completo(militar)
@@ -141,7 +259,9 @@ def atualizar():
 
             if militar.cadastro_atualizado:
                 flash(
-                    "Atualização cadastral salva com sucesso. Seu cadastro está completo.", "success")
+                    "Atualização cadastral salva com sucesso. Seu cadastro está completo.",
+                    "success"
+                )
             else:
                 pendentes = get_campos_pendentes_cadastro(militar)
                 flash(
@@ -156,7 +276,6 @@ def atualizar():
             flash(f"Erro ao salvar atualização cadastral: {str(e)}", "danger")
 
     elif request.method == "GET":
-        # pré-carrega dados existentes
         form.grau_instrucao.data = militar.grau_instrucao
         form.graduacao.data = militar.graduacao
         form.pos_graduacao.data = militar.pos_graduacao
@@ -203,7 +322,10 @@ def atualizar():
         form=form,
         militar=militar,
         cadastro_completo=cadastro_completo,
-        campos_pendentes=campos_pendentes
+        campos_pendentes=campos_pendentes,
+        graduacoes=graduacoes,
+        contatos_emergencia=contatos_emergencia,
+        conjuge=conjuge
     )
 
 

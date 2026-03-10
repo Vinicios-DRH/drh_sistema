@@ -56,10 +56,6 @@
         box-shadow: 0 8px 24px rgba(19, 33, 68, .08);
     }
 
-    .status-alert strong {
-        font-weight: 800;
-    }
-
     .main-card {
         border: 0;
         border-radius: 22px;
@@ -215,6 +211,25 @@
         font-size: .92rem;
     }
 
+    .dynamic-item {
+        border: 1px dashed #cfe0f1;
+        border-radius: 16px;
+        padding: 1rem;
+        background: #f9fbfe;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+
+    .btn-remove-item {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
     @media (max-width: 768px) {
         .hero-content {
             padding: 1.25rem;
@@ -349,28 +364,23 @@
                                         <label class="form-label">Nome completo</label>
                                         <div class="static-field">{{ militar.nome_completo or "-" }}</div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label">CPF</label>
                                         <div class="static-field">{{ militar.cpf or "-" }}</div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label">Matrícula</label>
                                         <div class="static-field">{{ militar.matricula or "-" }}</div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label">Posto/Graduação</label>
                                         <div class="static-field">{{ militar.posto_grad.sigla if militar.posto_grad else
                                             "-" }}</div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label">Nome de guerra</label>
                                         <div class="static-field">{{ militar.nome_guerra or "-" }}</div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label">RG</label>
                                         <div class="static-field">{{ militar.rg or "-" }}</div>
@@ -383,7 +393,7 @@
                             <div class="section-block">
                                 <div class="section-title">
                                     <span class="section-icon">2</span>
-                                    Formação acadêmica
+                                    Formação acadêmica principal
                                 </div>
 
                                 <div class="row g-3">
@@ -393,7 +403,8 @@
                                     </div>
                                     <div class="col-md-6">
                                         {{ form.graduacao.label(class="form-label") }}
-                                        {{ form.graduacao(class="form-control", placeholder="Informe sua graduação") }}
+                                        {{ form.graduacao(class="form-control", placeholder="Informe uma graduação
+                                        principal") }}
                                     </div>
                                     <div class="col-md-6">
                                         {{ form.pos_graduacao.label(class="form-label") }}
@@ -416,6 +427,71 @@
                             <div class="section-block">
                                 <div class="section-title">
                                     <span class="section-icon">3</span>
+                                    Outras graduações
+                                </div>
+
+                                <div id="graduacoesContainer">
+                                    {% if graduacoes %}
+                                    {% for grad in graduacoes %}
+                                    <div class="dynamic-item graduacao-item">
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item"
+                                            onclick="removeItem(this)">Remover</button>
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label">Curso</label>
+                                                <input type="text" name="graduacoes_curso[]" class="form-control"
+                                                    value="{{ grad.curso or '' }}"
+                                                    placeholder="Ex: Bacharelado em Direito">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">Instituição</label>
+                                                <input type="text" name="graduacoes_instituicao[]" class="form-control"
+                                                    value="{{ grad.instituicao or '' }}"
+                                                    placeholder="Ex: UEA, UFAM, CIESA...">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Ano</label>
+                                                <input type="text" name="graduacoes_ano[]" class="form-control"
+                                                    value="{{ grad.ano_conclusao or '' }}" placeholder="2020">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <div class="dynamic-item graduacao-item">
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item"
+                                            onclick="removeItem(this)">Remover</button>
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label">Curso</label>
+                                                <input type="text" name="graduacoes_curso[]" class="form-control"
+                                                    placeholder="Ex: Bacharelado em Direito">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">Instituição</label>
+                                                <input type="text" name="graduacoes_instituicao[]" class="form-control"
+                                                    placeholder="Ex: UEA, UFAM, CIESA...">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Ano</label>
+                                                <input type="text" name="graduacoes_ano[]" class="form-control"
+                                                    placeholder="2020">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <button type="button" class="btn btn-outline-primary mt-2" onclick="addGraduacao()">
+                                    + Adicionar graduação
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">4</span>
                                     Dados pessoais
                                 </div>
 
@@ -429,9 +505,7 @@
                                         {{ form.nome_mae.label(class="form-label") }}
                                         {{ form.nome_mae(class="form-control", placeholder="Informe o nome da mãe") }}
                                     </div>
-                                </div>
 
-                                <div class="row g-3">
                                     <div class="col-md-3">
                                         {{ form.data_nascimento.label(class="form-label") }}
                                         {{ form.data_nascimento(class="form-control", type="date") }}
@@ -449,7 +523,7 @@
 
                                     <div class="col-md-3">
                                         {{ form.estado_civil.label(class="form-label") }}
-                                        {{ form.estado_civil(class="form-select") }}
+                                        {{ form.estado_civil(class="form-select", id="estadoCivilField") }}
                                     </div>
 
                                     <div class="col-md-4">
@@ -476,10 +550,60 @@
                             </div>
                         </div>
 
+                        <div class="col-12" id="conjugeSection">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">5</span>
+                                    Dados do cônjuge
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nome do cônjuge</label>
+                                        <input type="text" name="conjuge_nome" class="form-control"
+                                            value="{{ conjuge.nome if conjuge else '' }}"
+                                            placeholder="Nome completo do cônjuge">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">CPF</label>
+                                        <input type="text" name="conjuge_cpf" class="form-control"
+                                            value="{{ conjuge.cpf if conjuge else '' }}" placeholder="000.000.000-00">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Telefone</label>
+                                        <input type="text" name="conjuge_telefone" class="form-control"
+                                            value="{{ conjuge.telefone if conjuge else '' }}"
+                                            placeholder="(92) 99999-9999">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Data de nascimento</label>
+                                        <input type="date" name="conjuge_data_nascimento" class="form-control"
+                                            value="{{ conjuge.data_nascimento.strftime('%Y-%m-%d') if conjuge and conjuge.data_nascimento else '' }}">
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <label class="form-label">Endereço</label>
+                                        <input type="text" name="conjuge_endereco" class="form-control"
+                                            value="{{ conjuge.endereco if conjuge else '' }}"
+                                            placeholder="Endereço do cônjuge">
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <label class="form-label">Observação</label>
+                                        <textarea name="conjuge_observacao" class="form-control" rows="3"
+                                            placeholder="Informações adicionais sobre o cônjuge">{{ conjuge.observacao if conjuge else '' }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12 col-xl-6">
                             <div class="section-block">
                                 <div class="section-title">
-                                    <span class="section-icon">4</span>
+                                    <span class="section-icon">6</span>
                                     Endereço e contato
                                 </div>
 
@@ -526,7 +650,7 @@
                         <div class="col-12 col-xl-6">
                             <div class="section-block">
                                 <div class="section-title">
-                                    <span class="section-icon">5</span>
+                                    <span class="section-icon">7</span>
                                     Medidas e características
                                 </div>
 
@@ -586,6 +710,93 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="col-12">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">8</span>
+                                    Contatos de emergência
+                                </div>
+
+                                <div id="contatosEmergenciaContainer">
+                                    {% if contatos_emergencia %}
+                                    {% for contato in contatos_emergencia %}
+                                    <div class="dynamic-item contato-item">
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item"
+                                            onclick="removeItem(this)">Remover</button>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Nome</label>
+                                                <input type="text" name="contato_nome[]" class="form-control"
+                                                    value="{{ contato.nome or '' }}" placeholder="Nome do contato">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Parentesco</label>
+                                                <input type="text" name="contato_parentesco[]" class="form-control"
+                                                    value="{{ contato.parentesco or '' }}"
+                                                    placeholder="Ex: Esposa, irmão, mãe">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Telefone</label>
+                                                <input type="text" name="contato_telefone[]" class="form-control"
+                                                    value="{{ contato.telefone or '' }}" placeholder="(92) 99999-9999">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Telefone secundário</label>
+                                                <input type="text" name="contato_telefone_secundario[]"
+                                                    class="form-control" value="{{ contato.telefone_secundario or '' }}"
+                                                    placeholder="Opcional">
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label class="form-label">Observação</label>
+                                                <input type="text" name="contato_observacao[]" class="form-control"
+                                                    value="{{ contato.observacao or '' }}"
+                                                    placeholder="Informações adicionais">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <div class="dynamic-item contato-item">
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item"
+                                            onclick="removeItem(this)">Remover</button>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Nome</label>
+                                                <input type="text" name="contato_nome[]" class="form-control"
+                                                    placeholder="Nome do contato">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Parentesco</label>
+                                                <input type="text" name="contato_parentesco[]" class="form-control"
+                                                    placeholder="Ex: Esposa, irmão, mãe">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Telefone</label>
+                                                <input type="text" name="contato_telefone[]" class="form-control"
+                                                    placeholder="(92) 99999-9999">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Telefone secundário</label>
+                                                <input type="text" name="contato_telefone_secundario[]"
+                                                    class="form-control" placeholder="Opcional">
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label class="form-label">Observação</label>
+                                                <input type="text" name="contato_observacao[]" class="form-control"
+                                                    placeholder="Informações adicionais">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <button type="button" class="btn btn-outline-primary mt-2"
+                                    onclick="addContatoEmergencia()">
+                                    + Adicionar contato de emergência
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="action-bar">
@@ -621,11 +832,92 @@
         wrapper.style.display = check.checked ? "block" : "none";
     }
 
+    function removeItem(button) {
+        const item = button.closest(".dynamic-item");
+        if (item) item.remove();
+    }
+
+    function addGraduacao() {
+        const container = document.getElementById("graduacoesContainer");
+        const html = `
+            <div class="dynamic-item graduacao-item">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" onclick="removeItem(this)">Remover</button>
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Curso</label>
+                        <input type="text" name="graduacoes_curso[]" class="form-control" placeholder="Ex: Bacharelado em Direito">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Instituição</label>
+                        <input type="text" name="graduacoes_instituicao[]" class="form-control" placeholder="Ex: UEA, UFAM, CIESA...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ano</label>
+                        <input type="text" name="graduacoes_ano[]" class="form-control" placeholder="2020">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML("beforeend", html);
+    }
+
+    function addContatoEmergencia() {
+        const container = document.getElementById("contatosEmergenciaContainer");
+        const html = `
+            <div class="dynamic-item contato-item">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" onclick="removeItem(this)">Remover</button>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nome</label>
+                        <input type="text" name="contato_nome[]" class="form-control" placeholder="Nome do contato">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Parentesco</label>
+                        <input type="text" name="contato_parentesco[]" class="form-control" placeholder="Ex: Esposa, irmão, mãe">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Telefone</label>
+                        <input type="text" name="contato_telefone[]" class="form-control" placeholder="(92) 99999-9999">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Telefone secundário</label>
+                        <input type="text" name="contato_telefone_secundario[]" class="form-control" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Observação</label>
+                        <input type="text" name="contato_observacao[]" class="form-control" placeholder="Informações adicionais">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML("beforeend", html);
+    }
+
+    function toggleConjugeSection() {
+        const estadoCivilField = document.getElementById("estadoCivilField");
+        const conjugeSection = document.getElementById("conjugeSection");
+        if (!estadoCivilField || !conjugeSection) return;
+
+        const selectedText = estadoCivilField.options[estadoCivilField.selectedIndex]
+            ? estadoCivilField.options[estadoCivilField.selectedIndex].text.trim().toUpperCase()
+            : "";
+
+        const mostrar = ["CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"].includes(selectedText);
+        conjugeSection.style.display = mostrar ? "block" : "none";
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         toggleLocalTatuagem();
-        const check = document.getElementById("tatuagemCheck");
-        if (check) {
-            check.addEventListener("change", toggleLocalTatuagem);
+        toggleConjugeSection();
+
+        const tatuagemCheck = document.getElementById("tatuagemCheck");
+        if (tatuagemCheck) {
+            tatuagemCheck.addEventListener("change", toggleLocalTatuagem);
+        }
+
+        const estadoCivilField = document.getElementById("estadoCivilField");
+        if (estadoCivilField) {
+            estadoCivilField.addEventListener("change", toggleConjugeSection);
         }
     });
 </script>

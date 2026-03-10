@@ -1592,3 +1592,54 @@ class AuditoriaAtualizacaoCadastral(database.Model):
     militar = database.relationship(
         "Militar", backref="auditorias_atualizacao")
     user = database.relationship("User", backref="auditorias_atualizacao")
+
+
+class MilitarGraduacao(database.Model):
+    __tablename__ = "militar_graduacao"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        "militar.id"), nullable=False, index=True)
+    curso = database.Column(database.String(255), nullable=False)
+    instituicao = database.Column(database.String(255))
+    ano_conclusao = database.Column(database.Integer)
+    criado_em = database.Column(database.DateTime, default=now_manaus_naive)
+
+    militar = database.relationship("Militar", backref="graduacoes_cadastrais")
+
+
+class MilitarContatoEmergencia(database.Model):
+    __tablename__ = "militar_contato_emergencia"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        "militar.id"), nullable=False, index=True)
+    nome = database.Column(database.String(120), nullable=False)
+    parentesco = database.Column(database.String(80))
+    telefone = database.Column(database.String(50), nullable=False)
+    telefone_secundario = database.Column(database.String(50))
+    observacao = database.Column(database.String(255))
+    criado_em = database.Column(database.DateTime, default=now_manaus_naive)
+
+    militar = database.relationship("Militar", backref="contatos_emergencia")
+
+
+class MilitarConjuge(database.Model):
+    __tablename__ = "militar_conjuge"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        "militar.id"), nullable=False, unique=True, index=True)
+
+    nome = database.Column(database.String(120), nullable=False)
+    cpf = database.Column(database.String(20))
+    telefone = database.Column(database.String(50))
+    data_nascimento = database.Column(database.Date)
+    endereco = database.Column(database.String(150))
+    observacao = database.Column(database.String(255))
+    criado_em = database.Column(database.DateTime, default=now_manaus_naive)
+    atualizado_em = database.Column(
+        database.DateTime, default=now_manaus_naive, onupdate=now_manaus_naive)
+
+    militar = database.relationship(
+        "Militar", backref=database.backref("conjuge_cadastral", uselist=False))
