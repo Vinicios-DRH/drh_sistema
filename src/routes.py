@@ -27,7 +27,7 @@ from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlu
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge)
 from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
 from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar, bloquear_obm_fora_do_escopo
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -890,6 +890,18 @@ def exibir_militar(militar_id):
     militar = Militar.query.get_or_404(militar_id)
     database.session.expire_all()
 
+    graduacoes = MilitarGraduacao.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarGraduacao.id.asc()).all()
+
+    contatos_emergencia = MilitarContatoEmergencia.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarContatoEmergencia.id.asc()).all()
+
+    conjuge = MilitarConjuge.query.filter_by(
+        militar_id=militar.id
+    ).first()
+
     obm_funcao_tipo_1 = MilitarObmFuncao.query.filter_by(militar_id=militar_id, tipo=1) \
         .filter(MilitarObmFuncao.data_fim == None).first()
 
@@ -1207,7 +1219,91 @@ def exibir_militar(militar_id):
         militar.cel = form_militar.cel.data
         militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
         militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
+                # ===== Graduações múltiplas =====
+        graduacoes_curso = request.form.getlist("graduacoes_curso[]")
+        graduacoes_instituicao = request.form.getlist("graduacoes_instituicao[]")
+        graduacoes_ano = request.form.getlist("graduacoes_ano[]")
 
+        MilitarGraduacao.query.filter_by(militar_id=militar.id).delete()
+
+        for i, curso in enumerate(graduacoes_curso):
+            curso = (curso or "").strip()
+            if not curso:
+                continue
+
+            instituicao = (graduacoes_instituicao[i] or "").strip() if i < len(graduacoes_instituicao) else ""
+            ano_raw = (graduacoes_ano[i] or "").strip() if i < len(graduacoes_ano) else ""
+
+            database.session.add(MilitarGraduacao(
+                militar_id=militar.id,
+                curso=curso,
+                instituicao=instituicao or None,
+                ano_conclusao=int(ano_raw) if ano_raw.isdigit() else None,
+                criado_em=now_manaus_naive()
+            ))
+
+        # ===== Contatos de emergência =====
+        contato_nome = request.form.getlist("contato_nome[]")
+        contato_parentesco = request.form.getlist("contato_parentesco[]")
+        contato_telefone = request.form.getlist("contato_telefone[]")
+        contato_telefone_secundario = request.form.getlist("contato_telefone_secundario[]")
+        contato_observacao = request.form.getlist("contato_observacao[]")
+
+        MilitarContatoEmergencia.query.filter_by(militar_id=militar.id).delete()
+
+        for i, nome in enumerate(contato_nome):
+            nome = (nome or "").strip()
+            telefone = (contato_telefone[i] or "").strip() if i < len(contato_telefone) else ""
+
+            if not nome or not telefone:
+                continue
+
+            database.session.add(MilitarContatoEmergencia(
+                militar_id=militar.id,
+                nome=nome,
+                parentesco=(contato_parentesco[i] or "").strip() if i < len(contato_parentesco) else None,
+                telefone=telefone,
+                telefone_secundario=(contato_telefone_secundario[i] or "").strip() if i < len(contato_telefone_secundario) else None,
+                observacao=(contato_observacao[i] or "").strip() if i < len(contato_observacao) else None,
+                criado_em=now_manaus_naive()
+            ))
+
+        # ===== Cônjuge =====
+        estado_civil_obj = EstadoCivil.query.get(militar.estado_civil) if militar.estado_civil else None
+        estado_nome = (estado_civil_obj.estado or "").strip().upper() if estado_civil_obj else ""
+        exige_conjuge = estado_nome in {"CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
+
+        conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
+        conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
+        conjuge_telefone = (request.form.get("conjuge_telefone") or "").strip()
+        conjuge_data_nascimento = (request.form.get("conjuge_data_nascimento") or "").strip()
+        conjuge_endereco = (request.form.get("conjuge_endereco") or "").strip()
+        conjuge_observacao = (request.form.get("conjuge_observacao") or "").strip()
+
+        conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
+
+        if exige_conjuge:
+            if conjuge_nome:
+                if not conjuge:
+                    conjuge = MilitarConjuge(
+                        militar_id=militar.id,
+                        criado_em=now_manaus_naive()
+                    )
+                    database.session.add(conjuge)
+
+                conjuge.nome = conjuge_nome
+                conjuge.cpf = conjuge_cpf or None
+                conjuge.telefone = conjuge_telefone or None
+                conjuge.data_nascimento = parse_date(conjuge_data_nascimento)
+                conjuge.endereco = conjuge_endereco or None
+                conjuge.observacao = conjuge_observacao or None
+                conjuge.atualizado_em = now_manaus_naive()
+            else:
+                if conjuge:
+                    database.session.delete(conjuge)
+        else:
+            if conjuge:
+                database.session.delete(conjuge)
         situacao2_id_raw = request.form.get('situacao2_id', '').strip()
         agregacoes2_id_raw = request.form.get('agregacoes2_id', '').strip()
         # aceita 'YYYY-MM-DD' ou 'DD/MM/YYYY'
@@ -1402,10 +1498,10 @@ def exibir_militar(militar_id):
                 form_militar.fim_periodo.data)
             militar_lts.publicacao_bg_id = bg_id
             militar_lts.atualizar_status()
+        database.session.flush()
 
         militar.cadastro_atualizado = cadastro_esta_completo(militar)
 
-        database.session.flush()
         sync_user_admin_obms_from_militar(militar.id)
 
         try:
@@ -1418,6 +1514,7 @@ def exibir_militar(militar_id):
                 f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
     documentos_militar = DocumentoMilitar.query.filter_by(
         militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
+    
     return render_template(
         'exibir_militar.html',
         form_militar=form_militar,
@@ -1426,6 +1523,9 @@ def exibir_militar(militar_id):
         bg_sit2_val=bg_sit2_val,
         can_edit=can_edit,
         can_delete=can_delete,
+        graduacoes=graduacoes,
+        contatos_emergencia=contatos_emergencia,
+        conjuge=conjuge,
     )
 
 

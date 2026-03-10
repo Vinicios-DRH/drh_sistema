@@ -893,16 +893,28 @@
         container.insertAdjacentHTML("beforeend", html);
     }
 
+    function normalizarTexto(valor) {
+        return (valor || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toUpperCase();
+    }
+
     function toggleConjugeSection() {
         const estadoCivilField = document.getElementById("estadoCivilField");
         const conjugeSection = document.getElementById("conjugeSection");
         if (!estadoCivilField || !conjugeSection) return;
 
         const selectedText = estadoCivilField.options[estadoCivilField.selectedIndex]
-            ? estadoCivilField.options[estadoCivilField.selectedIndex].text.trim().toUpperCase()
+            ? normalizarTexto(estadoCivilField.options[estadoCivilField.selectedIndex].text)
             : "";
 
-        const mostrar = ["CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"].includes(selectedText);
+        const mostrar =
+            selectedText.includes("CASADO") ||
+            selectedText.includes("CASADA") ||
+            selectedText.includes("UNIAO ESTAVEL");
+
         conjugeSection.style.display = mostrar ? "block" : "none";
     }
 

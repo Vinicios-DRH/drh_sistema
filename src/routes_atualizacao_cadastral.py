@@ -1,6 +1,6 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
+import unicodedata
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from sqlalchemy import or_
@@ -21,8 +21,10 @@ from src.utils.cadastro_status import (
     get_campos_pendentes_cadastro,
 )
 
+
 # Se tu tiver decorator de permissão, descomenta
 # from src.authz import require_perm
+
 
 bp_atualizacao_cadastral = Blueprint(
     "atualizacao_cadastral",
@@ -35,6 +37,14 @@ MANAUS_TZ = ZoneInfo("America/Manaus")
 
 def agora_manaus():
     return datetime.now(MANAUS_TZ)
+
+
+def _normalizar_texto(valor: str) -> str:
+    if not valor:
+        return ""
+    valor = unicodedata.normalize("NFKD", valor)
+    valor = "".join(c for c in valor if not unicodedata.combining(c))
+    return " ".join(valor.strip().upper().split())
 
 
 def _get_client_ip():
@@ -201,17 +211,21 @@ def atualizar():
             # ===== Cônjuge =====
             estado_civil_obj = EstadoCivil.query.get(
                 militar.estado_civil) if militar.estado_civil else None
-            estado_nome = (estado_civil_obj.estado or "").strip(
-            ).upper() if estado_civil_obj else ""
-            tem_conjuge = estado_nome in {
-                "CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
+            estado_nome = _normalizar_texto(
+                estado_civil_obj.estado if estado_civil_obj else "")
+
+            tem_conjuge = (
+                "CASADO" in estado_nome or
+                "CASADA" in estado_nome or
+                "UNIAO ESTAVEL" in estado_nome
+            )
 
             conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
             conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
             conjuge_telefone = (request.form.get(
                 "conjuge_telefone") or "").strip()
-            conjuge_data_nascimento = request.form.get(
-                "conjuge_data_nascimento")
+            conjuge_data_nascimento = (request.form.get(
+                "conjuge_data_nascimento") or "").strip()
             conjuge_endereco = (request.form.get(
                 "conjuge_endereco") or "").strip()
             conjuge_observacao = (request.form.get(
@@ -220,30 +234,28 @@ def atualizar():
             conjuge = MilitarConjuge.query.filter_by(
                 militar_id=militar.id).first()
 
-            if tem_conjuge:
-                if conjuge_nome:
-                    if not conjuge:
-                        conjuge = MilitarConjuge(
-                            militar_id=militar.id,
-                            criado_em=agora_manaus()
-                        )
-                        database.session.add(conjuge)
+            if tem_conjuge and conjuge_nome:
+                if not conjuge:
+                    conjuge = MilitarConjuge(
+                        militar_id=militar.id,
+                        criado_em=agora_manaus()
+                    )
+                    database.session.add(conjuge)
 
-                    conjuge.nome = conjuge_nome
-                    conjuge.cpf = conjuge_cpf or None
-                    conjuge.telefone = conjuge_telefone or None
-                    conjuge.data_nascimento = datetime.strptime(
-                        conjuge_data_nascimento, "%Y-%m-%d"
-                    ).date() if conjuge_data_nascimento else None
-                    conjuge.endereco = conjuge_endereco or None
-                    conjuge.observacao = conjuge_observacao or None
-                    conjuge.atualizado_em = agora_manaus()
-                else:
-                    if conjuge:
-                        database.session.delete(conjuge)
-            else:
-                if conjuge:
-                    database.session.delete(conjuge)
+                conjuge.nome = conjuge_nome
+                conjuge.cpf = conjuge_cpf or None
+                conjuge.telefone = conjuge_telefone or None
+                conjuge.data_nascimento = (
+                    datetime.strptime(
+                        conjuge_data_nascimento, "%Y-%m-%d").date()
+                    if conjuge_data_nascimento else None
+                )
+                conjuge.endereco = conjuge_endereco or None
+                conjuge.observacao = conjuge_observacao or None
+                conjuge.atualizado_em = agora_manaus()
+
+            elif conjuge:
+                database.session.delete(conjuge)
 
             # ===== Auditoria / controle =====
             militar.atualizacao_cadastral_em = agora_manaus()
@@ -254,7 +266,7 @@ def atualizar():
                 militar_id=militar.id,
                 observacao="Militar realizou atualização cadastral no próprio perfil."
             )
-
+            database.session.flush()
             database.session.commit()
 
             if militar.cadastro_atualizado:
