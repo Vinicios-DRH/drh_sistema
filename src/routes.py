@@ -59,6 +59,7 @@ from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
+from src.utils.cadastro_status import cadastro_esta_completo
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -1167,6 +1168,28 @@ def exibir_militar(militar_id):
         militar.cep = form_militar.cep.data
         militar.celular = form_militar.celular.data
         militar.email = form_militar.email.data
+        # ===== Novos dados pessoais complementares =====
+        militar.local_nascimento = form_militar.local_nascimento.data
+        militar.altura = form_militar.altura.data
+        militar.cor_olhos = form_militar.cor_olhos.data
+        militar.cor_cabelos = form_militar.cor_cabelos.data
+        militar.bigode = bool(form_militar.bigode.data)
+
+        # ===== Medidas =====
+        militar.medida_cabeca = form_militar.medida_cabeca.data
+        militar.numero_sapato = form_militar.numero_sapato.data
+        militar.medida_calca = form_militar.medida_calca.data
+        militar.medida_camisa = form_militar.medida_camisa.data
+
+        # ===== Saúde / sinais =====
+        militar.tipo_sanguineo = form_militar.tipo_sanguineo.data
+        militar.sinais_particulares = form_militar.sinais_particulares.data
+
+        # ===== Tatuagem =====
+        militar.tatuagem = bool(form_militar.tatuagem.data)
+        militar.local_tatuagem = (
+            form_militar.local_tatuagem.data if form_militar.tatuagem.data else None
+        )
         militar.inclusao_bg = form_militar.inclusao_bg.data
         militar.soldado_tres = form_militar.soldado_tres.data
         militar.soldado_dois = form_militar.soldado_dois.data
@@ -1379,6 +1402,8 @@ def exibir_militar(militar_id):
                 form_militar.fim_periodo.data)
             militar_lts.publicacao_bg_id = bg_id
             militar_lts.atualizar_status()
+
+        militar.cadastro_atualizado = cadastro_esta_completo(militar)
 
         database.session.flush()
         sync_user_admin_obms_from_militar(militar.id)

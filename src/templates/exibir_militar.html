@@ -318,6 +318,8 @@
                 & Função</a></li>
             <li class="nav-item"><a class="nav-link" href="#perfil"><i class="bi bi-pin-map me-1"></i> Perfil &
                 Localidade</a></li>
+            <li class="nav-item"><a class="nav-link" href="#dados_fisicos"><i class="bi bi-ruler me-1"></i> Dados
+                Físicos e Características</a></li>
             <li class="nav-item"><a class="nav-link" href="#datas"><i class="bi bi-calendar3 me-1"></i> Datas &
                 Cálculos</a></li>
             <li class="nav-item"><a class="nav-link" href="#situacao"><i class="bi bi-clipboard2-pulse me-1"></i>
@@ -549,7 +551,152 @@
                     %}</div>{% endif %}</div>
               </div>
             </div>
+            <!-- ========== DADOS FÍSICOS E CARACTERÍSTICAS ========== -->
+            <div id="dados_fisicos" class="super-section">
+              <div class="section-header">
+                <i class="bi bi-person-vcard"></i>
+                <h2 class="h6 m-0">Dados Físicos e Características</h2>
+              </div>
 
+              <div class="row g-3">
+                <div class="col-md-4">
+                  {{ form_militar.local_nascimento.label(class="form-label") }}
+                  {{ form_militar.local_nascimento(class="form-control" + (' is-invalid' if
+                  form_militar.local_nascimento.errors else '')) }}
+                  {% if form_militar.local_nascimento.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.local_nascimento.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-2">
+                  {{ form_militar.altura.label(class="form-label") }}
+                  {{ form_militar.altura(class="form-control" + (' is-invalid' if form_militar.altura.errors else ''),
+                  placeholder="Ex: 1.75") }}
+                  {% if form_militar.altura.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.altura.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.cor_olhos.label(class="form-label") }}
+                  {{ form_militar.cor_olhos(class="form-control" + (' is-invalid' if form_militar.cor_olhos.errors else
+                  '')) }}
+                  {% if form_militar.cor_olhos.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.cor_olhos.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.cor_cabelos.label(class="form-label") }}
+                  {{ form_militar.cor_cabelos(class="form-control" + (' is-invalid' if form_militar.cor_cabelos.errors
+                  else '')) }}
+                  {% if form_militar.cor_cabelos.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.cor_cabelos.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.medida_cabeca.label(class="form-label") }}
+                  {{ form_militar.medida_cabeca(class="form-control" + (' is-invalid' if
+                  form_militar.medida_cabeca.errors else '')) }}
+                  {% if form_militar.medida_cabeca.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.medida_cabeca.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.numero_sapato.label(class="form-label") }}
+                  {{ form_militar.numero_sapato(class="form-control" + (' is-invalid' if
+                  form_militar.numero_sapato.errors else '')) }}
+                  {% if form_militar.numero_sapato.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.numero_sapato.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.medida_calca.label(class="form-label") }}
+                  {{ form_militar.medida_calca(class="form-control" + (' is-invalid' if form_militar.medida_calca.errors
+                  else '')) }}
+                  {% if form_militar.medida_calca.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.medida_calca.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.medida_camisa.label(class="form-label") }}
+                  {{ form_militar.medida_camisa(class="form-control" + (' is-invalid' if
+                  form_militar.medida_camisa.errors else '')) }}
+                  {% if form_militar.medida_camisa.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.medida_camisa.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  {{ form_militar.tipo_sanguineo.label(class="form-label") }}
+                  {{ form_militar.tipo_sanguineo(class="form-select" + (' is-invalid' if
+                  form_militar.tipo_sanguineo.errors else '')) }}
+                  {% if form_militar.tipo_sanguineo.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.tipo_sanguineo.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label d-block">{{ form_militar.bigode.label.text }}</label>
+                  <div class="form-check form-switch pt-2">
+                    {{ form_militar.bigode(class="form-check-input") }}
+                    {{ form_militar.bigode.label(class="form-check-label") }}
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label d-block">{{ form_militar.tatuagem.label.text }}</label>
+                  <div class="form-check form-switch pt-2">
+                    {{ form_militar.tatuagem(class="form-check-input", id="tatuagem_check_admin") }}
+                    {{ form_militar.tatuagem.label(class="form-check-label") }}
+                  </div>
+                </div>
+
+                <div class="col-md-3" id="local_tatuagem_wrapper_admin">
+                  {{ form_militar.local_tatuagem.label(class="form-label") }}
+                  {{ form_militar.local_tatuagem(class="form-control" + (' is-invalid' if
+                  form_militar.local_tatuagem.errors else '')) }}
+                  {% if form_militar.local_tatuagem.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.local_tatuagem.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="col-md-12">
+                  {{ form_militar.sinais_particulares.label(class="form-label") }}
+                  {{ form_militar.sinais_particulares(class="form-control" + (' is-invalid' if
+                  form_militar.sinais_particulares.errors else ''), rows="3") }}
+                  {% if form_militar.sinais_particulares.errors %}
+                  <div class="invalid-feedback">
+                    {% for e in form_militar.sinais_particulares.errors %}{{ e }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
             <!-- ========== DATAS & CÁLCULOS ========== -->
             <div id="datas" class="super-section">
               <div class="section-header"><i class="bi bi-calendar3"></i>
@@ -1271,6 +1418,22 @@
       warn.className = 'alert alert-warning mt-3 mb-0';
       warn.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Você está em modo leitura (sem permissão para editar).';
       header.appendChild(warn);
+    }
+  })();
+</script>
+<script>
+  (function () {
+    const tatuagemCheck = document.getElementById("tatuagem_check_admin");
+    const wrapper = document.getElementById("local_tatuagem_wrapper_admin");
+
+    function toggleLocalTatuagem() {
+      if (!tatuagemCheck || !wrapper) return;
+      wrapper.style.display = tatuagemCheck.checked ? "block" : "none";
+    }
+
+    if (tatuagemCheck) {
+      tatuagemCheck.addEventListener("change", toggleLocalTatuagem);
+      toggleLocalTatuagem();
     }
   })();
 </script>

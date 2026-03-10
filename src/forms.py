@@ -141,6 +141,42 @@ class FormMilitar(FlaskForm):
     pub_cel = StringField("Publicidade")
     alteracao_nome_guerra = StringField("Alteração de nome de guerra")
     pub_alteracao = StringField("Publicidade")
+    local_nascimento = StringField("Local de nascimento", validators=[
+                                   Optional(), Length(max=120)])
+    altura = DecimalField("Altura", validators=[
+                          Optional(), NumberRange(min=0.5, max=2.5)], places=2)
+    cor_olhos = StringField("Cor dos olhos", validators=[
+                            Optional(), Length(max=40)])
+    cor_cabelos = StringField("Cor dos cabelos", validators=[
+                              Optional(), Length(max=40)])
+    bigode = BooleanField("Possui bigode?")
+
+    medida_cabeca = StringField("Medida da cabeça", validators=[
+                                Optional(), Length(max=20)])
+    numero_sapato = StringField("Número do sapato", validators=[
+                                Optional(), Length(max=10)])
+    medida_calca = StringField("Medida da calça", validators=[
+                               Optional(), Length(max=20)])
+    medida_camisa = StringField("Medida da camisa", validators=[
+                                Optional(), Length(max=20)])
+
+    tipo_sanguineo = SelectField(
+        "Tipo sanguíneo",
+        choices=[
+            ("", "-- Selecione --"),
+            ("A+", "A+"), ("A-", "A-"),
+            ("B+", "B+"), ("B-", "B-"),
+            ("AB+", "AB+"), ("AB-", "AB-"),
+            ("O+", "O+"), ("O-", "O-"),
+        ],
+        validators=[Optional()]
+    )
+
+    sinais_particulares = TextAreaField("Sinais particulares", validators=[
+                                        Optional(), Length(max=255)])
+    tatuagem = BooleanField("Possui tatuagem?")
+    local_tatuagem = StringField("Local da tatuagem", validators=[
+                                 Optional(), Length(max=255)])
     botao_submit = SubmitField('Salvar')
     arquivo = MultipleFileField('Adicionar Boletins Gerais.')
 
