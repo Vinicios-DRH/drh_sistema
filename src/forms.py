@@ -640,7 +640,7 @@ class AtualizacaoCadastralForm(FlaskForm):
                             Optional(), Length(max=40)])
     cor_cabelos = StringField("Cor dos cabelos", validators=[
                               Optional(), Length(max=40)])
-    bigode = BooleanField("Possui bigode?")
+    bigode = BooleanField("Bigode")
     medida_cabeca = StringField("Medida da cabeça", validators=[
                                 Optional(), Length(max=20)])
     numero_sapato = StringField("Número do sapato", validators=[
@@ -653,7 +653,7 @@ class AtualizacaoCadastralForm(FlaskForm):
         "Tipo sanguíneo", choices=TIPO_SANGUINEO_CHOICES, validators=[Optional()])
     sinais_particulares = TextAreaField("Sinais particulares", validators=[
                                         Optional(), Length(max=255)])
-    tatuagem = BooleanField("Possui tatuagem?")
+    tatuagem = BooleanField("Tatuagem")
     local_tatuagem = StringField("Local da tatuagem", validators=[
                                  Optional(), Length(max=255)])
 
