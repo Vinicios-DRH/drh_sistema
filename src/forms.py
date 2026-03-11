@@ -295,6 +295,7 @@ class FormFiltroMotorista(FlaskForm):
     obm_id = SelectField('OBM', choices=[])
     categoria_id = SelectField('Categoria', choices=[])
     posto_grad_id = SelectField('Posto/Grad', choices=[])
+    viatura_id = SelectField('Viatura', choices=[])
 
 
 class TabelaVencimentoForm(FlaskForm):

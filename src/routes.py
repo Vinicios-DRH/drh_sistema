@@ -79,6 +79,7 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
 def navbar():
     return render_template("navbar_teste.html")
 
+
 @app.route("/painel-efetivo/api")
 def painel_efetivo_publico_api():
     try:
@@ -104,6 +105,7 @@ def painel_efetivo_publico_api():
     except Exception as e:
         print(f"Erro ao carregar API do painel público: {e}")
         return jsonify({"ok": False, "error": "Erro ao carregar dados"}), 500
+
 
 @app.route("/painel-efetivo")
 def painel_efetivo_publico():
@@ -3479,11 +3481,26 @@ def motoristas():
     form_filtro = FormFiltroMotorista()
 
     form_filtro.obm_id.choices = [
-        ('', '-- Selecione OBM --')] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
-    form_filtro.posto_grad_id.choices = [('', '-- Selecione Posto/Grad --')] + [
-        (posto.id, posto.sigla) for posto in PostoGrad.query.all()]
-    form_filtro.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [(
-        categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
+        ('', '-- Selecione OBM --')
+    ] + [(str(obm.id), obm.sigla) for obm in Obm.query.order_by(Obm.sigla).all()]
+
+    form_filtro.posto_grad_id.choices = [
+        ('', '-- Selecione Posto/Grad --')
+    ] + [(str(posto.id), posto.sigla) for posto in PostoGrad.query.order_by(PostoGrad.sigla).all()]
+
+    form_filtro.categoria_id.choices = [
+        ('', '-- Selecione uma categoria --')
+    ] + [(str(categoria.id), categoria.sigla) for categoria in Categoria.query.order_by(Categoria.sigla).all()]
+
+    form_filtro.viatura_id.choices = [
+        ('', '-- Selecione uma viatura --')
+    ] + [
+        (
+            str(viatura.id),
+            f"{viatura.prefixo or 'S/PREFIXO'} - {viatura.placa or 'S/PLACA'} - {viatura.marca_modelo or 'S/MODELO'}"
+        )
+        for viatura in Viaturas.query.order_by(Viaturas.prefixo.asc()).all()
+    ]
 
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -3491,16 +3508,33 @@ def motoristas():
     obm_id = request.args.get('obm_id', '', type=str)
     posto_grad_id = request.args.get('posto_grad_id', '', type=str)
     categoria_id = request.args.get('categoria_id', '', type=str)
+    viatura_id = request.args.get('viatura_id', '', type=str)
+
+    # mantém os valores selecionados no form
+    form_filtro.obm_id.data = obm_id
+    form_filtro.posto_grad_id.data = posto_grad_id
+    form_filtro.categoria_id.data = categoria_id
+    form_filtro.viatura_id.data = viatura_id
 
     # Query base — junta Militar e Motoristas
-    # IMPORTANTE: exclui motoristas desclassificados (desclassificar == 'SIM')
-    query = Motoristas.query.join(Militar).filter(
-        Motoristas.desclassificar != 'SIM')
+    query = (
+        Motoristas.query
+        .join(Militar)
+        .options(
+            joinedload(Motoristas.militar).joinedload(Militar.posto_grad),
+            joinedload(Motoristas.militar).joinedload(Militar.quadro),
+            joinedload(Motoristas.categoria),
+        )
+        .filter(Motoristas.desclassificar != 'SIM')
+    )
 
     # Filtro por OBM
     if obm_id:
-        subquery = MilitarObmFuncao.query.filter_by(
-            obm_id=obm_id).with_entities(MilitarObmFuncao.militar_id)
+        subquery = (
+            MilitarObmFuncao.query
+            .filter_by(obm_id=obm_id)
+            .with_entities(MilitarObmFuncao.militar_id)
+        )
         query = query.filter(Motoristas.militar_id.in_(subquery))
 
     # Filtro por Posto/Graduação
@@ -3511,51 +3545,81 @@ def motoristas():
     if categoria_id:
         query = query.filter(Motoristas.categoria_id == categoria_id)
 
+    # Filtro por Viatura
+    if viatura_id:
+        subquery_viatura = (
+            ViaturaMilitar.query
+            .filter_by(viatura_id=viatura_id)
+            .with_entities(ViaturaMilitar.militar_id)
+        )
+        query = query.filter(Motoristas.militar_id.in_(subquery_viatura))
+
     # Filtro por Nome
     if search:
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
-    # Apenas registros ativos (se você usa modified para histórico)
+    # Apenas registros ativos
     query = query.filter(Motoristas.modified.is_(None))
+
+    # Evita duplicidade caso futuramente haja joins extras
+    # query = query.distinct(Motoristas.id)
 
     # Paginação
     motoristas_paginados = query.order_by(
-        Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
+        Militar.nome_completo.asc()
+    ).paginate(page=page, per_page=per_page)
 
-    # Contagem de militares (total geral) e motoristas válidos (exclui desclassificados)
+    # Contagem de militares e motoristas válidos
     total_militares = Militar.query.count()
-    total_motoristas = Motoristas.query.filter(Motoristas.modified.is_(
-        None), Motoristas.desclassificar != 'SIM').count()
+    total_motoristas = Motoristas.query.filter(
+        Motoristas.modified.is_(None),
+        Motoristas.desclassificar != 'SIM'
+    ).count()
 
-    # Gráfico: Percentual de militares que são motoristas (exclui desclassificados)
+    # Gráfico: Percentual de militares que são motoristas
     labels_motoristas = ['Motoristas', 'Não são motoristas']
     values_motoristas = [total_motoristas, total_militares - total_motoristas]
     fig_motoristas = go.Figure(
-        data=[go.Pie(labels=labels_motoristas, values=values_motoristas, hole=0.4)])
+        data=[go.Pie(labels=labels_motoristas,
+                     values=values_motoristas, hole=0.4)]
+    )
     grafico_motoristas = pio.to_json(fig_motoristas)
 
-    # Gráfico: Motoristas por categoria (exclui desclassificados)
+    # Gráfico: Motoristas por categoria
     categorias = database.session.query(
         Categoria.sigla,
         database.func.count(Motoristas.id)
-    ).join(Motoristas).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Categoria.sigla).all()
+    ).join(Motoristas).filter(
+        Motoristas.modified.is_(None),
+        Motoristas.desclassificar != 'SIM'
+    ).group_by(Categoria.sigla).all()
+
     labels_categorias = [c[0] for c in categorias]
     values_categorias = [c[1] for c in categorias]
     fig_categorias = go.Figure(
-        data=[go.Pie(labels=labels_categorias, values=values_categorias, hole=0.4)])
+        data=[go.Pie(labels=labels_categorias,
+                     values=values_categorias, hole=0.4)]
+    )
     grafico_categorias = pio.to_json(fig_categorias)
 
-    # Gráfico: Motoristas por OBM (exclui desclassificados)
+    # Gráfico: Motoristas por OBM
     obms = database.session.query(
         Obm.sigla,
         database.func.count(Motoristas.id)
-    ).join(MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id).join(
+    ).join(
+        MilitarObmFuncao, Obm.id == MilitarObmFuncao.obm_id
+    ).join(
         Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id
-    ).filter(Motoristas.modified.is_(None), Motoristas.desclassificar != 'SIM').group_by(Obm.sigla).all()
+    ).filter(
+        Motoristas.modified.is_(None),
+        Motoristas.desclassificar != 'SIM'
+    ).group_by(Obm.sigla).all()
+
     labels_obms = [obm[0] for obm in obms]
     values_obms = [obm[1] for obm in obms]
     fig_obms = go.Figure(
-        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)])
+        data=[go.Pie(labels=labels_obms, values=values_obms, hole=0.4)]
+    )
     grafico_obms = pio.to_json(fig_obms)
 
     return render_template(
@@ -3920,6 +3984,177 @@ def salvar_motoristas_viatura(viatura_id):
         flash("Não foi possível salvar: limite atingido ou motorista duplicado.", "danger")
 
     return redirect(url_for("viaturas_admin.gerenciar_viaturas", obm_id=v.obm_id or 0))
+
+
+@app.route("/motoristas/exportar-excel", methods=["GET"])
+def exportar_motoristas_excel():
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.utils import get_column_letter
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Motoristas"
+
+        headers = [
+            "ID Motorista",
+            "Nome Completo",
+            "Nome de Guerra",
+            "CPF",
+            "Matrícula",
+            "Posto/Grad",
+            "Quadro",
+            "OBM",
+            "Categoria CNH",
+            "Vencimento CNH",
+            "SIGED",
+            "Boletim Geral",
+            "Viatura(s)",
+            "Desclassificado",
+            "Desclassificado Em",
+            "Criado Em",
+        ]
+
+        ws.append(headers)
+
+        # Estilo do cabeçalho
+        header_fill = PatternFill("solid", fgColor="B5121B")
+        header_font = Font(color="FFFFFF", bold=True)
+
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        motoristas = (
+            Motoristas.query
+            .options(
+                joinedload(Motoristas.militar).joinedload(Militar.posto_grad),
+                joinedload(Motoristas.militar).joinedload(Militar.quadro),
+                joinedload(Motoristas.militar).selectinload(Militar.obm_funcoes).joinedload(MilitarObmFuncao.obm),
+                joinedload(Motoristas.militar).selectinload(Militar.viaturas).joinedload(ViaturaMilitar.viatura),
+                joinedload(Motoristas.categoria),
+            )
+            .order_by(Motoristas.id.asc())
+            .all()
+        )
+
+        for motorista in motoristas:
+            militar = motorista.militar
+
+            nome_completo = militar.nome_completo if militar else ""
+            nome_guerra = militar.nome_guerra if militar else ""
+            cpf = militar.cpf if militar else ""
+            matricula = militar.matricula if militar else ""
+            posto_grad = militar.posto_grad.sigla if militar and militar.posto_grad else ""
+            quadro = militar.quadro.quadro if militar and militar.quadro else ""
+            categoria = motorista.categoria.sigla if motorista.categoria else ""
+
+            vencimento_cnh = ""
+            if motorista.vencimento_cnh:
+                vencimento_cnh = motorista.vencimento_cnh.strftime("%d/%m/%Y")
+
+            criado_em = ""
+            if motorista.created:
+                criado_em = motorista.created.strftime("%d/%m/%Y %H:%M:%S")
+
+            desclassificado_em = ""
+            if motorista.desclassificar_em:
+                desclassificado_em = motorista.desclassificar_em.strftime(
+                    "%d/%m/%Y %H:%M:%S")
+
+            # OBM atual: pega a primeira ativa (data_fim == None); se não houver, pega a última cadastrada
+            obm_sigla = ""
+            if militar and militar.obm_funcoes:
+                obms_ativas = [
+                    rel for rel in militar.obm_funcoes if rel.data_fim is None and rel.obm]
+                if obms_ativas:
+                    obm_sigla = obms_ativas[0].obm.sigla or ""
+                else:
+                    relacoes_com_obm = [
+                        rel for rel in militar.obm_funcoes if rel.obm]
+                    if relacoes_com_obm:
+                        relacoes_com_obm.sort(
+                            key=lambda x: x.data_criacao or datetime.min,
+                            reverse=True
+                        )
+                        obm_sigla = relacoes_com_obm[0].obm.sigla or ""
+
+            # Viaturas vinculadas ao militar
+            viaturas = ""
+            if militar and militar.viaturas:
+                lista_viaturas = []
+                for vinculo in militar.viaturas:
+                    if vinculo.viatura:
+                        texto = " - ".join(
+                            filter(
+                                None,
+                                [
+                                    vinculo.viatura.prefixo,
+                                    vinculo.viatura.placa,
+                                    vinculo.viatura.marca_modelo,
+                                ]
+                            )
+                        )
+                        if texto:
+                            lista_viaturas.append(texto)
+
+                # remove duplicadas preservando ordem
+                lista_viaturas = list(dict.fromkeys(lista_viaturas))
+                viaturas = ", ".join(lista_viaturas)
+
+            ws.append([
+                motorista.id,
+                nome_completo,
+                nome_guerra,
+                cpf,
+                matricula,
+                posto_grad,
+                quadro,
+                obm_sigla,
+                categoria,
+                vencimento_cnh,
+                motorista.siged or "",
+                motorista.boletim_geral or "",
+                viaturas,
+                motorista.desclassificar or "",
+                desclassificado_em,
+                criado_em,
+            ])
+
+        # Ajuste de largura automática
+        for column_cells in ws.columns:
+            max_length = 0
+            column = column_cells[0].column
+            for cell in column_cells:
+                try:
+                    cell_value = str(
+                        cell.value) if cell.value is not None else ""
+                    if len(cell_value) > max_length:
+                        max_length = len(cell_value)
+                except Exception:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[get_column_letter(
+                column)].width = adjusted_width
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        nome_arquivo = f"motoristas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=nome_arquivo,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}, 500
 
 
 @app.route('/usuario/<usuario_id>/excluir', methods=['GET', 'POST'])
