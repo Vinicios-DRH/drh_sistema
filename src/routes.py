@@ -3677,25 +3677,25 @@ def cadastrar_viatura():
     return render_template('viaturas/cadastrar_viatura.html', form=form)
 
 
-@app.route('/viaturas')
-@login_required
-def listar_viaturas():
-    search = request.args.get('search', '', type=str).strip()
+# @app.route('/viaturas')
+# @login_required
+# def listar_viaturas():
+#     search = request.args.get('search', '', type=str).strip()
 
-    query = Viaturas.query.options(joinedload(Viaturas.obm))
+#     query = Viaturas.query.options(joinedload(Viaturas.obm))
 
-    if search:
-        query = query.filter(
-            database.or_(
-                Viaturas.prefixo.ilike(f'%{search}%'),
-                Viaturas.placa.ilike(f'%{search}%'),
-                Viaturas.marca_modelo.ilike(f'%{search}%')
-            )
-        )
+#     if search:
+#         query = query.filter(
+#             database.or_(
+#                 Viaturas.prefixo.ilike(f'%{search}%'),
+#                 Viaturas.placa.ilike(f'%{search}%'),
+#                 Viaturas.marca_modelo.ilike(f'%{search}%')
+#             )
+#         )
 
-    viaturas = query.order_by(Viaturas.prefixo.asc()).all()
+#     viaturas = query.order_by(Viaturas.prefixo.asc()).all()
 
-    return render_template('viaturas/listar_viaturas.html', viaturas=viaturas, search=search)
+#     return render_template('viaturas/listar_viaturas.html', viaturas=viaturas, search=search)
 
 
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])
