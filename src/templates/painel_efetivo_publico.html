@@ -9,7 +9,9 @@
         --glass-brd: rgba(255, 255, 255, .12);
         --brand-red: #B5121B;
         --brand-red-dark: #7f0c12;
-        --card-bg: rgba(255, 255, 255, .94);
+        --brand-blue: #0b4a7d;
+        --brand-blue-2: #1769aa;
+        --card-bg: rgba(255, 255, 255, .95);
     }
 
     body {
@@ -54,6 +56,24 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
     }
 
+    .panel-hero {
+        border: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(8, 38, 74, .96), rgba(22, 92, 160, .94));
+        color: #fff;
+        box-shadow: 0 18px 45px rgba(13, 59, 102, .18);
+    }
+
+    .panel-hero .card-body {
+        padding: 1.5rem;
+    }
+
+    .hero-text {
+        color: rgba(255, 255, 255, .86);
+        margin-bottom: 0;
+    }
+
     .kpi-card {
         background: var(--card-bg);
         border: 1px solid rgba(0, 0, 0, .06);
@@ -61,6 +81,7 @@
         box-shadow: 0 10px 24px rgba(0, 0, 0, .10);
         transition: transform .18s ease, box-shadow .18s ease;
         height: 100%;
+        overflow: hidden;
     }
 
     .kpi-card:hover {
@@ -68,18 +89,29 @@
         box-shadow: 0 16px 32px rgba(0, 0, 0, .16);
     }
 
+    .kpi-card .card-body {
+        padding: 1.2rem 1.25rem;
+    }
+
+    .kpi-label,
     .kpi-title {
-        font-size: .88rem;
-        font-weight: 600;
-        color: #475569;
+        color: #64748b;
+        font-weight: 700;
+        font-size: .9rem;
         margin-bottom: .35rem;
     }
 
     .kpi-value {
         font-size: 2rem;
         font-weight: 800;
-        color: #111827;
-        line-height: 1.1;
+        line-height: 1;
+        margin-bottom: .35rem;
+        color: #0f172a;
+    }
+
+    .kpi-sub {
+        color: #6b7280;
+        font-size: .9rem;
     }
 
     .kpi-icon {
@@ -96,12 +128,248 @@
         box-shadow: 0 8px 18px rgba(181, 18, 27, .28);
     }
 
-    .section-subtitle {
-        color: rgba(255, 255, 255, .82);
+    .filter-card,
+    .table-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 14px 32px rgba(16, 24, 40, .08);
+        overflow: hidden;
+        background: rgba(255, 255, 255, .96);
+    }
+
+    .filter-card .card-body,
+    .table-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid #d9e3ef;
+        box-shadow: none !important;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #2b6cb0;
+        box-shadow: 0 0 0 .2rem rgba(43, 108, 176, .12) !important;
+    }
+
+    .btn-filter {
+        min-height: 46px;
+        border-radius: 14px;
+        border: 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-2));
+        color: #fff;
+    }
+
+    .btn-filter:hover {
+        color: #fff;
+    }
+
+    .btn-outline-soft {
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 700;
+        border: 1px solid #d6e1ed;
+        background: #fff;
+        color: #294b73;
+    }
+
+    .table thead th {
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #5b6f87;
+        border-bottom: 1px solid #e8eef5;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding-top: .95rem;
+        padding-bottom: .95rem;
+        border-color: #eef3f7;
+    }
+
+    .militar-name {
+        font-weight: 800;
+        color: #17375e;
+        margin-bottom: .15rem;
+    }
+
+    .militar-meta {
+        color: #6b7f96;
+        font-size: .88rem;
+    }
+
+    .status-badge {
+        border-radius: 999px;
+        padding: .55rem .8rem;
+        font-weight: 800;
+        font-size: .8rem;
+        display: inline-block;
+    }
+
+    .status-ok {
+        background: #e9f9ef;
+        color: #177245;
+        border: 1px solid #bfe9cb;
+    }
+
+    .status-pending {
+        background: #fff7e8;
+        color: #9a6700;
+        border: 1px solid #f5daa4;
+    }
+
+    .progress-wrap {
+        background: #edf3f9;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .progress-bar-soft {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+    }
+
+    .empty-box {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
     }
 
     .footer-note {
         color: rgba(255, 255, 255, .76);
+    }
+
+    .section-subtitle {
+        color: rgba(255, 255, 255, .82);
+    }
+
+    .carousel-card {
+        background: rgba(255, 255, 255, .95);
+        border: 1px solid rgba(255, 255, 255, .3);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+    }
+
+    .carousel-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 1rem 1.25rem 0 1.25rem;
+    }
+
+    .carousel-title {
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .carousel-subtitle {
+        color: #64748b;
+        margin: 0;
+        font-size: .95rem;
+    }
+
+    #painelCarousel .carousel-indicators {
+        position: static;
+        margin: .75rem 0 0;
+        display: flex;
+        justify-content: center;
+        gap: .45rem;
+    }
+
+    #painelCarousel .carousel-indicators [data-bs-target] {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #b6c2d1;
+        border: 0;
+        opacity: 1;
+    }
+
+    #painelCarousel .carousel-indicators .active {
+        background: var(--brand-red);
+    }
+
+    #painelCarousel .carousel-control-prev,
+    #painelCarousel .carousel-control-next {
+        width: 48px;
+        height: 48px;
+        top: 18px;
+        bottom: auto;
+        background: rgba(15, 23, 42, .72);
+        border-radius: 50%;
+        opacity: 1;
+    }
+
+    #painelCarousel .carousel-control-prev {
+        left: auto;
+        right: 72px;
+    }
+
+    #painelCarousel .carousel-control-next {
+        right: 18px;
+    }
+
+    #painelCarousel .carousel-control-prev-icon,
+    #painelCarousel .carousel-control-next-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .slide-body {
+        padding: 1.25rem;
+    }
+
+    .last-update-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .55rem .85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .14);
+        border: 1px solid rgba(255, 255, 255, .16);
+        color: #fff;
+        font-weight: 700;
+        font-size: .86rem;
+    }
+
+    @media (max-width: 768px) {
+
+        .panel-hero .card-body,
+        .filter-card .card-body,
+        .table-card .card-body,
+        .slide-body {
+            padding: 1rem;
+        }
+
+        #painelCarousel .carousel-control-prev,
+        #painelCarousel .carousel-control-next {
+            width: 40px;
+            height: 40px;
+            top: 12px;
+        }
+
+        #painelCarousel .carousel-control-prev {
+            right: 60px;
+        }
+
+        #painelCarousel .carousel-control-next {
+            right: 12px;
+        }
     }
 </style>
 {% endblock %}
@@ -116,262 +384,754 @@
                     <img src="{{ url_for('static', filename='img/logobm.png') }}" width="58" height="58" class="rounded"
                         alt="CBMAM">
                     <div>
-                        <h1 class="h4 mb-1">Painel Público de Efetivo</h1>
+                        <h1 class="h4 mb-1">Painel Público — CBMAM / DP</h1>
                         <div class="section-subtitle">
-                            Corpo de Bombeiros Militar do Amazonas — resumo consolidado do efetivo
+                            Resumo do efetivo e acompanhamento da atualização cadastral
                         </div>
                     </div>
                 </div>
 
-                <div class="text-end text-light small opacity-75">
-                    Atualização conforme dados consolidados do sistema
+                <div class="last-update-badge">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Atualizado em:</span>
+                    <span id="ultima-atualizacao">--/--/---- --:--:--</span>
                 </div>
             </div>
         </div>
 
-        <div class="glass-panel p-3 p-md-4">
-            <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-xl-5">
+        <div class="carousel-card">
+            <div class="carousel-toolbar">
+                <div>
+                    <h2 class="carousel-title">Painel Consolidado</h2>
+                    <p class="carousel-subtitle">Use as setas para alternar entre os quadros. Os dados atualizam
+                        automaticamente.</p>
+                </div>
+            </div>
 
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
-                        <div class="kpi-title">Efetivo Total</div>
-                        <div class="kpi-value">{{ efetivo_total_sem_civis }}</div>
+            <div id="painelCarousel" class="carousel slide" data-bs-interval="false" data-bs-ride="false"
+                data-bs-touch="true">
+                <div class="carousel-inner">
+
+                    <!-- SLIDE 1 -->
+                    <div class="carousel-item active">
+                        <div class="slide-body">
+                            <div class="card panel-hero mb-4">
+                                <div class="card-body">
+                                    <h2>Quadro Geral do Efetivo</h2>
+                                    <p class="hero-text">
+                                        Indicadores consolidados do efetivo do CBMAM.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-xl-5">
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+                                            <div class="kpi-title">Efetivo Total</div>
+                                            <div class="kpi-value" id="efetivo-total">{{ efetivo_total_sem_civis }}
+                                            </div>
+                                            <div class="kpi-sub">Militares ativos monitorados</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-shield"></i></div>
+                                            <div class="kpi-title">QOBM</div>
+                                            <div class="kpi-value" id="qobm">{{ qobm }}</div>
+                                            <div class="kpi-sub">Oficiais combatentes</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-shield-check"></i></div>
+                                            <div class="kpi-title">QOABM</div>
+                                            <div class="kpi-value" id="qoabm">{{ qoabm }}</div>
+                                            <div class="kpi-sub">Quadro auxiliar</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-heart-pulse"></i></div>
+                                            <div class="kpi-title">QCOBM Médico</div>
+                                            <div class="kpi-value" id="qcobm-medico">{{ qcobm_medico }}</div>
+                                            <div class="kpi-sub">Oficiais médicos</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-hospital"></i></div>
+                                            <div class="kpi-title">QCOBM Enf.</div>
+                                            <div class="kpi-value" id="qcobm-enfermeiro">{{ qcobm_enfermeiro }}</div>
+                                            <div class="kpi-sub">Enfermagem</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-emoji-smile"></i></div>
+                                            <div class="kpi-title">QCOBM Dentista</div>
+                                            <div class="kpi-value" id="qcobm-dentista">{{ qcobm_dentista }}</div>
+                                            <div class="kpi-sub">Odontologia</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-person-heart"></i></div>
+                                            <div class="kpi-title">Assist. Social</div>
+                                            <div class="kpi-value" id="qcobm-assistente-social">{{
+                                                qcobm_assistente_social }}</div>
+                                            <div class="kpi-sub">Serviço social</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-capsule-pill"></i></div>
+                                            <div class="kpi-title">Farmacêuticos</div>
+                                            <div class="kpi-value" id="qcobm-farmaceutico">{{ qcobm_farmaceutico }}
+                                            </div>
+                                            <div class="kpi-sub">Quadro de saúde</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-person-badge"></i></div>
+                                            <div class="kpi-title">Praças Esp. QCOBM</div>
+                                            <div class="kpi-value" id="qcobm-al-01">{{ qcobm_al_01 }}</div>
+                                            <div class="kpi-sub">Praças especiais</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-stars"></i></div>
+                                            <div class="kpi-title">Praças Especiais</div>
+                                            <div class="kpi-value" id="qobm-al-01">{{ qobm_al_01 }}</div>
+                                            <div class="kpi-sub">Outros especiais</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-diagram-3"></i></div>
+                                            <div class="kpi-title">QPBM</div>
+                                            <div class="kpi-value" id="qpbm">{{ qpbm }}</div>
+                                            <div class="kpi-sub">Praças combatentes</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-grid"></i></div>
+                                            <div class="kpi-title">QPEBM</div>
+                                            <div class="kpi-value" id="qpebm">{{ qpebm }}</div>
+                                            <div class="kpi-sub">Quadro especial</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-person-vcard"></i></div>
+                                            <div class="kpi-title">QCPBM</div>
+                                            <div class="kpi-value" id="qcpbm">{{ qcpbm }}</div>
+                                            <div class="kpi-sub">Quadro complementar</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-gender-female"></i></div>
+                                            <div class="kpi-title">Militares de LM</div>
+                                            <div class="kpi-value" id="maternidade">{{ maternidade }}</div>
+                                            <div class="kpi-sub">Licença maternidade</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-calendar-check"></i></div>
+                                            <div class="kpi-title">Militares de LE</div>
+                                            <div class="kpi-value" id="licenca-especial">{{ licenca_especial }}</div>
+                                            <div class="kpi-sub">Licença especial</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-heartbreak"></i></div>
+                                            <div class="kpi-title">Militares de LTS</div>
+                                            <div class="kpi-value" id="lts">{{ lts }}</div>
+                                            <div class="kpi-sub">Tratamento de saúde</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-fire"></i></div>
+                                            <div class="kpi-title">Combatentes</div>
+                                            <div class="kpi-value" id="combatentes">{{ militares_combatentes }}</div>
+                                            <div class="kpi-sub">Total do quadro combatente</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-heart"></i></div>
+                                            <div class="kpi-title">Saúde</div>
+                                            <div class="kpi-value" id="saude">{{ militares_saude }}</div>
+                                            <div class="kpi-sub">Quadros da saúde</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-award"></i></div>
+                                            <div class="kpi-title">CBC</div>
+                                            <div class="kpi-value" id="cbc">{{ cbc }}</div>
+                                            <div class="kpi-sub">Curso de bombeiro</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-award-fill"></i></div>
+                                            <div class="kpi-title">CBI</div>
+                                            <div class="kpi-value" id="cbi">{{ cbi }}</div>
+                                            <div class="kpi-sub">Curso básico interno</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-chevron-double-up"></i></div>
+                                            <div class="kpi-title">Oficiais Sup.</div>
+                                            <div class="kpi-value" id="oficiais-superiores">{{ oficiais_superiores }}
+                                            </div>
+                                            <div class="kpi-sub">Oficiais superiores</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-arrow-up-right"></i></div>
+                                            <div class="kpi-title">Oficiais Interm.</div>
+                                            <div class="kpi-value" id="oficiais-intermediarios">{{
+                                                oficiais_intermediarios }}</div>
+                                            <div class="kpi-sub">Oficiais intermediários</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-arrow-up"></i></div>
+                                            <div class="kpi-title">Oficiais Subalt.</div>
+                                            <div class="kpi-value" id="oficiais-subalternos">{{ oficiais_subalternos }}
+                                            </div>
+                                            <div class="kpi-sub">Oficiais subalternos</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-person-lines-fill"></i></div>
+                                            <div class="kpi-title">Praças</div>
+                                            <div class="kpi-value" id="pracas">{{ pracas }}</div>
+                                            <div class="kpi-sub">Total de praças</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-arrow-left-right"></i></div>
+                                            <div class="kpi-title">À Disposição</div>
+                                            <div class="kpi-value" id="a-disposicao">{{ a_disposicao }}</div>
+                                            <div class="kpi-sub">Militares cedidos</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-exclamation-octagon"></i></div>
+                                            <div class="kpi-title">Agregados Total</div>
+                                            <div class="kpi-value" id="agregados-total">{{ agregados_total }}</div>
+                                            <div class="kpi-sub">Total agregado</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-bandaid"></i></div>
+                                            <div class="kpi-title">Agregados/LTS</div>
+                                            <div class="kpi-value" id="agregados-lts">{{ agregados_lts }}</div>
+                                            <div class="kpi-sub">Por saúde</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-clock-history"></i></div>
+                                            <div class="kpi-title">Agregados/RR</div>
+                                            <div class="kpi-value" id="agregados-rr">{{ agregados_rr }}</div>
+                                            <div class="kpi-sub">Reserva remunerada</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card kpi-card text-center">
+                                        <div class="card-body">
+                                            <div class="kpi-icon"><i class="bi bi-stack"></i></div>
+                                            <div class="kpi-title">Agregados</div>
+                                            <div class="kpi-value" id="agregados">{{ agregados }}</div>
+                                            <div class="kpi-sub">Outras agregações</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- SLIDE 2 -->
+                    <div class="carousel-item">
+                        <div class="slide-body">
+                            <div class="card panel-hero mb-4">
+                                <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+                                    <div>
+                                        <h2>Painel de Atualização Cadastral</h2>
+                                        <p class="hero-text">
+                                            Acompanhe os militares que concluíram ou ainda não concluíram a atualização
+                                            dos dados cadastrais.
+                                        </p>
+                                    </div>
+                                    <div class="last-update-badge">
+                                        <i class="bi bi-broadcast-pin"></i>
+                                        <span>Atualização automática ativa</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-4 mb-4">
+                                <div class="col-12 col-md-6 col-xl-3">
+                                    <div class="card kpi-card">
+                                        <div class="card-body">
+                                            <div class="kpi-label">Total de militares</div>
+                                            <div class="kpi-value" id="cad-total">{{ total }}</div>
+                                            <div class="kpi-sub">Base monitorada no sistema</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6 col-xl-3">
+                                    <div class="card kpi-card">
+                                        <div class="card-body">
+                                            <div class="kpi-label">Cadastros concluídos</div>
+                                            <div class="kpi-value text-success" id="cad-atualizado">{{ total_atualizado
+                                                }}</div>
+                                            <div class="kpi-sub">Militares com atualização completa</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6 col-xl-3">
+                                    <div class="card kpi-card">
+                                        <div class="card-body">
+                                            <div class="kpi-label">Cadastros pendentes</div>
+                                            <div class="kpi-value text-warning" id="cad-pendente">{{ total_pendente }}
+                                            </div>
+                                            <div class="kpi-sub">Militares com pendência cadastral</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6 col-xl-3">
+                                    <div class="card kpi-card">
+                                        <div class="card-body">
+                                            <div class="kpi-label">Percentual concluído</div>
+                                            <div class="kpi-value text-primary" id="cad-percentual">{{ percentual }}%
+                                            </div>
+                                            <div class="kpi-sub mb-2">Taxa geral de conclusão</div>
+                                            <div class="progress-wrap">
+                                                <div class="progress-bar-soft" id="cad-percentual-bar"
+                                                    style="width: {{ percentual }}%;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card filter-card mb-4">
+                                <div class="card-body">
+                                    <form id="filtro-form" class="row g-3 align-items-end">
+                                        <div class="col-12 col-lg-6">
+                                            <label class="form-label fw-bold">Busca</label>
+                                            <input type="text" name="q" id="filtro-q" class="form-control"
+                                                placeholder="Digite nome completo, matrícula ou nome de guerra"
+                                                value="{{ q }}">
+                                        </div>
+
+                                        <div class="col-12 col-md-6 col-lg-3">
+                                            <label class="form-label fw-bold">Status</label>
+                                            <select name="status" id="filtro-status" class="form-select">
+                                                <option value="">Todos</option>
+                                                <option value="atualizado" {% if status=='atualizado' %}selected{% endif
+                                                    %}>Atualizados</option>
+                                                <option value="pendente" {% if status=='pendente' %}selected{% endif %}>
+                                                    Pendentes</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-6 col-lg-2 d-grid">
+                                            <button type="submit" class="btn btn-filter">Filtrar</button>
+                                        </div>
+
+                                        <div class="col-6 col-lg-1 d-grid">
+                                            <button type="button" id="btn-limpar"
+                                                class="btn btn-outline-soft">Limpar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card table-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                        <div>
+                                            <h5 class="mb-1 fw-bold">Militares monitorados</h5>
+                                            <div class="text-muted small">Resultado da consulta do painel público.</div>
+                                        </div>
+                                        <span class="badge text-bg-secondary px-3 py-2" id="badge-total-registros">
+                                            {{ militares|length }} registro(s)
+                                        </span>
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Militar</th>
+                                                    <th>Matrícula</th>
+                                                    <th>Posto/Grad</th>
+                                                    <th>Status</th>
+                                                    <th>Última atualização</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabela-militares-body">
+                                                {% for militar in militares %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="militar-name">{{ militar.nome_completo }}</div>
+                                                        <div class="militar-meta">
+                                                            {% if militar.nome_guerra %}
+                                                            Nome de guerra: {{ militar.nome_guerra }}
+                                                            {% else %}
+                                                            Sem nome de guerra informado
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ militar.matricula or "-" }}</td>
+                                                    <td>{{ militar.posto_grad.sigla if militar.posto_grad else "-" }}
+                                                    </td>
+                                                    <td>
+                                                        {% if militar.cadastro_atualizado %}
+                                                        <span class="status-badge status-ok">Atualizado</span>
+                                                        {% else %}
+                                                        <span class="status-badge status-pending">Pendente</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if militar.atualizacao_cadastral_em %}
+                                                        {{ militar.atualizacao_cadastral_em.strftime('%d/%m/%Y %H:%M')
+                                                        }}
+                                                        {% else %}
+                                                        <span class="text-muted">Sem registro</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% else %}
+                                                <tr>
+                                                    <td colspan="5">
+                                                        <div class="empty-box">
+                                                            Nenhum militar encontrado com os filtros informados.
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-shield"></i></div>
-                        <div class="kpi-title">QOBM</div>
-                        <div class="kpi-value">{{ qobm }}</div>
-                    </div>
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#painelCarousel" data-bs-slide-to="0" class="active"
+                        aria-current="true" aria-label="Quadro Geral do Efetivo"></button>
+                    <button type="button" data-bs-target="#painelCarousel" data-bs-slide-to="1"
+                        aria-label="Painel de Atualização Cadastral"></button>
                 </div>
 
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-shield-check"></i></div>
-                        <div class="kpi-title">QOABM</div>
-                        <div class="kpi-value">{{ qoabm }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-heart-pulse"></i></div>
-                        <div class="kpi-title">QCOBM Médico</div>
-                        <div class="kpi-value">{{ qcobm_medico }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-hospital"></i></div>
-                        <div class="kpi-title">QCOBM Enf.</div>
-                        <div class="kpi-value">{{ qcobm_enfermeiro }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-emoji-smile"></i></div>
-                        <div class="kpi-title">QCOBM Dentista</div>
-                        <div class="kpi-value">{{ qcobm_dentista }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-person-heart"></i></div>
-                        <div class="kpi-title">QCOBM Assist. Social</div>
-                        <div class="kpi-value">{{ qcobm_assistente_social }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-capsule-pill"></i></div>
-                        <div class="kpi-title">QCOBM Farm.</div>
-                        <div class="kpi-value">{{ qcobm_farmaceutico }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-person-badge"></i></div>
-                        <div class="kpi-title">Praças Esp. QCOBM</div>
-                        <div class="kpi-value">{{ qcobm_al_01 }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-stars"></i></div>
-                        <div class="kpi-title">Praças Especiais</div>
-                        <div class="kpi-value">{{ qobm_al_01 }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-diagram-3"></i></div>
-                        <div class="kpi-title">QPBM</div>
-                        <div class="kpi-value">{{ qpbm }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-grid"></i></div>
-                        <div class="kpi-title">QPEBM</div>
-                        <div class="kpi-value">{{ qpebm }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-person-vcard"></i></div>
-                        <div class="kpi-title">QCPBM</div>
-                        <div class="kpi-value">{{ qcpbm }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-gender-female"></i></div>
-                        <div class="kpi-title">Militares de LM</div>
-                        <div class="kpi-value">{{ maternidade }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-calendar-check"></i></div>
-                        <div class="kpi-title">Militares de LE</div>
-                        <div class="kpi-value">{{ licenca_especial }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-heartbreak"></i></div>
-                        <div class="kpi-title">Militares de LTS</div>
-                        <div class="kpi-value">{{ lts }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-fire"></i></div>
-                        <div class="kpi-title">Combatentes</div>
-                        <div class="kpi-value">{{ militares_combatentes }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-heart"></i></div>
-                        <div class="kpi-title">Saúde</div>
-                        <div class="kpi-value">{{ militares_saude }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-award"></i></div>
-                        <div class="kpi-title">CBC</div>
-                        <div class="kpi-value">{{ cbc }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-award-fill"></i></div>
-                        <div class="kpi-title">CBI</div>
-                        <div class="kpi-value">{{ cbi }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-chevron-double-up"></i></div>
-                        <div class="kpi-title">Oficiais Sup.</div>
-                        <div class="kpi-value">{{ oficiais_superiores }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-arrow-up-right"></i></div>
-                        <div class="kpi-title">Oficiais Interm.</div>
-                        <div class="kpi-value">{{ oficiais_intermediarios }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-arrow-up"></i></div>
-                        <div class="kpi-title">Oficiais Subalt.</div>
-                        <div class="kpi-value">{{ oficiais_subalternos }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-person-lines-fill"></i></div>
-                        <div class="kpi-title">Praças</div>
-                        <div class="kpi-value">{{ pracas }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-arrow-left-right"></i></div>
-                        <div class="kpi-title">À Disposição</div>
-                        <div class="kpi-value">{{ a_disposicao }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-exclamation-octagon"></i></div>
-                        <div class="kpi-title">Agregados Total</div>
-                        <div class="kpi-value">{{ agregados_total }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-bandaid"></i></div>
-                        <div class="kpi-title">Agregados/LTS</div>
-                        <div class="kpi-value">{{ agregados_lts }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-clock-history"></i></div>
-                        <div class="kpi-title">Agregados/RR</div>
-                        <div class="kpi-value">{{ agregados_rr }}</div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="kpi-card p-3 text-center">
-                        <div class="kpi-icon"><i class="bi bi-stack"></i></div>
-                        <div class="kpi-title">Agregados</div>
-                        <div class="kpi-value">{{ agregados }}</div>
-                    </div>
-                </div>
-
+                <button class="carousel-control-prev" type="button" data-bs-target="#painelCarousel"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#painelCarousel"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Próximo</span>
+                </button>
             </div>
         </div>
 
         <div class="footer-note small mt-3">
             <i class="bi bi-info-circle me-1"></i>
-            Painel meramente informativo com dados consolidados do efetivo.
+            Painel informativo com atualização automática dos dados, sem troca automática de slide.
         </div>
-
     </div>
 </section>
+
+<script>
+    (function () {
+        const filtroForm = document.getElementById("filtro-form");
+        const filtroQ = document.getElementById("filtro-q");
+        const filtroStatus = document.getElementById("filtro-status");
+        const btnLimpar = document.getElementById("btn-limpar");
+
+        const ultimaAtualizacao = document.getElementById("ultima-atualizacao");
+
+        const cadTotal = document.getElementById("cad-total");
+        const cadAtualizado = document.getElementById("cad-atualizado");
+        const cadPendente = document.getElementById("cad-pendente");
+        const cadPercentual = document.getElementById("cad-percentual");
+        const cadPercentualBar = document.getElementById("cad-percentual-bar");
+        const badgeTotalRegistros = document.getElementById("badge-total-registros");
+        const tabelaBody = document.getElementById("tabela-militares-body");
+
+        let isLoading = false;
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return "";
+            return String(text)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function setText(id, value, fallback = 0) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value ?? fallback;
+        }
+
+        function atualizarEstatisticas(est) {
+            setText("efetivo-total", est.efetivo_total_sem_civis);
+            setText("qobm", est.qobm);
+            setText("qoabm", est.qoabm);
+            setText("qcobm-medico", est.qcobm_medico);
+            setText("qcobm-enfermeiro", est.qcobm_enfermeiro);
+            setText("qcobm-dentista", est.qcobm_dentista);
+            setText("qcobm-assistente-social", est.qcobm_assistente_social);
+            setText("qcobm-farmaceutico", est.qcobm_farmaceutico);
+            setText("qcobm-al-01", est.qcobm_al_01);
+            setText("qobm-al-01", est.qobm_al_01);
+            setText("qpbm", est.qpbm);
+            setText("qpebm", est.qpebm);
+            setText("qcpbm", est.qcpbm);
+            setText("maternidade", est.maternidade);
+            setText("licenca-especial", est.licenca_especial);
+            setText("lts", est.lts);
+            setText("combatentes", est.militares_combatentes);
+            setText("saude", est.militares_saude);
+            setText("cbc", est.cbc);
+            setText("cbi", est.cbi);
+            setText("oficiais-superiores", est.oficiais_superiores);
+            setText("oficiais-intermediarios", est.oficiais_intermediarios);
+            setText("oficiais-subalternos", est.oficiais_subalternos);
+            setText("pracas", est.pracas);
+            setText("a-disposicao", est.a_disposicao);
+            setText("agregados-total", est.agregados_total);
+            setText("agregados-lts", est.agregados_lts);
+            setText("agregados-rr", est.agregados_rr);
+            setText("agregados", est.agregados);
+        }
+
+        function atualizarResumo(resumo) {
+            if (!resumo) return;
+            cadTotal.textContent = resumo.total ?? 0;
+            cadAtualizado.textContent = resumo.total_atualizado ?? 0;
+            cadPendente.textContent = resumo.total_pendente ?? 0;
+            cadPercentual.textContent = `${resumo.percentual ?? 0}%`;
+            cadPercentualBar.style.width = `${resumo.percentual ?? 0}%`;
+        }
+
+        function renderTabela(militares) {
+            if (!militares || militares.length === 0) {
+                tabelaBody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-box">Nenhum militar encontrado com os filtros informados.</div>
+                    </td>
+                </tr>
+            `;
+                return;
+            }
+
+            tabelaBody.innerHTML = militares.map((militar) => {
+                const nomeGuerra = militar.nome_guerra
+                    ? `Nome de guerra: ${escapeHtml(militar.nome_guerra)}`
+                    : "Sem nome de guerra informado";
+
+                const statusClass = militar.cadastro_atualizado ? "status-ok" : "status-pending";
+                const statusLabel = militar.cadastro_atualizado ? "Atualizado" : "Pendente";
+                const dataAtualizacao = militar.atualizacao_cadastral_em
+                    ? escapeHtml(militar.atualizacao_cadastral_em)
+                    : '<span class="text-muted">Sem registro</span>';
+
+                return `
+                <tr>
+                    <td>
+                        <div class="militar-name">${escapeHtml(militar.nome_completo)}</div>
+                        <div class="militar-meta">${nomeGuerra}</div>
+                    </td>
+                    <td>${escapeHtml(militar.matricula || "-")}</td>
+                    <td>${escapeHtml(militar.posto_grad || "-")}</td>
+                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td>${dataAtualizacao}</td>
+                </tr>
+            `;
+            }).join("");
+        }
+
+        async function carregarPainel() {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const params = new URLSearchParams({
+                    q: filtroQ ? (filtroQ.value || "") : "",
+                    status: filtroStatus ? (filtroStatus.value || "") : ""
+                });
+
+                const response = await fetch(`/painel-efetivo/api?${params.toString()}`, {
+                    method: "GET",
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Falha ao buscar dados do painel.");
+                }
+
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || "Erro ao atualizar painel.");
+                }
+
+                atualizarEstatisticas(data.estatisticas || {});
+                atualizarResumo(data.resumo_atualizacao || {});
+                renderTabela(data.militares || []);
+
+                if (badgeTotalRegistros) {
+                    badgeTotalRegistros.textContent = `${data.total_filtrado || 0} registro(s)`;
+                }
+
+                if (ultimaAtualizacao) {
+                    ultimaAtualizacao.textContent = data.atualizado_em || "--/--/---- --:--:--";
+                }
+            } catch (error) {
+                console.error("Erro ao atualizar painel:", error);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        if (filtroForm) {
+            filtroForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                carregarPainel();
+            });
+        }
+
+        if (btnLimpar) {
+            btnLimpar.addEventListener("click", function () {
+                if (filtroQ) filtroQ.value = "";
+                if (filtroStatus) filtroStatus.value = "";
+                carregarPainel();
+            });
+        }
+
+        carregarPainel();
+        setInterval(carregarPainel, 10000);
+    })();
+</script>
 {% endblock %}
