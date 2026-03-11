@@ -310,6 +310,8 @@
           <ul class="nav nav-pills nav-fill flex-lg-column gap-1" role="tablist">
             <li class="nav-item"><a class="nav-link active" href="#identificacao"><i
                   class="bi bi-person-badge me-1"></i> Identificação</a></li>
+            <li class="nav-item"><a class="nav-link" href="#conjuge_section"><i class="bi bi-heart me-1"></i>
+                Cônjuge</a></li>
             <li class="nav-item"><a class="nav-link" href="#documentos"><i class="bi bi-card-text me-1"></i>
                 Documentos</a></li>
             <li class="nav-item"><a class="nav-link" href="#eleitoral"><i class="bi bi-people me-1"></i> Dados
@@ -329,8 +331,6 @@
                 Formação</a></li>
             <li class="nav-item"><a class="nav-link" href="#graduacoes_multiplas"><i class="bi bi-book me-1"></i>
                 Graduações</a></li>
-            <li class="nav-item"><a class="nav-link" href="#conjuge_section"><i class="bi bi-heart me-1"></i>
-                Cônjuge</a></li>
             <li class="nav-item"><a class="nav-link" href="#contatos_emergencia"><i
                   class="bi bi-telephone-forward me-1"></i> Emergência</a></li>
             <li class="nav-item"><a class="nav-link" href="#endereco"><i class="bi bi-geo-alt me-1"></i> Endereço</a>
@@ -1712,14 +1712,26 @@
     const estadoCivil = document.getElementById("estado_civil");
     const conjugeSection = document.getElementById("conjuge_section");
 
+    function normalizarTexto(valor) {
+      return (valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toUpperCase();
+    }
+
     function toggleConjugeSection() {
       if (!estadoCivil || !conjugeSection) return;
 
       const texto = estadoCivil.options[estadoCivil.selectedIndex]
-        ? estadoCivil.options[estadoCivil.selectedIndex].text.trim().toUpperCase()
+        ? normalizarTexto(estadoCivil.options[estadoCivil.selectedIndex].text)
         : "";
 
-      const mostrar = ["CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"].includes(texto);
+      const mostrar =
+        texto.includes("CASADO") ||
+        texto.includes("CASADA") ||
+        texto.includes("UNIAO ESTAVEL");
+
       conjugeSection.style.display = mostrar ? "block" : "none";
     }
 
