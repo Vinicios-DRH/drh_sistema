@@ -355,6 +355,17 @@
               {{ form_filtro.viatura_id(class="form-select") }}
             </div>
           </div>
+
+          <div class="col-12">
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <a href="{{ url_for('motoristas') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-eraser me-1"></i> Limpar filtros
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel-fill me-1"></i> Aplicar filtros
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 
