@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .page-wrapper {
+        position: relative;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
+    }
+
+    .container-fluid {
+        max-width: 100% !important;
+    }
+
+    .brand-header,
+    .glass-panel {
+        width: 100%;
+    }
+
+    .table {
+        background: transparent;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: rgba(255, 255, 255, .9);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .table-striped>tbody>tr:nth-of-type(odd)>* {
+        background-color: rgba(0, 0, 0, .02);
+    }
+
+    .table-hover>tbody>tr:hover>* {
+        background-color: rgba(0, 0, 0, .04);
+    }
+
+    .table th,
+    .table td {
+        white-space: nowrap;
+    }
+
+    @media (max-width: 992px) {
+
+        .table th,
+        .table td {
+            white-space: normal;
+            word-break: break-word;
+        }
+    }
+
+    .input-group .form-control {
+        min-width: 280px;
+    }
+
+    @media (min-width:1200px) {
+        .container-fluid {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4 page-wrapper">
+    <div class="container-fluid px-2 px-md-3">
+
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Viaturas</h1>
+                        <div class="small text-light opacity-75">
+                            DRH • Sistema CBMAM
+                            {% if viaturas is defined %}
+                            • {{ viaturas|length }} registro(s)
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <form method="GET" action="{{ url_for('listar_viaturas') }}"
+                    class="d-flex align-items-stretch flex-wrap gap-2">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control"
+                            placeholder="Buscar por prefixo, placa ou modelo" value="{{ search or '' }}"
+                            aria-label="Buscar viatura">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-return-left me-1"></i> Buscar
+                    </button>
+
+                    {% if search %}
+                    <a href="{{ url_for('listar_viaturas') }}" class="btn btn-outline-light" title="Limpar busca">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('cadastrar_viatura') }}" class="btn btn-warning">
+                        <i class="bi bi-truck-front-fill me-1"></i> Nova Viatura
+                    </a>
+
+                    <a href="{{ url_for('motoristas') }}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i> Voltar
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <div class="glass-panel p-3 p-md-4">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Prefixo</th>
+                            <th>Placa</th>
+                            <th>Marca / Modelo</th>
+                            <th>OBM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for viatura in viaturas %}
+                        <tr>
+                            <td>{{ viatura.prefixo or '-' }}</td>
+                            <td>{{ viatura.placa or '-' }}</td>
+                            <td>{{ viatura.marca_modelo or '-' }}</td>
+                            <td>{{ viatura.obm.sigla if viatura.obm else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-truck"></i> Nenhuma viatura cadastrada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

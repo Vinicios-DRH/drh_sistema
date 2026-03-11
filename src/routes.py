@@ -20,7 +20,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica,
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
@@ -3631,6 +3631,71 @@ def motoristas():
         grafico_categorias=grafico_categorias,
         grafico_obms=grafico_obms
     )
+
+
+@app.route('/viaturas/nova', methods=['GET', 'POST'])
+@login_required
+def cadastrar_viatura():
+    form = FormViatura()
+
+    form.obm_id.choices = [('', '-- Selecione a OBM --')] + [
+        (str(obm.id), obm.sigla) for obm in Obm.query.order_by(Obm.sigla.asc()).all()
+    ]
+
+    if form.validate_on_submit():
+        prefixo = (form.prefixo.data or '').strip().upper()
+        placa = (form.placa.data or '').strip().upper()
+        marca_modelo = (form.marca_modelo.data or '').strip()
+        obm_id = form.obm_id.data
+
+        viatura_existente_prefixo = Viaturas.query.filter_by(
+            prefixo=prefixo).first()
+        if viatura_existente_prefixo:
+            flash('Já existe uma viatura cadastrada com esse prefixo.', 'warning')
+            return render_template('viaturas/cadastrar_viatura.html', form=form)
+
+        if placa:
+            viatura_existente_placa = Viaturas.query.filter_by(
+                placa=placa).first()
+            if viatura_existente_placa:
+                flash('Já existe uma viatura cadastrada com essa placa.', 'warning')
+                return render_template('viaturas/cadastrar_viatura.html', form=form)
+
+        nova_viatura = Viaturas(
+            prefixo=prefixo,
+            placa=placa,
+            marca_modelo=marca_modelo,
+            obm_id=int(obm_id) if obm_id else None
+        )
+
+        database.session.add(nova_viatura)
+        database.session.commit()
+
+        flash('Viatura cadastrada com sucesso.', 'success')
+        return redirect(url_for('listar_viaturas'))
+
+    return render_template('viaturas/cadastrar_viatura.html', form=form)
+
+
+@app.route('/viaturas')
+@login_required
+def listar_viaturas():
+    search = request.args.get('search', '', type=str).strip()
+
+    query = Viaturas.query.options(joinedload(Viaturas.obm))
+
+    if search:
+        query = query.filter(
+            database.or_(
+                Viaturas.prefixo.ilike(f'%{search}%'),
+                Viaturas.placa.ilike(f'%{search}%'),
+                Viaturas.marca_modelo.ilike(f'%{search}%')
+            )
+        )
+
+    viaturas = query.order_by(Viaturas.prefixo.asc()).all()
+
+    return render_template('viaturas/listar_viaturas.html', viaturas=viaturas, search=search)
 
 
 @app.route('/atualizar-motorista/<int:motorista_id>', methods=['GET', 'POST'])

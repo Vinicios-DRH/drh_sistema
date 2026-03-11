@@ -298,6 +298,16 @@ class FormFiltroMotorista(FlaskForm):
     viatura_id = SelectField('Viatura', choices=[])
 
 
+class FormViatura(FlaskForm):
+    prefixo = StringField("Prefixo", validators=[
+                          DataRequired(), Length(max=20)])
+    placa = StringField("Placa", validators=[Optional(), Length(max=20)])
+    marca_modelo = StringField(
+        "Marca / Modelo", validators=[DataRequired(), Length(max=100)])
+    obm_id = SelectField("OBM", choices=[], validators=[DataRequired()])
+    submit = SubmitField("Salvar viatura")
+
+
 class TabelaVencimentoForm(FlaskForm):
     nome = StringField("Nome da Tabela", )
     lei = StringField("Lei", )

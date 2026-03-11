@@ -152,7 +152,6 @@
           </div>
         </div>
 
-        <!-- Ações (busca + filtros) -->
         <!-- Ações (busca + filtros + exportar) -->
         <form method="GET" action="{{ url_for('motoristas') }}" class="d-flex align-items-stretch flex-wrap gap-2">
           <div class="input-group">
@@ -171,12 +170,20 @@
           </a>
           {% endif %}
 
+          <a href="{{ url_for('cadastrar_viatura') }}" class="btn btn-warning">
+            <i class="bi bi-truck-front-fill me-1"></i> Adicionar Viatura
+          </a>
+
+          <a href="{{ url_for('listar_viaturas') }}" class="btn btn-info">
+            <i class="bi bi-truck me-1"></i> Listar Viaturas
+          </a>
+
           <a href="{{ url_for('exportar_motoristas_excel',
-                    search=search,
-                    obm_id=form_filtro.obm_id.data,
-                    posto_grad_id=form_filtro.posto_grad_id.data,
-                    categoria_id=form_filtro.categoria_id.data,
-                    viatura_id=form_filtro.viatura_id.data) }}" class="btn btn-success">
+    search=search,
+    obm_id=form_filtro.obm_id.data,
+    posto_grad_id=form_filtro.posto_grad_id.data,
+    categoria_id=form_filtro.categoria_id.data,
+    viatura_id=form_filtro.viatura_id.data) }}" class="btn btn-success">
             <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
           </a>
 

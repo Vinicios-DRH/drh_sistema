@@ -628,8 +628,8 @@ class Motoristas(database.Model):
         database.Integer, database.ForeignKey('categoria.id'), nullable=True)
     siged = database.Column(database.String(200))
     boletim_geral = database.Column(database.String(200))
-    created = database.Column(database.DateTime, default=datetime.utcnow)
-    modified = database.Column(database.DateTime)
+    created = database.Column(database.DateTime, default=now_manaus_naive)
+    modified = database.Column(database.DateTime, onupdate=now_manaus_naive)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
     vencimento_cnh = database.Column(database.DateTime)
@@ -655,8 +655,10 @@ class Viaturas(database.Model):
     placa = database.Column(database.String(20))
     prefixo = database.Column(database.String(20))
     obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'))
-    created_at = database.Column(database.DateTime, default=datetime.utcnow)
-    updated_at = database.Column(database.DateTime, onupdate=datetime.utcnow)
+    created_at = database.Column(database.DateTime, default=now_manaus_naive)
+    updated_at = database.Column(database.DateTime, onupdate=now_manaus_naive)
+
+    obm = database.relationship("Obm", backref="viaturas_obm")
 
     militares = database.relationship(
         "ViaturaMilitar",
