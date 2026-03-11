@@ -60,6 +60,7 @@ from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 from src.utils.cadastro_status import cadastro_esta_completo
+from src.utils.painel import obter_resumo_atualizacao_cadastral, obter_militares_atualizacao_cadastral, serializar_militar_atualizacao
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -77,6 +78,55 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
 @app.route("/navbar")
 def navbar():
     return render_template("navbar_teste.html")
+
+@app.route("/painel-efetivo/api")
+def painel_efetivo_publico_api():
+    try:
+        q = (request.args.get("q") or "").strip()
+        status = (request.args.get("status") or "").strip()
+
+        estatisticas = obter_estatisticas_militares()
+        resumo_atualizacao = obter_resumo_atualizacao_cadastral()
+        militares = obter_militares_atualizacao_cadastral(q=q, status=status)
+
+        militares_data = [serializar_militar_atualizacao(m) for m in militares]
+
+        return jsonify({
+            "ok": True,
+            "estatisticas": estatisticas,
+            "resumo_atualizacao": resumo_atualizacao,
+            "militares": militares_data,
+            "q": q,
+            "status": status,
+            "total_filtrado": len(militares_data),
+            "atualizado_em": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        })
+    except Exception as e:
+        print(f"Erro ao carregar API do painel público: {e}")
+        return jsonify({"ok": False, "error": "Erro ao carregar dados"}), 500
+
+@app.route("/painel-efetivo")
+def painel_efetivo_publico():
+    try:
+        estatisticas = obter_estatisticas_militares()
+
+        q = (request.args.get("q") or "").strip()
+        status = (request.args.get("status") or "").strip()
+
+        resumo_atualizacao = obter_resumo_atualizacao_cadastral()
+        militares = obter_militares_atualizacao_cadastral(q=q, status=status)
+
+        return render_template(
+            "painel_efetivo_publico.html",
+            **estatisticas,
+            **resumo_atualizacao,
+            militares=militares,
+            q=q,
+            status=status,
+        )
+    except Exception as e:
+        print(f"Erro ao carregar painel público: {e}")
+        return jsonify({"error": "Erro ao carregar o painel"}), 500
 
 
 @app.route("/db-ping-10")
@@ -1219,9 +1269,10 @@ def exibir_militar(militar_id):
         militar.cel = form_militar.cel.data
         militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
         militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
-                # ===== Graduações múltiplas =====
+        # ===== Graduações múltiplas =====
         graduacoes_curso = request.form.getlist("graduacoes_curso[]")
-        graduacoes_instituicao = request.form.getlist("graduacoes_instituicao[]")
+        graduacoes_instituicao = request.form.getlist(
+            "graduacoes_instituicao[]")
         graduacoes_ano = request.form.getlist("graduacoes_ano[]")
 
         MilitarGraduacao.query.filter_by(militar_id=militar.id).delete()
@@ -1231,8 +1282,10 @@ def exibir_militar(militar_id):
             if not curso:
                 continue
 
-            instituicao = (graduacoes_instituicao[i] or "").strip() if i < len(graduacoes_instituicao) else ""
-            ano_raw = (graduacoes_ano[i] or "").strip() if i < len(graduacoes_ano) else ""
+            instituicao = (graduacoes_instituicao[i] or "").strip(
+            ) if i < len(graduacoes_instituicao) else ""
+            ano_raw = (graduacoes_ano[i] or "").strip(
+            ) if i < len(graduacoes_ano) else ""
 
             database.session.add(MilitarGraduacao(
                 militar_id=militar.id,
@@ -1246,14 +1299,17 @@ def exibir_militar(militar_id):
         contato_nome = request.form.getlist("contato_nome[]")
         contato_parentesco = request.form.getlist("contato_parentesco[]")
         contato_telefone = request.form.getlist("contato_telefone[]")
-        contato_telefone_secundario = request.form.getlist("contato_telefone_secundario[]")
+        contato_telefone_secundario = request.form.getlist(
+            "contato_telefone_secundario[]")
         contato_observacao = request.form.getlist("contato_observacao[]")
 
-        MilitarContatoEmergencia.query.filter_by(militar_id=militar.id).delete()
+        MilitarContatoEmergencia.query.filter_by(
+            militar_id=militar.id).delete()
 
         for i, nome in enumerate(contato_nome):
             nome = (nome or "").strip()
-            telefone = (contato_telefone[i] or "").strip() if i < len(contato_telefone) else ""
+            telefone = (contato_telefone[i] or "").strip(
+            ) if i < len(contato_telefone) else ""
 
             if not nome or not telefone:
                 continue
@@ -1261,24 +1317,32 @@ def exibir_militar(militar_id):
             database.session.add(MilitarContatoEmergencia(
                 militar_id=militar.id,
                 nome=nome,
-                parentesco=(contato_parentesco[i] or "").strip() if i < len(contato_parentesco) else None,
+                parentesco=(contato_parentesco[i] or "").strip(
+                ) if i < len(contato_parentesco) else None,
                 telefone=telefone,
-                telefone_secundario=(contato_telefone_secundario[i] or "").strip() if i < len(contato_telefone_secundario) else None,
-                observacao=(contato_observacao[i] or "").strip() if i < len(contato_observacao) else None,
+                telefone_secundario=(contato_telefone_secundario[i] or "").strip(
+                ) if i < len(contato_telefone_secundario) else None,
+                observacao=(contato_observacao[i] or "").strip(
+                ) if i < len(contato_observacao) else None,
                 criado_em=now_manaus_naive()
             ))
 
         # ===== Cônjuge =====
-        estado_civil_obj = EstadoCivil.query.get(militar.estado_civil) if militar.estado_civil else None
-        estado_nome = (estado_civil_obj.estado or "").strip().upper() if estado_civil_obj else ""
-        exige_conjuge = estado_nome in {"CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
+        estado_civil_obj = EstadoCivil.query.get(
+            militar.estado_civil) if militar.estado_civil else None
+        estado_nome = (estado_civil_obj.estado or "").strip(
+        ).upper() if estado_civil_obj else ""
+        exige_conjuge = estado_nome in {
+            "CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
 
         conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
         conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
         conjuge_telefone = (request.form.get("conjuge_telefone") or "").strip()
-        conjuge_data_nascimento = (request.form.get("conjuge_data_nascimento") or "").strip()
+        conjuge_data_nascimento = (request.form.get(
+            "conjuge_data_nascimento") or "").strip()
         conjuge_endereco = (request.form.get("conjuge_endereco") or "").strip()
-        conjuge_observacao = (request.form.get("conjuge_observacao") or "").strip()
+        conjuge_observacao = (request.form.get(
+            "conjuge_observacao") or "").strip()
 
         conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
 
@@ -1514,7 +1578,7 @@ def exibir_militar(militar_id):
                 f'Erro ao atualizar o Militar. Tente novamente. {e}', 'alert-danger')
     documentos_militar = DocumentoMilitar.query.filter_by(
         militar_id=militar.id).order_by(DocumentoMilitar.criado_em.desc()).all()
-    
+
     return render_template(
         'exibir_militar.html',
         form_militar=form_militar,
@@ -3366,6 +3430,7 @@ def adicionar_motorista():
                 categoria_id=form_motorista.categoria_id.data,
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
+                vencimento=form_motorista.vencimento.data,
                 usuario_id=current_user.id,
                 desclassificar="NÃO",
                 created=datetime.utcnow()
