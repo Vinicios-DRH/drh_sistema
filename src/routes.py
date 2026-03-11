@@ -100,7 +100,7 @@ def painel_efetivo_publico_api():
             "q": q,
             "status": status,
             "total_filtrado": len(militares_data),
-            "atualizado_em": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "atualizado_em": datetime.now(ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S"),
         })
     except Exception as e:
         print(f"Erro ao carregar API do painel público: {e}")
@@ -4033,8 +4033,10 @@ def exportar_motoristas_excel():
             .options(
                 joinedload(Motoristas.militar).joinedload(Militar.posto_grad),
                 joinedload(Motoristas.militar).joinedload(Militar.quadro),
-                joinedload(Motoristas.militar).selectinload(Militar.obm_funcoes).joinedload(MilitarObmFuncao.obm),
-                joinedload(Motoristas.militar).selectinload(Militar.viaturas).joinedload(ViaturaMilitar.viatura),
+                joinedload(Motoristas.militar).selectinload(
+                    Militar.obm_funcoes).joinedload(MilitarObmFuncao.obm),
+                joinedload(Motoristas.militar).selectinload(
+                    Militar.viaturas).joinedload(ViaturaMilitar.viatura),
                 joinedload(Motoristas.categoria),
             )
             .order_by(Motoristas.id.asc())
