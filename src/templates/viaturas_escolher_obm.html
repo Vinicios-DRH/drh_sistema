@@ -1,19 +1,159 @@
 {% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .page-wrapper {
+        position: relative;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
+    }
+
+    .container-fluid {
+        max-width: 100% !important;
+    }
+
+    .brand-header,
+    .glass-panel {
+        width: 100%;
+    }
+
+    @media (min-width:1200px) {
+        .container-fluid {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+    }
+
+    .field-card {
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 14px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, .8);
+    }
+
+    .field-title {
+        font-weight: 700;
+        font-size: .95rem;
+        margin-bottom: .6rem;
+        color: #374151;
+    }
+
+    .helper-text {
+        font-size: .84rem;
+        color: #6b7280;
+        margin-top: .5rem;
+    }
+
+    .form-select {
+        min-height: 48px;
+        border-radius: 12px;
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="container mt-5">
-    <h1 class="h3 mb-3">Selecione uma OBM</h1>
-    <form method="get" action="">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-6">
-                <label class="form-label">Escolha a OBM</label>
-                <select class="form-select" onchange="if(this.value) location.href=this.value+'/viaturas'">
-                    <option value="">-- selecione --</option>
-                    {% for o in obms %}
-                    <option value="{{ o.id }}">{{ o.sigla }} (ID {{ o.id }})</option>
-                    {% endfor %}
-                </select>
+<section class="py-3 py-md-4 page-wrapper">
+    <div class="container-fluid px-2 px-md-3">
+
+        <div class="brand-header p-3 p-md-4 mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="48" height="48" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h5 mb-1">Selecionar OBM</h1>
+                        <div class="small text-light opacity-75">
+                            DRH • Sistema CBMAM • Alocação de viaturas por OBM
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('listar_viaturas') }}" class="btn btn-outline-light">
+                        <i class="bi bi-truck me-1"></i> Listar Viaturas
+                    </a>
+                    <a href="{{ url_for('cadastrar_viatura') }}" class="btn btn-warning">
+                        <i class="bi bi-plus-circle me-1"></i> Nova Viatura
+                    </a>
+                </div>
             </div>
         </div>
-    </form>
-</div>
+
+        <div class="glass-panel p-3 p-md-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-xl-6">
+                    <div class="field-card">
+                        <div class="field-title">
+                            <i class="bi bi-building me-1"></i> Escolha a OBM
+                        </div>
+
+                        <form method="get" action="">
+                            <select class="form-select" id="obmSelect">
+                                <option value="">-- selecione --</option>
+                                {% for o in obms %}
+                                <option value="{{ o.id }}">{{ o.sigla }} (ID {{ o.id }})</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+
+                        <div class="helper-text">
+                            Ao selecionar uma OBM, você será direcionado para a página de viaturas vinculadas à unidade.
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="button" class="btn btn-primary" id="btnIrObm">
+                                <i class="bi bi-arrow-right-circle me-1"></i> Acessar viaturas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script>
+    const obmSelect = document.getElementById("obmSelect");
+    const btnIrObm = document.getElementById("btnIrObm");
+
+    function irParaViaturasObm() {
+        const valor = obmSelect.value;
+        if (valor) {
+            window.location.href = `${valor}/viaturas`;
+        }
+    }
+
+    obmSelect.addEventListener("change", irParaViaturasObm);
+    btnIrObm.addEventListener("click", irParaViaturasObm);
+</script>
 {% endblock %}
