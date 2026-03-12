@@ -332,6 +332,11 @@ def atualizar():
 
         form.tatuagem.data = militar.tatuagem
         form.local_tatuagem.data = militar.local_tatuagem
+        
+    else:
+        if request.method == "POST":
+            print("ERROS DO FORM:", form.errors)
+            flash(f"Erros no formulário: {form.errors}", "danger")
 
     campos_pendentes = get_campos_pendentes_cadastro(militar)
     cadastro_completo = len(campos_pendentes) == 0

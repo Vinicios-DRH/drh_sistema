@@ -641,7 +641,11 @@
 
                                     <div class="col-md-6">
                                         {{ form.email.label(class="form-label") }}
-                                        {{ form.email(class="form-control", placeholder="voce@email.com") }}
+                                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else
+                                        ""), placeholder="voce@email.com") }}
+                                        {% for erro in form.email.errors %}
+                                        <div class="invalid-feedback d-block">{{ erro }}</div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>

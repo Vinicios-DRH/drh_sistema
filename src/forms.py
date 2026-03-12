@@ -607,66 +607,166 @@ TIPO_SANGUINEO_CHOICES = [
 ]
 
 
+def strip_filter(valor):
+    if isinstance(valor, str):
+        valor = valor.strip()
+        return valor or None
+    return valor
+
+
 class AtualizacaoCadastralForm(FlaskForm):
     # Formação
     grau_instrucao = SelectField(
-        "Grau de instrução", choices=GRAU_INSTRUCAO_CHOICES, validators=[Optional()])
-    graduacao = StringField("Graduação", validators=[
-                            Optional(), Length(max=255)])
+        "Grau de instrução",
+        choices=GRAU_INSTRUCAO_CHOICES,
+        validators=[Optional()]
+    )
+    graduacao = StringField(
+        "Graduação",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
     pos_graduacao = StringField(
-        "Pós-graduação", validators=[Optional(), Length(max=255)])
-    mestrado = StringField("Mestrado", validators=[
-                           Optional(), Length(max=255)])
-    doutorado = StringField("Doutorado", validators=[
-                            Optional(), Length(max=255)])
+        "Pós-graduação",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
+    mestrado = StringField(
+        "Mestrado",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
+    doutorado = StringField(
+        "Doutorado",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
 
     # Dados pessoais já existentes
-    nome_pai = StringField('Nome do Pai')
-    nome_mae = StringField('Nome da Mãe')
-    raca = SelectField("Raça/Cor", choices=RACA_CHOICES,
-                       validators=[Optional()])
+    nome_pai = StringField(
+        "Nome do Pai",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=100)]
+    )
+    nome_mae = StringField(
+        "Nome da Mãe",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=100)]
+    )
+    raca = SelectField(
+        "Raça/Cor",
+        choices=RACA_CHOICES,
+        validators=[Optional()]
+    )
     estado_civil = SelectField(
-        "Estado civil", choices=ESTADO_CIVIL_CHOICES, validators=[Optional()])
+        "Estado civil",
+        choices=ESTADO_CIVIL_CHOICES,
+        validators=[Optional()]
+    )
     data_nascimento = DateField(
-        "Data de nascimento", format="%Y-%m-%d", validators=[Optional()])
-    inclusao = DateField("Data de inclusão",
-                         format="%Y-%m-%d", validators=[Optional()])
-    endereco = StringField("Endereço", validators=[
-                           Optional(), Length(max=100)])
-    complemento = StringField("Complemento", validators=[
-                              Optional(), Length(max=100)])
-    cidade = StringField("Cidade", validators=[Optional(), Length(max=50)])
-    estado = SelectField("UF", choices=UF_CHOICES, validators=[Optional()])
-    cep = StringField("CEP", validators=[Optional(), Length(max=20)])
-    celular = StringField("Celular", validators=[Optional(), Length(max=50)])
+        "Data de nascimento",
+        format="%Y-%m-%d",
+        validators=[Optional()]
+    )
+    inclusao = DateField(
+        "Data de inclusão",
+        format="%Y-%m-%d",
+        validators=[Optional()]
+    )
+    endereco = StringField(
+        "Endereço",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=100)]
+    )
+    complemento = StringField(
+        "Complemento",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=100)]
+    )
+    cidade = StringField(
+        "Cidade",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=50)]
+    )
+    estado = SelectField(
+        "UF",
+        choices=UF_CHOICES,
+        validators=[Optional()]
+    )
+    cep = StringField(
+        "CEP",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=20)]
+    )
+    celular = StringField(
+        "Celular",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=50)]
+    )
     email = StringField(
-        "E-mail", validators=[Optional(), Email(), Length(max=100)])
+        "E-mail",
+        filters=[strip_filter],
+        validators=[Optional(), Email(), Length(max=100)]
+    )
 
     # Novos campos
-    local_nascimento = StringField("Local de nascimento", validators=[
-                                   Optional(), Length(max=120)])
-    altura = DecimalField("Altura", validators=[
-                          Optional(), NumberRange(min=0.5, max=2.5)], places=2)
-    cor_olhos = StringField("Cor dos olhos", validators=[
-                            Optional(), Length(max=40)])
-    cor_cabelos = StringField("Cor dos cabelos", validators=[
-                              Optional(), Length(max=40)])
+    local_nascimento = StringField(
+        "Local de nascimento",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=120)]
+    )
+    altura = DecimalField(
+        "Altura",
+        validators=[Optional(), NumberRange(min=0.5, max=2.5)],
+        places=2
+    )
+    cor_olhos = StringField(
+        "Cor dos olhos",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=40)]
+    )
+    cor_cabelos = StringField(
+        "Cor dos cabelos",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=40)]
+    )
     bigode = BooleanField("Bigode")
-    medida_cabeca = StringField("Medida da cabeça", validators=[
-                                Optional(), Length(max=20)])
-    numero_sapato = StringField("Número do sapato", validators=[
-                                Optional(), Length(max=10)])
-    medida_calca = StringField("Medida da calça", validators=[
-                               Optional(), Length(max=20)])
-    medida_camisa = StringField("Medida da camisa", validators=[
-                                Optional(), Length(max=20)])
+    medida_cabeca = StringField(
+        "Medida da cabeça",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=20)]
+    )
+    numero_sapato = StringField(
+        "Número do sapato",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=10)]
+    )
+    medida_calca = StringField(
+        "Medida da calça",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=20)]
+    )
+    medida_camisa = StringField(
+        "Medida da camisa",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=20)]
+    )
     tipo_sanguineo = SelectField(
-        "Tipo sanguíneo", choices=TIPO_SANGUINEO_CHOICES, validators=[Optional()])
-    sinais_particulares = TextAreaField("Sinais particulares", validators=[
-                                        Optional(), Length(max=255)])
+        "Tipo sanguíneo",
+        choices=TIPO_SANGUINEO_CHOICES,
+        validators=[Optional()]
+    )
+    sinais_particulares = TextAreaField(
+        "Sinais particulares",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
     tatuagem = BooleanField("Tatuagem")
-    local_tatuagem = StringField("Local da tatuagem", validators=[
-                                 Optional(), Length(max=255)])
+    local_tatuagem = StringField(
+        "Local da tatuagem",
+        filters=[strip_filter],
+        validators=[Optional(), Length(max=255)]
+    )
 
     botao_submit = SubmitField("Salvar atualização cadastral")
 
