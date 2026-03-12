@@ -385,6 +385,7 @@ def painel():
     query = (
         Militar.query
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .filter(Militar.inativo.is_(False))
     )
 
     if q:
@@ -409,10 +410,15 @@ def painel():
 
     militares = query.order_by(Militar.nome_completo.asc()).all()
 
-    total = Militar.query.count()
+    total = Militar.query.filter(Militar.inativo.is_(False)).count()
+
     total_atualizado = Militar.query.filter(
-        Militar.cadastro_atualizado.is_(True)).count()
+        Militar.inativo.is_(False),
+        Militar.cadastro_atualizado.is_(True)
+    ).count()
+
     total_pendente = Militar.query.filter(
+        Militar.inativo.is_(False),
         or_(
             Militar.cadastro_atualizado.is_(False),
             Militar.cadastro_atualizado.is_(None)

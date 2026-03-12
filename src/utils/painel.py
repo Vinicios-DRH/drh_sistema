@@ -1,16 +1,30 @@
 from sqlalchemy import or_
-
 from src.models import Militar, PostoGrad
 
 
-def obter_resumo_atualizacao_cadastral():
-    total = Militar.query.count()
+def _query_militares_ativos_atualizacao():
+    return (
+        Militar.query
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .filter(
+            or_(
+                Militar.inativo.is_(False),
+                Militar.inativo.is_(None)
+            )
+        )
+    )
 
-    total_atualizado = Militar.query.filter(
+
+def obter_resumo_atualizacao_cadastral():
+    query_base = _query_militares_ativos_atualizacao()
+
+    total = query_base.count()
+
+    total_atualizado = query_base.filter(
         Militar.cadastro_atualizado.is_(True)
     ).count()
 
-    total_pendente = Militar.query.filter(
+    total_pendente = query_base.filter(
         or_(
             Militar.cadastro_atualizado.is_(False),
             Militar.cadastro_atualizado.is_(None)
@@ -31,10 +45,7 @@ def obter_militares_atualizacao_cadastral(q="", status=""):
     q = (q or "").strip()
     status = (status or "").strip()
 
-    query = (
-        Militar.query
-        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
-    )
+    query = _query_militares_ativos_atualizacao()
 
     if q:
         like = f"%{q}%"
@@ -57,7 +68,6 @@ def obter_militares_atualizacao_cadastral(q="", status=""):
         )
 
     militares = query.order_by(Militar.nome_completo.asc()).all()
-
     return militares
 
 
