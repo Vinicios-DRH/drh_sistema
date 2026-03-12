@@ -260,14 +260,22 @@ def atualizar():
             # ===== Auditoria / controle =====
             militar.atualizacao_cadastral_em = agora_manaus()
             militar.ip_address = _get_client_ip()
-            militar.cadastro_atualizado = cadastro_esta_completo(militar)
 
             _registrar_auditoria(
                 militar_id=militar.id,
                 observacao="Militar realizou atualização cadastral no próprio perfil."
             )
+
+            database.session.flush()
+
+            militar.cadastro_atualizado = cadastro_esta_completo(militar)
             database.session.flush()
             database.session.commit()
+
+            # recarrega do banco/sessão se quiser garantir consistência
+            database.session.refresh(militar)
+
+            pendentes = get_campos_pendentes_cadastro(militar)
 
             if militar.cadastro_atualizado:
                 flash(
@@ -275,7 +283,6 @@ def atualizar():
                     "success"
                 )
             else:
-                pendentes = get_campos_pendentes_cadastro(militar)
                 flash(
                     f"Atualização salva, mas ainda existem {len(pendentes)} campo(s) pendente(s).",
                     "warning"
