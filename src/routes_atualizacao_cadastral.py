@@ -32,6 +32,15 @@ bp_atualizacao_cadastral = Blueprint(
     url_prefix="/atualizacao-cadastral"
 )
 
+
+def _eh_al_sd(militar):
+    if not militar or not militar.posto_grad:
+        return False
+
+    sigla = (militar.posto_grad.sigla or "").strip().upper()
+    return sigla in {"AL SD", "ALUNO SOLDADO", "AL SD BM"}
+
+
 MANAUS_TZ = ZoneInfo("America/Manaus")
 
 
@@ -81,6 +90,7 @@ def _registrar_auditoria(militar_id, observacao="Militar realizou atualização 
 @login_required
 def atualizar():
     militar = _get_militar_do_usuario()
+    eh_al_sd = _eh_al_sd(militar)
 
     if not militar:
         flash("Seu usuário não está vinculado a um cadastro de militar.", "danger")
@@ -154,6 +164,19 @@ def atualizar():
             graduacoes_ano = request.form.getlist("graduacoes_ano[]")
 
             MilitarGraduacao.query.filter_by(militar_id=militar.id).delete()
+
+            # ===== Campos extras somente para AL SD =====
+            if eh_al_sd:
+                militar.sexo = (request.form.get("sexo") or "").strip() or None
+                militar.pis_pasep = (request.form.get(
+                    "pis_pasep") or "").strip() or None
+                militar.num_titulo_eleitor = (request.form.get(
+                    "num_titulo_eleitor") or "").strip() or None
+                militar.digito_titulo_eleitor = (request.form.get(
+                    "digito_titulo_eleitor") or "").strip() or None
+                militar.zona = (request.form.get("zona") or "").strip() or None
+                militar.secao = (request.form.get(
+                    "secao") or "").strip() or None
 
             for i, curso in enumerate(graduacoes_curso):
                 curso = (curso or "").strip()
@@ -330,7 +353,7 @@ def atualizar():
 
         form.tatuagem.data = militar.tatuagem
         form.local_tatuagem.data = militar.local_tatuagem
-        
+
     else:
         if request.method == "POST":
             print("ERROS DO FORM:", form.errors)
@@ -347,7 +370,8 @@ def atualizar():
         campos_pendentes=campos_pendentes,
         graduacoes=graduacoes,
         contatos_emergencia=contatos_emergencia,
-        conjuge=conjuge
+        conjuge=conjuge,
+        eh_al_sd=eh_al_sd,
     )
 
 

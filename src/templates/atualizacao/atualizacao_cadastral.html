@@ -388,6 +388,61 @@
                             </div>
                         </div>
 
+                        {% if eh_al_sd %}
+                        <div class="col-12">
+                            <div class="section-block">
+                                <div class="section-title">
+                                    <span class="section-icon">2A</span>
+                                    Dados complementares do Aluno Soldado
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Sexo</label>
+                                        <select name="sexo" class="form-select">
+                                            <option value="">Selecione</option>
+                                            <option value="MASCULINO" {% if militar.sexo=="MASCULINO" %}selected{% endif
+                                                %}>Masculino</option>
+                                            <option value="FEMININO" {% if militar.sexo=="FEMININO" %}selected{% endif
+                                                %}>Feminino</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">PIS/PASEP</label>
+                                        <input type="text" name="pis_pasep" class="form-control"
+                                            value="{{ militar.pis_pasep or '' }}" placeholder="Informe o PIS/PASEP">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Nº Título de Eleitor</label>
+                                        <input type="text" name="num_titulo_eleitor" class="form-control"
+                                            value="{{ militar.num_titulo_eleitor or '' }}"
+                                            placeholder="Número do título">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Dígito</label>
+                                        <input type="text" name="digito_titulo_eleitor" class="form-control"
+                                            value="{{ militar.digito_titulo_eleitor or '' }}" placeholder="Dígito">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Zona</label>
+                                        <input type="text" name="zona" class="form-control"
+                                            value="{{ militar.zona or '' }}" placeholder="Zona">
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Seção</label>
+                                        <input type="text" name="secao" class="form-control"
+                                            value="{{ militar.secao or '' }}" placeholder="Seção">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="col-12 col-xl-6">
                             <div class="section-block">
                                 <div class="section-title">
