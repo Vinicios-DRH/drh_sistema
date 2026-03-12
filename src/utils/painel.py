@@ -1,4 +1,4 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from src.models import Militar, PostoGrad
 
 
@@ -7,9 +7,12 @@ def _query_militares_ativos_atualizacao():
         Militar.query
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
         .filter(
-            or_(
-                Militar.inativo.is_(False),
-                Militar.inativo.is_(None)
+            and_(
+                or_(
+                    Militar.inativo.is_(False),
+                    Militar.inativo.is_(None)
+                ),
+                Militar.posto_grad_id != 15
             )
         )
     )
