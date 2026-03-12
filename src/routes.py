@@ -4063,6 +4063,7 @@ def exportar_motoristas_excel():
 
         headers = [
             "ID Motorista",
+            "ID Militar",
             "Nome Completo",
             "Nome de Guerra",
             "CPF",
@@ -4110,6 +4111,7 @@ def exportar_motoristas_excel():
         for motorista in motoristas:
             militar = motorista.militar
 
+            militar_id = militar.id if militar else ""
             nome_completo = militar.nome_completo if militar else ""
             nome_guerra = militar.nome_guerra if militar else ""
             cpf = militar.cpf if militar else ""
@@ -4173,6 +4175,7 @@ def exportar_motoristas_excel():
 
             ws.append([
                 motorista.id,
+                militar_id,
                 nome_completo,
                 nome_guerra,
                 cpf,
