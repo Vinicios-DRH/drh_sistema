@@ -668,11 +668,6 @@ class AtualizacaoCadastralForm(FlaskForm):
         format="%Y-%m-%d",
         validators=[Optional()]
     )
-    inclusao = DateField(
-        "Data de inclusão",
-        format="%Y-%m-%d",
-        validators=[Optional()]
-    )
     endereco = StringField(
         "Endereço",
         filters=[strip_filter],

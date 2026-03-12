@@ -118,7 +118,6 @@ def atualizar():
             militar.estado_civil = int(
                 form.estado_civil.data) if form.estado_civil.data else None
             militar.data_nascimento = form.data_nascimento.data
-            militar.inclusao = form.inclusao.data
 
             militar.endereco = form.endereco.data or None
             militar.complemento = form.complemento.data or None
@@ -307,7 +306,6 @@ def atualizar():
         form.estado_civil.data = str(
             militar.estado_civil) if militar.estado_civil else ""
         form.data_nascimento.data = militar.data_nascimento
-        form.inclusao.data = militar.inclusao
 
         form.endereco.data = militar.endereco
         form.complemento.data = militar.complemento

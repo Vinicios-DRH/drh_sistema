@@ -61,6 +61,8 @@ from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 from src.utils.cadastro_status import cadastro_esta_completo
 from src.utils.painel import obter_resumo_atualizacao_cadastral, obter_militares_atualizacao_cadastral, serializar_militar_atualizacao
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -4054,9 +4056,6 @@ def salvar_motoristas_viatura(viatura_id):
 @app.route("/motoristas/exportar-excel", methods=["GET"])
 def exportar_motoristas_excel():
     try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
-        from openpyxl.utils import get_column_letter
 
         wb = Workbook()
         ws = wb.active

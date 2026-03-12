@@ -291,7 +291,6 @@
         'nome_mae': 'Nome da mãe',
         'estado_civil': 'Estado civil',
         'data_nascimento': 'Data de nascimento',
-        'inclusao': 'Data de inclusão',
         'endereco': 'Endereço',
         'cidade': 'Cidade',
         'estado': 'UF',
@@ -509,11 +508,6 @@
                                     <div class="col-md-3">
                                         {{ form.data_nascimento.label(class="form-label") }}
                                         {{ form.data_nascimento(class="form-control", type="date") }}
-                                    </div>
-
-                                    <div class="col-md-3">
-                                        {{ form.inclusao.label(class="form-label") }}
-                                        {{ form.inclusao(class="form-control", type="date", readonly=True) }}
                                     </div>
 
                                     <div class="col-md-3">
