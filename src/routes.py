@@ -320,6 +320,150 @@ def inject_militar_atual():
     }
 
 
+def _somente_numeros(valor):
+    return "".join(filter(str.isdigit, str(valor or "")))
+
+
+def _obms_do_militar_por_vinculos(militar):
+    """
+    Retorna até 2 OBMs do militar, priorizando:
+    1) vínculos ativos (data_fim is None)
+    2) mais recentes por data_criacao
+    """
+    if not militar or not getattr(militar, "obm_funcoes", None):
+        return None, None
+
+    vinculos = [v for v in militar.obm_funcoes if v.obm_id]
+
+    if not vinculos:
+        return None, None
+
+    def sort_key(v):
+        ativo = 1 if v.data_fim is None else 0
+        data_ref = v.data_criacao or datetime.min
+        return (ativo, data_ref, v.id or 0)
+
+    vinculos.sort(key=sort_key, reverse=True)
+
+    obm_ids = []
+    for v in vinculos:
+        if v.obm_id not in obm_ids:
+            obm_ids.append(v.obm_id)
+        if len(obm_ids) == 2:
+            break
+
+    obm_id_1 = obm_ids[0] if len(obm_ids) > 0 else None
+    obm_id_2 = obm_ids[1] if len(obm_ids) > 1 else None
+    return obm_id_1, obm_id_2
+
+
+@app.route('/criar-senha/<cpf>', methods=['GET', 'POST'])
+def criar_senha(cpf):
+    cpf = formatar_cpf(cpf)
+    cpf_norm = _somente_numeros(cpf)
+
+    # checagem de fluxo e correspondência
+    if not session.get('matricula_validada') or session.get('cpf_em_validacao') != cpf:
+        flash("Valide sua identidade antes de criar a senha.", "warning")
+        return redirect(url_for('atualizacao_cadastral'))
+
+    pessoa_tipo = session.get('pessoa_tipo')
+    pessoa_id = session.get('pessoa_id')
+
+    if not pessoa_tipo or not pessoa_id:
+        flash("Sessão expirada ou inválida. Refaça a identificação.", "warning")
+        return redirect(url_for('atualizacao_cadastral'))
+
+    form = CriarSenhaForm()
+
+    # Já tem conta?
+    usuario_existente = (
+        User.query
+        .filter(
+            (User.cpf == cpf) | (User.cpf_norm == cpf_norm)
+        )
+        .first()
+    )
+    if usuario_existente:
+        flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
+        _limpa_sessao_validacao()
+        return redirect(url_for('login'))
+
+    # Carrega a pessoa do tipo correto
+    if pessoa_tipo == 'militar':
+        pessoa = Militar.query.get(pessoa_id)
+        if not pessoa:
+            flash("❌ Militar não encontrado para este CPF.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+
+        nome_user = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', '')) or ''
+    else:
+        pessoa = FichaAlunos.query.get(pessoa_id)
+        if not pessoa:
+            flash("❌ Aluno não encontrado para este CPF.", "danger")
+            _limpa_sessao_validacao()
+            return redirect(url_for('atualizacao_cadastral'))
+
+        nome_user = getattr(pessoa, 'nome_completo', '') or ''
+
+    if form.validate_on_submit():
+        try:
+            senha_hash = bcrypt.generate_password_hash(
+                form.senha.data
+            ).decode('utf-8')
+
+            novo_usuario = User(
+                nome=nome_user,
+                email=session.get('email_atualizacao'),
+                cpf=cpf,                 # com máscara
+                cpf_norm=cpf_norm,      # só números
+                senha=senha_hash,
+                funcao_user_id=12,      # USUÁRIO COMUM
+            )
+
+            if pessoa_tipo == 'militar':
+                obm_id_1, obm_id_2 = _obms_do_militar_por_vinculos(pessoa)
+
+                novo_usuario.tipo_perfil = "MILITAR"
+                novo_usuario.militar_id = pessoa.id
+                novo_usuario.obm_id_1 = obm_id_1
+                novo_usuario.obm_id_2 = obm_id_2
+                novo_usuario.localidade_id = getattr(pessoa, 'localidade_id', None)
+
+                # importante: antes do commit
+                if hasattr(pessoa, 'usuario_id'):
+                    pessoa.usuario_id = novo_usuario.id  # ainda não existe aqui, então flush abaixo
+            else:
+                novo_usuario.tipo_perfil = "MILITAR"  # ou "ALUNO", se teu sistema usar isso
+                novo_usuario.militar_id = None
+                novo_usuario.obm_id_1 = 26
+                novo_usuario.obm_id_2 = None
+                novo_usuario.localidade_id = None
+
+            database.session.add(novo_usuario)
+            database.session.flush()
+
+            if pessoa_tipo == 'militar' and hasattr(pessoa, 'usuario_id'):
+                pessoa.usuario_id = novo_usuario.id
+
+            database.session.commit()
+
+            _limpa_sessao_validacao()
+            flash("✅ Conta criada com sucesso! Agora você pode fazer login.", "success")
+            return redirect(url_for('login_atualizacao'))
+
+        except Exception as e:
+            database.session.rollback()
+            flash(f"Erro ao criar conta: {str(e)}", "danger")
+
+    return render_template(
+        'atualizacao/criar_senha.html',
+        form=form,
+        cpf=cpf
+    )
+
+
 @app.route('/acesso-negado')
 def acesso_negado():
     """Rota para exibir a página de acesso negado."""
