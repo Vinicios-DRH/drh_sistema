@@ -290,11 +290,10 @@ def atualizar():
 
             database.session.flush()
 
-            militar.cadastro_atualizado = cadastro_esta_completo(militar)
-            database.session.flush()
-            database.session.commit()
+            pendentes = get_campos_pendentes_cadastro(militar) or []
+            militar.cadastro_atualizado = len(pendentes) == 0
 
-            # recarrega do banco/sessão se quiser garantir consistência
+            database.session.commit()
             database.session.refresh(militar)
 
             pendentes = get_campos_pendentes_cadastro(militar)

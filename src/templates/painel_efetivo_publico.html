@@ -946,15 +946,7 @@
                                                         </div>
                                                     </td>
                                                     <td>{{ militar.matricula or "-" }}</td>
-                                                    <td>
-                                                        {% if militar.obm_funcoes and militar.obm_funcoes[0].obm %}
-                                                        {{ militar.obm_funcoes[0].obm.sigla or
-                                                        militar.obm_funcoes[0].obm.obm or
-                                                        militar.obm_funcoes[0].obm.nome }}
-                                                        {% else %}
-                                                        -
-                                                        {% endif %}
-                                                    </td>
+                                                    <td>{{ militar.obm or "-" }}</td>
                                                     <td>{{ militar.posto_grad.sigla if militar.posto_grad else "-" }}
                                                     </td>
                                                     <td>

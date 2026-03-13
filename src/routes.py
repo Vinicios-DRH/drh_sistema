@@ -69,6 +69,7 @@ from src.utils.painel import (
     obter_detalhes_militar_atualizacao,)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+from src.utils.cadastro_status import get_campos_pendentes_cadastro
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -83,6 +84,58 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
         return False
 
 
+def sincronizar_status_cadastro_atualizado():
+    militares = Militar.query.all()
+
+    total = 0
+    atualizados = 0
+    pendentes = 0
+    alterados = 0
+
+    for militar in militares:
+        total += 1
+
+        campos_pendentes = get_campos_pendentes_cadastro(militar) or []
+        cadastro_completo = len(campos_pendentes) == 0
+
+        valor_antigo = militar.cadastro_atualizado
+        militar.cadastro_atualizado = cadastro_completo
+
+        if cadastro_completo:
+            atualizados += 1
+        else:
+            pendentes += 1
+
+        if bool(valor_antigo) != cadastro_completo:
+            alterados += 1
+
+    database.session.commit()
+
+    return {
+        "total": total,
+        "atualizados": atualizados,
+        "pendentes": pendentes,
+        "alterados": alterados,
+    }
+
+
+@app.route("/admin/sincronizar-cadastro-atualizado")
+def sincronizar_cadastro_atualizado_route():
+    try:
+        resultado = sincronizar_status_cadastro_atualizado()
+        return jsonify({
+            "ok": True,
+            "resultado": resultado
+        })
+    except Exception as e:
+        database.session.rollback()
+        print(f"Erro ao sincronizar cadastro_atualizado: {e}")
+        return jsonify({
+            "ok": False,
+            "error": "Erro ao sincronizar cadastro_atualizado"
+        }), 500
+
+
 @app.route("/navbar")
 def navbar():
     return render_template("navbar_teste.html")
@@ -95,17 +148,21 @@ def painel_efetivo_publico_api():
         status = (request.args.get("status") or "").strip()
         obm_id = request.args.get("obm_id", type=int)
         posto_grad_id = request.args.get("posto_grad_id", type=int)
+        page = request.args.get("page", default=1, type=int)
+        per_page = request.args.get("per_page", default=50, type=int)
 
         estatisticas = obter_estatisticas_militares()
         resumo_atualizacao = obter_resumo_atualizacao_cadastral(
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
         )
-        militares = obter_militares_atualizacao_cadastral(
+        militares, total_filtrado = obter_militares_atualizacao_cadastral(
             q=q,
             status=status,
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            page=page,
+            per_page=per_page,
         )
 
         militares_data = [serializar_militar_atualizacao(m) for m in militares]
@@ -119,7 +176,10 @@ def painel_efetivo_publico_api():
             "status": status,
             "obm_id": obm_id,
             "posto_grad_id": posto_grad_id,
-            "total_filtrado": len(militares_data),
+            "page": page,
+            "per_page": per_page,
+            "total_filtrado": total_filtrado,
+            "total_paginas": (total_filtrado + per_page - 1) // per_page,
             "atualizado_em": datetime.now(ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S"),
         })
     except Exception as e:
@@ -136,16 +196,21 @@ def painel_efetivo_publico():
         status = (request.args.get("status") or "").strip()
         obm_id = request.args.get("obm_id", type=int)
         posto_grad_id = request.args.get("posto_grad_id", type=int)
+        page = request.args.get("page", default=1, type=int)
+        per_page = 50
 
         resumo_atualizacao = obter_resumo_atualizacao_cadastral(
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
         )
-        militares = obter_militares_atualizacao_cadastral(
+
+        militares, total_filtrado = obter_militares_atualizacao_cadastral(
             q=q,
             status=status,
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            page=page,
+            per_page=per_page,
         )
 
         obms = listar_obms_atualizacao()
@@ -165,6 +230,10 @@ def painel_efetivo_publico():
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
             atualizado_em=atualizado_em,
+            page=page,
+            per_page=per_page,
+            total_filtrado=total_filtrado,
+            total_paginas=(total_filtrado + per_page - 1) // per_page,
         )
     except Exception as e:
         print(f"Erro ao carregar painel público: {e}")
