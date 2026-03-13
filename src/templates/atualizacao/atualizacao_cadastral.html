@@ -347,7 +347,7 @@
 
         <div class="card main-card">
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" id="form-atualizacao-cadastral">
                     {{ form.csrf_token }}
 
                     <div class="row g-4">
@@ -616,15 +616,16 @@
 
                                     <div class="col-md-3">
                                         <label class="form-label">CPF</label>
-                                        <input type="text" name="conjuge_cpf" class="form-control"
-                                            value="{{ conjuge.cpf if conjuge else '' }}" placeholder="000.000.000-00">
+                                        <input type="text" name="conjuge_cpf" class="form-control cpf-mask"
+                                            value="{{ conjuge.cpf if conjuge else '' }}" placeholder="000.000.000-00"
+                                            maxlength="14" inputmode="numeric">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label class="form-label">Telefone</label>
-                                        <input type="text" name="conjuge_telefone" class="form-control"
+                                        <input type="text" name="conjuge_telefone" class="form-control telefone-mask"
                                             value="{{ conjuge.telefone if conjuge else '' }}"
-                                            placeholder="(92) 99999-9999">
+                                            placeholder="(92) 99999-9999" maxlength="15" inputmode="numeric">
                                     </div>
 
                                     <div class="col-md-4">
@@ -685,7 +686,8 @@
 
                                     <div class="col-md-6">
                                         {{ form.celular.label(class="form-label") }}
-                                        {{ form.celular(class="form-control", placeholder="(92) 99999-9999") }}
+                                        {{ form.celular(class="form-control telefone-mask", placeholder="(92)
+                                        99999-9999", maxlength="15", inputmode="numeric") }}
                                     </div>
 
                                     <div class="col-md-6">
@@ -791,14 +793,17 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label">Telefone</label>
-                                                <input type="text" name="contato_telefone[]" class="form-control"
-                                                    value="{{ contato.telefone or '' }}" placeholder="(92) 99999-9999">
+                                                <input type="text" name="contato_telefone[]"
+                                                    class="form-control telefone-mask"
+                                                    value="{{ contato.telefone or '' }}" placeholder="(92) 99999-9999"
+                                                    maxlength="15" inputmode="numeric">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Telefone secundário</label>
                                                 <input type="text" name="contato_telefone_secundario[]"
-                                                    class="form-control" value="{{ contato.telefone_secundario or '' }}"
-                                                    placeholder="Opcional">
+                                                    class="form-control telefone-mask"
+                                                    value="{{ contato.telefone_secundario or '' }}"
+                                                    placeholder="(92) 99999-9999" maxlength="15" inputmode="numeric">
                                             </div>
                                             <div class="col-md-12">
                                                 <label class="form-label">Observação</label>
@@ -826,13 +831,15 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label">Telefone</label>
-                                                <input type="text" name="contato_telefone[]" class="form-control"
-                                                    placeholder="(92) 99999-9999">
+                                                <input type="text" name="contato_telefone[]"
+                                                    class="form-control telefone-mask" placeholder="(92) 99999-9999"
+                                                    maxlength="15" inputmode="numeric">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Telefone secundário</label>
                                                 <input type="text" name="contato_telefone_secundario[]"
-                                                    class="form-control" placeholder="Opcional">
+                                                    class="form-control telefone-mask" placeholder="(92) 99999-9999"
+                                                    maxlength="15" inputmode="numeric">
                                             </div>
                                             <div class="col-md-12">
                                                 <label class="form-label">Observação</label>
@@ -930,11 +937,11 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Telefone</label>
-                        <input type="text" name="contato_telefone[]" class="form-control" placeholder="(92) 99999-9999">
+                        <input type="text" name="contato_telefone[]" class="form-control telefone-mask" placeholder="(92) 99999-9999" maxlength="15" inputmode="numeric">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Telefone secundário</label>
-                        <input type="text" name="contato_telefone_secundario[]" class="form-control" placeholder="Opcional">
+                        <input type="text" name="contato_telefone_secundario[]" class="form-control telefone-mask" placeholder="(92) 99999-9999" maxlength="15" inputmode="numeric">
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Observação</label>
@@ -944,6 +951,7 @@
             </div>
         `;
         container.insertAdjacentHTML("beforeend", html);
+        bindMascaras(container);
     }
 
     function normalizarTexto(valor) {
@@ -971,9 +979,119 @@
         conjugeSection.style.display = mostrar ? "block" : "none";
     }
 
+    function somenteNumeros(valor) {
+        return (valor || "").replace(/\D/g, "");
+    }
+
+    function aplicarMascaraCPF(valor) {
+        valor = somenteNumeros(valor).slice(0, 11);
+
+        if (valor.length <= 3) return valor;
+        if (valor.length <= 6) return valor.replace(/^(\d{3})(\d+)/, "$1.$2");
+        if (valor.length <= 9) return valor.replace(/^(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+        return valor.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/, "$1.$2.$3-$4");
+    }
+
+    function aplicarMascaraTelefone(valor) {
+        valor = somenteNumeros(valor).slice(0, 11);
+
+        if (valor.length <= 2) return valor.replace(/^(\d{0,2})$/, "($1");
+        if (valor.length <= 6) return valor.replace(/^(\d{2})(\d{0,5})$/, "($1) $2");
+        if (valor.length <= 10) return valor.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+        return valor.replace(/^(\d{2})(\d{5})(\d{0,4})$/, "($1) $2-$3");
+    }
+
+    function bindMascaras(root = document) {
+        root.querySelectorAll(".cpf-mask").forEach((input) => {
+            if (input.dataset.maskBound === "1") return;
+            input.dataset.maskBound = "1";
+
+            input.addEventListener("input", function () {
+                this.value = aplicarMascaraCPF(this.value);
+            });
+
+            input.addEventListener("blur", function () {
+                const numeros = somenteNumeros(this.value);
+                if (numeros.length && numeros.length !== 11) {
+                    this.classList.add("is-invalid");
+                } else {
+                    this.classList.remove("is-invalid");
+                }
+            });
+
+            if (input.value) {
+                input.value = aplicarMascaraCPF(input.value);
+            }
+        });
+
+        root.querySelectorAll(".telefone-mask").forEach((input) => {
+            if (input.dataset.maskBound === "1") return;
+            input.dataset.maskBound = "1";
+
+            input.addEventListener("input", function () {
+                this.value = aplicarMascaraTelefone(this.value);
+            });
+
+            input.addEventListener("blur", function () {
+                const numeros = somenteNumeros(this.value);
+
+                if (numeros.length && numeros.length !== 10 && numeros.length !== 11) {
+                    this.classList.add("is-invalid");
+                } else {
+                    this.classList.remove("is-invalid");
+                }
+            });
+
+            if (input.value) {
+                input.value = aplicarMascaraTelefone(input.value);
+            }
+        });
+    }
+
+    function validarFormularioMascaras() {
+        let formValido = true;
+
+        document.querySelectorAll(".cpf-mask").forEach((input) => {
+            const numeros = somenteNumeros(input.value);
+
+            if (numeros.length && numeros.length !== 11) {
+                input.classList.add("is-invalid");
+                formValido = false;
+            } else {
+                input.classList.remove("is-invalid");
+            }
+        });
+
+        document.querySelectorAll(".telefone-mask").forEach((input) => {
+            const numeros = somenteNumeros(input.value);
+
+            if (
+                input.name === "contato_telefone[]" ||
+                input.name === "conjuge_telefone" ||
+                input.name === "celular"
+            ) {
+                if (numeros.length === 0) {
+                    input.classList.add("is-invalid");
+                    formValido = false;
+                    return;
+                }
+            }
+
+            if (numeros.length && numeros.length !== 10 && numeros.length !== 11) {
+                input.classList.add("is-invalid");
+                formValido = false;
+            } else {
+                input.classList.remove("is-invalid");
+            }
+        });
+
+        return formValido;
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         toggleLocalTatuagem();
         toggleConjugeSection();
+        bindMascaras();
 
         const tatuagemCheck = document.getElementById("tatuagemCheck");
         if (tatuagemCheck) {
@@ -983,6 +1101,16 @@
         const estadoCivilField = document.getElementById("estadoCivilField");
         if (estadoCivilField) {
             estadoCivilField.addEventListener("change", toggleConjugeSection);
+        }
+
+        const form = document.getElementById("form-atualizacao-cadastral");
+        if (form) {
+            form.addEventListener("submit", function (e) {
+                if (!validarFormularioMascaras()) {
+                    e.preventDefault();
+                    alert("Existem campos de CPF ou telefone preenchidos em formato inválido.");
+                }
+            });
         }
     });
 </script>

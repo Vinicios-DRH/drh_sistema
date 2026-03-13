@@ -1,8 +1,18 @@
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import load_only, selectinload
 
-from src.models import Militar, PostoGrad, MilitarObmFuncao, Obm
-from src.utils.cadastro_status import get_campos_pendentes_cadastro
+from src.models import (
+    Militar,
+    PostoGrad,
+    MilitarObmFuncao,
+    Obm,
+    MilitarContatoEmergencia,
+    MilitarConjuge,
+)
+from src.utils.cadastro_status import (
+    get_campos_pendentes_cadastro,
+    LABELS_CAMPOS_CADASTRO,
+)
 
 
 def _query_militares_ativos_atualizacao():
@@ -64,7 +74,6 @@ def _obter_obm_recente_obj(militar):
         return None
 
     def sort_key(item):
-        # vínculo atual primeiro (data_fim = None)
         data_fim_none = item.data_fim is None
         data_fim = item.data_fim
         data_criacao = item.data_criacao
@@ -92,6 +101,41 @@ def _militar_pertence_obm_recente(militar, obm_id):
 
     obm = _obter_obm_recente_obj(militar)
     return bool(obm and obm.id == obm_id)
+
+
+def _label_campo(campo):
+    return LABELS_CAMPOS_CADASTRO.get(campo, campo.replace("_", " ").title())
+
+
+def _campos_monitorados_detalhe():
+    # mesma base do cadastro_status.py
+    # aqui definimos a ordem de exibição no painel
+    return [
+        "grau_instrucao",
+        "raca",
+        "nome_pai",
+        "nome_mae",
+        "estado_civil",
+        "data_nascimento",
+        "endereco",
+        "cidade",
+        "estado",
+        "cep",
+        "celular",
+        "email",
+        "local_nascimento",
+        "altura",
+        "cor_olhos",
+        "cor_cabelos",
+        "medida_cabeca",
+        "numero_sapato",
+        "medida_calca",
+        "medida_camisa",
+        "tipo_sanguineo",
+        "local_tatuagem",
+        "contato_emergencia",
+        "conjuge_nome",
+    ]
 
 
 def _base_load_lista():
@@ -157,6 +201,10 @@ def _base_load_detalhe():
             Militar.medida_cabeca,
             Militar.cpf,
             Militar.rg,
+            Militar.raca,
+            Militar.local_nascimento,
+            Militar.tatuagem,
+            Militar.local_tatuagem,
         ),
         selectinload(Militar.posto_grad).load_only(
             PostoGrad.id,
@@ -174,7 +222,20 @@ def _base_load_detalhe():
         .load_only(
             Obm.id,
             Obm.sigla,
-        )
+        ),
+        selectinload(Militar.contatos_emergencia).load_only(
+            MilitarContatoEmergencia.id,
+            MilitarContatoEmergencia.nome,
+            MilitarContatoEmergencia.telefone,
+            MilitarContatoEmergencia.parentesco,
+            MilitarContatoEmergencia.telefone_secundario,
+        ),
+        selectinload(Militar.conjuge_cadastral).load_only(
+            MilitarConjuge.id,
+            MilitarConjuge.nome,
+            MilitarConjuge.cpf,
+            MilitarConjuge.telefone,
+        ),
     )
 
 
@@ -195,7 +256,8 @@ def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None):
 
     if obm_id:
         militares = [
-            m for m in militares if _militar_pertence_obm_recente(m, obm_id)]
+            m for m in militares if _militar_pertence_obm_recente(m, obm_id)
+        ]
 
     total = len(militares)
     total_atualizado = sum(1 for m in militares if bool(m.cadastro_atualizado))
@@ -227,7 +289,8 @@ def obter_militares_atualizacao_cadastral(q="", status="", obm_id=None, posto_gr
 
     if obm_id:
         militares = [
-            m for m in militares if _militar_pertence_obm_recente(m, obm_id)]
+            m for m in militares if _militar_pertence_obm_recente(m, obm_id)
+        ]
 
     total_filtrado = len(militares)
 
@@ -288,42 +351,13 @@ def obter_detalhes_militar_atualizacao(militar_id):
         return None
 
     campos_pendentes = get_campos_pendentes_cadastro(militar) or []
-    cadastro_completo = len(campos_pendentes) == 0
+    pendentes_set = set(campos_pendentes)
 
     preenchidos = []
     pendentes = []
 
-    mapa_campos = {
-        "nome_completo": "Nome completo",
-        "nome_guerra": "Nome de guerra",
-        "cpf": "CPF",
-        "rg": "RG",
-        "matricula": "Matrícula",
-        "nome_pai": "Nome do pai",
-        "nome_mae": "Nome da mãe",
-        "data_nascimento": "Data de nascimento",
-        "sexo": "Sexo",
-        "estado_civil": "Estado civil",
-        "endereco": "Endereço",
-        "cidade": "Cidade",
-        "estado": "Estado",
-        "cep": "CEP",
-        "celular": "Celular",
-        "email": "E-mail",
-        "grau_instrucao": "Grau de instrução",
-        "tipo_sanguineo": "Tipo sanguíneo",
-        "cor_olhos": "Cor dos olhos",
-        "cor_cabelos": "Cor dos cabelos",
-        "altura": "Altura",
-        "numero_sapato": "Número do sapato",
-        "medida_calca": "Medida da calça",
-        "medida_camisa": "Medida da camisa",
-        "medida_cabeca": "Medida da cabeça",
-    }
-
-    pendentes_set = set(campos_pendentes)
-
-    for campo, label in mapa_campos.items():
+    for campo in _campos_monitorados_detalhe():
+        label = _label_campo(campo)
         if campo in pendentes_set:
             pendentes.append(label)
         else:
@@ -336,10 +370,11 @@ def obter_detalhes_militar_atualizacao(militar_id):
         "matricula": militar.matricula or "-",
         "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "-",
         "obm": _obter_obm_principal(militar),
-        "cadastro_atualizado": cadastro_completo,
-        "cadastro_completo": cadastro_completo,
+        "cadastro_atualizado": bool(militar.cadastro_atualizado),
+        "cadastro_completo": len(campos_pendentes) == 0,
         "preenchidos": preenchidos,
         "pendentes": pendentes,
+        "campos_pendentes_raw": campos_pendentes,
         "atualizacao_cadastral_em": (
             militar.atualizacao_cadastral_em.strftime("%d/%m/%Y %H:%M")
             if militar.atualizacao_cadastral_em else ""
