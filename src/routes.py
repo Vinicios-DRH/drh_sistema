@@ -60,7 +60,13 @@ from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 from src.utils.cadastro_status import cadastro_esta_completo
-from src.utils.painel import obter_resumo_atualizacao_cadastral, obter_militares_atualizacao_cadastral, serializar_militar_atualizacao
+from src.utils.painel import (
+    obter_resumo_atualizacao_cadastral,
+    obter_militares_atualizacao_cadastral,
+    serializar_militar_atualizacao,
+    listar_obms_atualizacao,
+    listar_postos_grad_atualizacao,
+    obter_detalhes_militar_atualizacao,)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -87,10 +93,20 @@ def painel_efetivo_publico_api():
     try:
         q = (request.args.get("q") or "").strip()
         status = (request.args.get("status") or "").strip()
+        obm_id = request.args.get("obm_id", type=int)
+        posto_grad_id = request.args.get("posto_grad_id", type=int)
 
         estatisticas = obter_estatisticas_militares()
-        resumo_atualizacao = obter_resumo_atualizacao_cadastral()
-        militares = obter_militares_atualizacao_cadastral(q=q, status=status)
+        resumo_atualizacao = obter_resumo_atualizacao_cadastral(
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+        )
+        militares = obter_militares_atualizacao_cadastral(
+            q=q,
+            status=status,
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+        )
 
         militares_data = [serializar_militar_atualizacao(m) for m in militares]
 
@@ -101,6 +117,8 @@ def painel_efetivo_publico_api():
             "militares": militares_data,
             "q": q,
             "status": status,
+            "obm_id": obm_id,
+            "posto_grad_id": posto_grad_id,
             "total_filtrado": len(militares_data),
             "atualizado_em": datetime.now(ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S"),
         })
@@ -116,21 +134,57 @@ def painel_efetivo_publico():
 
         q = (request.args.get("q") or "").strip()
         status = (request.args.get("status") or "").strip()
+        obm_id = request.args.get("obm_id", type=int)
+        posto_grad_id = request.args.get("posto_grad_id", type=int)
 
-        resumo_atualizacao = obter_resumo_atualizacao_cadastral()
-        militares = obter_militares_atualizacao_cadastral(q=q, status=status)
+        resumo_atualizacao = obter_resumo_atualizacao_cadastral(
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+        )
+        militares = obter_militares_atualizacao_cadastral(
+            q=q,
+            status=status,
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+        )
+
+        obms = listar_obms_atualizacao()
+        postos_grad = listar_postos_grad_atualizacao()
+        atualizado_em = datetime.now(
+            ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S")
 
         return render_template(
             "painel_efetivo_publico.html",
             **estatisticas,
             **resumo_atualizacao,
             militares=militares,
+            obms=obms,
+            postos_grad=postos_grad,
             q=q,
             status=status,
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+            atualizado_em=atualizado_em,
         )
     except Exception as e:
         print(f"Erro ao carregar painel público: {e}")
         return jsonify({"error": "Erro ao carregar o painel"}), 500
+
+
+@app.route("/painel-efetivo/api/militar/<int:militar_id>")
+def painel_efetivo_publico_militar_detalhe(militar_id):
+    try:
+        dados = obter_detalhes_militar_atualizacao(militar_id)
+        if not dados:
+            return jsonify({"ok": False, "error": "Militar não encontrado"}), 404
+
+        return jsonify({
+            "ok": True,
+            "militar": dados
+        })
+    except Exception as e:
+        print(f"Erro ao carregar detalhes do militar: {e}")
+        return jsonify({"ok": False, "error": "Erro ao carregar detalhes"}), 500
 
 
 @app.route("/db-ping-10")

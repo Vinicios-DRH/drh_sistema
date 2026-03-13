@@ -28,6 +28,11 @@
         background-repeat: no-repeat;
     }
 
+    .hero .container-fluid {
+        width: 100%;
+        max-width: 100%;
+    }
+
     .hero::after {
         content: "";
         position: absolute;
@@ -347,6 +352,17 @@
         font-size: .86rem;
     }
 
+    .link-militar-pendente {
+        color: #17375e;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .link-militar-pendente:hover {
+        color: #0b4a7d;
+        text-decoration: underline !important;
+    }
+
     @media (max-width: 768px) {
 
         .panel-hero .card-body,
@@ -376,7 +392,7 @@
 
 {% block body %}
 <section class="py-4 py-md-5 hero">
-    <div class="container">
+    <div class="container-fluid px-3 px-md-4 px-xl-5">
 
         <div class="brand-header p-3 p-md-4 mb-4">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -394,7 +410,7 @@
                 <div class="last-update-badge">
                     <i class="bi bi-arrow-repeat"></i>
                     <span>Atualizado em:</span>
-                    <span id="ultima-atualizacao">--/--/---- --:--:--</span>
+                    <span id="ultima-atualizacao">{{ atualizado_em }}</span>
                 </div>
             </div>
         </div>
@@ -826,14 +842,14 @@
                             <div class="card filter-card mb-4">
                                 <div class="card-body">
                                     <form id="filtro-form" class="row g-3 align-items-end">
-                                        <div class="col-12 col-lg-6">
+                                        <div class="col-12 col-xl-4">
                                             <label class="form-label fw-bold">Busca</label>
                                             <input type="text" name="q" id="filtro-q" class="form-control"
                                                 placeholder="Digite nome completo, matrícula ou nome de guerra"
                                                 value="{{ q }}">
                                         </div>
 
-                                        <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="col-12 col-md-6 col-xl-2">
                                             <label class="form-label fw-bold">Status</label>
                                             <select name="status" id="filtro-status" class="form-select">
                                                 <option value="">Todos</option>
@@ -844,11 +860,36 @@
                                             </select>
                                         </div>
 
-                                        <div class="col-6 col-lg-2 d-grid">
+                                        <div class="col-12 col-md-6 col-xl-2">
+                                            <label class="form-label fw-bold">OBM</label>
+                                            <select name="obm_id" id="filtro-obm" class="form-select">
+                                                <option value="">Todas</option>
+                                                {% for obm in obms %}
+                                                <option value="{{ obm.id }}" {% if obm_id==obm.id %}selected{% endif %}>
+                                                    {{ obm.sigla or obm.obm or obm.nome }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="col-12 col-md-6 col-xl-2">
+                                            <label class="form-label fw-bold">Posto/Grad</label>
+                                            <select name="posto_grad_id" id="filtro-posto-grad" class="form-select">
+                                                <option value="">Todos</option>
+                                                {% for pg in postos_grad %}
+                                                <option value="{{ pg.id }}" {% if posto_grad_id==pg.id %}selected{%
+                                                    endif %}>
+                                                    {{ pg.sigla }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="col-6 col-xl-1 d-grid">
                                             <button type="submit" class="btn btn-filter">Filtrar</button>
                                         </div>
 
-                                        <div class="col-6 col-lg-1 d-grid">
+                                        <div class="col-6 col-xl-1 d-grid">
                                             <button type="button" id="btn-limpar"
                                                 class="btn btn-outline-soft">Limpar</button>
                                         </div>
@@ -874,6 +915,7 @@
                                                 <tr>
                                                     <th>Militar</th>
                                                     <th>Matrícula</th>
+                                                    <th>OBM</th>
                                                     <th>Posto/Grad</th>
                                                     <th>Status</th>
                                                     <th>Última atualização</th>
@@ -883,7 +925,18 @@
                                                 {% for militar in militares %}
                                                 <tr>
                                                     <td>
+                                                        {% if not militar.cadastro_atualizado %}
+                                                        <div class="militar-name">
+                                                            <a href="#"
+                                                                class="link-militar-pendente text-decoration-none"
+                                                                data-militar-id="{{ militar.id }}">
+                                                                {{ militar.nome_completo }}
+                                                            </a>
+                                                        </div>
+                                                        {% else %}
                                                         <div class="militar-name">{{ militar.nome_completo }}</div>
+                                                        {% endif %}
+
                                                         <div class="militar-meta">
                                                             {% if militar.nome_guerra %}
                                                             Nome de guerra: {{ militar.nome_guerra }}
@@ -893,6 +946,15 @@
                                                         </div>
                                                     </td>
                                                     <td>{{ militar.matricula or "-" }}</td>
+                                                    <td>
+                                                        {% if militar.obm_funcoes and militar.obm_funcoes[0].obm %}
+                                                        {{ militar.obm_funcoes[0].obm.sigla or
+                                                        militar.obm_funcoes[0].obm.obm or
+                                                        militar.obm_funcoes[0].obm.nome }}
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </td>
                                                     <td>{{ militar.posto_grad.sigla if militar.posto_grad else "-" }}
                                                     </td>
                                                     <td>
@@ -913,7 +975,7 @@
                                                 </tr>
                                                 {% else %}
                                                 <tr>
-                                                    <td colspan="5">
+                                                    <td colspan="6">
                                                         <div class="empty-box">
                                                             Nenhum militar encontrado com os filtros informados.
                                                         </div>
@@ -958,11 +1020,56 @@
     </div>
 </section>
 
+<div class="modal fade" id="modalDetalheMilitar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #0b4a7d, #1769aa); color: #fff;">
+                <div>
+                    <h5 class="modal-title mb-1">Detalhes da Atualização Cadastral</h5>
+                    <div class="small opacity-75" id="modal-militar-subtitulo">Carregando...</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="fw-bold text-secondary mb-2">Dados básicos</div>
+                    <div id="modal-militar-basico"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-success mb-3">Campos preenchidos</h6>
+                                <ul class="mb-0" id="modal-campos-preenchidos"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-6">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-warning mb-3">Campos pendentes</h6>
+                                <ul class="mb-0" id="modal-campos-pendentes"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     (function () {
         const filtroForm = document.getElementById("filtro-form");
         const filtroQ = document.getElementById("filtro-q");
         const filtroStatus = document.getElementById("filtro-status");
+        const filtroObm = document.getElementById("filtro-obm");
+        const filtroPostoGrad = document.getElementById("filtro-posto-grad");
         const btnLimpar = document.getElementById("btn-limpar");
 
         const ultimaAtualizacao = document.getElementById("ultima-atualizacao");
@@ -974,6 +1081,14 @@
         const cadPercentualBar = document.getElementById("cad-percentual-bar");
         const badgeTotalRegistros = document.getElementById("badge-total-registros");
         const tabelaBody = document.getElementById("tabela-militares-body");
+
+        const modalEl = document.getElementById("modalDetalheMilitar");
+        const modalSubtitulo = document.getElementById("modal-militar-subtitulo");
+        const modalBasico = document.getElementById("modal-militar-basico");
+        const modalPreenchidos = document.getElementById("modal-campos-preenchidos");
+        const modalPendentes = document.getElementById("modal-campos-pendentes");
+
+        const modal = (window.bootstrap && modalEl) ? new bootstrap.Modal(modalEl) : null;
 
         let isLoading = false;
 
@@ -1037,7 +1152,7 @@
             if (!militares || militares.length === 0) {
                 tabelaBody.innerHTML = `
                 <tr>
-                    <td colspan="5">
+                    <td colspan="6">
                         <div class="empty-box">Nenhum militar encontrado com os filtros informados.</div>
                     </td>
                 </tr>
@@ -1056,19 +1171,81 @@
                     ? escapeHtml(militar.atualizacao_cadastral_em)
                     : '<span class="text-muted">Sem registro</span>';
 
+                const nomeHtml = militar.cadastro_atualizado
+                    ? `<div class="militar-name">${escapeHtml(militar.nome_completo)}</div>`
+                    : `<div class="militar-name">
+                        <a href="javascript:void(0)" class="link-militar-pendente text-decoration-none"
+                           data-militar-id="${militar.id}">
+                            ${escapeHtml(militar.nome_completo)}
+                        </a>
+                   </div>`;
+
                 return `
                 <tr>
                     <td>
-                        <div class="militar-name">${escapeHtml(militar.nome_completo)}</div>
+                        ${nomeHtml}
                         <div class="militar-meta">${nomeGuerra}</div>
                     </td>
                     <td>${escapeHtml(militar.matricula || "-")}</td>
+                    <td>${escapeHtml(militar.obm || "-")}</td>
                     <td>${escapeHtml(militar.posto_grad || "-")}</td>
                     <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                     <td>${dataAtualizacao}</td>
                 </tr>
             `;
             }).join("");
+        }
+
+        function renderLista(lista) {
+            if (!lista || lista.length === 0) {
+                return `<li class="text-muted">Nenhum item.</li>`;
+            }
+            return lista.map(item => `<li>${escapeHtml(item)}</li>`).join("");
+        }
+
+        async function abrirModalMilitar(militarId) {
+            if (!modal) {
+                alert("O Bootstrap Modal não está disponível nesta página.");
+                return;
+            }
+
+            try {
+                modalSubtitulo.textContent = "Carregando...";
+                modalBasico.innerHTML = `<div class="text-muted">Buscando dados do militar...</div>`;
+                modalPreenchidos.innerHTML = "";
+                modalPendentes.innerHTML = "";
+                modal.show();
+
+                const response = await fetch(`/painel-efetivo/api/militar/${militarId}`, {
+                    method: "GET",
+                    headers: { "Accept": "application/json" },
+                    cache: "no-store"
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.error || "Falha ao buscar detalhes do militar.");
+                }
+
+                const militar = data.militar;
+
+                modalSubtitulo.textContent = `${militar.nome_completo} • ${militar.posto_grad || "-"} • ${militar.obm || "-"}`;
+                modalBasico.innerHTML = `
+                <div class="small text-muted mb-2"><strong>Matrícula:</strong> ${escapeHtml(militar.matricula || "-")}</div>
+                <div class="small text-muted mb-2"><strong>Nome de guerra:</strong> ${escapeHtml(militar.nome_guerra || "-")}</div>
+                <div class="small text-muted"><strong>Última atualização:</strong> ${escapeHtml(militar.atualizacao_cadastral_em || "Sem registro")}</div>
+            `;
+
+                modalPreenchidos.innerHTML = renderLista(militar.preenchidos || []);
+                modalPendentes.innerHTML = renderLista(militar.pendentes || []);
+            } catch (error) {
+                console.error("Erro no modal:", error);
+                modalSubtitulo.textContent = "Erro ao carregar";
+                modalBasico.innerHTML = `<div class="text-danger">${escapeHtml(error.message)}</div>`;
+                modalPreenchidos.innerHTML = `<li class="text-muted">Não foi possível carregar.</li>`;
+                modalPendentes.innerHTML = `<li class="text-muted">Não foi possível carregar.</li>`;
+            }
         }
 
         async function carregarPainel() {
@@ -1078,7 +1255,9 @@
             try {
                 const params = new URLSearchParams({
                     q: filtroQ ? (filtroQ.value || "") : "",
-                    status: filtroStatus ? (filtroStatus.value || "") : ""
+                    status: filtroStatus ? (filtroStatus.value || "") : "",
+                    obm_id: filtroObm ? (filtroObm.value || "") : "",
+                    posto_grad_id: filtroPostoGrad ? (filtroPostoGrad.value || "") : ""
                 });
 
                 const response = await fetch(`/painel-efetivo/api?${params.toString()}`, {
@@ -1126,9 +1305,24 @@
             btnLimpar.addEventListener("click", function () {
                 if (filtroQ) filtroQ.value = "";
                 if (filtroStatus) filtroStatus.value = "";
+                if (filtroObm) filtroObm.value = "";
+                if (filtroPostoGrad) filtroPostoGrad.value = "";
                 carregarPainel();
             });
         }
+
+        document.addEventListener("click", function (e) {
+            const link = e.target.closest(".link-militar-pendente");
+            if (!link) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const militarId = link.getAttribute("data-militar-id");
+            if (militarId) {
+                abrirModalMilitar(militarId);
+            }
+        });
 
         carregarPainel();
         setInterval(carregarPainel, 10000);
