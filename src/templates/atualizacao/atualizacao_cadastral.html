@@ -1017,15 +1017,6 @@
                 this.value = aplicarMascaraCPF(this.value);
             });
 
-            input.addEventListener("blur", function () {
-                const numeros = somenteNumeros(this.value);
-                if (numeros.length && numeros.length !== 11) {
-                    this.classList.add("is-invalid");
-                } else {
-                    this.classList.remove("is-invalid");
-                }
-            });
-
             if (input.value) {
                 input.value = aplicarMascaraCPF(input.value);
             }
@@ -1039,60 +1030,10 @@
                 this.value = aplicarMascaraTelefone(this.value);
             });
 
-            input.addEventListener("blur", function () {
-                const numeros = somenteNumeros(this.value);
-
-                if (numeros.length && numeros.length !== 10 && numeros.length !== 11) {
-                    this.classList.add("is-invalid");
-                } else {
-                    this.classList.remove("is-invalid");
-                }
-            });
-
             if (input.value) {
                 input.value = aplicarMascaraTelefone(input.value);
             }
         });
-    }
-
-    function validarFormularioMascaras() {
-        let formValido = true;
-
-        document.querySelectorAll(".cpf-mask").forEach((input) => {
-            const numeros = somenteNumeros(input.value);
-
-            if (numeros.length && numeros.length !== 11) {
-                input.classList.add("is-invalid");
-                formValido = false;
-            } else {
-                input.classList.remove("is-invalid");
-            }
-        });
-
-        document.querySelectorAll(".telefone-mask").forEach((input) => {
-            const numeros = somenteNumeros(input.value);
-
-            if (
-                input.name === "contato_telefone[]" ||
-                input.name === "conjuge_telefone" ||
-                input.name === "celular"
-            ) {
-                if (numeros.length === 0) {
-                    input.classList.add("is-invalid");
-                    formValido = false;
-                    return;
-                }
-            }
-
-            if (numeros.length && numeros.length !== 10 && numeros.length !== 11) {
-                input.classList.add("is-invalid");
-                formValido = false;
-            } else {
-                input.classList.remove("is-invalid");
-            }
-        });
-
-        return formValido;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -1108,16 +1049,6 @@
         const estadoCivilField = document.getElementById("estadoCivilField");
         if (estadoCivilField) {
             estadoCivilField.addEventListener("change", toggleConjugeSection);
-        }
-
-        const form = document.getElementById("form-atualizacao-cadastral");
-        if (form) {
-            form.addEventListener("submit", function (e) {
-                if (!validarFormularioMascaras()) {
-                    e.preventDefault();
-                    alert("Verifique os campos de telefone e CPF. Use apenas números ou o formato (92) 99999-9999 e 000.000.000-00.");
-                }
-            });
         }
     });
 </script>
