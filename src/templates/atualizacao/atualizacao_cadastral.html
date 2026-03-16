@@ -993,8 +993,15 @@
     }
 
     function aplicarMascaraTelefone(valor) {
-        valor = somenteNumeros(valor).slice(0, 11);
+        valor = somenteNumeros(valor);
 
+        if ((valor.length === 12 || valor.length === 13) && valor.startsWith("55")) {
+            valor = valor.slice(2);
+        }
+
+        valor = valor.slice(0, 11);
+
+        if (valor.length === 0) return "";
         if (valor.length <= 2) return valor.replace(/^(\d{0,2})$/, "($1");
         if (valor.length <= 6) return valor.replace(/^(\d{2})(\d{0,5})$/, "($1) $2");
         if (valor.length <= 10) return valor.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
@@ -1108,7 +1115,7 @@
             form.addEventListener("submit", function (e) {
                 if (!validarFormularioMascaras()) {
                     e.preventDefault();
-                    alert("Existem campos de CPF ou telefone preenchidos em formato inválido.");
+                    alert("Verifique os campos de telefone e CPF. Use apenas números ou o formato (92) 99999-9999 e 000.000.000-00.");
                 }
             });
         }
