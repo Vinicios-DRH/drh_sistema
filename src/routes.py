@@ -61,6 +61,7 @@ from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 from src.utils.cadastro_status import cadastro_esta_completo
 from src.utils.painel import (
+    listar_situacoes_atualizacao,
     obter_resumo_atualizacao_cadastral,
     obter_militares_atualizacao_cadastral,
     serializar_militar_atualizacao,
@@ -148,6 +149,7 @@ def painel_efetivo_publico_api():
         status = (request.args.get("status") or "").strip()
         obm_id = request.args.get("obm_id", type=int)
         posto_grad_id = request.args.get("posto_grad_id", type=int)
+        situacao_id = request.args.get("situacao_id", type=int)
         page = request.args.get("page", default=1, type=int)
         per_page = request.args.get("per_page", default=50, type=int)
 
@@ -155,12 +157,14 @@ def painel_efetivo_publico_api():
         resumo_atualizacao = obter_resumo_atualizacao_cadastral(
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
         )
         militares, total_filtrado = obter_militares_atualizacao_cadastral(
             q=q,
             status=status,
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
             page=page,
             per_page=per_page,
         )
@@ -176,6 +180,7 @@ def painel_efetivo_publico_api():
             "status": status,
             "obm_id": obm_id,
             "posto_grad_id": posto_grad_id,
+            "situacao_id": situacao_id,
             "page": page,
             "per_page": per_page,
             "total_filtrado": total_filtrado,
@@ -196,12 +201,14 @@ def painel_efetivo_publico():
         status = (request.args.get("status") or "").strip()
         obm_id = request.args.get("obm_id", type=int)
         posto_grad_id = request.args.get("posto_grad_id", type=int)
+        situacao_id = request.args.get("situacao_id", type=int)
         page = request.args.get("page", default=1, type=int)
         per_page = 50
 
         resumo_atualizacao = obter_resumo_atualizacao_cadastral(
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
         )
 
         militares, total_filtrado = obter_militares_atualizacao_cadastral(
@@ -209,14 +216,17 @@ def painel_efetivo_publico():
             status=status,
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
             page=page,
             per_page=per_page,
         )
 
         obms = listar_obms_atualizacao()
         postos_grad = listar_postos_grad_atualizacao()
+        situacoes = listar_situacoes_atualizacao()
         atualizado_em = datetime.now(
-            ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S")
+            ZoneInfo("America/Manaus")
+        ).strftime("%d/%m/%Y %H:%M:%S")
 
         return render_template(
             "painel_efetivo_publico.html",
@@ -225,10 +235,12 @@ def painel_efetivo_publico():
             militares=militares,
             obms=obms,
             postos_grad=postos_grad,
+            situacoes=situacoes,
             q=q,
             status=status,
             obm_id=obm_id,
             posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
             atualizado_em=atualizado_em,
             page=page,
             per_page=per_page,
@@ -397,7 +409,8 @@ def criar_senha(cpf):
             _limpa_sessao_validacao()
             return redirect(url_for('atualizacao_cadastral'))
 
-        nome_user = getattr(pessoa, 'nome_completo', getattr(pessoa, 'nome', '')) or ''
+        nome_user = getattr(pessoa, 'nome_completo',
+                            getattr(pessoa, 'nome', '')) or ''
     else:
         pessoa = FichaAlunos.query.get(pessoa_id)
         if not pessoa:
@@ -429,7 +442,8 @@ def criar_senha(cpf):
                 novo_usuario.militar_id = pessoa.id
                 novo_usuario.obm_id_1 = obm_id_1
                 novo_usuario.obm_id_2 = obm_id_2
-                novo_usuario.localidade_id = getattr(pessoa, 'localidade_id', None)
+                novo_usuario.localidade_id = getattr(
+                    pessoa, 'localidade_id', None)
 
                 # importante: antes do commit
                 if hasattr(pessoa, 'usuario_id'):

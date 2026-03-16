@@ -6,6 +6,7 @@ from src.models import (
     PostoGrad,
     MilitarObmFuncao,
     Obm,
+    Situacao,
     MilitarContatoEmergencia,
     MilitarConjuge,
 )
@@ -19,6 +20,7 @@ def _query_militares_ativos_atualizacao():
     return (
         Militar.query
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(Situacao, Situacao.id == Militar.situacao_id)
         .filter(
             and_(
                 or_(
@@ -34,7 +36,7 @@ def _query_militares_ativos_atualizacao():
     )
 
 
-def _aplicar_filtros(query, q="", status="", posto_grad_id=None):
+def _aplicar_filtros(query, q="", status="", posto_grad_id=None, situacao_id=None):
     q = (q or "").strip()
     status = (status or "").strip()
 
@@ -60,6 +62,9 @@ def _aplicar_filtros(query, q="", status="", posto_grad_id=None):
 
     if posto_grad_id:
         query = query.filter(Militar.posto_grad_id == posto_grad_id)
+
+    if situacao_id:
+        query = query.filter(Militar.situacao_id == situacao_id)
 
     return query
 
@@ -108,8 +113,6 @@ def _label_campo(campo):
 
 
 def _campos_monitorados_detalhe():
-    # mesma base do cadastro_status.py
-    # aqui definimos a ordem de exibição no painel
     return [
         "grau_instrucao",
         "raca",
@@ -146,12 +149,17 @@ def _base_load_lista():
             Militar.nome_guerra,
             Militar.matricula,
             Militar.posto_grad_id,
+            Militar.situacao_id,
             Militar.atualizacao_cadastral_em,
             Militar.cadastro_atualizado,
         ),
         selectinload(Militar.posto_grad).load_only(
             PostoGrad.id,
             PostoGrad.sigla,
+        ),
+        selectinload(Militar.situacao).load_only(
+            Situacao.id,
+            Situacao.condicao,
         ),
         selectinload(Militar.obm_funcoes)
         .load_only(
@@ -177,6 +185,7 @@ def _base_load_detalhe():
             Militar.nome_guerra,
             Militar.matricula,
             Militar.posto_grad_id,
+            Militar.situacao_id,
             Militar.atualizacao_cadastral_em,
             Militar.cadastro_atualizado,
             Militar.nome_pai,
@@ -210,6 +219,10 @@ def _base_load_detalhe():
             PostoGrad.id,
             PostoGrad.sigla,
         ),
+        selectinload(Militar.situacao).load_only(
+            Situacao.id,
+            Situacao.condicao,
+        ),
         selectinload(Militar.obm_funcoes)
         .load_only(
             MilitarObmFuncao.id,
@@ -239,12 +252,13 @@ def _base_load_detalhe():
     )
 
 
-def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None):
+def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None, situacao_id=None):
     query = _aplicar_filtros(
         _query_militares_ativos_atualizacao(),
         q="",
         status="",
         posto_grad_id=posto_grad_id,
+        situacao_id=situacao_id,
     )
 
     militares = (
@@ -272,12 +286,21 @@ def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None):
     }
 
 
-def obter_militares_atualizacao_cadastral(q="", status="", obm_id=None, posto_grad_id=None, page=1, per_page=50):
+def obter_militares_atualizacao_cadastral(
+    q="",
+    status="",
+    obm_id=None,
+    posto_grad_id=None,
+    situacao_id=None,
+    page=1,
+    per_page=50
+):
     query = _aplicar_filtros(
         _query_militares_ativos_atualizacao(),
         q=q,
         status=status,
         posto_grad_id=posto_grad_id,
+        situacao_id=situacao_id,
     )
 
     militares = (
@@ -320,6 +343,15 @@ def listar_postos_grad_atualizacao():
     )
 
 
+def listar_situacoes_atualizacao():
+    return (
+        Situacao.query
+        .options(load_only(Situacao.id, Situacao.condicao))
+        .order_by(Situacao.condicao.asc())
+        .all()
+    )
+
+
 def serializar_militar_atualizacao(militar):
     cadastro_ok = bool(militar.cadastro_atualizado)
 
@@ -329,6 +361,7 @@ def serializar_militar_atualizacao(militar):
         "nome_guerra": militar.nome_guerra or "",
         "matricula": militar.matricula or "-",
         "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "-",
+        "situacao": militar.situacao.condicao if militar.situacao else "-",
         "obm": _obter_obm_principal(militar),
         "cadastro_atualizado": cadastro_ok,
         "status_label": "Atualizado" if cadastro_ok else "Pendente",
@@ -369,6 +402,7 @@ def obter_detalhes_militar_atualizacao(militar_id):
         "nome_guerra": militar.nome_guerra or "",
         "matricula": militar.matricula or "-",
         "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "-",
+        "situacao": militar.situacao.condicao if militar.situacao else "-",
         "obm": _obter_obm_principal(militar),
         "cadastro_atualizado": bool(militar.cadastro_atualizado),
         "cadastro_completo": len(campos_pendentes) == 0,
