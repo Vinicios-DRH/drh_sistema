@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    :root {
+        --page-bg: #f4f7fb;
+        --card-bg: #ffffff;
+        --ink-900: #0f172a;
+        --ink-700: #334155;
+        --ink-500: #64748b;
+        --line: #e2e8f0;
+        --brand: #0f4c81;
+        --brand-2: #1d6fb8;
+        --shadow-sm: 0 10px 25px rgba(15, 23, 42, .06);
+        --shadow-md: 0 18px 45px rgba(15, 23, 42, .08);
+    }
+
+    body {
+        background: linear-gradient(180deg, #f8fbff 0%, var(--page-bg) 100%);
+    }
+
+    .conf-page {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.5rem 1.25rem 2rem;
+    }
+
+    .hero-card {
+        border: 0;
+        border-radius: 24px;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(255, 255, 255, .15), transparent 22%),
+            linear-gradient(135deg, #0d3b66 0%, #145da0 52%, #1c78c0 100%);
+        color: #fff;
+        box-shadow: var(--shadow-md);
+    }
+
+    .hero-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -.02em;
+        margin-bottom: .35rem;
+    }
+
+    .hero-sub {
+        color: rgba(255, 255, 255, .84);
+        margin-bottom: 0;
+    }
+
+    .page-btn {
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .panel-card {
+        border: 0;
+        border-radius: 22px;
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-card .card-header {
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        padding: 1rem 1.2rem;
+    }
+
+    .panel-card .card-header strong {
+        color: var(--ink-900);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .panel-card .card-body {
+        padding: 1.15rem 1.2rem;
+    }
+
+    .info-grid [class*="col-"] {
+        color: var(--ink-700);
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+
+    .field-label {
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--ink-500);
+        font-weight: 800;
+        margin-bottom: .2rem;
+    }
+
+    .field-value {
+        color: var(--ink-900);
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .aside-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .action-box {
+        min-width: 290px;
+        max-width: 420px;
+    }
+
+    .action-box .btn {
+        border-radius: 12px;
+        font-weight: 700;
+        min-height: 46px;
+    }
+
+    .table-fit {
+        width: 100%;
+        table-layout: fixed;
+        margin-bottom: 0;
+    }
+
+    .table-fit thead th {
+        background: #f8fafc;
+        color: var(--ink-700);
+        font-size: .82rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        border-bottom: 1px solid var(--line);
+        padding: .9rem .75rem;
+    }
+
+    .table-fit tbody td {
+        border-bottom: 1px solid #edf2f7;
+        padding: .85rem .75rem;
+        color: var(--ink-700);
+        vertical-align: middle;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+
+    .table-fit tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .alert {
+        border: 0;
+        border-radius: 14px;
+    }
+
+    .pending-list {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: var(--ink-700);
+    }
+
+    .pending-list li+li {
+        margin-top: .35rem;
+    }
+
+    @media (min-width: 1400px) {
+        .conf-page {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .hero-title {
+            font-size: 1.45rem;
+        }
+
+        .action-box {
+            min-width: 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+
+<div class="container-fluid conf-page">
+    <div class="hero-card mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <a href="{{ url_for('atualizacao_cadastral.conferencia_lista') }}"
+                        class="btn btn-light page-btn mb-3">
+                        ← Voltar
+                    </a>
+                    <h1 class="hero-title">{{ militar.nome_completo }}</h1>
+                    <p class="hero-sub">
+                        {{ militar.posto_grad.sigla if militar.posto_grad else '-' }}
+                        • Matrícula: {{ militar.matricula or '-' }}
+                    </p>
+                </div>
+
+                <div class="action-box">
+                    {% if conferencia %}
+                    <div class="alert alert-success py-2 px-3 mb-2">
+                        Conferido em {{ conferencia.conferido_em.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+
+                    <form method="POST"
+                        action="{{ url_for('atualizacao_cadastral.conferencia_desmarcar', militar_id=militar.id, modo=modo) }}">
+                        <button class="btn btn-outline-danger w-100">Remover check</button>
+                    </form>
+                    {% else %}
+                    <form method="POST"
+                        action="{{ url_for('atualizacao_cadastral.conferencia_marcar', militar_id=militar.id, modo=modo) }}">
+                        <button class="btn btn-success w-100">Marcar como conferido</button>
+                    </form>
+                    {% endif %}
+
+                    {% if conferencia_global %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        Última conferência registrada por
+                        <strong>{{ conferencia_global.user.nome if conferencia_global.user else '-' }}</strong>
+                        em {{ conferencia_global.conferido_em.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-xxl-9">
+            <div class="panel-card mb-4">
+                <div class="card-header">
+                    <strong>Dados principais</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 info-grid">
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Nome completo</div>
+                            <div class="field-value">{{ militar.nome_completo or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Nome de guerra</div>
+                            <div class="field-value">{{ militar.nome_guerra or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">CPF</div>
+                            <div class="field-value">{{ militar.cpf or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">RG</div>
+                            <div class="field-value">{{ militar.rg or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Matrícula</div>
+                            <div class="field-value">{{ militar.matricula or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Nome do pai</div>
+                            <div class="field-value">{{ militar.nome_pai or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Nome da mãe</div>
+                            <div class="field-value">{{ militar.nome_mae or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Sexo</div>
+                            <div class="field-value">{{ militar.sexo or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Raça</div>
+                            <div class="field-value">{{ militar.raca or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Data de nascimento</div>
+                            <div class="field-value">{{ militar.data_nascimento.strftime('%d/%m/%Y') if
+                                militar.data_nascimento else '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">E-mail</div>
+                            <div class="field-value">{{ militar.email or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Celular</div>
+                            <div class="field-value">{{ militar.celular or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Endereço</div>
+                            <div class="field-value">{{ militar.endereco or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Complemento</div>
+                            <div class="field-value">{{ militar.complemento or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Cidade</div>
+                            <div class="field-value">{{ militar.cidade or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Estado</div>
+                            <div class="field-value">{{ militar.estado or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">CEP</div>
+                            <div class="field-value">{{ militar.cep or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card mb-4">
+                <div class="card-header">
+                    <strong>Dados complementares</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 info-grid">
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Local de nascimento</div>
+                            <div class="field-value">{{ militar.local_nascimento or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Altura</div>
+                            <div class="field-value">{{ militar.altura or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Tipo sanguíneo</div>
+                            <div class="field-value">{{ militar.tipo_sanguineo or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Cor dos olhos</div>
+                            <div class="field-value">{{ militar.cor_olhos or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Cor dos cabelos</div>
+                            <div class="field-value">{{ militar.cor_cabelos or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Bigode</div>
+                            <div class="field-value">{{ 'Sim' if militar.bigode else 'Não' }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="field-label">Medida cabeça</div>
+                            <div class="field-value">{{ militar.medida_cabeca or '-' }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="field-label">Nº sapato</div>
+                            <div class="field-value">{{ militar.numero_sapato or '-' }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="field-label">Medida calça</div>
+                            <div class="field-value">{{ militar.medida_calca or '-' }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="field-label">Medida camisa</div>
+                            <div class="field-value">{{ militar.medida_camisa or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Tatuagem</div>
+                            <div class="field-value">{{ 'Sim' if militar.tatuagem else 'Não' }}</div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <div class="field-label">Local tatuagem</div>
+                            <div class="field-value">{{ militar.local_tatuagem or '-' }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="field-label">Sinais particulares</div>
+                            <div class="field-value">{{ militar.sinais_particulares or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card mb-4">
+                <div class="card-header">
+                    <strong>Graduações</strong>
+                </div>
+                <div class="card-body">
+                    {% if graduacoes %}
+                    <div class="table-responsive">
+                        <table class="table table-fit">
+                            <thead>
+                                <tr>
+                                    <th style="width: 42%;">Curso</th>
+                                    <th style="width: 43%;">Instituição</th>
+                                    <th style="width: 15%;">Ano</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for g in graduacoes %}
+                                <tr>
+                                    <td>{{ g.curso }}</td>
+                                    <td>{{ g.instituicao or '-' }}</td>
+                                    <td>{{ g.ano_conclusao or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nenhuma graduação cadastrada.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="panel-card mb-4">
+                <div class="card-header">
+                    <strong>Contatos de emergência</strong>
+                </div>
+                <div class="card-body">
+                    {% if contatos_emergencia %}
+                    <div class="table-responsive">
+                        <table class="table table-fit">
+                            <thead>
+                                <tr>
+                                    <th style="width: 24%;">Nome</th>
+                                    <th style="width: 18%;">Parentesco</th>
+                                    <th style="width: 18%;">Telefone</th>
+                                    <th style="width: 18%;">Telefone secundário</th>
+                                    <th style="width: 22%;">Observação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in contatos_emergencia %}
+                                <tr>
+                                    <td>{{ c.nome }}</td>
+                                    <td>{{ c.parentesco or '-' }}</td>
+                                    <td>{{ c.telefone or '-' }}</td>
+                                    <td>{{ c.telefone_secundario or '-' }}</td>
+                                    <td>{{ c.observacao or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nenhum contato de emergência cadastrado.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-header">
+                    <strong>Cônjuge</strong>
+                </div>
+                <div class="card-body">
+                    {% if conjuge %}
+                    <div class="row g-3 info-grid">
+                        <div class="col-12 col-md-6">
+                            <div class="field-label">Nome</div>
+                            <div class="field-value">{{ conjuge.nome or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <div class="field-label">CPF</div>
+                            <div class="field-value">{{ conjuge.cpf or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <div class="field-label">Telefone</div>
+                            <div class="field-value">{{ conjuge.telefone or '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="field-label">Data de nascimento</div>
+                            <div class="field-value">{{ conjuge.data_nascimento.strftime('%d/%m/%Y') if
+                                conjuge.data_nascimento else '-' }}</div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <div class="field-label">Endereço</div>
+                            <div class="field-value">{{ conjuge.endereco or '-' }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="field-label">Observação</div>
+                            <div class="field-value">{{ conjuge.observacao or '-' }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nenhum cônjuge cadastrado.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xxl-3">
+            <div class="aside-stack">
+                <div class="panel-card">
+                    <div class="card-header">
+                        <strong>Status do cadastro</strong>
+                    </div>
+                    <div class="card-body">
+                        {% if cadastro_completo %}
+                        <div class="alert alert-success mb-0">
+                            Cadastro completo.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            Há pendências no cadastro.
+                        </div>
+
+                        <ul class="pending-list">
+                            {% for campo in campos_pendentes %}
+                            <li>{{ campo }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

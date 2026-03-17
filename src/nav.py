@@ -461,12 +461,20 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                 _mk_item(
                     "Painel de Atualização",
                     "atualizacao_cadastral.painel",
+                    icon="fas fa-chart-line",
                     perm="NAV_ATUALIZACAO_CADASTRAL_PAINEL",
                 ),
                 _mk_item(
                     "Auditoria Cadastral",
                     "atualizacao_cadastral.auditoria",
+                    icon="fas fa-clipboard-list",
                     perm="NAV_ATUALIZACAO_CADASTRAL_AUDITORIA",
+                ),
+                _mk_item(
+                    "Conferência Cadastral",
+                    "atualizacao_cadastral.conferencia_lista",
+                    icon="fas fa-user-check",
+                    perm="NAV_ATUALIZACAO_CADASTRAL_CONFERENCIA",
                 ),
             ],
         )

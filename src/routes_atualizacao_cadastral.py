@@ -3,7 +3,6 @@ from zoneinfo import ZoneInfo
 import unicodedata
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from sqlalchemy import or_
 from src.authz import require_perm
 from src import database
 from src.models import (
@@ -14,12 +13,23 @@ from src.models import (
     MilitarGraduacao,
     PostoGrad,
     AuditoriaAtualizacaoCadastral,
+    MilitarConferenciaCadastral,
+    MilitarObmFuncao,
+    Obm,
+    User,  # se tua model existir no mesmo arquivo
 )
 from src.forms import AtualizacaoCadastralForm
 from src.utils.cadastro_status import (
     cadastro_esta_completo,
     get_campos_pendentes_cadastro,
 )
+from io import BytesIO
+from flask import send_file
+from sqlalchemy import or_, and_, func
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.pdfgen import canvas
 
 
 # Se tu tiver decorator de permissão, descomenta
@@ -468,4 +478,473 @@ def auditoria():
         "atualizacao/auditoria_atualizacao_cadastral.html",
         auditorias=auditorias,
         q=q
+    )
+
+
+# ---------------- AUDITORIA DE CONFERÊNCIA CADASTRAL ----------------
+
+# ---------------- Rotas para conferência cadastral (marcar como conferido, listar conferências, etc) ----------------
+@bp_atualizacao_cadastral.route("/conferencia", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_READ")
+def conferencia_lista():
+    q = (request.args.get("q") or "").strip()
+    status = (request.args.get("status") or "").strip()
+    modo = (request.args.get("modo") or "meu").strip().lower()
+    # modo = "meu" -> conferência do usuário logado
+    # modo = "global" -> mostra se qualquer usuário conferiu
+
+    query = (
+        database.session.query(
+            Militar,
+            MilitarConferenciaCadastral.id.label("conferencia_id"),
+            MilitarConferenciaCadastral.conferido_em.label("conferido_em"),
+            Obm.sigla.label("obm_sigla"),
+            User.nome.label("conferido_por_nome"),
+        )
+        .outerjoin(
+            MilitarObmFuncao,
+            and_(
+                MilitarObmFuncao.militar_id == Militar.id,
+                MilitarObmFuncao.data_fim.is_(None)
+            )
+        )
+        .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .filter(Militar.inativo.is_(False))
+    )
+
+    if modo == "global":
+        sub = (
+            database.session.query(
+                MilitarConferenciaCadastral.militar_id.label("militar_id"),
+                func.max(MilitarConferenciaCadastral.id).label("max_id")
+            )
+            .group_by(MilitarConferenciaCadastral.militar_id)
+            .subquery()
+        )
+
+        query = (
+            query
+            .outerjoin(sub, sub.c.militar_id == Militar.id)
+            .outerjoin(
+                MilitarConferenciaCadastral,
+                MilitarConferenciaCadastral.id == sub.c.max_id
+            )
+            .outerjoin(User, User.id == MilitarConferenciaCadastral.user_id)
+        )
+    else:
+        query = (
+            query
+            .outerjoin(
+                MilitarConferenciaCadastral,
+                and_(
+                    MilitarConferenciaCadastral.militar_id == Militar.id,
+                    MilitarConferenciaCadastral.user_id == current_user.id
+                )
+            )
+            .outerjoin(User, User.id == MilitarConferenciaCadastral.user_id)
+        )
+
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Militar.nome_completo.ilike(like),
+                Militar.nome_guerra.ilike(like),
+                Militar.matricula.ilike(like),
+                Militar.cpf.ilike(like),
+            )
+        )
+
+    if status == "conferido":
+        query = query.filter(MilitarConferenciaCadastral.id.isnot(None))
+    elif status == "pendente":
+        query = query.filter(MilitarConferenciaCadastral.id.is_(None))
+
+    registros = query.order_by(Militar.nome_completo.asc()).all()
+
+    total = Militar.query.filter(Militar.inativo.is_(False)).count()
+
+    if modo == "global":
+        total_conferido = (
+            database.session.query(func.count(func.distinct(
+                MilitarConferenciaCadastral.militar_id)))
+            .join(Militar, Militar.id == MilitarConferenciaCadastral.militar_id)
+            .filter(Militar.inativo.is_(False))
+            .scalar()
+        ) or 0
+    else:
+        total_conferido = (
+            database.session.query(MilitarConferenciaCadastral.id)
+            .join(Militar, Militar.id == MilitarConferenciaCadastral.militar_id)
+            .filter(
+                Militar.inativo.is_(False),
+                MilitarConferenciaCadastral.user_id == current_user.id
+            )
+            .count()
+        )
+
+    total_pendente = max(total - total_conferido, 0)
+    percentual = round((total_conferido / total * 100), 1) if total else 0
+
+    return render_template(
+        "atualizacao/conferencia_lista.html",
+        registros=registros,
+        total=total,
+        total_conferido=total_conferido,
+        total_pendente=total_pendente,
+        percentual=percentual,
+        q=q,
+        status=status,
+        modo=modo,
+    )
+
+
+@bp_atualizacao_cadastral.route("/conferencia/proximo-pendente", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_READ")
+def conferencia_proximo_pendente():
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    query = Militar.query.filter(Militar.inativo.is_(False))
+
+    if modo == "global":
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .distinct()
+            .subquery()
+        )
+        proximo = (
+            query
+            .filter(~Militar.id.in_(sub))
+            .order_by(Militar.nome_completo.asc())
+            .first()
+        )
+    else:
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .filter(MilitarConferenciaCadastral.user_id == current_user.id)
+            .subquery()
+        )
+        proximo = (
+            query
+            .filter(~Militar.id.in_(sub))
+            .order_by(Militar.nome_completo.asc())
+            .first()
+        )
+
+    if not proximo:
+        flash("Não há militares pendentes para conferência.", "success")
+        return redirect(url_for("atualizacao_cadastral.conferencia_lista", modo=modo))
+
+    return redirect(
+        url_for("atualizacao_cadastral.conferencia_detalhe",
+                militar_id=proximo.id, modo=modo)
+    )
+# ---------------- Detalhes da conferência cadastral (marcar/desmarcar conferência, ver detalhes do militar, etc) ----------------
+
+
+@bp_atualizacao_cadastral.route("/conferencia/<int:militar_id>", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_AUDITORIA_READ")
+def conferencia_detalhe(militar_id):
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    militar = (
+        Militar.query
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .filter(
+            Militar.id == militar_id,
+            Militar.inativo.is_(False)
+        )
+        .first_or_404()
+    )
+
+    graduacoes = MilitarGraduacao.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarGraduacao.id.asc()).all()
+
+    contatos_emergencia = MilitarContatoEmergencia.query.filter_by(
+        militar_id=militar.id
+    ).order_by(MilitarContatoEmergencia.id.asc()).all()
+
+    conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
+
+    conferencia = MilitarConferenciaCadastral.query.filter_by(
+        militar_id=militar.id,
+        user_id=current_user.id
+    ).first()
+
+    conferencia_global = (
+        MilitarConferenciaCadastral.query
+        .join(User, User.id == MilitarConferenciaCadastral.user_id)
+        .filter(MilitarConferenciaCadastral.militar_id == militar.id)
+        .order_by(MilitarConferenciaCadastral.conferido_em.desc())
+        .first()
+    )
+
+    campos_pendentes = get_campos_pendentes_cadastro(militar)
+    cadastro_completo = len(campos_pendentes) == 0
+
+    return render_template(
+        "atualizacao/conferencia_detalhe.html",
+        militar=militar,
+        graduacoes=graduacoes,
+        contatos_emergencia=contatos_emergencia,
+        conjuge=conjuge,
+        conferencia=conferencia,
+        conferencia_global=conferencia_global,
+        cadastro_completo=cadastro_completo,
+        campos_pendentes=campos_pendentes,
+        modo=modo,
+    )
+
+
+@bp_atualizacao_cadastral.route("/conferencia/<int:militar_id>/marcar", methods=["POST"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_CHECK")
+def conferencia_marcar(militar_id):
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    militar = Militar.query.filter(
+        Militar.id == militar_id,
+        Militar.inativo.is_(False)
+    ).first_or_404()
+
+    conferencia = MilitarConferenciaCadastral.query.filter_by(
+        militar_id=militar.id,
+        user_id=current_user.id
+    ).first()
+
+    if not conferencia:
+        conferencia = MilitarConferenciaCadastral(
+            militar_id=militar.id,
+            user_id=current_user.id,
+            conferido_em=agora_manaus(),
+            observacao="Conferência cadastral realizada no painel."
+        )
+        database.session.add(conferencia)
+        database.session.commit()
+        flash("Militar marcado como conferido com sucesso.", "success")
+    else:
+        flash("Esse militar já foi conferido por você.", "info")
+
+    return redirect(url_for("atualizacao_cadastral.conferencia_proximo_pendente", modo=modo))
+
+
+@bp_atualizacao_cadastral.route("/conferencia/<int:militar_id>/desmarcar", methods=["POST"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_CHECK")
+def conferencia_desmarcar(militar_id):
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    militar = Militar.query.filter(
+        Militar.id == militar_id,
+        Militar.inativo.is_(False)
+    ).first_or_404()
+
+    conferencia = MilitarConferenciaCadastral.query.filter_by(
+        militar_id=militar.id,
+        user_id=current_user.id
+    ).first()
+
+    if conferencia:
+        database.session.delete(conferencia)
+        database.session.commit()
+        flash("Check removido com sucesso.", "success")
+    else:
+        flash("Esse militar ainda não foi marcado por você.", "warning")
+
+    return redirect(url_for("atualizacao_cadastral.conferencia_detalhe", militar_id=militar.id, modo=modo))
+
+
+# ---------------- Exportação para Excel dos militares pendentes de conferência ----------------
+@bp_atualizacao_cadastral.route("/conferencia/exportar-excel", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT")
+def conferencia_exportar_excel():
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    query = (
+        database.session.query(
+            Militar.nome_completo,
+            Militar.nome_guerra,
+            Militar.matricula,
+            Militar.cpf,
+            PostoGrad.sigla.label("posto_grad"),
+            Obm.sigla.label("obm_sigla"),
+        )
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(
+            MilitarObmFuncao,
+            and_(
+                MilitarObmFuncao.militar_id == Militar.id,
+                MilitarObmFuncao.data_fim.is_(None)
+            )
+        )
+        .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .filter(Militar.inativo.is_(False))
+    )
+
+    if modo == "global":
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .distinct()
+            .subquery()
+        )
+        query = query.filter(~Militar.id.in_(sub))
+    else:
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .filter(MilitarConferenciaCadastral.user_id == current_user.id)
+            .subquery()
+        )
+        query = query.filter(~Militar.id.in_(sub))
+
+    pendentes = query.order_by(Militar.nome_completo.asc()).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Pendentes"
+
+    headers = ["Nome Completo", "Nome de Guerra",
+               "Matrícula", "CPF", "Posto/Grad", "OBM"]
+
+    ws.append(headers)
+
+    fill = PatternFill("solid", fgColor="0B5ED7")
+    font = Font(color="FFFFFF", bold=True)
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = fill
+        cell.font = font
+
+    for item in pendentes:
+        ws.append([
+            item.nome_completo or "",
+            item.nome_guerra or "",
+            item.matricula or "",
+            item.cpf or "",
+            item.posto_grad or "",
+            item.obm_sigla or "",
+        ])
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = col[0].column_letter
+        for cell in col:
+            try:
+                value = str(cell.value or "")
+                if len(value) > max_length:
+                    max_length = len(value)
+            except Exception:
+                pass
+        ws.column_dimensions[col_letter].width = min(max_length + 2, 40)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="militares_pendentes_conferencia.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# ---------------- Exportação para PDF dos militares pendentes de conferência ----------------
+
+
+@bp_atualizacao_cadastral.route("/conferencia/exportar-pdf", methods=["GET"])
+@login_required
+@require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT")
+def conferencia_exportar_pdf():
+    modo = (request.args.get("modo") or "meu").strip().lower()
+
+    query = (
+        database.session.query(
+            Militar.nome_completo,
+            Militar.matricula,
+            PostoGrad.sigla.label("posto_grad"),
+            Obm.sigla.label("obm_sigla"),
+        )
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(
+            MilitarObmFuncao,
+            and_(
+                MilitarObmFuncao.militar_id == Militar.id,
+                MilitarObmFuncao.data_fim.is_(None)
+            )
+        )
+        .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .filter(Militar.inativo.is_(False))
+    )
+
+    if modo == "global":
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .distinct()
+            .subquery()
+        )
+        query = query.filter(~Militar.id.in_(sub))
+    else:
+        sub = (
+            database.session.query(MilitarConferenciaCadastral.militar_id)
+            .filter(MilitarConferenciaCadastral.user_id == current_user.id)
+            .subquery()
+        )
+        query = query.filter(~Militar.id.in_(sub))
+
+    pendentes = query.order_by(Militar.nome_completo.asc()).all()
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+
+    y = height - 40
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(30, y, "Relatório de Militares Pendentes de Conferência")
+    y -= 30
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(30, y, "Nome")
+    pdf.drawString(340, y, "Matrícula")
+    pdf.drawString(450, y, "Posto/Grad")
+    pdf.drawString(560, y, "OBM")
+    y -= 20
+
+    pdf.setFont("Helvetica", 9)
+
+    for item in pendentes:
+        if y < 40:
+            pdf.showPage()
+            y = height - 40
+            pdf.setFont("Helvetica-Bold", 10)
+            pdf.drawString(30, y, "Nome")
+            pdf.drawString(340, y, "Matrícula")
+            pdf.drawString(450, y, "Posto/Grad")
+            pdf.drawString(560, y, "OBM")
+            y -= 20
+            pdf.setFont("Helvetica", 9)
+
+        nome = (item.nome_completo or "")[:55]
+        matricula = item.matricula or "-"
+        posto = item.posto_grad or "-"
+        obm = item.obm_sigla or "-"
+
+        pdf.drawString(30, y, nome)
+        pdf.drawString(340, y, matricula)
+        pdf.drawString(450, y, posto)
+        pdf.drawString(560, y, obm)
+        y -= 16
+
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="militares_pendentes_conferencia.pdf",
+        mimetype="application/pdf"
     )

@@ -155,4 +155,15 @@ PERMISSOES_CATALOGO = [
         "nome": "Atualização Cadastral: Consultar painel"},
     {"codigo": "ATUALIZACAO_CADASTRAL_AUDITORIA_READ",
         "nome": "Atualização Cadastral: Consultar auditoria"},
+    {"codigo": "NAV_ATUALIZACAO_CADASTRAL_CONFERENCIA",
+     "nome": "Menu: Gestão Cadastral > Conferência Cadastral"},
+
+    {"codigo": "ATUALIZACAO_CADASTRAL_CONFERENCIA_READ",
+     "nome": "Atualização Cadastral: Consultar conferência cadastral"},
+
+    {"codigo": "ATUALIZACAO_CADASTRAL_CONFERENCIA_CHECK",
+     "nome": "Atualização Cadastral: Marcar/desmarcar conferência cadastral"},
+
+    {"codigo": "ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT",
+     "nome": "Atualização Cadastral: Exportar relatórios da conferência cadastral"},
 ]

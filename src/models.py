@@ -1645,3 +1645,47 @@ class MilitarConjuge(database.Model):
 
     militar = database.relationship(
         "Militar", backref=database.backref("conjuge_cadastral", uselist=False))
+
+
+class MilitarConferenciaCadastral(database.Model):
+    __tablename__ = "militar_conferencia_cadastral"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer,
+        database.ForeignKey("militar.id"),
+        nullable=False,
+        index=True
+    )
+    user_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id"),
+        nullable=False,
+        index=True
+    )
+    conferido_em = database.Column(
+        database.DateTime,
+        default=now_manaus_naive,
+        nullable=False
+    )
+    observacao = database.Column(database.String(255))
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            "militar_id", "user_id",
+            name="uq_militar_conferencia_cadastral_militar_user"
+        ),
+    )
+
+    militar = database.relationship(
+        "Militar",
+        backref=database.backref(
+            "conferencias_cadastrais",
+            lazy=True,
+            cascade="all, delete-orphan"
+        )
+    )
+    user = database.relationship(
+        "User",
+        backref=database.backref("conferencias_cadastrais_user", lazy=True)
+    )
