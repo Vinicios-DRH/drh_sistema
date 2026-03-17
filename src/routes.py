@@ -680,6 +680,10 @@ def login():
     return render_template('login.html', form_login=form_login)
 
 
+def somente_numeros(valor):
+    return re.sub(r"\D", "", valor or "")
+
+
 @app.route("/criar-conta", methods=['GET', 'POST'])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
@@ -689,33 +693,91 @@ def criar_conta():
     choices = [(funcao_user.id, funcao_user.ocupacao)
                for funcao_user in FuncaoUser.query.all()]
     choices.insert(0, ('', '-- Selecione uma opção --'))
-    form_criar_usuario.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                                 Obm.query.all()]
-    form_criar_usuario.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                                 Obm.query.all()]
 
-    form_criar_usuario.localidade_id.choices = [
-        ('', '-- Selecione uma opção --')
-    ] + [(localidade.id, localidade.sigla) for localidade in
-         Localidade.query.all()]
-
+    form_criar_usuario.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [
+        (obm.id, obm.sigla) for obm in Obm.query.all()
+    ]
+    form_criar_usuario.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [
+        (obm.id, obm.sigla) for obm in Obm.query.all()
+    ]
+    form_criar_usuario.localidade_id.choices = [('', '-- Selecione uma opção --')] + [
+        (localidade.id, localidade.sigla) for localidade in Localidade.query.all()
+    ]
     form_criar_usuario.funcao_user_id.choices = choices
 
     if form_criar_usuario.validate_on_submit():
+        cpf_limpo = somente_numeros(form_criar_usuario.cpf.data)
+
+        militar = Militar.query.filter(
+            or_(
+                Militar.cpf == cpf_limpo,
+                Militar.cpf == form_criar_usuario.cpf.data
+            )
+        ).first()
+
+        usuario_existente = User.query.filter(
+            or_(
+                User.cpf == cpf_limpo,
+                User.cpf == form_criar_usuario.cpf.data,
+                User.cpf_norm == cpf_limpo
+            )
+        ).first()
+
+        if usuario_existente:
+            # Atualiza o usuário já existente
+            usuario_existente.nome = form_criar_usuario.nome.data
+            usuario_existente.email = form_criar_usuario.email.data
+            usuario_existente.cpf = cpf_limpo
+            usuario_existente.cpf_norm = cpf_limpo
+            usuario_existente.funcao_user_id = form_criar_usuario.funcao_user_id.data
+            usuario_existente.obm_id_1 = form_criar_usuario.obm_id_1.data or None
+            usuario_existente.obm_id_2 = form_criar_usuario.obm_id_2.data or None
+            usuario_existente.localidade_id = form_criar_usuario.localidade_id.data or None
+
+            if militar:
+                usuario_existente.militar_id = militar.id
+                militar.usuario_id = usuario_existente.id
+
+            # só atualiza senha se tiver sido preenchida
+            if form_criar_usuario.senha.data:
+                senha_cript = bcrypt.generate_password_hash(
+                    form_criar_usuario.senha.data
+                ).decode('utf-8')
+                usuario_existente.senha = senha_cript
+
+            database.session.commit()
+            flash("Usuário já existia. Dados atualizados com sucesso!",
+                  "alert-warning")
+            return redirect(url_for('home'))
+
+        # cria novo usuário se não existir
         senha_cript = bcrypt.generate_password_hash(
-            form_criar_usuario.senha.data).decode('utf-8')
-        usuarios = User(nome=form_criar_usuario.nome.data,
-                        email=form_criar_usuario.email.data,
-                        funcao_user_id=form_criar_usuario.funcao_user_id.data,
-                        cpf=form_criar_usuario.cpf.data,
-                        obm_id_1=form_criar_usuario.obm_id_1.data,
-                        obm_id_2=form_criar_usuario.obm_id_2.data,
-                        localidade_id=form_criar_usuario.localidade_id.data,
-                        senha=senha_cript)
-        database.session.add(usuarios)
+            form_criar_usuario.senha.data
+        ).decode('utf-8')
+
+        novo_usuario = User(
+            nome=form_criar_usuario.nome.data,
+            email=form_criar_usuario.email.data,
+            cpf=cpf_limpo,
+            cpf_norm=cpf_limpo,
+            funcao_user_id=form_criar_usuario.funcao_user_id.data,
+            obm_id_1=form_criar_usuario.obm_id_1.data or None,
+            obm_id_2=form_criar_usuario.obm_id_2.data or None,
+            localidade_id=form_criar_usuario.localidade_id.data or None,
+            senha=senha_cript,
+            militar_id=militar.id if militar else None
+        )
+
+        database.session.add(novo_usuario)
+        database.session.flush()
+
+        if militar:
+            militar.usuario_id = novo_usuario.id
+
         database.session.commit()
         flash("Usuário cadastrado com sucesso!", "alert-success")
         return redirect(url_for('home'))
+
     return render_template('criar_conta.html', form_criar_usuario=form_criar_usuario)
 
 
@@ -3675,7 +3737,6 @@ def update_paf():
 def adicionar_motorista():
     form_motorista = FormMotoristas()
 
-    # Carregar todos os militares de uma vez com os dados necessários
     militares_query = (
         database.session.query(
             Militar.id,
@@ -3705,17 +3766,17 @@ def adicionar_motorista():
     }
 
     form_motorista.categoria_id.choices = [
-        ('', '-- Selecione uma categoria --')
+        (0, '-- Selecione uma categoria --')
     ] + [(categoria.id, categoria.sigla) for categoria in Categoria.query.all()]
 
     if form_motorista.validate_on_submit():
         try:
             novo_motorista = Motoristas(
                 militar_id=form_motorista.nome_completo.data,
-                categoria_id=form_motorista.categoria_id.data,
+                categoria_id=form_motorista.categoria_id.data or None,
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
-                vencimento=form_motorista.vencimento_cnh.data,
+                vencimento_cnh=form_motorista.vencimento_cnh.data,  # <-- corrigido
                 usuario_id=current_user.id,
                 desclassificar="NÃO",
                 created=datetime.utcnow()
@@ -3727,23 +3788,19 @@ def adicionar_motorista():
                 timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
 
                 nome_militar = next(
-                    (m.nome_completo for m in militares_query if m.id ==
-                     form_motorista.nome_completo.data),
+                    (m.nome_completo for m in militares_query if m.id == form_motorista.nome_completo.data),
                     'motorista'
                 ).replace(" ", "_")
 
-                nome_arquivo = secure_filename(
-                    f"{nome_militar}_cnh_{timestamp}.{ext}")
+                nome_arquivo = secure_filename(f"{nome_militar}_cnh_{timestamp}.{ext}")
                 file_bytes = file.read()
 
-                # Upload para o root do bucket (sem suappasta)
                 app.supabase.storage.from_('motoristas').upload(
                     path=nome_arquivo,
                     file=file_bytes,
                     file_options={"content-type": file.mimetype}
                 )
 
-                # Salva apenas o nome do arquivo no banco
                 novo_motorista.cnh_imagem = nome_arquivo
 
             database.session.add(novo_motorista)

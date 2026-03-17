@@ -282,13 +282,13 @@ class FormMotoristas(FlaskForm):
     posto_grad_id = StringField('Posto/Graduação')
     nome_completo = SelectField('Nome do Militar', choices=[], coerce=int)
     matricula = StringField('Matricula')
-    categoria_id = SelectField('Categoria', choices=[])
+    categoria_id = SelectField('Categoria', choices=[], coerce=int)
     obm_id_1 = StringField('OBM 1')
     siged = StringField('SIGED')
     boletim_geral = StringField('Boletim Geral')
     vencimento_cnh = DateField('Vencimento da CNH')
     botao_salvar_motorista = SubmitField('Salvar')
-    cnh_imagem = FileField('CNH (Imagem)')  # Campo para upload de arquivo
+    cnh_imagem = FileField('CNH (Imagem)')
 
 
 class FormFiltroMotorista(FlaskForm):

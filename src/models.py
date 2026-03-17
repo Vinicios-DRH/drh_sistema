@@ -632,7 +632,7 @@ class Motoristas(database.Model):
     modified = database.Column(database.DateTime, onupdate=now_manaus_naive)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
-    vencimento_cnh = database.Column(database.DateTime)
+    vencimento_cnh = database.Column(database.Date)
     cnh_imagem = database.Column(database.String(255))
     desclassificar = database.Column(database.String(30))
     desclassificar_por = database.Column(
