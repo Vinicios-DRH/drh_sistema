@@ -3715,7 +3715,7 @@ def adicionar_motorista():
                 categoria_id=form_motorista.categoria_id.data,
                 boletim_geral=form_motorista.boletim_geral.data,
                 siged=form_motorista.siged.data,
-                vencimento=form_motorista.vencimento.data,
+                vencimento=form_motorista.vencimento_cnh.data,
                 usuario_id=current_user.id,
                 desclassificar="NÃO",
                 created=datetime.utcnow()
