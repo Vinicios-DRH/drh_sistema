@@ -2198,11 +2198,9 @@ def militares():
     f.situacao_id.choices = [(s.id, s.condicao)
                              for s in Situacao.query.order_by(Situacao.condicao).all()]
 
-    # paginação & busca
     page = request.args.get('page', 1, type=int)
     search = (request.args.get('search') or '').strip()
 
-    # MULTI filtros (listas)
     obm_ids = request.args.getlist('obm_ids', type=int)
     funcao_ids = request.args.getlist('funcao_ids', type=int)
     posto_grad_ids = request.args.getlist('posto_grad_ids', type=int)
@@ -2213,7 +2211,6 @@ def militares():
 
     sexo_filtro = (request.args.get('sexo') or '').strip().upper()
 
-    # base
     query = (Militar.query
              .options(
                  selectinload(Militar.obm_funcoes).selectinload(
@@ -2227,16 +2224,38 @@ def militares():
              )
 
     if search:
-        like = f"%{search}%"
+        search_text = search.strip()
+        search_like = f"%{search_text}%"
+
+        # remove tudo que não for número para busca de CPF/RG/matrícula
+        search_digits = re.sub(r"\D", "", search_text)
+        digits_like = f"%{search_digits}%" if search_digits else None
+
+        def norm_text(col):
+            return func.lower(func.unaccent(func.coalesce(col, '')))
+
         query = query.filter(or_(
-            Militar.nome_completo.ilike(like),
-            Militar.nome_guerra.ilike(like),
-            Militar.cpf.ilike(like),
-            Militar.rg.ilike(like),
-            Militar.matricula.ilike(like),
+            norm_text(Militar.nome_completo).like(
+                func.lower(func.unaccent(search_like))
+            ),
+            norm_text(Militar.nome_guerra).like(
+                func.lower(func.unaccent(search_like))
+            ),
+
+            # busca textual normal
+            func.coalesce(Militar.cpf, '').ilike(search_like),
+            func.coalesce(Militar.rg, '').ilike(search_like),
+            func.coalesce(Militar.matricula, '').ilike(search_like),
+
+            # busca numérica sem máscara
+            func.regexp_replace(func.coalesce(
+                Militar.cpf, ''), r'[^0-9]', '', 'g').like(digits_like) if digits_like else False,
+            func.regexp_replace(func.coalesce(
+                Militar.rg, ''), r'[^0-9]', '', 'g').like(digits_like) if digits_like else False,
+            func.regexp_replace(func.coalesce(
+                Militar.matricula, ''), r'[^0-9]', '', 'g').like(digits_like) if digits_like else False,
         ))
 
-    # aplica filtros simples (FK direta)
     if posto_grad_ids:
         query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
     if quadro_ids:
@@ -2248,7 +2267,6 @@ def militares():
     if situacao_ids:
         query = query.filter(Militar.situacao_id.in_(situacao_ids))
 
-    # filtros por OBM/Função ativos via join
     if obm_ids or funcao_ids:
         query = (query
                  .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
@@ -2273,7 +2291,6 @@ def militares():
             sexo_norm.like('f%')
         )
 
-    # paginação
     per_page = 100
     query = query.order_by(Militar.nome_completo.asc())
     militares_paginados = query.paginate(page=page, per_page=per_page)
@@ -2282,22 +2299,18 @@ def militares():
         d = re.sub(r'\D', '', cpf or '')
         return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:11]}" if len(d) == 11 else (cpf or '')
 
-    # Preparar dados para renderização
     militares = []
     for militar in militares_paginados.items:
-        # Selecionar apenas OBMs e funções ativas (data_fim is None)
         obm_funcoes_ativas = [
             of for of in militar.obm_funcoes if of.data_fim is None
         ]
 
-        # Ordenar OBMs e funções ativas por data_criacao (opcional)
         obm_funcoes_ativas = sorted(
             obm_funcoes_ativas,
             key=lambda of: of.data_criacao,
             reverse=True
         )
 
-        # Extrair OBMs e Funções ativas
         obms_recentes = [
             of.obm.sigla if of.obm else 'OBM não encontrada'
             for of in obm_funcoes_ativas
@@ -2314,8 +2327,8 @@ def militares():
             'cpf': militar.cpf,
             'cpf_fmt': fmt_cpf(militar.cpf),
             'rg': militar.rg,
-            'obms': obms_recentes,  # Lista com as OBMs ativas
-            'funcoes': funcoes_recentes,  # Lista com as funções ativas
+            'obms': obms_recentes,
+            'funcoes': funcoes_recentes,
             'posto_grad': militar.posto_grad.sigla if militar.posto_grad else '',
             'quadro': militar.quadro.quadro if militar.quadro else '',
             'matricula': militar.matricula,
@@ -2324,7 +2337,7 @@ def militares():
     return render_template(
         'militares.html',
         militares=militares,
-        form_militar=f,              # substitui aqui
+        form_militar=f,
         page=page,
         has_next=militares_paginados.has_next,
         has_prev=militares_paginados.has_prev,
@@ -3788,11 +3801,13 @@ def adicionar_motorista():
                 timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
 
                 nome_militar = next(
-                    (m.nome_completo for m in militares_query if m.id == form_motorista.nome_completo.data),
+                    (m.nome_completo for m in militares_query if m.id ==
+                     form_motorista.nome_completo.data),
                     'motorista'
                 ).replace(" ", "_")
 
-                nome_arquivo = secure_filename(f"{nome_militar}_cnh_{timestamp}.{ext}")
+                nome_arquivo = secure_filename(
+                    f"{nome_militar}_cnh_{timestamp}.{ext}")
                 file_bytes = file.read()
 
                 app.supabase.storage.from_('motoristas').upload(
