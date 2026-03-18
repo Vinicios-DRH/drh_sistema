@@ -841,7 +841,7 @@ def criar_conta():
             # Atualiza o usuário já existente
             usuario_existente.nome = form_criar_usuario.nome.data
             usuario_existente.email = form_criar_usuario.email.data
-            usuario_existente.cpf = cpf_limpo
+            usuario_existente.cpf = form_criar_usuario.cpf.data
             usuario_existente.cpf_norm = cpf_limpo
             usuario_existente.funcao_user_id = form_criar_usuario.funcao_user_id.data
             usuario_existente.obm_id_1 = form_criar_usuario.obm_id_1.data or None
