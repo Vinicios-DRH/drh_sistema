@@ -2699,6 +2699,11 @@ def tabela_militares():
                 'obms': [item['obm'] for item in obm_funcoes_ativas],
                 'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
                 'data_nascimento': militar.data_nascimento.strftime('%d/%m/%Y') if militar.data_nascimento else 'N/A',
+                'grau_instrucao': militar.grau_instrucao or 'N/A',
+                'graduacao': militar.graduacao or 'N/A',
+                'pos_graduacao': militar.pos_graduacao or 'N/A',
+                'mestrado': militar.mestrado or 'N/A',
+                'doutorado': militar.doutorado or 'N/A',
             })
 
         return render_template(

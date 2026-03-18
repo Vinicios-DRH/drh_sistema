@@ -147,6 +147,11 @@
                             <th>OBM 2</th>
                             <th>Função 2</th>
                             <th>Data de Nascimento</th>
+                            <th>Graduação</th>
+                            <th>Grau de Instrução</th>
+                            <th>Pos-Graduação</th>
+                            <th>Mestrado</th>
+                            <th>Doutorado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,6 +182,11 @@
                             <td>{{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}</td>
                             <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}</td>
                             <td>{{ militar.data_nascimento }}</td>
+                            <td>{{ militar.graduacao }}</td>
+                            <td>{{ militar.grau_instrucao }}</td>
+                            <td>{{ militar.pos_graduacao }}</td>
+                            <td>{{ militar.mestrado }}</td>
+                            <td>{{ militar.doutorado }}</td>
                         </tr>
                         {% endfor %}
                         {% else %}
