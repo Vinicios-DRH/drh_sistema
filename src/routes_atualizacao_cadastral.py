@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import unicodedata
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
 from flask_login import login_required, current_user
 from src.authz import require_perm
 from src import database
@@ -24,7 +24,6 @@ from src.utils.cadastro_status import (
     get_campos_pendentes_cadastro,
 )
 from io import BytesIO
-from flask import send_file
 from sqlalchemy import or_, and_, func
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill

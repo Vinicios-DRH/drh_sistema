@@ -38,7 +38,7 @@ from sqlalchemy.orm import joinedload, selectinload, load_only, aliased
 from sqlalchemy import case, func, text, or_, cast, String, and_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Border, Font, Side
 from openpyxl.utils import get_column_letter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from docx import Document
@@ -61,6 +61,7 @@ from src.security.perms import has_perm
 from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
 from src.utils.cadastro_status import cadastro_esta_completo
 from src.utils.painel import (
+    _obter_obm_principal,
     listar_situacoes_atualizacao,
     obter_resumo_atualizacao_cadastral,
     obter_militares_atualizacao_cadastral,
@@ -266,6 +267,119 @@ def painel_efetivo_publico_militar_detalhe(militar_id):
     except Exception as e:
         print(f"Erro ao carregar detalhes do militar: {e}")
         return jsonify({"ok": False, "error": "Erro ao carregar detalhes"}), 500
+
+
+@app.route("/painel-efetivo/exportar-excel")
+def painel_efetivo_publico_exportar_excel():
+    try:
+        q = (request.args.get("q") or "").strip()
+        status = (request.args.get("status") or "").strip()
+        obm_id = request.args.get("obm_id", type=int)
+        posto_grad_id = request.args.get("posto_grad_id", type=int)
+        situacao_id = request.args.get("situacao_id", type=int)
+
+        militares, _ = obter_militares_atualizacao_cadastral(
+            q=q,
+            status=status,
+            obm_id=obm_id,
+            posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id,
+            page=1,
+            per_page=100000
+        )
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Atualizacao Cadastral"
+
+        headers = [
+            "Nome",
+            "Posto/Grad",
+            "OBM",
+            "Situação",
+            "Status",
+            "Última auditoria",
+            "Ação auditoria",
+            "Observação auditoria",
+        ]
+        ws.append(headers)
+
+        header_fill = PatternFill("solid", fgColor="0B4A7D")
+        header_font = Font(color="FFFFFF", bold=True)
+        thin_border = Border(
+            left=Side(style="thin", color="D9E3EF"),
+            right=Side(style="thin", color="D9E3EF"),
+            top=Side(style="thin", color="D9E3EF"),
+            bottom=Side(style="thin", color="D9E3EF"),
+        )
+
+        for col_num, header in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+
+        for militar in militares:
+            auditoria = None
+            if getattr(militar, "auditorias_atualizacao", None):
+                auditoria = sorted(
+                    militar.auditorias_atualizacao,
+                    key=lambda a: a.criado_em or datetime.min,
+                    reverse=True
+                )[0]
+
+            status_label = "Atualizado" if bool(militar.cadastro_atualizado) else "Pendente"
+
+            ws.append([
+                militar.nome_completo or "-",
+                militar.posto_grad.sigla if militar.posto_grad else "-",
+                _obter_obm_principal(militar),
+                militar.situacao.condicao if militar.situacao else "-",
+                status_label,
+                auditoria.criado_em.strftime("%d/%m/%Y %H:%M") if auditoria and auditoria.criado_em else "-",
+                auditoria.acao if auditoria and auditoria.acao else "-",
+                auditoria.observacao if auditoria and auditoria.observacao else "-",
+            ])
+
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+            for cell in row:
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center")
+
+        widths = {
+            "A": 40,
+            "B": 15,
+            "C": 18,
+            "D": 20,
+            "E": 14,
+            "F": 22,
+            "G": 22,
+            "H": 50,
+        }
+        for col, width in widths.items():
+            ws.column_dimensions[col].width = width
+
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = f"A1:H{ws.max_row}"
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        data_exportacao = datetime.now(ZoneInfo("America/Manaus")).strftime("%Y-%m-%d_%H-%M-%S")
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"militares_atualizacao_cadastral_{data_exportacao}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        print(f"Erro ao exportar Excel do painel público: {e}")
+        flash("Erro ao exportar o Excel.", "danger")
+        return redirect(url_for("painel_efetivo_publico"))
 
 
 @app.route("/db-ping-10")

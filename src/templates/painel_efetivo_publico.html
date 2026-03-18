@@ -877,6 +877,11 @@
                                             <button type="button" id="btn-limpar"
                                                 class="btn btn-outline-soft">Limpar</button>
                                         </div>
+                                        <div class="col-12 col-xl-2 d-grid">
+                                            <a id="btn-exportar-excel" class="btn btn-success" href="#">
+                                                Exportar Excel
+                                            </a>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
@@ -1058,6 +1063,7 @@
         const filtroObm = document.getElementById("filtro-obm");
         const filtroPostoGrad = document.getElementById("filtro-posto-grad");
         const filtroSituacao = document.getElementById("filtro-situacao");
+        const btnExportarExcel = document.getElementById("btn-exportar-excel");
         const btnLimpar = document.getElementById("btn-limpar");
 
         const ultimaAtualizacao = document.getElementById("ultima-atualizacao");
@@ -1195,6 +1201,20 @@
             return lista.map(item => `<li>${escapeHtml(item)}</li>`).join("");
         }
 
+        function atualizarLinkExportacao() {
+            if (!btnExportarExcel) return;
+
+            const params = new URLSearchParams({
+                q: filtroQ ? (filtroQ.value || "") : "",
+                status: filtroStatus ? (filtroStatus.value || "") : "",
+                obm_id: filtroObm ? (filtroObm.value || "") : "",
+                posto_grad_id: filtroPostoGrad ? (filtroPostoGrad.value || "") : "",
+                situacao_id: filtroSituacao ? (filtroSituacao.value || "") : ""
+            });
+
+            btnExportarExcel.href = `/painel-efetivo/exportar-excel?${params.toString()}`;
+        }
+
         async function abrirModalMilitar(militarId) {
             if (!modal) {
                 alert("O Bootstrap Modal não está disponível nesta página.");
@@ -1273,6 +1293,7 @@
                 atualizarEstatisticas(data.estatisticas || {});
                 atualizarResumo(data.resumo_atualizacao || {});
                 renderTabela(data.militares || []);
+                atualizarLinkExportacao();
 
                 if (badgeTotalRegistros) {
                     badgeTotalRegistros.textContent = `${data.total_filtrado || 0} registro(s)`;
@@ -1303,6 +1324,7 @@
                 if (filtroPostoGrad) filtroPostoGrad.value = "";
                 if (filtroSituacao) filtroSituacao.value = "";
                 carregarPainel();
+                atualizarLinkExportacao();
             });
         }
 

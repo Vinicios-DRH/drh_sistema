@@ -6,9 +6,10 @@ from src.models import (
     PostoGrad,
     MilitarObmFuncao,
     Obm,
-    Situacao,
     MilitarContatoEmergencia,
     MilitarConjuge,
+    Situacao,
+    AuditoriaAtualizacaoCadastral,
 )
 from src.utils.cadastro_status import (
     get_campos_pendentes_cadastro,
@@ -160,6 +161,12 @@ def _base_load_lista():
         selectinload(Militar.situacao).load_only(
             Situacao.id,
             Situacao.condicao,
+        ),
+        selectinload(Militar.auditorias_atualizacao).load_only(
+            AuditoriaAtualizacaoCadastral.id,
+            AuditoriaAtualizacaoCadastral.criado_em,
+            AuditoriaAtualizacaoCadastral.acao,
+            AuditoriaAtualizacaoCadastral.observacao,
         ),
         selectinload(Militar.obm_funcoes)
         .load_only(
