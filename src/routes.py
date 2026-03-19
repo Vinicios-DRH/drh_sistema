@@ -876,6 +876,107 @@ def resetar_senha_publica(token):
     return render_template("auth/resetar_senha_publica.html", form=form, area=area)
 
 
+def _status_periodo(inicio, fim, termino_label):
+    hoje = date.today()
+
+    if not inicio or not fim:
+        return 'Dados incompletos'
+    if hoje < inicio:
+        return 'A iniciar'
+    if inicio <= hoje <= fim:
+        return 'Vigente'
+    return termino_label
+
+
+def _dias_restantes(fim):
+    if not fim:
+        return None
+    return (fim - date.today()).days
+
+
+def _preview_licencas_especiais(limit=5):
+    hoje = date.today()
+
+    itens = (
+        LicencaEspecial.query
+        .options(
+            joinedload(LicencaEspecial.militar),
+            joinedload(LicencaEspecial.posto_grad),
+            joinedload(LicencaEspecial.destino),
+        )
+        .filter(
+            LicencaEspecial.inicio_periodo_le.isnot(None),
+            LicencaEspecial.fim_periodo_le.isnot(None),
+            LicencaEspecial.inicio_periodo_le <= hoje,
+            LicencaEspecial.fim_periodo_le >= hoje,
+        )
+        .order_by(LicencaEspecial.fim_periodo_le.asc(), LicencaEspecial.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    dados = []
+    for item in itens:
+        dados.append({
+            "militar_id": item.militar_id,
+            "nome": item.militar.nome_completo if item.militar else "N/A",
+            "matricula": item.militar.matricula if item.militar else "N/A",
+            "posto_grad": item.posto_grad.sigla if item.posto_grad else "N/A",
+            "destino": item.destino.local if item.destino else "N/A",
+            "inicio": item.inicio_periodo_le.strftime("%d/%m/%Y") if item.inicio_periodo_le else "N/A",
+            "fim": item.fim_periodo_le.strftime("%d/%m/%Y") if item.fim_periodo_le else "N/A",
+            "dias_restantes": _dias_restantes(item.fim_periodo_le),
+            "status": _status_periodo(
+                item.inicio_periodo_le,
+                item.fim_periodo_le,
+                "Término da Licença Especial"
+            )
+        })
+    return dados
+
+
+def _preview_lts(limit=5):
+    hoje = date.today()
+
+    itens = (
+        LicencaParaTratamentoDeSaude.query
+        .options(
+            joinedload(LicencaParaTratamentoDeSaude.militar),
+            joinedload(LicencaParaTratamentoDeSaude.posto_grad),
+            joinedload(LicencaParaTratamentoDeSaude.destino),
+        )
+        .filter(
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts.isnot(None),
+            LicencaParaTratamentoDeSaude.fim_periodo_lts.isnot(None),
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts <= hoje,
+            LicencaParaTratamentoDeSaude.fim_periodo_lts >= hoje,
+        )
+        .order_by(LicencaParaTratamentoDeSaude.fim_periodo_lts.asc(),
+                  LicencaParaTratamentoDeSaude.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    dados = []
+    for item in itens:
+        dados.append({
+            "militar_id": item.militar_id,
+            "nome": item.militar.nome_completo if item.militar else "N/A",
+            "matricula": item.militar.matricula if item.militar else "N/A",
+            "posto_grad": item.posto_grad.sigla if item.posto_grad else "N/A",
+            "destino": item.destino.local if item.destino else "N/A",
+            "inicio": item.inicio_periodo_lts.strftime("%d/%m/%Y") if item.inicio_periodo_lts else "N/A",
+            "fim": item.fim_periodo_lts.strftime("%d/%m/%Y") if item.fim_periodo_lts else "N/A",
+            "dias_restantes": _dias_restantes(item.fim_periodo_lts),
+            "status": _status_periodo(
+                item.inicio_periodo_lts,
+                item.fim_periodo_lts,
+                "Término da Licença para Tratamento de Saúde"
+            )
+        })
+    return dados
+
+
 @app.route("/")
 @login_required
 def home():
@@ -883,23 +984,34 @@ def home():
         return redirect(url_for('home_atualizacao'))
 
     try:
-        # enviando e-mails
+        estatisticas = obter_estatisticas_militares()
+
+        licencas_especiais_preview = _preview_licencas_especiais(limit=5)
+        lts_preview = _preview_lts(limit=5)
+
+        return render_template(
+            "home.html",
+            **estatisticas,
+            licencas_especiais_preview=licencas_especiais_preview,
+            lts_preview=lts_preview
+        )
+    except Exception as e:
+        print(f"Erro: {e}")
+        return jsonify({'error': 'Erro ao carregar a página'}), 500
+
+
+@app.route("/admin/reprocessar-vigencias", methods=["POST"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def reprocessar_vigencias():
+    try:
         processar_militares_agregados()
         processar_militares_a_disposicao()
         processar_militares_le()
         processar_militares_lts()
-
-        militares_le = LicencaEspecial.query.all()
-
-        militares_lts = LicencaParaTratamentoDeSaude.query.all()
-
-        # estatísticas dos militares para o dashboard -> você encontra em src/querys.py, função obter_estatisticas_militares() - é só chamar ela aqui e passar os dados pro template
-        estatisticas = obter_estatisticas_militares()
-
-        return render_template('home.html', **estatisticas, militares_le=militares_le, militares_lts=militares_lts)
+        return jsonify({"ok": True, "message": "Vigências reprocessadas com sucesso."})
     except Exception as e:
-        print(f"Erro: {e}")
-        return jsonify({'error': 'Erro ao carregar a página'}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 def get_user_ip():
@@ -2442,6 +2554,121 @@ def status_documento(doc_id):
     return {"baixado": bool(doc.baixado_em)}
 
 
+def build_tabela_militares_query():
+    vals = request.values  # funciona com args e form
+    search = vals.get('search', '', type=str).strip()
+    sexo_filtro = vals.get('sexo', '', type=str).strip().upper()
+
+    obm_ids = vals.getlist('obm_ids', type=int)
+    funcao_ids = vals.getlist('funcao_ids', type=int)
+    posto_grad_ids = vals.getlist('posto_grad_ids', type=int)
+    quadro_ids = vals.getlist('quadro_ids', type=int)
+    especialidade_ids = vals.getlist('especialidade_ids', type=int)
+    localidade_ids = vals.getlist('localidade_ids', type=int)
+    situacao_ids = vals.getlist('situacao_ids', type=int)
+
+    query = Militar.query.options(
+        joinedload(Militar.posto_grad),
+        joinedload(Militar.quadro),
+        joinedload(Militar.especialidade),
+        joinedload(Militar.localidade),
+        joinedload(Militar.situacao),
+        joinedload(Militar.destino),
+        joinedload(Militar.obm_funcoes).joinedload(MilitarObmFuncao.obm),
+        joinedload(Militar.obm_funcoes).joinedload(MilitarObmFuncao.funcao),
+    ).filter(Militar.inativo.is_(False))
+
+    # busca atual da tabela
+    if search:
+        query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
+
+    # filtros FK diretos
+    if posto_grad_ids:
+        query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
+    if quadro_ids:
+        query = query.filter(Militar.quadro_id.in_(quadro_ids))
+    if especialidade_ids:
+        query = query.filter(Militar.especialidade_id.in_(especialidade_ids))
+    if localidade_ids:
+        query = query.filter(Militar.localidade_id.in_(localidade_ids))
+    if situacao_ids:
+        query = query.filter(Militar.situacao_id.in_(situacao_ids))
+
+    # filtros de OBM/Função ativas
+    if obm_ids or funcao_ids:
+        mo = (
+            database.session.query(MilitarObmFuncao.militar_id)
+            .filter(MilitarObmFuncao.data_fim.is_(None))
+        )
+
+        if obm_ids:
+            mo = mo.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
+        if funcao_ids:
+            mo = mo.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
+
+        mo = mo.distinct()
+        query = query.filter(Militar.id.in_(mo))
+
+    sexo_norm = func.lower(func.trim(Militar.sexo))
+
+    if sexo_filtro == 'M':
+        query = query.filter(
+            Militar.sexo.isnot(None),
+            sexo_norm.like('m%')
+        )
+    elif sexo_filtro == 'F':
+        query = query.filter(
+            Militar.sexo.isnot(None),
+            sexo_norm.like('f%')
+        )
+
+    return query
+
+
+def get_status_sets(base_query, today):
+    filtrados_sq = (
+        base_query
+        .order_by(None)
+        .with_entities(Militar.id)
+        .distinct()
+        .subquery()
+    )
+
+    agregados_ids = {
+        x[0] for x in (
+            database.session.query(MilitaresAgregados.militar_id)
+            .join(filtrados_sq, MilitaresAgregados.militar_id == filtrados_sq.c.id)
+            .filter(
+                MilitaresAgregados.inicio_periodo <= today,
+                or_(
+                    MilitaresAgregados.fim_periodo_agregacao.is_(None),
+                    MilitaresAgregados.fim_periodo_agregacao >= today,
+                )
+            )
+            .distinct()
+            .all()
+        )
+    }
+
+    adisposicao_ids = {
+        x[0] for x in (
+            database.session.query(MilitaresADisposicao.militar_id)
+            .join(filtrados_sq, MilitaresADisposicao.militar_id == filtrados_sq.c.id)
+            .filter(
+                MilitaresADisposicao.inicio_periodo <= today,
+                or_(
+                    MilitaresADisposicao.fim_periodo_disposicao.is_(None),
+                    MilitaresADisposicao.fim_periodo_disposicao >= today,
+                )
+            )
+            .distinct()
+            .all()
+        )
+    }
+
+    return agregados_ids, adisposicao_ids
+
+
 @app.route("/militares", methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
@@ -2661,141 +2888,38 @@ def tabela_militares():
     today = date.today()
     try:
         page = request.args.get('page', 1, type=int)
-        search = request.args.get('search', '', type=str)
-        query = Militar.query.options(
-            joinedload(Militar.posto_grad),
-            joinedload(Militar.quadro),
-            joinedload(Militar.especialidade),
-            joinedload(Militar.localidade),
-            joinedload(Militar.situacao),
-            joinedload(Militar.obm_funcoes),
-            joinedload(Militar.destino)
-        ).filter(Militar.inativo.is_(False))
+        per_page = 50
 
-        total_militares = query.count()
+        query = build_tabela_militares_query()
 
-        # Filtro de busca por nome
-        if search:
-            query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
+        total_militares = Militar.query.filter(
+            Militar.inativo.is_(False)).count()
 
-        sexo_filtro = request.args.get('sexo', '', type=str).strip().upper()
-
-        vals = request.values  # une args + form
-        obm_ids = vals.getlist('obm_ids', type=int)
-        funcao_ids = vals.getlist('funcao_ids', type=int)
-        posto_grad_ids = vals.getlist('posto_grad_ids', type=int)
-        quadro_ids = vals.getlist('quadro_ids', type=int)
-        especialidade_ids = vals.getlist('especialidade_ids', type=int)
-        localidade_ids = vals.getlist('localidade_ids', type=int)
-        situacao_ids = vals.getlist('situacao_ids', type=int)
-        sexo_norm = func.lower(func.trim(Militar.sexo))
-        # FK diretas
-        if posto_grad_ids:
-            query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
-        if quadro_ids:
-            query = query.filter(Militar.quadro_id.in_(quadro_ids))
-        if especialidade_ids:
-            query = query.filter(
-                Militar.especialidade_id.in_(especialidade_ids))
-        if localidade_ids:
-            query = query.filter(Militar.localidade_id.in_(localidade_ids))
-        if situacao_ids:
-            query = query.filter(Militar.situacao_id.in_(situacao_ids))
-
-        # OBM/Função ativas
-        if obm_ids or funcao_ids:
-            mo = (database.session.query(MilitarObmFuncao.militar_id)
-                  .filter(MilitarObmFuncao.data_fim.is_(None)))
-            if obm_ids:
-                mo = mo.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
-            if funcao_ids:
-                mo = mo.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
-
-            mo = mo.distinct()  # DISTINCT "puro" (sem ON)
-
-            # restringe os militares aos que têm OBM/Função ativa
-            query = query.filter(Militar.id.in_(mo))
-
-        if sexo_filtro == 'M':
-            query = query.filter(
-                Militar.sexo.isnot(None),
-                sexo_norm.like('m%')   # "m", "masculino", "MASCULINO", etc
-            )
-        elif sexo_filtro == 'F':
-            query = query.filter(
-                Militar.sexo.isnot(None),
-                sexo_norm.like('f%')   # "f", "feminino", etc
-            )
-
-        base_filtrada = query.order_by(None)
-
-        filtrados_sq = (
-            base_filtrada
-            .with_entities(Militar.id)
-            .distinct()        # em PG vira DISTINCT ON (militar.id)
-            # <-- essencial pra não “vazar” ORDER BY nome_completo
-            .order_by(None)
-            .subquery()
-        )
-
-        # contagem de agregados dentre os filtrados
-        agregados_ids = [
-            x[0]
-            for x in (
-                database.session.query(MilitaresAgregados.militar_id)
-                .join(filtrados_sq, MilitaresAgregados.militar_id == filtrados_sq.c.id)
-                .filter(
-                    MilitaresAgregados.inicio_periodo <= today,
-                    or_(
-                        MilitaresAgregados.fim_periodo_agregacao == None,
-                        MilitaresAgregados.fim_periodo_agregacao >= today,
-                    )
-                )
-                .distinct()
-                .all()
-            )
-        ]
+        agregados_ids, adisposicao_ids = get_status_sets(query, today)
         agregados_count = len(agregados_ids)
-
-        # contagem de "à disposição" dentre os filtrados
-        adisposicao_ids = [
-            x[0]
-            for x in (
-                database.session.query(MilitaresADisposicao.militar_id)
-                .join(filtrados_sq, MilitaresADisposicao.militar_id == filtrados_sq.c.id)
-                .filter(
-                    MilitaresADisposicao.inicio_periodo <= today,
-                    or_(
-                        MilitaresADisposicao.fim_periodo_disposicao == None,
-                        MilitaresADisposicao.fim_periodo_disposicao >= today,
-                    )
-                )
-                .distinct()
-                .all()
-            )
-        ]
         adisposicao_count = len(adisposicao_ids)
-
-        militares_filtrados = (
-            base_filtrada               # mesma base sem ORDER BY no subquery
-            .order_by(Militar.nome_completo.asc())
-            .all()
-        )
 
         query = query.order_by(Militar.nome_completo.asc())
 
-        # Retorna todos os resultados
-        militares_filtrados = query.all()
+        militares_paginados = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
 
-        # Preparar dados para o template
         militares_filtrados_data = []
-        for militar in militares_filtrados:
-            obm_funcoes_ativas = [
-                {
-                    'obm': of.obm.sigla if of.obm else 'OBM não encontrada',
-                    'funcao': of.funcao.ocupacao if of.funcao else 'Função não encontrada'
-                }
-                for of in militar.obm_funcoes if of.data_fim is None
+        for militar in militares_paginados.items:
+            obm_funcoes_ativas = sorted(
+                [of for of in militar.obm_funcoes if of.data_fim is None],
+                key=lambda of: of.data_criacao or date.min,
+                reverse=True
+            )
+
+            obms = [
+                of.obm.sigla if of.obm else 'OBM não encontrada'
+                for of in obm_funcoes_ativas
+            ]
+            funcoes = [
+                of.funcao.ocupacao if of.funcao else 'Função não encontrada'
+                for of in obm_funcoes_ativas
             ]
 
             destino_txt = 'N/A'
@@ -2820,27 +2944,22 @@ def tabela_militares():
             else:
                 situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
 
-            sexo_raw = (militar.sexo or '').strip()
-            s = sexo_raw.lower()
-
-            if s.startswith('m'):
-                sexo_exibe = 'Masculino'
-            elif s.startswith('f'):
-                sexo_exibe = 'Feminino'
-            elif sexo_raw:
-                sexo_exibe = sexo_raw
-            else:
-                sexo_exibe = 'N/A'
+            sexo_raw = (militar.sexo or '').strip().lower()
+            sexo_exibe = (
+                'Masculino' if sexo_raw.startswith('m')
+                else 'Feminino' if sexo_raw.startswith('f')
+                else (militar.sexo or 'N/A')
+            )
 
             militares_filtrados_data.append({
                 'id': militar.id,
                 'nome_completo': militar.nome_completo,
                 'nome_guerra': militar.nome_guerra,
-                'sexo': sexo_exibe,  # <-- NOVO
-                'raca': militar.raca or 'N/A',  # <-- NOVO
-                'cpf': militar.cpf,
-                'rg': militar.rg,
-                'matricula': militar.matricula,
+                'sexo': sexo_exibe,
+                'raca': militar.raca or 'N/A',
+                'cpf': militar.cpf or 'N/A',
+                'rg': militar.rg or 'N/A',
+                'matricula': militar.matricula or 'N/A',
                 'posto_grad': militar.posto_grad.sigla if militar.posto_grad else 'N/A',
                 'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
@@ -2848,11 +2967,11 @@ def tabela_militares():
                 'situacao': situacao_exibe,
                 'destino': destino_txt,
                 'inclusao': inclusao_fmt,
-                'obms': [item['obm'] for item in obm_funcoes_ativas],
-                'funcoes': [item['funcao'] for item in obm_funcoes_ativas],
+                'obms': obms,
+                'funcoes': funcoes,
                 'data_nascimento': militar.data_nascimento.strftime('%d/%m/%Y') if militar.data_nascimento else 'N/A',
-                'grau_instrucao': militar.grau_instrucao or 'N/A',
                 'graduacao': militar.graduacao or 'N/A',
+                'grau_instrucao': militar.grau_instrucao or 'N/A',
                 'pos_graduacao': militar.pos_graduacao or 'N/A',
                 'mestrado': militar.mestrado or 'N/A',
                 'doutorado': militar.doutorado or 'N/A',
@@ -2862,101 +2981,214 @@ def tabela_militares():
             'relacao_militares.html',
             militares=militares_filtrados_data,
             total_militares=total_militares,
-            militares_filtrados_count=len(militares_filtrados_data),
+            militares_filtrados_count=militares_paginados.total,
             agregados_count=agregados_count,
             adisposicao_count=adisposicao_count,
-            adisposicao_ids=adisposicao_ids,   # opcional
-            agregados_ids=agregados_ids,       # opcional
+            page=page,
+            total_pages=militares_paginados.pages,
+            has_next=militares_paginados.has_next,
+            has_prev=militares_paginados.has_prev,
+            per_page=per_page
         )
 
     except Exception as e:
         app.logger.error(f"Erro ao processar a requisição: {str(e)}")
-        return jsonify({'error': 'Ocorreu um erro ao processar a requisição.', 'details': str(e)}), 500
+        return jsonify({
+            'error': 'Ocorreu um erro ao processar a requisição.',
+            'details': str(e)
+        }), 500
 
 
 @app.route("/export-excel", methods=["GET"])
 @login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'DIRETOR DRH')
 def export_excel():
     try:
-        if 'militares_filtrados' not in session:
-            return jsonify({'error': 'Nenhum dado filtrado disponível para download.'}), 400
+        today = date.today()
 
-        dados = session['militares_filtrados']
-        df = pd.DataFrame(dados)
+        query = build_tabela_militares_query().order_by(Militar.nome_completo.asc())
+        militares_filtrados = query.all()
 
-        # Definindo a ordem das colunas (ajuste conforme necessário)
-        colunas_em_ordem = [
+        agregados_ids, adisposicao_ids = get_status_sets(query, today)
+
+        rows = []
+        for militar in militares_filtrados:
+            obm_funcoes_ativas = sorted(
+                [of for of in militar.obm_funcoes if of.data_fim is None],
+                key=lambda of: of.data_criacao or date.min,
+                reverse=True
+            )
+
+            obms = [
+                of.obm.sigla if of.obm else 'OBM não encontrada'
+                for of in obm_funcoes_ativas
+            ]
+            funcoes = [
+                of.funcao.ocupacao if of.funcao else 'Função não encontrada'
+                for of in obm_funcoes_ativas
+            ]
+
+            destino_txt = 'N/A'
+            try:
+                if getattr(militar, 'destino', None):
+                    destino_txt = getattr(
+                        militar.destino, 'local', None) or 'N/A'
+                elif getattr(militar, 'destino_id', None):
+                    d = Destino.query.get(militar.destino_id)
+                    destino_txt = getattr(d, 'local', None) or str(
+                        militar.destino_id)
+            except Exception:
+                pass
+
+            inclusao_fmt = militar.inclusao.strftime(
+                '%d/%m/%Y') if militar.inclusao else 'N/A'
+
+            if militar.id in adisposicao_ids:
+                situacao_exibe = 'À DISPOSIÇÃO'
+            elif militar.id in agregados_ids:
+                situacao_exibe = 'AGREGADO'
+            else:
+                situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
+
+            sexo_raw = (militar.sexo or '').strip().lower()
+            sexo_exibe = (
+                'Masculino' if sexo_raw.startswith('m')
+                else 'Feminino' if sexo_raw.startswith('f')
+                else (militar.sexo or 'N/A')
+            )
+
+            rows.append({
+                'Nome Completo': militar.nome_completo or 'N/A',
+                'Nome de Guerra': militar.nome_guerra or 'N/A',
+                'Posto/Graduação': militar.posto_grad.sigla if militar.posto_grad else 'N/A',
+                'Quadro': militar.quadro.quadro if militar.quadro else 'N/A',
+                'Sexo': sexo_exibe,
+                'Raça/Cor': militar.raca or 'N/A',
+                'CPF': militar.cpf or 'N/A',
+                'RG': militar.rg or 'N/A',
+                'Matrícula': militar.matricula or 'N/A',
+                'Inclusão': inclusao_fmt,
+                'Especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
+                'Localidade': militar.localidade.sigla if militar.localidade else 'N/A',
+                'Situação': situacao_exibe,
+                'Destino': destino_txt,
+                'OBM 1': obms[0] if len(obms) > 0 else 'N/A',
+                'Função 1': funcoes[0] if len(funcoes) > 0 else 'N/A',
+                'OBM 2': obms[1] if len(obms) > 1 else 'N/A',
+                'Função 2': funcoes[1] if len(funcoes) > 1 else 'N/A',
+                'Data de Nascimento': militar.data_nascimento.strftime('%d/%m/%Y') if militar.data_nascimento else 'N/A',
+                'Graduação': militar.graduacao or 'N/A',
+                'Grau de Instrução': militar.grau_instrucao or 'N/A',
+                'Pós-Graduação': militar.pos_graduacao or 'N/A',
+                'Mestrado': militar.mestrado or 'N/A',
+                'Doutorado': militar.doutorado or 'N/A',
+            })
+
+        colunas = [
             'Nome Completo',
             'Nome de Guerra',
+            'Posto/Graduação',
+            'Quadro',
+            'Sexo',
+            'Raça/Cor',
             'CPF',
             'RG',
             'Matrícula',
-            'Posto/Graduação',
-            'Quadro',
+            'Inclusão',
             'Especialidade',
             'Localidade',
             'Situação',
+            'Destino',
             'OBM 1',
             'Função 1',
             'OBM 2',
-            'Função 2'
+            'Função 2',
+            'Data de Nascimento',
+            'Graduação',
+            'Grau de Instrução',
+            'Pós-Graduação',
+            'Mestrado',
+            'Doutorado',
         ]
 
-        # Reordenando o DataFrame de acordo com a lista definida
-        df = df[colunas_em_ordem]
+        df = pd.DataFrame(rows, columns=colunas)
 
-        # Salva para um arquivo Excel na memória
         output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Militares')
 
-        # Converter o DataFrame para um Excel
-        df.to_excel(writer, index=False, sheet_name='Militares')
+            workbook = writer.book
+            worksheet = writer.sheets['Militares']
 
-        # Acessar o workbook e a planilha
-        workbook = writer.book
-        worksheet = writer.sheets['Militares']
+            header_format = workbook.add_format({
+                'bg_color': '#0b2e4f',
+                'font_color': '#FFFFFF',
+                'bold': True,
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
 
-        # Definindo a largura das colunas
-        column_widths = {
-            'A': 25,  # Nome Completo
-            'B': 25,  # Nome de Guerra
-            'C': 15,  # CPF
-            'D': 15,  # RG
-            'E': 30,  # Matrícula
-            'F': 20,  # Posto/Graduação
-            'G': 30,  # Quadro
-            'H': 30,  # 'Especialidade'
-            'I': 20,  # Localidade
-            'J': 20,  # Situação
-            'K': 20,  # OBM 1
-            'L': 20,  # Função 1
-            'M': 20,  # OBM 2
-            'N': 20  # Função 2
-        }
+            body_format = workbook.add_format({
+                'text_wrap': True,
+                'valign': 'top',
+                'border': 1
+            })
 
-        for col, width in column_widths.items():
-            worksheet.set_column(f'{col}:{col}', width)
+            widths = {
+                'A': 38,
+                'B': 24,
+                'C': 18,
+                'D': 18,
+                'E': 14,
+                'F': 16,
+                'G': 16,
+                'H': 16,
+                'I': 16,
+                'J': 14,
+                'K': 24,
+                'L': 14,
+                'M': 16,
+                'N': 24,
+                'O': 16,
+                'P': 24,
+                'Q': 16,
+                'R': 24,
+                'S': 16,
+                'T': 18,
+                'U': 22,
+                'V': 20,
+                'W': 18,
+                'X': 18,
+            }
 
-        # Estilizando o cabeçalho
-        header_format = workbook.add_format({
-            'bg_color': '#00008b',  # Cor de fundo azul
-            'font_color': '#FFFFFF',  # Cor da fonte branca
-            'bold': True,  # Texto em negrito
-            'border': 1  # Bordas
-        })
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
 
-        # Aplicar o formato ao cabeçalho
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
+            for col_letter, width in widths.items():
+                worksheet.set_column(
+                    f'{col_letter}:{col_letter}', width, body_format)
 
-        writer.close()
+            worksheet.freeze_panes(1, 0)
+
+            if len(df) > 0:
+                worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+
         output.seek(0)
 
-        return send_file(output, download_name="militares_filtrados.xlsx", as_attachment=True)
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name='militares_filtrados.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
     except Exception as e:
-        print(f"Erro ao processar a requisição: {e}")
-        return jsonify({'error': 'Ocorreu um erro ao processar a requisição.'}), 500
+        app.logger.error(f"Erro ao exportar Excel: {str(e)}")
+        return jsonify({
+            'error': 'Ocorreu um erro ao exportar o Excel.',
+            'details': str(e)
+        }), 500
 
 
 @app.route("/militares-a-disposicao")
