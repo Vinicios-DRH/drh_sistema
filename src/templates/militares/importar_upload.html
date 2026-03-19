@@ -1,29 +1,284 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div class="container py-4">
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-            <h3 class="mb-3">Importador de Militares</h3>
-            <p class="text-muted">
-                Envie uma planilha Excel ou CSV para analisar os dados antes da importação.
+<style>
+    .imp-page {
+        min-height: 100vh;
+        padding: 2rem 0 3rem;
+        background:
+            radial-gradient(circle at top left, rgba(13, 110, 253, .18), transparent 24%),
+            radial-gradient(circle at top right, rgba(25, 135, 84, .14), transparent 26%),
+            radial-gradient(circle at bottom center, rgba(111, 66, 193, .14), transparent 30%),
+            linear-gradient(180deg, #eef4fb 0%, #eaf1f8 100%);
+    }
+
+    .imp-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        border-radius: 24px;
+        box-shadow:
+            0 20px 50px rgba(31, 38, 135, 0.10),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .hero-card {
+        overflow: hidden;
+        position: relative;
+        color: #fff;
+        border: 0;
+        border-radius: 28px;
+        background:
+            linear-gradient(135deg, rgba(6, 30, 66, .95), rgba(13, 110, 253, .82)),
+            linear-gradient(135deg, #0d3b66, #1b6ef3);
+        box-shadow: 0 24px 60px rgba(13, 49, 99, .22);
+    }
+
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -40px auto;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0));
+        pointer-events: none;
+    }
+
+    .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .14);
+        border: 1px solid rgba(255, 255, 255, .18);
+        font-size: .82rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+    }
+
+    .hero-title {
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        font-weight: 800;
+        line-height: 1.08;
+        margin-bottom: .7rem;
+    }
+
+    .hero-text {
+        max-width: 760px;
+        color: rgba(255, 255, 255, .88);
+        font-size: 1rem;
+        line-height: 1.65;
+        margin-bottom: 0;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .info-chip {
+        border-radius: 18px;
+        padding: 1rem 1rem;
+        background: rgba(255, 255, 255, .66);
+        border: 1px solid rgba(255, 255, 255, .52);
+        min-height: 100%;
+    }
+
+    .info-chip-title {
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #6b7b93;
+        margin-bottom: .4rem;
+    }
+
+    .info-chip p {
+        margin: 0;
+        color: #20324a;
+        line-height: 1.55;
+    }
+
+    .section-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #16324f;
+        margin-bottom: .75rem;
+    }
+
+    .soft-note {
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        background: linear-gradient(135deg, rgba(13, 110, 253, .08), rgba(25, 135, 84, .08));
+        border: 1px solid rgba(13, 110, 253, .10);
+        color: #23415f;
+    }
+
+    .file-drop {
+        border: 2px dashed rgba(13, 110, 253, .28);
+        border-radius: 22px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(248, 250, 253, .95));
+        padding: 1.35rem;
+    }
+
+    .file-drop .form-control {
+        border-radius: 16px;
+        min-height: 54px;
+        border-color: rgba(15, 54, 102, .12);
+        box-shadow: none;
+    }
+
+    .field-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: .45rem .75rem;
+        border-radius: 999px;
+        background: rgba(13, 110, 253, .08);
+        color: #18508b;
+        font-weight: 600;
+        font-size: .86rem;
+        margin: 0 .4rem .45rem 0;
+        border: 1px solid rgba(13, 110, 253, .10);
+    }
+
+    .action-row {
+        display: flex;
+        gap: .85rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn-glass-primary {
+        border: 0;
+        border-radius: 16px;
+        padding: .92rem 1.25rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(13, 110, 253, .20);
+    }
+
+    .btn-glass-primary:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .btn-soft {
+        border-radius: 16px;
+        padding: .92rem 1.15rem;
+        font-weight: 700;
+    }
+
+    @media (max-width: 991.98px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="imp-page">
+    <div class="container-fluid imp-shell">
+        <div class="hero-card p-4 p-lg-5 mb-4">
+            <div class="hero-kicker mb-3">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                Importador inteligente de militares
+            </div>
+            <h1 class="hero-title">Carregue uma planilha, analise os dados e importe com segurança</h1>
+            <p class="hero-text">
+                Este módulo lê arquivos Excel ou CSV, identifica colunas compatíveis com a tabela de militares,
+                sugere campos complementáveis e permite aplicar OBM fixa antes da gravação definitiva.
             </p>
+        </div>
 
-            <form method="POST" action="{{ url_for('analisar_importacao_militares') }}" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label class="form-label">Arquivo</label>
-                    <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls,.csv" required>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="glass-card p-4 p-lg-4 h-100">
+                    <div class="section-title">Enviar arquivo para análise</div>
+                    <p class="text-muted mb-4">
+                        O sistema vai validar as colunas, cruzar com os dados existentes e montar uma prévia
+                        completa antes de qualquer alteração no banco.
+                    </p>
+
+                    <form method="POST" action="{{ url_for('analisar_importacao_militares') }}"
+                        enctype="multipart/form-data">
+                        <div class="file-drop mb-4">
+                            <label class="form-label fw-semibold text-dark mb-2">Arquivo da planilha</label>
+                            <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls,.csv" required>
+                            <div class="form-text mt-2">
+                                Formatos aceitos: <strong>.xlsx</strong>, <strong>.xls</strong> e <strong>.csv</strong>.
+                            </div>
+                        </div>
+
+                        <div class="soft-note mb-4">
+                            <div class="fw-bold mb-2">Como funciona a análise</div>
+                            <div class="mb-1">1. A planilha é lida e as colunas são normalizadas.</div>
+                            <div class="mb-1">2. O sistema tenta localizar militares por CPF, matrícula, RG ou nome.
+                            </div>
+                            <div class="mb-1">3. Você escolhe os campos que deseja importar.</div>
+                            <div>4. A importação pode complementar dados vazios ou sobrescrever dados existentes.</div>
+                        </div>
+
+                        <div class="action-row">
+                            <button type="submit" class="btn btn-glass-primary">
+                                <i class="bi bi-search me-2"></i>
+                                Analisar planilha
+                            </button>
+                            <a href="{{ url_for('historico_importacao_militares') }}"
+                                class="btn btn-outline-secondary btn-soft">
+                                <i class="bi bi-clock-history me-2"></i>
+                                Ver histórico
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="glass-card p-4 mb-4">
+                    <div class="section-title">Campos comuns reconhecidos</div>
+                    <div>
+                        <span class="field-pill">nome_completo</span>
+                        <span class="field-pill">nome_guerra</span>
+                        <span class="field-pill">cpf</span>
+                        <span class="field-pill">rg</span>
+                        <span class="field-pill">matricula</span>
+                        <span class="field-pill">nome_pai</span>
+                        <span class="field-pill">nome_mae</span>
+                        <span class="field-pill">posto_grad</span>
+                        <span class="field-pill">quadro</span>
+                        <span class="field-pill">situacao</span>
+                        <span class="field-pill">especialidade</span>
+                        <span class="field-pill">obm</span>
+                    </div>
                 </div>
 
-                <div class="alert alert-info">
-                    A planilha pode conter colunas como:
-                    <strong>nome_completo, nome_guerra, cpf, rg, nome_pai, nome_mae, matricula</strong> etc.
+                <div class="glass-card p-4">
+                    <div class="section-title">OBMs disponíveis no sistema</div>
+                    <div class="info-grid">
+                        <div class="info-chip">
+                            <div class="info-chip-title">Total de OBMs</div>
+                            <p>{{ obms|length }}</p>
+                        </div>
+                        <div class="info-chip">
+                            <div class="info-chip-title">Importação segura</div>
+                            <p>Prévia antes de gravar no banco.</p>
+                        </div>
+                        <div class="info-chip">
+                            <div class="info-chip-title">Histórico</div>
+                            <p>As importações ficam registradas para auditoria.</p>
+                        </div>
+                    </div>
                 </div>
-
-                <button type="submit" class="btn btn-primary">
-                    Analisar planilha
-                </button>
-            </form>
+            </div>
         </div>
     </div>
 </div>

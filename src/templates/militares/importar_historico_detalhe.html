@@ -8,11 +8,11 @@
         background:
             radial-gradient(circle at top left, rgba(13, 110, 253, .18), transparent 24%),
             radial-gradient(circle at bottom right, rgba(25, 135, 84, .12), transparent 28%),
-            linear-gradient(180deg, #edf4fb 0%, #e8f0f7 100%);
+            linear-gradient(180deg, #edf4fb 0%, #e8f0f8 100%);
     }
 
     .imp-shell {
-        max-width: 1220px;
+        max-width: 1280px;
         margin: 0 auto;
     }
 
@@ -31,9 +31,9 @@
         color: #fff;
         border-radius: 28px;
         background:
-            linear-gradient(135deg, rgba(7, 37, 76, .96), rgba(25, 135, 84, .84)),
-            linear-gradient(135deg, #104073, #198754);
-        box-shadow: 0 24px 64px rgba(16, 56, 112, .20);
+            linear-gradient(135deg, rgba(7, 37, 76, .96), rgba(13, 110, 253, .84)),
+            linear-gradient(135deg, #0f3d6f, #0d6efd);
+        box-shadow: 0 24px 64px rgba(16, 56, 112, .22);
     }
 
     .hero-kicker {
@@ -50,7 +50,7 @@
     }
 
     .hero-title {
-        font-size: clamp(1.7rem, 3vw, 2.4rem);
+        font-size: clamp(1.7rem, 3vw, 2.35rem);
         font-weight: 800;
         line-height: 1.08;
         margin-bottom: .55rem;
@@ -63,28 +63,27 @@
         margin-bottom: 0;
     }
 
-    .stat-card {
-        border-radius: 22px;
-        padding: 1.15rem;
-        background: rgba(255, 255, 255, .76);
-        border: 1px solid rgba(255, 255, 255, .56);
+    .meta-card {
+        border-radius: 18px;
+        padding: 1rem 1rem;
+        background: rgba(248, 251, 255, .84);
+        border: 1px solid rgba(14, 78, 145, .08);
         min-height: 100%;
     }
 
-    .stat-label {
-        font-size: .78rem;
+    .meta-label {
+        font-size: .76rem;
         text-transform: uppercase;
         letter-spacing: .04em;
-        color: #72839a;
+        color: #71829a;
         font-weight: 700;
         margin-bottom: .45rem;
     }
 
-    .stat-value {
-        font-size: 1.9rem;
+    .meta-value {
         font-weight: 800;
-        line-height: 1;
-        margin-bottom: .2rem;
+        color: #193552;
+        line-height: 1.35;
     }
 
     .section-title {
@@ -92,13 +91,6 @@
         font-weight: 800;
         color: #18334f;
         margin-bottom: .9rem;
-    }
-
-    .meta-box {
-        border-radius: 18px;
-        padding: 1rem 1rem;
-        background: rgba(248, 251, 255, .84);
-        border: 1px solid rgba(14, 78, 145, .08);
     }
 
     .chip {
@@ -147,10 +139,11 @@
     }
 
     .table-glass tbody td {
-        padding: .9rem .9rem;
+        padding: .92rem .9rem;
         vertical-align: middle;
         border-color: rgba(14, 73, 136, .08);
         background: rgba(255, 255, 255, .58);
+        color: #25384e;
     }
 
     .table-glass tbody tr:nth-child(even) td {
@@ -160,7 +153,7 @@
     .btn-glass-primary,
     .btn-glass-soft {
         border-radius: 16px;
-        padding: .92rem 1.2rem;
+        padding: .88rem 1.2rem;
         font-weight: 700;
     }
 
@@ -182,69 +175,94 @@
     <div class="container-fluid imp-shell">
         <div class="hero-card p-4 p-lg-5 mb-4">
             <div class="hero-kicker">
-                <i class="bi bi-check2-circle"></i>
-                Importação concluída
+                <i class="bi bi-file-earmark-text"></i>
+                Detalhe do histórico
             </div>
-            <h1 class="hero-title">Resultado final do processamento da planilha</h1>
+            <h1 class="hero-title">Importação #{{ historico.id }}</h1>
             <p class="hero-text">
-                O arquivo <strong>{{ nome_arquivo }}</strong> foi processado com o modo
-                <strong>{{ modo }}</strong>. Abaixo estão os totais da operação, campos trabalhados
-                e eventuais ocorrências registradas.
+                Visualize o resumo completo da importação, os campos utilizados, as alterações por campo
+                e as ocorrências registradas durante o processamento.
             </p>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-label">Inseridos</div>
-                    <div class="stat-value text-success">{{ relatorio.inseridos }}</div>
-                    <div class="text-muted">Novos militares cadastrados</div>
+        <div class="glass-card p-4 mb-4">
+            <div class="section-title">Metadados da operação</div>
+            <div class="row g-3">
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">Arquivo</div>
+                        <div class="meta-value">{{ historico.nome_arquivo }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">Modo</div>
+                        <div class="meta-value">{{ historico.modo }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="meta-card">
+                        <div class="meta-label">Total</div>
+                        <div class="meta-value">{{ historico.total_linhas }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="meta-card">
+                        <div class="meta-label">Inseridos</div>
+                        <div class="meta-value text-success">{{ historico.inseridos }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="meta-card">
+                        <div class="meta-label">Atualizados</div>
+                        <div class="meta-value text-primary">{{ historico.atualizados }}</div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-label">Atualizados</div>
-                    <div class="stat-value text-primary">{{ relatorio.atualizados }}</div>
-                    <div class="text-muted">Registros alterados com sucesso</div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">Ignorados</div>
+                        <div class="meta-value text-secondary">{{ historico.ignorados }}</div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-label">Ignorados</div>
-                    <div class="stat-value text-secondary">{{ relatorio.ignorados }}</div>
-                    <div class="text-muted">Linhas sem alteração ou rejeitadas</div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">Data</div>
+                        <div class="meta-value">
+                            {{ historico.criado_em.strftime('%d/%m/%Y %H:%M') if historico.criado_em else '-' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">OBM fixa</div>
+                        <div class="meta-value">{{ historico.obm.sigla if historico.obm else 'Não aplicada' }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="meta-card">
+                        <div class="meta-label">Responsável</div>
+                        <div class="meta-value">
+                            {{ historico.usuario.nome if historico.usuario and historico.usuario.nome else 'Usuário' }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="glass-card p-4 mb-4">
-            <div class="section-title">Resumo da operação</div>
-            <div class="row g-3">
-                <div class="col-lg-4">
-                    <div class="meta-box h-100">
-                        <div class="fw-bold text-dark mb-2">Arquivo</div>
-                        <div class="text-muted">{{ nome_arquivo }}</div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="meta-box h-100">
-                        <div class="fw-bold text-dark mb-2">Modo utilizado</div>
-                        <div class="text-muted">{{ modo }}</div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="meta-box h-100">
-                        <div class="fw-bold text-dark mb-2">Campos selecionados</div>
-                        <div>
-                            {% for campo in campos_selecionados %}
-                            <span class="chip chip-blue">{{ campo }}</span>
-                            {% else %}
-                            <span class="text-muted">Nenhum campo informado.</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+            <div class="section-title">Campos utilizados</div>
+            {% if campos %}
+            <div>
+                {% for campo in campos %}
+                <span class="chip chip-blue">{{ campo }}</span>
+                {% endfor %}
             </div>
+            {% else %}
+            <p class="text-muted mb-0">Nenhum campo encontrado no histórico.</p>
+            {% endif %}
         </div>
 
         {% if relatorio.alteracoes_por_campo %}
@@ -253,7 +271,7 @@
             <div class="row g-2">
                 {% for campo, total in relatorio.alteracoes_por_campo.items() %}
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="meta-box d-flex align-items-center justify-content-between">
+                    <div class="meta-card d-flex justify-content-between align-items-center">
                         <span class="fw-semibold text-dark">{{ campo }}</span>
                         <span class="chip chip-green mb-0">{{ total }}</span>
                     </div>
@@ -292,13 +310,13 @@
         {% endif %}
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-glass-primary">
-                <i class="bi bi-plus-circle me-2"></i>
-                Nova importação
+            <a href="{{ url_for('historico_importacao_militares') }}" class="btn btn-glass-primary">
+                <i class="bi bi-arrow-left me-2"></i>
+                Voltar ao histórico
             </a>
-            <a href="{{ url_for('historico_importacao_militares') }}" class="btn btn-glass-soft">
-                <i class="bi bi-clock-history me-2"></i>
-                Ver histórico
+            <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-glass-soft">
+                <i class="bi bi-upload me-2"></i>
+                Nova importação
             </a>
         </div>
     </div>

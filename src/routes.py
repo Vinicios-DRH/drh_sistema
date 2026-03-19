@@ -1,9 +1,10 @@
+from flask import current_app
 import io
 import math
 from zoneinfo import ZoneInfo
 from flask_wtf.csrf import validate_csrf
 from flask_login import login_required
-from flask import abort, request, jsonify, make_response, current_app
+from flask import abort, json, request, jsonify, make_response, current_app
 from random import shuffle
 import os
 import zipfile
@@ -24,7 +25,7 @@ from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, ImportacaoMilitarHistorico, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -75,6 +76,7 @@ from src.services.importar_militares import (
     colunas_nao_reconhecidas,
     analisar_importacao,
     importar_dataframe,
+    salvar_historico_importacao,
 )
 
 
@@ -110,6 +112,7 @@ def analisar_importacao_militares():
         return redirect(url_for("tela_importar_militares"))
 
     try:
+        nome_arquivo = arquivo.filename
         df = ler_planilha(arquivo)
 
         if df.empty:
@@ -140,10 +143,54 @@ def analisar_importacao_militares():
             obms=obms,
             payload_b64=payload_b64,
             campos_preselecionados=campos_preselecionados,
+            nome_arquivo=nome_arquivo,
+            total_colunas=len(df.columns),
         )
 
     except Exception as e:
         flash(f"Erro ao analisar planilha: {str(e)}", "danger")
+        return redirect(url_for("tela_importar_militares"))
+
+
+@app.route("/militares/importar/reanalisar", methods=["POST"])
+@login_required
+def reanalisar_importacao_militares():
+    payload_b64 = request.form.get("payload_b64")
+    campos_selecionados = request.form.getlist("campos")
+    nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
+
+    if not payload_b64:
+        flash("Dados da planilha não encontrados.", "danger")
+        return redirect(url_for("tela_importar_militares"))
+
+    if not campos_selecionados:
+        flash("Selecione pelo menos um campo para reanalisar.", "warning")
+        return redirect(url_for("tela_importar_militares"))
+
+    try:
+        json_bytes = base64.b64decode(payload_b64.encode("utf-8"))
+        json_str = json_bytes.decode("utf-8")
+        df = pd.read_json(io.StringIO(json_str), orient="records", dtype=False)
+
+        colunas_ok = colunas_reconhecidas(df)
+        colunas_invalidas = colunas_nao_reconhecidas(df)
+        resumo = analisar_importacao(df, campos_selecionados)
+        obms = Obm.query.order_by(Obm.sigla).all()
+
+        return render_template(
+            "militares/importar_confirmacao.html",
+            colunas_ok=colunas_ok,
+            colunas_invalidas=colunas_invalidas,
+            resumo=resumo,
+            obms=obms,
+            payload_b64=payload_b64,
+            campos_preselecionados=campos_selecionados,
+            nome_arquivo=nome_arquivo,
+            total_colunas=len(df.columns),
+        )
+
+    except Exception as e:
+        flash(f"Erro ao reanalisar planilha: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
 
 
@@ -155,6 +202,7 @@ def confirmar_importacao_militares():
     modo = request.form.get("modo", "complementar")
     aplicar_obm = request.form.get("aplicar_obm")
     obm_id = request.form.get("obm_id")
+    nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
 
     if not payload_b64:
         flash("Dados da planilha não encontrados para importação.", "danger")
@@ -168,11 +216,22 @@ def confirmar_importacao_militares():
         json_bytes = base64.b64decode(payload_b64.encode("utf-8"))
         json_str = json_bytes.decode("utf-8")
         df = pd.read_json(io.StringIO(json_str), orient="records", dtype=False)
+    except Exception as e:
+        current_app.logger.exception(
+            "Erro ao reconstruir DataFrame da importação.")
+        flash(
+            f"Erro ao ler os dados da planilha para importação: {str(e)}", "danger")
+        return redirect(url_for("tela_importar_militares"))
 
-        obm_id_final = None
-        if aplicar_obm == "1" and obm_id:
+    obm_id_final = None
+    if aplicar_obm == "1" and obm_id:
+        try:
             obm_id_final = int(obm_id)
+        except ValueError:
+            flash("OBM inválida selecionada.", "danger")
+            return redirect(url_for("tela_importar_militares"))
 
+    try:
         relatorio = importar_dataframe(
             df=df,
             campos_selecionados=campos_selecionados,
@@ -180,24 +239,107 @@ def confirmar_importacao_militares():
             obm_id=obm_id_final,
             usuario_id=current_user.id,
         )
-
-        flash(
-            f"Importação concluída. Inseridos: {relatorio['inseridos']} | "
-            f"Atualizados: {relatorio['atualizados']} | "
-            f"Ignorados: {relatorio['ignorados']}",
-            "success"
-        )
-
-        session["ultimo_relatorio_importacao_militares"] = relatorio
-
-        return render_template(
-            "militares/importar_resultado.html",
-            relatorio=relatorio
-        )
-
     except Exception as e:
+        current_app.logger.exception(
+            "Erro durante a importação dos militares.")
         flash(f"Erro ao importar planilha: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
+
+    try:
+        salvar_historico_importacao(
+            usuario_id=current_user.id,
+            nome_arquivo=nome_arquivo,
+            modo=modo,
+            campos_selecionados=campos_selecionados,
+            relatorio=relatorio,
+            total_linhas=len(df),
+            obm_id=obm_id_final,
+        )
+    except Exception as e:
+        current_app.logger.exception("Erro ao salvar histórico da importação.")
+        flash(
+            f"Importação concluída, mas falhou ao salvar o histórico: {str(e)}", "warning")
+
+    session["ultimo_relatorio_importacao_militares"] = relatorio
+    session["ultimo_nome_arquivo_importacao_militares"] = nome_arquivo
+    session["ultimo_modo_importacao_militares"] = modo
+    session["ultimo_campos_importacao_militares"] = campos_selecionados
+
+    flash(
+        f"Importação concluída. Inseridos: {relatorio['inseridos']} | "
+        f"Atualizados: {relatorio['atualizados']} | "
+        f"Ignorados: {relatorio['ignorados']}",
+        "success"
+    )
+
+    return redirect(url_for("resultado_importacao_militares"))
+
+
+@app.route("/militares/importar/historico", methods=["GET"])
+@login_required
+def historico_importacao_militares():
+    historicos = (
+        ImportacaoMilitarHistorico.query
+        .order_by(ImportacaoMilitarHistorico.criado_em.desc())
+        .limit(100)
+        .all()
+    )
+
+    print("TOTAL HISTORICOS:", len(historicos))
+
+    return render_template(
+        "militares/importar_historico.html",
+        historicos=historicos
+    )
+
+
+@app.route("/militares/importar/historico/<int:historico_id>", methods=["GET"])
+@login_required
+def detalhe_historico_importacao_militares(historico_id):
+    historico = ImportacaoMilitarHistorico.query.get_or_404(historico_id)
+
+    campos = []
+    relatorio = {}
+
+    try:
+        if historico.campos_json:
+            campos = json.loads(historico.campos_json)
+    except Exception:
+        campos = []
+
+    try:
+        if historico.relatorio_json:
+            relatorio = json.loads(historico.relatorio_json)
+    except Exception:
+        relatorio = {}
+
+    return render_template(
+        "militares/importar_historico_detalhe.html",
+        historico=historico,
+        campos=campos,
+        relatorio=relatorio,
+    )
+
+
+@app.route("/militares/importar/resultado", methods=["GET"])
+@login_required
+def resultado_importacao_militares():
+    relatorio = session.get("ultimo_relatorio_importacao_militares")
+    nome_arquivo = session.get("ultimo_nome_arquivo_importacao_militares")
+    modo = session.get("ultimo_modo_importacao_militares")
+    campos_selecionados = session.get("ultimo_campos_importacao_militares", [])
+
+    if not relatorio:
+        flash("Nenhum resultado de importação disponível.", "warning")
+        return redirect(url_for("tela_importar_militares"))
+
+    return render_template(
+        "militares/importar_resultado.html",
+        relatorio=relatorio,
+        nome_arquivo=nome_arquivo,
+        modo=modo,
+        campos_selecionados=campos_selecionados,
+    )
 
 
 @app.route("/painel-efetivo/api")

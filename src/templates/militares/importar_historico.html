@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    .imp-page {
+        min-height: 100vh;
+        padding: 2rem 0 3rem;
+        background:
+            radial-gradient(circle at top left, rgba(13, 110, 253, .18), transparent 24%),
+            radial-gradient(circle at top right, rgba(111, 66, 193, .12), transparent 26%),
+            linear-gradient(180deg, #edf4fb 0%, #e8f0f8 100%);
+    }
+
+    .imp-shell {
+        max-width: 1320px;
+        margin: 0 auto;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, .58);
+        border-radius: 24px;
+        box-shadow:
+            0 20px 50px rgba(31, 38, 135, 0.10),
+            inset 0 1px 0 rgba(255, 255, 255, .50);
+    }
+
+    .hero-card {
+        color: #fff;
+        border-radius: 28px;
+        background:
+            linear-gradient(135deg, rgba(7, 37, 76, .96), rgba(111, 66, 193, .84)),
+            linear-gradient(135deg, #0f3d6f, #6f42c1);
+        box-shadow: 0 24px 64px rgba(16, 56, 112, .22);
+    }
+
+    .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .14);
+        border: 1px solid rgba(255, 255, 255, .18);
+        font-size: .82rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-title {
+        font-size: clamp(1.7rem, 3vw, 2.4rem);
+        font-weight: 800;
+        line-height: 1.08;
+        margin-bottom: .55rem;
+    }
+
+    .hero-text {
+        max-width: 860px;
+        color: rgba(255, 255, 255, .88);
+        line-height: 1.6;
+        margin-bottom: 0;
+    }
+
+    .table-shell {
+        border-radius: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(18, 63, 119, .08);
+    }
+
+    .table-glass {
+        margin-bottom: 0;
+    }
+
+    .table-glass thead th {
+        background: linear-gradient(180deg, rgba(15, 68, 126, .94), rgba(18, 82, 152, .94));
+        color: #fff;
+        border: 0 !important;
+        font-size: .82rem;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        padding: .95rem .9rem;
+        white-space: nowrap;
+    }
+
+    .table-glass tbody td {
+        padding: .92rem .9rem;
+        vertical-align: middle;
+        border-color: rgba(14, 73, 136, .08);
+        background: rgba(255, 255, 255, .58);
+        color: #25384e;
+    }
+
+    .table-glass tbody tr:nth-child(even) td {
+        background: rgba(247, 250, 254, .76);
+    }
+
+    .badge-soft {
+        display: inline-flex;
+        align-items: center;
+        padding: .36rem .66rem;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+    }
+
+    .badge-soft-primary {
+        background: rgba(13, 110, 253, .10);
+        color: #0d5bd4;
+    }
+
+    .badge-soft-success {
+        background: rgba(25, 135, 84, .12);
+        color: #18734b;
+    }
+
+    .badge-soft-secondary {
+        background: rgba(108, 117, 125, .12);
+        color: #5e6875;
+    }
+
+    .btn-glass-primary,
+    .btn-glass-soft {
+        border-radius: 16px;
+        padding: .88rem 1.2rem;
+        font-weight: 700;
+    }
+
+    .btn-glass-primary {
+        border: 0;
+        color: #fff;
+        background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+        box-shadow: 0 14px 28px rgba(13, 110, 253, .18);
+    }
+
+    .btn-glass-soft {
+        background: rgba(255, 255, 255, .65);
+        border: 1px solid rgba(17, 75, 140, .10);
+        color: #18334f;
+    }
+</style>
+
+<div class="imp-page">
+    <div class="container-fluid imp-shell">
+        <div class="hero-card p-4 p-lg-5 mb-4">
+            <div class="hero-kicker">
+                <i class="bi bi-clock-history"></i>
+                Auditoria e rastreabilidade
+            </div>
+            <h1 class="hero-title">Histórico das importações de militares</h1>
+            <p class="hero-text">
+                Consulte as últimas operações realizadas, verifique totais de inserções, atualizações, linhas ignoradas
+                e acesse o detalhamento completo de cada importação.
+            </p>
+        </div>
+
+        <div class="glass-card p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <div class="fw-bold text-dark">Últimas importações</div>
+                    <div class="text-muted">Exibindo até 100 registros mais recentes.</div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-glass-primary">
+                        <i class="bi bi-upload me-2"></i>
+                        Nova importação
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-shell">
+                <div class="table-responsive">
+                    <table class="table table-glass align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Arquivo</th>
+                                <th>Modo</th>
+                                <th>Total</th>
+                                <th>Inseridos</th>
+                                <th>Atualizados</th>
+                                <th>Ignorados</th>
+                                <th>Data</th>
+                                <th class="text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in historicos %}
+                            <tr>
+                                <td class="fw-bold">#{{ item.id }}</td>
+                                <td>{{ item.nome_arquivo }}</td>
+                                <td>
+                                    <span class="badge-soft badge-soft-primary">{{ item.modo }}</span>
+                                </td>
+                                <td>{{ item.total_linhas }}</td>
+                                <td><span class="badge-soft badge-soft-success">{{ item.inseridos }}</span></td>
+                                <td><span class="badge-soft badge-soft-primary">{{ item.atualizados }}</span></td>
+                                <td><span class="badge-soft badge-soft-secondary">{{ item.ignorados }}</span></td>
+                                <td>{{ item.criado_em.strftime('%d/%m/%Y %H:%M') if item.criado_em else '-' }}</td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('detalhe_historico_importacao_militares', historico_id=item.id) }}"
+                                        class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        Ver detalhe
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    Nenhuma importação registrada até o momento.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-glass-soft">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Voltar ao importador
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

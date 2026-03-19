@@ -7,7 +7,7 @@ from flask_login import UserMixin
 from datetime import datetime, timezone
 from sqlalchemy.event import listens_for
 from sqlalchemy import func, CheckConstraint, text, Index
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from zoneinfo import ZoneInfo
 
@@ -1689,3 +1689,28 @@ class MilitarConferenciaCadastral(database.Model):
         "User",
         backref=database.backref("conferencias_cadastrais_user", lazy=True)
     )
+
+
+class ImportacaoMilitarHistorico(database.Model):
+    __tablename__ = "importacao_militar_historico"
+
+    id = database.Column(database.Integer, primary_key=True)
+    usuario_id = database.Column(
+        UUID(as_uuid=True),
+        database.ForeignKey("user.id"),
+        nullable=False
+    )
+    nome_arquivo = database.Column(database.String(255), nullable=False)
+    modo = database.Column(database.String(30), nullable=False)
+    total_linhas = database.Column(database.Integer, default=0)
+    inseridos = database.Column(database.Integer, default=0)
+    atualizados = database.Column(database.Integer, default=0)
+    ignorados = database.Column(database.Integer, default=0)
+    obm_id = database.Column(database.Integer, database.ForeignKey("obm.id"))
+    campos_json = database.Column(database.Text)
+    relatorio_json = database.Column(database.Text)
+    criado_em = database.Column(database.DateTime, default=datetime.utcnow)
+
+    usuario = database.relationship(
+        "User", backref="historico_importacoes_militar")
+    obm = database.relationship("Obm")
