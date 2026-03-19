@@ -129,7 +129,8 @@ def analisar_importacao_militares():
         obms = Obm.query.order_by(Obm.sigla).all()
 
         json_str = df.to_json(orient="records", force_ascii=False)
-        payload_b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+        payload_b64 = base64.b64encode(
+            json_str.encode("utf-8")).decode("utf-8")
 
         return render_template(
             "militares/importar_confirmacao.html",
@@ -4537,13 +4538,11 @@ def salvar_motoristas_viatura(viatura_id):
 @app.route("/motoristas/exportar-excel", methods=["GET"])
 def exportar_motoristas_excel():
     try:
-
         wb = Workbook()
         ws = wb.active
-        ws.title = "Motoristas"
+        ws.title = "Motoristas Classificados"
 
         headers = [
-            "ID Motorista",
             "ID Militar",
             "Nome Completo",
             "Nome de Guerra",
@@ -4557,14 +4556,10 @@ def exportar_motoristas_excel():
             "SIGED",
             "Boletim Geral",
             "Viatura(s)",
-            "Desclassificado",
-            "Desclassificado Em",
             "Criado Em",
         ]
-
         ws.append(headers)
 
-        # Estilo do cabeçalho
         header_fill = PatternFill("solid", fgColor="B5121B")
         header_font = Font(color="FFFFFF", bold=True)
 
@@ -4574,19 +4569,33 @@ def exportar_motoristas_excel():
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center", vertical="center")
 
+        subquery = (
+            database.session.query(
+                Motoristas.militar_id,
+                func.max(Motoristas.id).label("ultimo_motorista_id")
+            )
+            .filter(
+                Motoristas.militar_id.isnot(None),
+                func.coalesce(func.upper(
+                    Motoristas.desclassificar), "") != "SIM"
+            )
+            .group_by(Motoristas.militar_id)
+            .subquery()
+        )
+
         motoristas = (
             Motoristas.query
+            .join(subquery, Motoristas.id == subquery.c.ultimo_motorista_id)
             .options(
                 joinedload(Motoristas.militar).joinedload(Militar.posto_grad),
                 joinedload(Motoristas.militar).joinedload(Militar.quadro),
                 joinedload(Motoristas.militar).selectinload(
-                    Militar.obm_funcoes).joinedload(MilitarObmFuncao.obm),
+                    Militar.obm_funcoes
+                ).joinedload(MilitarObmFuncao.obm),
                 joinedload(Motoristas.militar).selectinload(
-                    Militar.viaturas).joinedload(ViaturaMilitar.viatura),
+                    Militar.viaturas
+                ).joinedload(ViaturaMilitar.viatura),
                 joinedload(Motoristas.categoria),
-            )
-            .filter(
-                or_(Motoristas.desclassificar == False, Motoristas.desclassificar.is_(None))
             )
             .order_by(Motoristas.id.asc())
             .all()
@@ -4612,16 +4621,11 @@ def exportar_motoristas_excel():
             if motorista.created:
                 criado_em = motorista.created.strftime("%d/%m/%Y %H:%M:%S")
 
-            desclassificado_em = ""
-            if motorista.desclassificar_em:
-                desclassificado_em = motorista.desclassificar_em.strftime(
-                    "%d/%m/%Y %H:%M:%S")
-
-            # OBM atual: pega a primeira ativa (data_fim == None); se não houver, pega a última cadastrada
             obm_sigla = ""
             if militar and militar.obm_funcoes:
                 obms_ativas = [
-                    rel for rel in militar.obm_funcoes if rel.data_fim is None and rel.obm]
+                    rel for rel in militar.obm_funcoes if rel.data_fim is None and rel.obm
+                ]
                 if obms_ativas:
                     obm_sigla = obms_ativas[0].obm.sigla or ""
                 else:
@@ -4634,7 +4638,6 @@ def exportar_motoristas_excel():
                         )
                         obm_sigla = relacoes_com_obm[0].obm.sigla or ""
 
-            # Viaturas vinculadas ao militar
             viaturas = ""
             if militar and militar.viaturas:
                 lista_viaturas = []
@@ -4653,12 +4656,10 @@ def exportar_motoristas_excel():
                         if texto:
                             lista_viaturas.append(texto)
 
-                # remove duplicadas preservando ordem
                 lista_viaturas = list(dict.fromkeys(lista_viaturas))
                 viaturas = ", ".join(lista_viaturas)
 
             ws.append([
-                motorista.id,
                 militar_id,
                 nome_completo,
                 nome_guerra,
@@ -4672,12 +4673,9 @@ def exportar_motoristas_excel():
                 motorista.siged or "",
                 motorista.boletim_geral or "",
                 viaturas,
-                motorista.desclassificar or "",
-                desclassificado_em,
                 criado_em,
             ])
 
-        # Ajuste de largura automática
         for column_cells in ws.columns:
             max_length = 0
             column = column_cells[0].column
@@ -4697,7 +4695,7 @@ def exportar_motoristas_excel():
         wb.save(output)
         output.seek(0)
 
-        nome_arquivo = f"motoristas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        nome_arquivo = f"motoristas_classificados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
         return send_file(
             output,
