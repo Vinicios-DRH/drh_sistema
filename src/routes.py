@@ -3612,50 +3612,50 @@ def validate_vacation_period(start_date, days):
         raise ValueError("As férias não podem ultrapassar 31 de dezembro.")
 
 
-@app.route('/grafico-todos-militares', methods=['GET'])
-@login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
-def grafico_todos_militares():
-    # Seleciona todos os militares
-    militares = (
-        database.session.query(Militar, Paf)
-        .outerjoin(Paf, Paf.militar_id == Militar.id)
-        .all()
-    )
+# @app.route('/grafico-todos-militares', methods=['GET'])
+# @login_required
+# @checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DIRETOR DRH')
+# def grafico_todos_militares():
+#     # Seleciona todos os militares
+#     militares = (
+#         database.session.query(Militar, Paf)
+#         .outerjoin(Paf, Paf.militar_id == Militar.id)
+#         .all()
+#     )
 
-    # Contar número de militares de férias por mês
-    ferias_por_mes = {mes.id: 0 for mes in Meses.query.all()}
-    for militar, paf in militares:
-        if paf:
-            if paf.primeiro_periodo_ferias:
-                mes = paf.primeiro_periodo_ferias.month
-                ferias_por_mes[mes] += 1
-            if paf.segundo_periodo_ferias:
-                mes = paf.segundo_periodo_ferias.month
-                ferias_por_mes[mes] += 1
-            if paf.terceiro_periodo_ferias:
-                mes = paf.terceiro_periodo_ferias.month
-                ferias_por_mes[mes] += 1
+#     # Contar número de militares de férias por mês
+#     ferias_por_mes = {mes.id: 0 for mes in Meses.query.all()}
+#     for militar, paf in militares:
+#         if paf:
+#             if paf.primeiro_periodo_ferias:
+#                 mes = paf.primeiro_periodo_ferias.month
+#                 ferias_por_mes[mes] += 1
+#             if paf.segundo_periodo_ferias:
+#                 mes = paf.segundo_periodo_ferias.month
+#                 ferias_por_mes[mes] += 1
+#             if paf.terceiro_periodo_ferias:
+#                 mes = paf.terceiro_periodo_ferias.month
+#                 ferias_por_mes[mes] += 1
 
-    # Gerar gráfico
-    labels = [mes.mes for mes in Meses.query.all()]
-    values = [ferias_por_mes[mes.id] for mes in Meses.query.all()]
+#     # Gerar gráfico
+#     labels = [mes.mes for mes in Meses.query.all()]
+#     values = [ferias_por_mes[mes.id] for mes in Meses.query.all()]
 
-    plt.figure(figsize=(10, 6))
-    plt.bar(labels, values, color='skyblue')
-    plt.xlabel('Mês')
-    plt.ylabel('Número de Militares de Férias')
-    plt.title('Militares de Férias por Mês')
-    plt.xticks(rotation=25)
+#     plt.figure(figsize=(10, 6))
+#     plt.bar(labels, values, color='skyblue')
+#     plt.xlabel('Mês')
+#     plt.ylabel('Número de Militares de Férias')
+#     plt.title('Militares de Férias por Mês')
+#     plt.xticks(rotation=25)
 
-    # Salvar gráfico em um buffer de memória
-    buf = BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-    buf.close()
+#     # Salvar gráfico em um buffer de memória
+#     buf = BytesIO()
+#     plt.savefig(buf, format='png')
+#     buf.seek(0)
+#     image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+#     buf.close()
 
-    return Response(response=image_base64, status=200, mimetype='text/plain')
+#     return Response(response=image_base64, status=200, mimetype='text/plain')
 
 
 def paf_ano_vigente():
