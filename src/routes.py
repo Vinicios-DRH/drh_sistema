@@ -4195,9 +4195,10 @@ def atualizar_motorista(motorista_id):
     form_motorista.nome_completo.data = motorista.militar.id
 
     # Carrega opções de categoria
-    form_motorista.categoria_id.choices = [('', '-- Selecione uma categoria --')] + [
+    form_motorista.categoria_id.choices = [
         (categoria.id, categoria.sigla) for categoria in Categoria.query.all()
     ]
+    form_motorista.categoria_id.data = motorista.categoria_id
 
     # Preenche dados exibidos
     form_motorista.matricula.data = motorista.militar.matricula
@@ -4217,13 +4218,13 @@ def atualizar_motorista(motorista_id):
                 # Novo registro marcando desclassificado
                 novo_motorista = Motoristas(
                     militar_id=motorista.militar_id,
-                    categoria_id=motorista.categoria_id,  # mantém a categoria atual
-                    boletim_geral=motorista.boletim_geral,
-                    siged=motorista.siged,
+                    categoria_id=form_motorista.categoria_id.data or None,
+                    boletim_geral=form_motorista.boletim_geral.data,
+                    siged=form_motorista.siged.data,
                     usuario_id=current_user.id,
-                    vencimento_cnh=motorista.vencimento_cnh,
+                    vencimento_cnh=form_motorista.vencimento_cnh.data,
                     created=datetime.utcnow(),
-                    desclassificar='SIM'
+                    desclassificar=None
                 )
 
                 # opcional: salvar motivo concatenado (ou use outra coluna se preferir)
@@ -4536,6 +4537,7 @@ def salvar_motoristas_viatura(viatura_id):
 
 
 @app.route("/motoristas/exportar-excel", methods=["GET"])
+@login_required
 def exportar_motoristas_excel():
     try:
         wb = Workbook()
@@ -4555,7 +4557,8 @@ def exportar_motoristas_excel():
             "Vencimento CNH",
             "SIGED",
             "Boletim Geral",
-            "Viatura(s)",
+            "Qtd. Viaturas da OBM",
+            "Viaturas da OBM",
             "Criado Em",
         ]
         ws.append(headers)
@@ -4591,10 +4594,7 @@ def exportar_motoristas_excel():
                 joinedload(Motoristas.militar).joinedload(Militar.quadro),
                 joinedload(Motoristas.militar).selectinload(
                     Militar.obm_funcoes
-                ).joinedload(MilitarObmFuncao.obm),
-                joinedload(Motoristas.militar).selectinload(
-                    Militar.viaturas
-                ).joinedload(ViaturaMilitar.viatura),
+                ).joinedload(MilitarObmFuncao.obm).selectinload(Obm.viaturas_obm),
                 joinedload(Motoristas.categoria),
             )
             .order_by(Motoristas.id.asc())
@@ -4622,42 +4622,49 @@ def exportar_motoristas_excel():
                 criado_em = motorista.created.strftime("%d/%m/%Y %H:%M:%S")
 
             obm_sigla = ""
+            obm_atual = None
+
             if militar and militar.obm_funcoes:
                 obms_ativas = [
-                    rel for rel in militar.obm_funcoes if rel.data_fim is None and rel.obm
+                    rel for rel in militar.obm_funcoes
+                    if rel.data_fim is None and rel.obm
                 ]
                 if obms_ativas:
-                    obm_sigla = obms_ativas[0].obm.sigla or ""
+                    obm_atual = obms_ativas[0].obm
                 else:
                     relacoes_com_obm = [
-                        rel for rel in militar.obm_funcoes if rel.obm]
+                        rel for rel in militar.obm_funcoes if rel.obm
+                    ]
                     if relacoes_com_obm:
                         relacoes_com_obm.sort(
                             key=lambda x: x.data_criacao or datetime.min,
                             reverse=True
                         )
-                        obm_sigla = relacoes_com_obm[0].obm.sigla or ""
+                        obm_atual = relacoes_com_obm[0].obm
 
-            viaturas = ""
-            if militar and militar.viaturas:
-                lista_viaturas = []
-                for vinculo in militar.viaturas:
-                    if vinculo.viatura:
-                        texto = " - ".join(
-                            filter(
-                                None,
-                                [
-                                    vinculo.viatura.prefixo,
-                                    vinculo.viatura.placa,
-                                    vinculo.viatura.marca_modelo,
-                                ]
-                            )
+            if obm_atual:
+                obm_sigla = obm_atual.sigla or ""
+
+            lista_viaturas = []
+            if obm_atual and obm_atual.viaturas_obm:
+                for viatura in obm_atual.viaturas_obm:
+                    texto = " - ".join(
+                        filter(
+                            None,
+                            [
+                                viatura.prefixo,
+                                viatura.placa,
+                                viatura.marca_modelo,
+                            ]
                         )
-                        if texto:
-                            lista_viaturas.append(texto)
+                    )
+                    if texto:
+                        lista_viaturas.append(texto)
 
                 lista_viaturas = list(dict.fromkeys(lista_viaturas))
-                viaturas = ", ".join(lista_viaturas)
+
+            qtd_viaturas_obm = len(lista_viaturas)
+            viaturas_obm = ", ".join(lista_viaturas)
 
             ws.append([
                 militar_id,
@@ -4672,7 +4679,8 @@ def exportar_motoristas_excel():
                 vencimento_cnh,
                 motorista.siged or "",
                 motorista.boletim_geral or "",
-                viaturas,
+                qtd_viaturas_obm,
+                viaturas_obm,
                 criado_em,
             ])
 
@@ -4687,7 +4695,7 @@ def exportar_motoristas_excel():
                         max_length = len(cell_value)
                 except Exception:
                     pass
-            adjusted_width = min(max_length + 2, 50)
+            adjusted_width = min(max_length + 2, 60)
             ws.column_dimensions[get_column_letter(
                 column)].width = adjusted_width
 

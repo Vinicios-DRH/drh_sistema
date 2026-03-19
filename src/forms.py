@@ -278,11 +278,17 @@ class FormMilitarFerias(FlaskForm):
         "Alteração de mês de usufruto das Férias", choices=[])
 
 
+def int_ou_none(valor):
+    if valor in (None, '', 'None'):
+        return None
+    return int(valor)
+
+
 class FormMotoristas(FlaskForm):
     posto_grad_id = StringField('Posto/Graduação')
     nome_completo = SelectField('Nome do Militar', choices=[], coerce=int)
     matricula = StringField('Matricula')
-    categoria_id = SelectField('Categoria', choices=[], coerce=int)
+    categoria_id = SelectField('Categoria', choices=[], coerce=int_ou_none)
     obm_id_1 = StringField('OBM 1')
     siged = StringField('SIGED')
     boletim_geral = StringField('Boletim Geral')
@@ -293,9 +299,9 @@ class FormMotoristas(FlaskForm):
 
 class FormFiltroMotorista(FlaskForm):
     obm_id = SelectField('OBM', choices=[])
-    categoria_id = SelectField('Categoria', choices=[])
-    posto_grad_id = SelectField('Posto/Grad', choices=[])
-    viatura_id = SelectField('Viatura', choices=[])
+    categoria_id = SelectField('Categoria', choices=[], coerce=int_ou_none)
+    posto_grad_id = SelectField('Posto/Grad', choices=[], coerce=int_ou_none)
+    viatura_id = SelectField('Viatura', choices=[], coerce=int_ou_none)
 
 
 class FormViatura(FlaskForm):
