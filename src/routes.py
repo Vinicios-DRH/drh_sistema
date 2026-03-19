@@ -1,3 +1,4 @@
+import io
 import math
 from zoneinfo import ZoneInfo
 from flask_wtf.csrf import validate_csrf
@@ -22,20 +23,20 @@ from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
-                       RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, TokenForm, MatriculaConfirmForm)
+                       RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, MatriculaConfirmForm)
 from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, Situacao, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, TokenVerificacao, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge)
-from src.querys import dados_para_mapa, efetivo_oficiais_por_obm, obter_estatisticas_militares, login_usuario
-from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar, bloquear_obm_fora_do_escopo
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge)
+from src.querys import dados_para_mapa, obter_estatisticas_militares, login_usuario
+from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, load_only, aliased
-from sqlalchemy import case, func, text, or_, cast, String, and_
+from sqlalchemy import case, func, or_, cast, String, and_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Border, Font, Side
@@ -47,13 +48,10 @@ from collections import defaultdict, Counter
 from docx.shared import Pt
 from docx.oxml.ns import qn
 from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
-from src.decorators.email_utils import send_email, send_reset_password_email, verify_password_reset_token
-from src.decorators.password_utils import generate_temp_password
+from src.decorators.email_utils import send_reset_password_email, verify_password_reset_token
 import re
 import plotly.graph_objs as go
 import plotly.io as pio
-import time
-import statistics
 from collections import defaultdict
 from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -71,7 +69,13 @@ from src.utils.painel import (
     obter_detalhes_militar_atualizacao,)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from src.utils.cadastro_status import get_campos_pendentes_cadastro
+from src.services.importar_militares import (
+    ler_planilha,
+    colunas_reconhecidas,
+    colunas_nao_reconhecidas,
+    analisar_importacao,
+    importar_dataframe,
+)
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -86,61 +90,113 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
         return False
 
 
-def sincronizar_status_cadastro_atualizado():
-    militares = Militar.query.all()
-
-    total = 0
-    atualizados = 0
-    pendentes = 0
-    alterados = 0
-
-    for militar in militares:
-        total += 1
-
-        campos_pendentes = get_campos_pendentes_cadastro(militar) or []
-        cadastro_completo = len(campos_pendentes) == 0
-
-        valor_antigo = militar.cadastro_atualizado
-        militar.cadastro_atualizado = cadastro_completo
-
-        if cadastro_completo:
-            atualizados += 1
-        else:
-            pendentes += 1
-
-        if bool(valor_antigo) != cadastro_completo:
-            alterados += 1
-
-    database.session.commit()
-
-    return {
-        "total": total,
-        "atualizados": atualizados,
-        "pendentes": pendentes,
-        "alterados": alterados,
-    }
+@app.route("/militares/importar", methods=["GET"])
+@login_required
+def tela_importar_militares():
+    obms = Obm.query.order_by(Obm.sigla).all()
+    return render_template(
+        "militares/importar_upload.html",
+        obms=obms
+    )
 
 
-@app.route("/admin/sincronizar-cadastro-atualizado")
-def sincronizar_cadastro_atualizado_route():
+@app.route("/militares/importar/analisar", methods=["POST"])
+@login_required
+def analisar_importacao_militares():
+    arquivo = request.files.get("arquivo")
+
+    if not arquivo or not arquivo.filename:
+        flash("Selecione um arquivo Excel ou CSV.", "danger")
+        return redirect(url_for("tela_importar_militares"))
+
     try:
-        resultado = sincronizar_status_cadastro_atualizado()
-        return jsonify({
-            "ok": True,
-            "resultado": resultado
-        })
+        df = ler_planilha(arquivo)
+
+        if df.empty:
+            flash("A planilha está vazia.", "warning")
+            return redirect(url_for("tela_importar_militares"))
+
+        colunas_ok = colunas_reconhecidas(df)
+        colunas_invalidas = colunas_nao_reconhecidas(df)
+
+        if not colunas_ok:
+            flash("Nenhuma coluna reconhecida para importação.", "warning")
+            return redirect(url_for("tela_importar_militares"))
+
+        campos_preselecionados = [c for c in colunas_ok if c != "obm"]
+
+        resumo = analisar_importacao(df, campos_preselecionados)
+        obms = Obm.query.order_by(Obm.sigla).all()
+
+        json_str = df.to_json(orient="records", force_ascii=False)
+        payload_b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+
+        return render_template(
+            "militares/importar_confirmacao.html",
+            colunas_ok=colunas_ok,
+            colunas_invalidas=colunas_invalidas,
+            resumo=resumo,
+            obms=obms,
+            payload_b64=payload_b64,
+            campos_preselecionados=campos_preselecionados,
+        )
+
     except Exception as e:
-        database.session.rollback()
-        print(f"Erro ao sincronizar cadastro_atualizado: {e}")
-        return jsonify({
-            "ok": False,
-            "error": "Erro ao sincronizar cadastro_atualizado"
-        }), 500
+        flash(f"Erro ao analisar planilha: {str(e)}", "danger")
+        return redirect(url_for("tela_importar_militares"))
 
 
-@app.route("/navbar")
-def navbar():
-    return render_template("navbar_teste.html")
+@app.route("/militares/importar/confirmar", methods=["POST"])
+@login_required
+def confirmar_importacao_militares():
+    payload_b64 = request.form.get("payload_b64")
+    campos_selecionados = request.form.getlist("campos")
+    modo = request.form.get("modo", "complementar")
+    aplicar_obm = request.form.get("aplicar_obm")
+    obm_id = request.form.get("obm_id")
+
+    if not payload_b64:
+        flash("Dados da planilha não encontrados para importação.", "danger")
+        return redirect(url_for("tela_importar_militares"))
+
+    if not campos_selecionados:
+        flash("Selecione pelo menos um campo para importar.", "warning")
+        return redirect(url_for("tela_importar_militares"))
+
+    try:
+        json_bytes = base64.b64decode(payload_b64.encode("utf-8"))
+        json_str = json_bytes.decode("utf-8")
+        df = pd.read_json(io.StringIO(json_str), orient="records", dtype=False)
+
+        obm_id_final = None
+        if aplicar_obm == "1" and obm_id:
+            obm_id_final = int(obm_id)
+
+        relatorio = importar_dataframe(
+            df=df,
+            campos_selecionados=campos_selecionados,
+            modo=modo,
+            obm_id=obm_id_final,
+            usuario_id=current_user.id,
+        )
+
+        flash(
+            f"Importação concluída. Inseridos: {relatorio['inseridos']} | "
+            f"Atualizados: {relatorio['atualizados']} | "
+            f"Ignorados: {relatorio['ignorados']}",
+            "success"
+        )
+
+        session["ultimo_relatorio_importacao_militares"] = relatorio
+
+        return render_template(
+            "militares/importar_resultado.html",
+            relatorio=relatorio
+        )
+
+    except Exception as e:
+        flash(f"Erro ao importar planilha: {str(e)}", "danger")
+        return redirect(url_for("tela_importar_militares"))
 
 
 @app.route("/painel-efetivo/api")
@@ -329,7 +385,8 @@ def painel_efetivo_publico_exportar_excel():
                     reverse=True
                 )[0]
 
-            status_label = "Atualizado" if bool(militar.cadastro_atualizado) else "Pendente"
+            status_label = "Atualizado" if bool(
+                militar.cadastro_atualizado) else "Pendente"
 
             ws.append([
                 militar.nome_completo or "-",
@@ -337,7 +394,8 @@ def painel_efetivo_publico_exportar_excel():
                 _obter_obm_principal(militar),
                 militar.situacao.condicao if militar.situacao else "-",
                 status_label,
-                auditoria.criado_em.strftime("%d/%m/%Y %H:%M") if auditoria and auditoria.criado_em else "-",
+                auditoria.criado_em.strftime(
+                    "%d/%m/%Y %H:%M") if auditoria and auditoria.criado_em else "-",
                 auditoria.acao if auditoria and auditoria.acao else "-",
                 auditoria.observacao if auditoria and auditoria.observacao else "-",
             ])
@@ -367,7 +425,8 @@ def painel_efetivo_publico_exportar_excel():
         wb.save(output)
         output.seek(0)
 
-        data_exportacao = datetime.now(ZoneInfo("America/Manaus")).strftime("%Y-%m-%d_%H-%M-%S")
+        data_exportacao = datetime.now(
+            ZoneInfo("America/Manaus")).strftime("%Y-%m-%d_%H-%M-%S")
 
         return send_file(
             output,
@@ -380,56 +439,6 @@ def painel_efetivo_publico_exportar_excel():
         print(f"Erro ao exportar Excel do painel público: {e}")
         flash("Erro ao exportar o Excel.", "danger")
         return redirect(url_for("painel_efetivo_publico"))
-
-
-@app.route("/db-ping-10")
-def db_ping_10():
-    times = []
-    for _ in range(10):
-        t0 = time.perf_counter()
-        database.session.execute(text("SELECT 1"))
-        times.append((time.perf_counter()-t0)*1000)
-    return {
-        "avg_ms": round(statistics.mean(times), 1),
-        "p50_ms": round(statistics.median(times), 1),
-        "min_ms": round(min(times), 1),
-        "max_ms": round(max(times), 1),
-        "samples": [round(x, 1) for x in times]
-    }
-
-
-@app.route("/db-ping-conn")
-def db_ping_conn():
-    times = []
-    with database.engine.connect() as conn:
-        for _ in range(20):
-            t0 = time.perf_counter()
-            conn.execute(text("SELECT 1")).fetchone()
-            times.append((time.perf_counter()-t0)*1000)
-    return {
-        "avg_ms": round(statistics.mean(times), 1),
-        "p50_ms": round(statistics.median(times), 1),
-        "min_ms": round(min(times), 1),
-        "max_ms": round(max(times), 1),
-        "samples": [round(x, 1) for x in times]
-    }
-
-
-@app.route("/db-ping-pool")
-def db_ping_pool():
-    times = []
-    for _ in range(20):
-        t0 = time.perf_counter()
-        # pega/devolve conexão sempre
-        database.session.execute(text("SELECT 1"))
-        times.append((time.perf_counter()-t0)*1000)
-    return {
-        "avg_ms": round(statistics.mean(times), 1),
-        "p50_ms": round(statistics.median(times), 1),
-        "min_ms": round(min(times), 1),
-        "max_ms": round(max(times), 1),
-        "samples": [round(x, 1) for x in times]
-    }
 
 
 @app.context_processor
@@ -4575,6 +4584,9 @@ def exportar_motoristas_excel():
                 joinedload(Motoristas.militar).selectinload(
                     Militar.viaturas).joinedload(ViaturaMilitar.viatura),
                 joinedload(Motoristas.categoria),
+            )
+            .filter(
+                or_(Motoristas.desclassificar == False, Motoristas.desclassificar.is_(None))
             )
             .order_by(Motoristas.id.asc())
             .all()

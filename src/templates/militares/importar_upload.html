@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h3 class="mb-3">Importador de Militares</h3>
+            <p class="text-muted">
+                Envie uma planilha Excel ou CSV para analisar os dados antes da importação.
+            </p>
+
+            <form method="POST" action="{{ url_for('analisar_importacao_militares') }}" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Arquivo</label>
+                    <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls,.csv" required>
+                </div>
+
+                <div class="alert alert-info">
+                    A planilha pode conter colunas como:
+                    <strong>nome_completo, nome_guerra, cpf, rg, nome_pai, nome_mae, matricula</strong> etc.
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Analisar planilha
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

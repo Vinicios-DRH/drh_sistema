@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h3 class="mb-3">Resultado da importação</h3>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Inseridos</div>
+                        <div class="h4 mb-0 text-success">{{ relatorio.inseridos }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Atualizados</div>
+                        <div class="h4 mb-0 text-primary">{{ relatorio.atualizados }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Ignorados</div>
+                        <div class="h4 mb-0 text-secondary">{{ relatorio.ignorados }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if relatorio.erros %}
+            <div class="mb-4">
+                <h5>Erros / ocorrências</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Linha</th>
+                                <th>Erro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for erro in relatorio.erros %}
+                            <tr>
+                                <td>{{ erro.linha }}</td>
+                                <td>{{ erro.erro }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-primary">
+                Nova importação
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

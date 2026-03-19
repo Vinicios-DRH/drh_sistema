@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h3 class="mb-3">Análise da planilha</h3>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Total de linhas</div>
+                        <div class="h4 mb-0">{{ resumo.total_linhas }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Novos militares</div>
+                        <div class="h4 mb-0">{{ resumo.novos }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Já existentes</div>
+                        <div class="h4 mb-0">{{ resumo.existentes }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="small text-muted">Complementáveis</div>
+                        <div class="h4 mb-0">{{ resumo.complementaveis }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('confirmar_importacao_militares') }}">
+                <input type="hidden" name="payload_b64" value="{{ payload_b64 }}">
+
+                <div class="mb-4">
+                    <h5>Campos disponíveis para importação</h5>
+                    <div class="row">
+                        {% for campo in colunas_ok %}
+                        {% if campo != 'obm' %}
+                        <div class="col-md-3 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="campos" value="{{ campo }}"
+                                    id="campo_{{ campo }}" {% if campo in campos_preselecionados %}checked{% endif %}>
+                                <label class="form-check-label" for="campo_{{ campo }}">
+                                    {{ campo }}
+                                    {% if resumo.sugestoes_por_campo.get(campo) %}
+                                    <span class="badge bg-info ms-1">{{ resumo.sugestoes_por_campo.get(campo) }}</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5>Modo de importação</h5>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo_complementar"
+                            value="complementar" checked>
+                        <label class="form-check-label" for="modo_complementar">
+                            Complementar apenas campos vazios
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo_sobrescrever"
+                            value="sobrescrever">
+                        <label class="form-check-label" for="modo_sobrescrever">
+                            Sobrescrever dados existentes
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5>OBM fixa</h5>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="aplicar_obm" value="1" id="aplicar_obm">
+                        <label class="form-check-label" for="aplicar_obm">
+                            Aplicar uma OBM fixa aos registros importados
+                        </label>
+                    </div>
+
+                    <select name="obm_id" class="form-select">
+                        <option value="">Selecione a OBM</option>
+                        {% for obm in obms %}
+                        <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if colunas_invalidas %}
+                <div class="mb-4">
+                    <h5>Colunas não reconhecidas</h5>
+                    <div>
+                        {% for col in colunas_invalidas %}
+                        <span class="badge bg-secondary me-1">{{ col }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                    <h5>Prévia da importação</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Linha</th>
+                                    <th>Tipo</th>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Campos sugeridos</th>
+                                    <th>Campos diferentes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in resumo.preview %}
+                                <tr>
+                                    <td>{{ item.linha }}</td>
+                                    <td>
+                                        {% if item.tipo == 'novo' %}
+                                        <span class="badge bg-success">Novo</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Existente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.nome_banco or item.nome_planilha or '-' }}</td>
+                                    <td>{{ item.cpf_banco or item.cpf_planilha or '-' }}</td>
+                                    <td>
+                                        {% if item.campos_sugeridos %}
+                                        {{ item.campos_sugeridos | join(', ') }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.campos_alterados %}
+                                        {{ item.campos_alterados | join(', ') }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if resumo.erros %}
+                <div class="mb-4">
+                    <h5>Ocorrências encontradas</h5>
+                    <ul class="mb-0">
+                        {% for erro in resumo.erros[:20] %}
+                        <li><strong>Linha {{ erro.linha }}:</strong> {{ erro.erro }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('tela_importar_militares') }}" class="btn btn-outline-secondary">
+                        Voltar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        Confirmar importação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
