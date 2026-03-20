@@ -68,7 +68,7 @@
 
     .hero-text {
         max-width: 780px;
-        opacity: .9;
+        opacity: .92;
     }
 
     .status-badge,
@@ -168,11 +168,6 @@
         margin-bottom: 0;
     }
 
-    .quick-link {
-        text-decoration: none;
-        color: inherit;
-    }
-
     .bullet-list {
         margin: 0;
         padding-left: 1.1rem;
@@ -213,8 +208,8 @@
                 </div>
 
                 <div class="status-badge">
-                    <i class="bi bi-shield-lock-fill"></i>
-                    Dados sensíveis ocultos
+                    <i class="bi bi-shield-check"></i>
+                    Ambiente institucional
                 </div>
             </div>
     </div>
@@ -228,9 +223,9 @@
                     Perfil atual: <strong>{{ perfil_nome }}</strong> • {{ agora.strftime('%d/%m/%Y %H:%M') }}
                 </div>
                 <p class="hero-text mb-3">
-                    Este painel foi projetado para oferecer uma experiência segura, leve e objetiva,
-                    priorizando navegação administrativa, comunicação institucional e acesso rápido aos
-                    módulos estratégicos autorizados.
+                    Este painel foi pensado para oferecer uma experiência clara, objetiva e institucional,
+                    priorizando a navegação administrativa, o acompanhamento de rotinas de chefia e o acesso
+                    rápido aos módulos autorizados.
                 </p>
 
                 <div class="d-flex flex-wrap gap-2">
@@ -238,10 +233,10 @@
                         <i class="bi bi-building me-1"></i> Gestão institucional
                     </span>
                     <span class="badge text-bg-light text-dark p-2">
-                        <i class="bi bi-lightning-charge me-1"></i> Baixa carga de dados
+                        <i class="bi bi-person-badge me-1"></i> Chefia e diretoria
                     </span>
                     <span class="badge text-bg-light text-dark p-2">
-                        <i class="bi bi-eye-slash me-1"></i> Sem indicadores operacionais
+                        <i class="bi bi-clipboard-check me-1"></i> Rotinas administrativas
                     </span>
                 </div>
             </div>
@@ -286,7 +281,7 @@
             <div>
                 <div class="section-title">Acesso rápido</div>
                 <div class="section-subtitle">
-                    Uma página inicial voltada para navegação segura e institucional.
+                    Uma página inicial voltada para navegação segura, objetiva e institucional.
                 </div>
             </div>
         </div>
@@ -297,7 +292,7 @@
                     <div class="icon-box">
                         <i class="bi bi-compass"></i>
                     </div>
-                    <div class="card-title">Navegação segura</div>
+                    <div class="card-title">Navegação do sistema</div>
                     <p class="card-text">
                         Utilize o menu lateral para acessar os módulos disponíveis ao seu perfil.
                     </p>
@@ -309,9 +304,9 @@
                     <div class="icon-box">
                         <i class="bi bi-shield-check"></i>
                     </div>
-                    <div class="card-title">Segurança da informação</div>
+                    <div class="card-title">Ambiente institucional</div>
                     <p class="card-text">
-                        Esta home foi isolada de dados operacionais e estatísticas internas do efetivo.
+                        Página inicial organizada para uma experiência mais reservada e adequada ao perfil de gestão.
                     </p>
                 </div>
             </div>
@@ -321,9 +316,9 @@
                     <div class="icon-box">
                         <i class="bi bi-lightning-charge"></i>
                     </div>
-                    <div class="card-title">Desempenho</div>
+                    <div class="card-title">Agilidade</div>
                     <p class="card-text">
-                        Menos consultas ao banco e carregamento mais rápido para uso diário.
+                        Estrutura pensada para facilitar o acesso rápido às atividades administrativas do dia a dia.
                     </p>
                 </div>
             </div>
@@ -335,7 +330,8 @@
                     </div>
                     <div class="card-title">Gestão administrativa</div>
                     <p class="card-text">
-                        Ambiente pensado para chefia e diretoria com foco institucional.
+                        Ambiente pensado para chefia e diretoria, com foco em organização e acompanhamento
+                        institucional.
                     </p>
                 </div>
             </div>
@@ -351,9 +347,9 @@
                 <ul class="bullet-list">
                     <li>Utilize a área de férias para acompanhar o planejamento do efetivo vinculado à sua chefia.</li>
                     <li>Realize alterações de férias, preferencialmente, entre os dias 10 e 20 de cada mês.</li>
-                    <li>Evite exposição de informações operacionais em ambientes compartilhados.</li>
-                    <li>Priorize módulos administrativos e fluxos institucionais autorizados.</li>
-                    <li>Comunique à equipe técnica qualquer lentidão ou comportamento inesperado do sistema.</li>
+                    <li>Evite exposição de informações administrativas em ambientes compartilhados.</li>
+                    <li>Priorize módulos institucionais e rotinas compatíveis com sua função.</li>
+                    <li>Comunique à equipe responsável qualquer comportamento inesperado no sistema.</li>
                 </ul>
             </div>
         </div>
@@ -361,32 +357,43 @@
         <div class="col-12 col-xl-6">
             <div class="glass-panel p-3 p-md-4 h-100">
                 <div class="section-title mb-2">Sobre este painel</div>
-                <div class="section-subtitle mb-3">O que esta home entrega</div>
+                <div class="section-subtitle mb-3">O que esta home oferece</div>
 
                 <div class="row g-3">
                     <div class="col-12 col-sm-6">
                         <div class="notice-card">
-                            <div class="card-title">Leveza</div>
-                            <p class="card-text">Sem consultas pesadas, sem tabelas extensas e sem processamento em
-                                massa.</p>
+                            <div class="card-title">Clareza</div>
+                            <p class="card-text">
+                                Uma página inicial organizada, visualmente limpa e focada em informações institucionais.
+                            </p>
                         </div>
                     </div>
+
                     <div class="col-12 col-sm-6">
                         <div class="notice-card">
-                            <div class="card-title">Sigilo</div>
-                            <p class="card-text">Sem indicadores de efetivo, licenças ou dados internos sensíveis.</p>
+                            <div class="card-title">Descrição</div>
+                            <p class="card-text">
+                                Ambiente voltado ao acompanhamento de rotinas de chefia e direção, sem excesso de
+                                informação.
+                            </p>
                         </div>
                     </div>
+
                     <div class="col-12 col-sm-6">
                         <div class="notice-card">
-                            <div class="card-title">Foco</div>
-                            <p class="card-text">Navegação mais objetiva para tarefas de chefia e direção.</p>
+                            <div class="card-title">Objetividade</div>
+                            <p class="card-text">
+                                Navegação mais direta para tarefas administrativas e consultas essenciais.
+                            </p>
                         </div>
                     </div>
+
                     <div class="col-12 col-sm-6">
                         <div class="notice-card">
-                            <div class="card-title">Estabilidade</div>
-                            <p class="card-text">Menor consumo de dados e melhor comportamento no plano do Supabase.</p>
+                            <div class="card-title">Institucionalidade</div>
+                            <p class="card-text">
+                                Um painel com identidade visual alinhada ao contexto administrativo do CBMAM.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -396,7 +403,7 @@
 
     <div class="footer-note mt-3">
         <i class="bi bi-info-circle me-1"></i>
-        Painel executivo institucional do SIGDP / CBMAM, otimizado para perfis de gestão.
+        Painel executivo institucional do SIGDP / CBMAM.
     </div>
     </div>
 </section>
