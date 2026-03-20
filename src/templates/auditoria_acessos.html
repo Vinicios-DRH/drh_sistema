@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .95);
+        border: 1px solid rgba(255, 255, 255, .55);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
+    }
+
+    .table-shell {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 14px;
+        padding: 1rem;
+    }
+
+    #tabela-acessos thead th {
+        background: transparent;
+        border-bottom: 2px solid #e2e8f0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    #tabela-acessos tbody td {
+        vertical-align: middle;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 0.75rem 0.5rem;
+    }
+
+    #tabela-acessos tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .badge-metodo {
+        width: 50px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+    <div class="container-fluid px-3 px-md-4">
+
+        <div class="brand-header p-3 p-md-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-25 p-3 rounded-circle border border-light border-opacity-25">
+                    <i class="bi bi-eye-fill text-light fs-3"></i>
+                </div>
+                <div>
+                    <h1 class="h4 mb-1 text-light">Auditoria de Acessos Globais</h1>
+                    <div class="small text-light opacity-75">
+                        Monitoramento em tempo real (Total de registros no banco: <strong>{{ total_logs }}</strong>)
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <button type="button"
+                    class="btn btn-danger rounded-pill px-4 py-2 shadow-sm border border-light border-opacity-25"
+                    data-bs-toggle="modal" data-bs-target="#modalFaxina">
+                    <i class="bi bi-trash3-fill me-2"></i> Limpar Logs Antigos
+                </button>
+            </div>
+        </div>
+
+        <div class="glass-panel p-3 p-md-4">
+            <div class="table-shell">
+                <div class="table-responsive">
+                    <table id="tabela-acessos" class="table align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Usuário</th>
+                                <th>Ação (Método)</th>
+                                <th>Rota Acessada</th>
+                                <th>IP</th>
+                                <th>Dispositivo / Navegador</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs.items %}
+                            <tr>
+                                <td
+                                    data-sort="{{ log.data_acesso.strftime('%Y%m%d%H%M%S') if log.data_acesso else '' }}">
+                                    <div class="fw-bold text-dark">{{ log.data_acesso.strftime('%d/%m/%Y') if
+                                        log.data_acesso else '-' }}</div>
+                                    <div class="small text-muted">{{ log.data_acesso.strftime('%H:%M:%S') if
+                                        log.data_acesso else '-' }}</div>
+                                </td>
+
+                                <td>
+                                    {% if log.usuario %}
+                                    <div class="fw-bold text-dark">{{ log.usuario.nome }}</div>
+                                    <div class="small text-muted">ID: {{ log.usuario_id }} | CPF: {{
+                                        log.usuario.cpf_norm }}</div>
+                                    {% else %}
+                                    <span class="text-muted fst-italic">Visitante (Não logado)</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if log.metodo == 'GET' %}
+                                    <span
+                                        class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 badge-metodo">GET</span>
+                                    {% elif log.metodo == 'POST' %}
+                                    <span
+                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 badge-metodo">POST</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary badge-metodo">{{ log.metodo }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-break" style="max-width: 250px;">
+                                    <span class="font-monospace text-primary" style="font-size: 0.8rem;">{{
+                                        log.rota_acessada }}</span>
+                                </td>
+
+                                <td><span class="badge bg-light text-dark border">{{ log.ip_address }}</span></td>
+
+                                <td class="text-truncate" style="max-width: 200px;" title="{{ log.user_agent }}">
+                                    <span class="small text-muted">{{ log.user_agent }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-3">
+                    <div class="small text-muted">
+                        Mostrando página {{ logs.page }} de {{ logs.pages }}
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {% if not logs.has_prev %}disabled{% endif %}">
+                                <a class="page-link"
+                                    href="{{ url_for('auditoria_acessos', page=logs.prev_num) }}">Anterior</a>
+                            </li>
+                            <li class="page-item {% if not logs.has_next %}disabled{% endif %}">
+                                <a class="page-link"
+                                    href="{{ url_for('auditoria_acessos', page=logs.next_num) }}">Próxima</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="modalFaxina" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Limpeza de Logs
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('limpar_logs_acesso') }}" method="POST">
+                <div class="modal-body bg-light p-4">
+                    <p class="mb-3 text-dark">Para evitar a lentidão do banco de dados, você pode apagar registros
+                        antigos de tráfego. Essa ação <strong>não pode ser desfeita</strong>.</p>
+
+                    <label class="form-label fw-bold text-secondary small">Apagar logs mais antigos que:</label>
+                    <select name="dias" class="form-select border-danger">
+                        <option value="15">15 dias</option>
+                        <option value="30" selected>30 dias (Recomendado)</option>
+                        <option value="60">60 dias</option>
+                        <option value="90">90 dias</option>
+                    </select>
+                </div>
+                <div class="modal-footer bg-white">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Limpeza</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#tabela-acessos').DataTable({
+            responsive: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
+            order: [[0, 'desc']],
+            pageLength: 25,
+            // Desativa a paginação do JS porque já fizemos no Python (se não conflita)
+            paging: false,
+            info: false
+        });
+    });
+</script>
+{% endblock %}
