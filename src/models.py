@@ -1741,3 +1741,23 @@ class LogExportacaoExcel(database.Model):
 
     # Se quiser acessar os dados do usuário a partir do log depois:
     usuario = database.relationship('User', backref='logs_exportacao')
+
+
+class LogAcesso(database.Model):
+    __tablename__ = "log_acesso"
+
+    id = database.Column(database.Integer, primary_key=True)
+    # Deixamos nullable=True porque na tela de login o cara ainda não tem ID
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'), nullable=True)
+
+    rota_acessada = database.Column(database.String(255))
+    # Ex: GET (abriu a tela), POST (enviou formulário)
+    metodo = database.Column(database.String(10))
+    ip_address = database.Column(database.String(45))
+    # Pega o navegador/celular do cara
+    user_agent = database.Column(database.String(255))
+    data_acesso = database.Column(database.DateTime, default=now_manaus_naive)
+
+    # Relacionamento para buscar o nome do cara depois
+    usuario = database.relationship('User', backref='logs_de_rota')

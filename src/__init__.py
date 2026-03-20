@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -39,6 +39,46 @@ _pool_warmed = False
 _pool_warm_lock = threading.Lock()
 
 app.jinja_env.globals.update(enumerate=enumerate)
+
+@app.before_request
+def big_brother_log_acesso():
+    # 1. Trava de Segurança: Não logar arquivos de imagem, CSS, JS, etc.
+    if request.path.startswith('/static') or request.path.startswith('/favicon'):
+        return
+
+    try:
+        # A MÁGICA AQUI: Importa a model APENAS na hora que a função roda!
+        from src.models import LogAcesso 
+        
+        # 2. Pega o IP real do usuário
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip and ',' in ip:
+            ip = ip.split(',')[0].strip()
+
+        # 3. Pega o ID do usuário (se ele já estiver logado, senão fica None)
+        user_id = current_user.id if current_user.is_authenticated else None
+
+        # 4. Pega o User-Agent (limitado a 250 caracteres pro banco não reclamar)
+        agent = request.user_agent.string[:250] if request.user_agent.string else "Desconhecido"
+
+        # 5. Salva a fofoca no banco
+        novo_log = LogAcesso(
+            usuario_id=user_id,
+            rota_acessada=request.path,
+            metodo=request.method,
+            ip_address=ip,
+            user_agent=agent
+        )
+        
+        # Como o banco já iniciou a essa altura, o database vai funcionar perfeitamente
+        database.session.add(novo_log)
+        database.session.commit()
+        
+    except Exception as e:
+        database.session.rollback()
+        # Se der erro no log, a gente só "printa" no console, 
+        # mas não quebra a navegação do usuário.
+        print(f"[ERRO DE AUDITORIA - BIG BROTHER]: {str(e)}")
 
 # Inicializa extensões
 database = SQLAlchemy(app)
