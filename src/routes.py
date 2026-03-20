@@ -78,6 +78,23 @@ from src.services.importar_militares import (
     importar_dataframe,
     salvar_historico_importacao,
 )
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def parse_date(date_string):
+    try:
+        return datetime.strptime(date_string, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
+def now_manaus_naive() -> datetime:
+    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
+    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
+
+
+def _agora_manaus():
+    return datetime.now(MANAUS_TZ)
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
@@ -983,6 +1000,15 @@ def home():
     if current_user.funcao_user_id == 12:
         return redirect(url_for('home_atualizacao'))
 
+    # DIRETOR e CHEFE: home sem dados sensíveis
+    if current_user.funcao_user_id in (1, 2):
+        return render_template(
+            "home_gestao2.html",
+            agora=_agora_manaus(),
+            nome_usuario=getattr(current_user, "nome", "Usuário"),
+            perfil_nome="Diretor" if current_user.funcao_user_id == 1 else "Chefe",
+        )
+
     try:
         estatisticas = obter_estatisticas_militares()
 
@@ -1049,7 +1075,7 @@ def login():
 
             # Agora a verificação de função refinada
             if cpf.funcao_user_id in [1, 2]:  # Diretor ou Chefe
-                return redirect(url_for('exibir_ferias_chefe'))
+                return redirect(url_for('home'))
             else:
                 return redirect(url_for('home'))
         else:
@@ -4151,21 +4177,6 @@ def grafico_ferias(obm_id):
     buf.close()
 
     return Response(response=image_base64, status=200, mimetype='text/plain')
-
-
-def parse_date(date_string):
-    try:
-        return datetime.strptime(date_string, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
-
-
-MANAUS_TZ = ZoneInfo("America/Manaus")
-
-
-def now_manaus_naive() -> datetime:
-    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
-    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
 
 
 @app.route('/pafs/update', methods=['POST'])

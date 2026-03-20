@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+        --brand-red: #B5121B;
+        --brand-blue: #0b2e4f;
+        --brand-blue-2: #14548a;
+        --brand-gold: #f7c948;
+    }
+
+    body {
+        background: linear-gradient(135deg, #081322 0%, #0b2e4f 40%, #114a77 100%) fixed;
+    }
+
+    .hero {
+        min-height: 100vh;
+        position: relative;
+        background: linear-gradient(180deg, rgba(0, 0, 0, .42), rgba(0, 0, 0, .62)),
+        url('{{ url_for("static", filename="img/bombeiros_2.jpeg") }}') center/cover no-repeat;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 20px;
+        color: var(--ink-200);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .95);
+        color: #111;
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .22);
+    }
+
+    .hero-panel {
+        background: linear-gradient(135deg, rgba(11, 46, 79, .96), rgba(20, 84, 138, .94));
+        color: #fff;
+        border-radius: 20px;
+        padding: 1.7rem;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .24);
+    }
+
+    .hero-kicker {
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        opacity: .78;
+    }
+
+    .hero-title {
+        font-size: clamp(1.7rem, 2.4vw, 2.6rem);
+        font-weight: 800;
+        line-height: 1.08;
+        margin: .45rem 0 .75rem;
+    }
+
+    .hero-text {
+        max-width: 780px;
+        opacity: .9;
+    }
+
+    .status-badge,
+    .window-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .38rem .72rem;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .status-badge {
+        background: #e8f7ee;
+        color: #137a36;
+        border: 1px solid #bde5c9;
+    }
+
+    .window-open {
+        background: #e8f7ee;
+        color: #137a36;
+        border: 1px solid #bde5c9;
+    }
+
+    .window-closed {
+        background: #fff7e6;
+        color: #8a5a00;
+        border: 1px solid #ffe0a3;
+    }
+
+    .highlight-card {
+        background: linear-gradient(135deg, rgba(247, 201, 72, .20), rgba(181, 18, 27, .08)), #fff;
+        border: 1px solid rgba(181, 18, 27, .12);
+        border-radius: 18px;
+        padding: 1.2rem;
+        height: 100%;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+    }
+
+    .shortcut-card,
+    .notice-card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 18px;
+        padding: 1.15rem;
+        height: 100%;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .07);
+        transition: transform .15s ease, box-shadow .2s ease;
+    }
+
+    .shortcut-card:hover,
+    .notice-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(0, 0, 0, .10);
+    }
+
+    .icon-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: rgba(11, 46, 79, .08);
+        color: var(--brand-blue);
+        margin-bottom: .85rem;
+    }
+
+    .icon-box-gold {
+        background: rgba(247, 201, 72, .22);
+        color: #8a5a00;
+    }
+
+    .section-title {
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: var(--brand-blue);
+    }
+
+    .section-subtitle {
+        color: #64748b;
+        font-size: .92rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--brand-blue);
+        margin-bottom: .35rem;
+    }
+
+    .card-text {
+        color: #64748b;
+        font-size: .92rem;
+        margin-bottom: 0;
+    }
+
+    .quick-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .bullet-list {
+        margin: 0;
+        padding-left: 1.1rem;
+    }
+
+    .bullet-list li {
+        margin-bottom: .55rem;
+        color: #334155;
+    }
+
+    .btn-chief {
+        border-radius: 12px;
+        font-weight: 700;
+        padding: .8rem 1rem;
+    }
+
+    .footer-note {
+        color: rgba(255, 255, 255, .84);
+        font-size: .9rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="hero py-3 py-md-4">
+    <div class="container py-2 py-md-4">
+        {% set janela_ferias_aberta = 10 <= agora.day <=20 %} <div class="brand-header p-3 p-md-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="60" height="60" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h4 mb-1">SIGDP — Painel Executivo</h1>
+                        <div class="small text-light opacity-75">
+                            Área institucional para chefia e diretoria do CBMAM
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-badge">
+                    <i class="bi bi-shield-lock-fill"></i>
+                    Dados sensíveis ocultos
+                </div>
+            </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="hero-panel h-100">
+                <div class="hero-kicker">Ambiente institucional</div>
+                <div class="hero-title">{{ nome_usuario }}</div>
+                <div class="mb-3 opacity-75">
+                    Perfil atual: <strong>{{ perfil_nome }}</strong> • {{ agora.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                <p class="hero-text mb-3">
+                    Este painel foi projetado para oferecer uma experiência segura, leve e objetiva,
+                    priorizando navegação administrativa, comunicação institucional e acesso rápido aos
+                    módulos estratégicos autorizados.
+                </p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-light text-dark p-2">
+                        <i class="bi bi-building me-1"></i> Gestão institucional
+                    </span>
+                    <span class="badge text-bg-light text-dark p-2">
+                        <i class="bi bi-lightning-charge me-1"></i> Baixa carga de dados
+                    </span>
+                    <span class="badge text-bg-light text-dark p-2">
+                        <i class="bi bi-eye-slash me-1"></i> Sem indicadores operacionais
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="highlight-card h-100">
+                <div class="icon-box icon-box-gold">
+                    <i class="bi bi-calendar2-week-fill"></i>
+                </div>
+
+                <div class="card-title">Férias do efetivo</div>
+                <p class="card-text mb-3">
+                    Consulte e realize alterações das férias do efetivo sob sua responsabilidade diretamente no módulo
+                    de chefia.
+                </p>
+
+                <div class="mb-3">
+                    {% if janela_ferias_aberta %}
+                    <span class="window-badge window-open">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Janela aberta: dias 10 a 20
+                    </span>
+                    {% else %}
+                    <span class="window-badge window-closed">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        Alterações de 10 a 20 de cada mês
+                    </span>
+                    {% endif %}
+                </div>
+
+                <a href="{{ url_for('exibir_ferias_chefe') }}" class="btn btn-warning text-dark btn-chief w-100">
+                    <i class="bi bi-arrow-right-circle me-1"></i>
+                    Acessar Férias
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel p-3 p-md-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <div class="section-title">Acesso rápido</div>
+                <div class="section-subtitle">
+                    Uma página inicial voltada para navegação segura e institucional.
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="shortcut-card">
+                    <div class="icon-box">
+                        <i class="bi bi-compass"></i>
+                    </div>
+                    <div class="card-title">Navegação segura</div>
+                    <p class="card-text">
+                        Utilize o menu lateral para acessar os módulos disponíveis ao seu perfil.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="shortcut-card">
+                    <div class="icon-box">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="card-title">Segurança da informação</div>
+                    <p class="card-text">
+                        Esta home foi isolada de dados operacionais e estatísticas internas do efetivo.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="shortcut-card">
+                    <div class="icon-box">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="card-title">Desempenho</div>
+                    <p class="card-text">
+                        Menos consultas ao banco e carregamento mais rápido para uso diário.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="shortcut-card">
+                    <div class="icon-box">
+                        <i class="bi bi-building-gear"></i>
+                    </div>
+                    <div class="card-title">Gestão administrativa</div>
+                    <p class="card-text">
+                        Ambiente pensado para chefia e diretoria com foco institucional.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-6">
+            <div class="glass-panel p-3 p-md-4 h-100">
+                <div class="section-title mb-2">Orientações prioritárias</div>
+                <div class="section-subtitle mb-3">Fluxos recomendados para o dia a dia</div>
+
+                <ul class="bullet-list">
+                    <li>Utilize a área de férias para acompanhar o planejamento do efetivo vinculado à sua chefia.</li>
+                    <li>Realize alterações de férias, preferencialmente, entre os dias 10 e 20 de cada mês.</li>
+                    <li>Evite exposição de informações operacionais em ambientes compartilhados.</li>
+                    <li>Priorize módulos administrativos e fluxos institucionais autorizados.</li>
+                    <li>Comunique à equipe técnica qualquer lentidão ou comportamento inesperado do sistema.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="glass-panel p-3 p-md-4 h-100">
+                <div class="section-title mb-2">Sobre este painel</div>
+                <div class="section-subtitle mb-3">O que esta home entrega</div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <div class="notice-card">
+                            <div class="card-title">Leveza</div>
+                            <p class="card-text">Sem consultas pesadas, sem tabelas extensas e sem processamento em
+                                massa.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="notice-card">
+                            <div class="card-title">Sigilo</div>
+                            <p class="card-text">Sem indicadores de efetivo, licenças ou dados internos sensíveis.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="notice-card">
+                            <div class="card-title">Foco</div>
+                            <p class="card-text">Navegação mais objetiva para tarefas de chefia e direção.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="notice-card">
+                            <div class="card-title">Estabilidade</div>
+                            <p class="card-text">Menor consumo de dados e melhor comportamento no plano do Supabase.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note mt-3">
+        <i class="bi bi-info-circle me-1"></i>
+        Painel executivo institucional do SIGDP / CBMAM, otimizado para perfis de gestão.
+    </div>
+    </div>
+</section>
+{% endblock %}
