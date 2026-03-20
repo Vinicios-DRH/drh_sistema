@@ -78,6 +78,15 @@ from src.services.importar_militares import (
     importar_dataframe,
     salvar_historico_importacao,
 )
+import time
+
+# --- CACHE DO PAINEL ---
+CACHE_PAINEL = {
+    "dados": None,
+    "ultima_atualizacao": 0
+}
+TEMPO_CACHE_SEGUNDOS = 300  # 5 minutos
+
 MANAUS_TZ = ZoneInfo("America/Manaus")
 
 
@@ -370,40 +379,48 @@ def painel_efetivo_publico_api():
         page = request.args.get("page", default=1, type=int)
         per_page = request.args.get("per_page", default=50, type=int)
 
+        # Verifica se é a "consulta automática da TV" (sem nenhum filtro de busca e na página 1)
+        # Se a pessoa estiver digitando um nome pra buscar, não queremos usar o cache
+        is_consulta_padrao = not any(
+            [q, status, obm_id, posto_grad_id, situacao_id]) and page == 1
+
+        # SE FOR A CONSULTA DA TV E O CACHE AINDA ESTIVER DENTRO DOS 5 MINUTOS:
+        agora = time.time()
+        if is_consulta_padrao and CACHE_PAINEL["dados"] and (agora - CACHE_PAINEL["ultima_atualizacao"] < TEMPO_CACHE_SEGUNDOS):
+            return jsonify(CACHE_PAINEL["dados"])
+
+        # ======== AQUI OCORRE O GASTO DE EGRESS (SUPABASE) ========
         estatisticas = obter_estatisticas_militares()
         resumo_atualizacao = obter_resumo_atualizacao_cadastral(
-            obm_id=obm_id,
-            posto_grad_id=posto_grad_id,
-            situacao_id=situacao_id,
+            obm_id=obm_id, posto_grad_id=posto_grad_id, situacao_id=situacao_id,
         )
         militares, total_filtrado = obter_militares_atualizacao_cadastral(
-            q=q,
-            status=status,
-            obm_id=obm_id,
-            posto_grad_id=posto_grad_id,
-            situacao_id=situacao_id,
-            page=page,
-            per_page=per_page,
+            q=q, status=status, obm_id=obm_id, posto_grad_id=posto_grad_id,
+            situacao_id=situacao_id, page=page, per_page=per_page,
         )
 
         militares_data = [serializar_militar_atualizacao(m) for m in militares]
 
-        return jsonify({
+        resposta_final = {
             "ok": True,
             "estatisticas": estatisticas,
             "resumo_atualizacao": resumo_atualizacao,
             "militares": militares_data,
-            "q": q,
-            "status": status,
-            "obm_id": obm_id,
-            "posto_grad_id": posto_grad_id,
-            "situacao_id": situacao_id,
-            "page": page,
-            "per_page": per_page,
+            "q": q, "status": status, "obm_id": obm_id,
+            "posto_grad_id": posto_grad_id, "situacao_id": situacao_id,
+            "page": page, "per_page": per_page,
             "total_filtrado": total_filtrado,
             "total_paginas": (total_filtrado + per_page - 1) // per_page,
             "atualizado_em": datetime.now(ZoneInfo("America/Manaus")).strftime("%d/%m/%Y %H:%M:%S"),
-        })
+        }
+
+        # SE FOI A CONSULTA PADRÃO, SALVAMOS O RESULTADO NO CACHE PARA OS PRÓXIMOS 5 MINUTOS
+        if is_consulta_padrao:
+            CACHE_PAINEL["dados"] = resposta_final
+            CACHE_PAINEL["ultima_atualizacao"] = agora
+
+        return jsonify(resposta_final)
+
     except Exception as e:
         print(f"Erro ao carregar API do painel público: {e}")
         return jsonify({"ok": False, "error": "Erro ao carregar dados"}), 500
