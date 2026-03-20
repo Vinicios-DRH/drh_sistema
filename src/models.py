@@ -1722,3 +1722,19 @@ class ImportacaoMilitarHistorico(database.Model):
     usuario = database.relationship(
         "User", backref="historico_importacoes_militar")
     obm = database.relationship("Obm")
+
+
+class LogExportacaoExcel(database.Model):
+    __tablename__ = "log_exportacao_excel"
+
+    id = database.Column(database.Integer, primary_key=True)
+    usuario_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_download = database.Column(
+        database.DateTime, default=now_manaus_naive)
+    ip_address = database.Column(database.String(45))
+    colunas_selecionadas = database.Column(database.Text)
+    filtros_aplicados = database.Column(database.Text)
+
+    # Se quiser acessar os dados do usuário a partir do log depois:
+    usuario = database.relationship('User', backref='logs_exportacao')

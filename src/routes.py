@@ -29,7 +29,7 @@ from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, Import
                         EstadoCivil, Especialidade, Destino, Agregacoes, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, LogExportacaoExcel)
 from src.querys import dados_para_mapa, obter_estatisticas_militares, login_usuario
 from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -3083,11 +3083,18 @@ def tabela_militares():
         }), 500
 
 
-@app.route("/export-excel", methods=["GET"])
+@app.route("/export-excel", methods=["POST"])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'DIRETOR DRH')
 def export_excel():
     try:
+        # Pega as colunas selecionadas pelo usuário no modal
+        colunas_selecionadas = request.form.getlist('colunas')
+
+        # Prevenção caso o usuário envie vazio
+        if not colunas_selecionadas:
+            return jsonify({'error': 'Nenhuma coluna selecionada para exportação.'}), 400
+
         today = date.today()
 
         query = build_tabela_militares_query().order_by(Militar.nome_completo.asc())
@@ -3104,13 +3111,9 @@ def export_excel():
             )
 
             obms = [
-                of.obm.sigla if of.obm else 'OBM não encontrada'
-                for of in obm_funcoes_ativas
-            ]
+                of.obm.sigla if of.obm else 'OBM não encontrada' for of in obm_funcoes_ativas]
             funcoes = [
-                of.funcao.ocupacao if of.funcao else 'Função não encontrada'
-                for of in obm_funcoes_ativas
-            ]
+                of.funcao.ocupacao if of.funcao else 'Função não encontrada' for of in obm_funcoes_ativas]
 
             destino_txt = 'N/A'
             try:
@@ -3141,7 +3144,8 @@ def export_excel():
                 else (militar.sexo or 'N/A')
             )
 
-            rows.append({
+            # Monta um dicionário com TODOS os dados possíveis do militar
+            linha_completa = {
                 'Nome Completo': militar.nome_completo or 'N/A',
                 'Nome de Guerra': militar.nome_guerra or 'N/A',
                 'Posto/Graduação': militar.posto_grad.sigla if militar.posto_grad else 'N/A',
@@ -3166,36 +3170,15 @@ def export_excel():
                 'Pós-Graduação': militar.pos_graduacao or 'N/A',
                 'Mestrado': militar.mestrado or 'N/A',
                 'Doutorado': militar.doutorado or 'N/A',
-            })
+            }
 
-        colunas = [
-            'Nome Completo',
-            'Nome de Guerra',
-            'Posto/Graduação',
-            'Quadro',
-            'Sexo',
-            'Raça/Cor',
-            'CPF',
-            'RG',
-            'Matrícula',
-            'Inclusão',
-            'Especialidade',
-            'Localidade',
-            'Situação',
-            'Destino',
-            'OBM 1',
-            'Função 1',
-            'OBM 2',
-            'Função 2',
-            'Data de Nascimento',
-            'Graduação',
-            'Grau de Instrução',
-            'Pós-Graduação',
-            'Mestrado',
-            'Doutorado',
-        ]
+            # Filtra o dicionário mantendo APENAS as colunas que o usuário selecionou
+            linha_filtrada = {col: linha_completa.get(
+                col, 'N/A') for col in colunas_selecionadas}
+            rows.append(linha_filtrada)
 
-        df = pd.DataFrame(rows, columns=colunas)
+        # Monta o DataFrame apenas com as colunas selecionadas
+        df = pd.DataFrame(rows, columns=colunas_selecionadas)
 
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -3219,39 +3202,21 @@ def export_excel():
                 'border': 1
             })
 
-            widths = {
-                'A': 38,
-                'B': 24,
-                'C': 18,
-                'D': 18,
-                'E': 14,
-                'F': 16,
-                'G': 16,
-                'H': 16,
-                'I': 16,
-                'J': 14,
-                'K': 24,
-                'L': 14,
-                'M': 16,
-                'N': 24,
-                'O': 16,
-                'P': 24,
-                'Q': 16,
-                'R': 24,
-                'S': 16,
-                'T': 18,
-                'U': 22,
-                'V': 20,
-                'W': 18,
-                'X': 18,
+            # Dicionário de larguras mapeado pelo NOME da coluna, não pela letra do Excel
+            largura_colunas = {
+                'Nome Completo': 38, 'Nome de Guerra': 24, 'Posto/Graduação': 18,
+                'Quadro': 18, 'Sexo': 14, 'Raça/Cor': 16, 'CPF': 16, 'RG': 16,
+                'Matrícula': 16, 'Inclusão': 14, 'Especialidade': 24, 'Localidade': 14,
+                'Situação': 16, 'Destino': 24, 'OBM 1': 16, 'Função 1': 24,
+                'OBM 2': 16, 'Função 2': 24, 'Data de Nascimento': 16, 'Graduação': 18,
+                'Grau de Instrução': 22, 'Pós-Graduação': 20, 'Mestrado': 18, 'Doutorado': 18
             }
 
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)
-
-            for col_letter, width in widths.items():
-                worksheet.set_column(
-                    f'{col_letter}:{col_letter}', width, body_format)
+                # Define a largura com base no nome da coluna (default 20 se não achar)
+                width = largura_colunas.get(value, 20)
+                worksheet.set_column(col_num, col_num, width, body_format)
 
             worksheet.freeze_panes(1, 0)
 
@@ -3259,6 +3224,21 @@ def export_excel():
                 worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
 
         output.seek(0)
+
+        # --- AUDITORIA ---
+        # Registra a ação no banco de dados antes de enviar o arquivo
+        # Salva os parâmetros da URL como string
+        filtros_usados = str(request.args.to_dict())
+
+        log_auditoria = LogExportacaoExcel(
+            usuario_id=current_user.id,
+            ip_address=request.remote_addr,
+            colunas_selecionadas="; ".join(colunas_selecionadas),
+            filtros_aplicados=filtros_usados
+        )
+        database.session.add(log_auditoria)
+        database.session.commit()
+        # -----------------
 
         return send_file(
             output,
@@ -3269,6 +3249,8 @@ def export_excel():
 
     except Exception as e:
         app.logger.error(f"Erro ao exportar Excel: {str(e)}")
+        # Em caso de erro, importante dar um rollback
+        database.session.rollback()
         return jsonify({
             'error': 'Ocorreu um erro ao exportar o Excel.',
             'details': str(e)
