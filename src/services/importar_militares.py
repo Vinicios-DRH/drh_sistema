@@ -490,7 +490,7 @@ def sugerir_campos_faltantes(militar, row_data, campos_selecionados):
     return sugestoes, divergentes
 
 
-def analisar_importacao(df, campos_selecionados):
+def analisar_importacao(df, campos_selecionados, modo="misto"):
     resumo = montar_resumo_base()
     preview_limit = 80
 
@@ -520,6 +520,28 @@ def analisar_importacao(df, campos_selecionados):
                 "A linha apontou para militares diferentes pelos identificadores informados."
             )
             continue
+
+        # ==========================================
+        # LÓGICA DE CONTROLE DE MODO (PREVIEW)
+        # ==========================================
+        if modo == "apenas_atualizar" and militar is None:
+            adicionar_inconsistencia(
+                resumo,
+                "ignorado_por_modo",
+                linha_excel,
+                "Modo restrito: Apenas Atualizar. O militar não foi encontrado no banco e será ignorado."
+            )
+            continue
+
+        if modo == "apenas_inserir" and militar is not None:
+            adicionar_inconsistencia(
+                resumo,
+                "ignorado_por_modo",
+                linha_excel,
+                f"Modo restrito: Apenas Inserir. O militar ({militar.nome_completo}) já existe e será ignorado."
+            )
+            continue
+        # ==========================================
 
         inconsistencias_linha = []
 
@@ -601,7 +623,7 @@ def criar_vinculo_obm_se_necessario(militar_id, obm_id):
     database.session.add(novo_vinculo)
 
 
-def importar_dataframe(df, campos_selecionados, modo="complementar", obm_id=None, usuario_id=None):
+def importar_dataframe(df, campos_selecionados, modo="misto", regra_atualizacao="complementar", obm_id=None, usuario_id=None):
     relatorio = {
         "inseridos": 0,
         "atualizados": 0,
@@ -637,6 +659,29 @@ def importar_dataframe(df, campos_selecionados, modo="complementar", obm_id=None
                 continue
 
             novo_registro = militar is None
+
+            # ==========================================
+            # LÓGICA DE CONTROLE DE MODO (EXECUÇÃO)
+            # ==========================================
+            if modo == "apenas_atualizar" and novo_registro:
+                relatorio["ignorados"] += 1
+                relatorio["erros"].append({
+                    "linha": linha_excel,
+                    "tipo": "ignorado_por_modo",
+                    "erro": "Modo restrito: Apenas Atualizar. O militar não foi encontrado no banco."
+                })
+                continue
+
+            if modo == "apenas_inserir" and not novo_registro:
+                relatorio["ignorados"] += 1
+                relatorio["erros"].append({
+                    "linha": linha_excel,
+                    "tipo": "ignorado_por_modo",
+                    "erro": f"Modo restrito: Apenas Inserir. O militar ({militar.nome_completo}) já existe."
+                })
+                continue
+            # ==========================================
+
             if novo_registro:
                 militar = Militar()
                 database.session.add(militar)
@@ -668,13 +713,13 @@ def importar_dataframe(df, campos_selecionados, modo="complementar", obm_id=None
 
                     valor_atual = getattr(militar, target_attr, None)
 
-                    if modo == "complementar":
+                    if regra_atualizacao == "complementar":
                         if valor_vazio(valor_atual):
                             setattr(militar, target_attr, fk_id)
                             alterou = True
                             relatorio["alteracoes_por_campo"][target_attr] = relatorio["alteracoes_por_campo"].get(
                                 target_attr, 0) + 1
-                    elif modo == "sobrescrever":
+                    elif regra_atualizacao == "sobrescrever":
                         if valor_atual != fk_id:
                             setattr(militar, target_attr, fk_id)
                             alterou = True
@@ -693,13 +738,13 @@ def importar_dataframe(df, campos_selecionados, modo="complementar", obm_id=None
 
                 valor_atual = getattr(militar, campo, None)
 
-                if modo == "complementar":
+                if regra_atualizacao == "complementar":
                     if valor_vazio(valor_atual):
                         setattr(militar, campo, valor_convertido)
                         alterou = True
                         relatorio["alteracoes_por_campo"][campo] = relatorio["alteracoes_por_campo"].get(
                             campo, 0) + 1
-                elif modo == "sobrescrever":
+                elif regra_atualizacao == "sobrescrever":
                     atual_txt = "" if valor_atual is None else str(
                         valor_atual).strip()
                     novo_txt = "" if valor_convertido is None else str(

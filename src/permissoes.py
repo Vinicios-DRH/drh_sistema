@@ -41,6 +41,8 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_MIL_ATIVOS_MAPA", "nome": "Menu: Militares Ativos > Mapa da Força"},
     {"codigo": "NAV_MIL_ATIVOS_ADD",
         "nome": "Menu: Militares Ativos > Adicionar Militar"},
+    {"codigo": "NAV_MIL_ATIVOS_IMPORT", "nome": "Menu: Militares Ativos > Importar Planilha"},
+
     {"codigo": "NAV_MIL_ATIVOS_DISP",
         "nome": "Menu: Militares Ativos > Militares à disposição"},
     {"codigo": "NAV_MIL_ATIVOS_AGREG",

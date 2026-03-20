@@ -1696,20 +1696,28 @@ class ImportacaoMilitarHistorico(database.Model):
 
     id = database.Column(database.Integer, primary_key=True)
     usuario_id = database.Column(
-        UUID(as_uuid=True),
-        database.ForeignKey("user.id"),
-        nullable=False
+        database.Integer,
+        database.ForeignKey("user.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True
     )
     nome_arquivo = database.Column(database.String(255), nullable=False)
+    # complementar / sobrescrever
     modo = database.Column(database.String(30), nullable=False)
-    total_linhas = database.Column(database.Integer, default=0)
-    inseridos = database.Column(database.Integer, default=0)
-    atualizados = database.Column(database.Integer, default=0)
-    ignorados = database.Column(database.Integer, default=0)
-    obm_id = database.Column(database.Integer, database.ForeignKey("obm.id"))
-    campos_json = database.Column(database.Text)
-    relatorio_json = database.Column(database.Text)
-    criado_em = database.Column(database.DateTime, default=datetime.utcnow)
+    total_linhas = database.Column(database.Integer, nullable=False, default=0)
+    inseridos = database.Column(database.Integer, nullable=False, default=0)
+    atualizados = database.Column(database.Integer, nullable=False, default=0)
+    ignorados = database.Column(database.Integer, nullable=False, default=0)
+    obm_id = database.Column(
+        database.Integer,
+        database.ForeignKey("obm.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+    campos_json = database.Column(database.Text, nullable=True)
+    relatorio_json = database.Column(database.Text, nullable=True)
+    criado_em = database.Column(
+        database.DateTime, nullable=False, default=datetime.utcnow)
 
     usuario = database.relationship(
         "User", backref="historico_importacoes_militar")

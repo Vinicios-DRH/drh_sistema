@@ -57,7 +57,7 @@ from collections import defaultdict
 from src.utils.sa_serialize import sa_to_dict
 from sqlalchemy.inspection import inspect as sa_inspect
 from src.security.perms import has_perm
-from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super
+from src.authz import is_super_or_perm, can_ferias_bypass_janela, is_super, require_perm
 from src.utils.cadastro_status import cadastro_esta_completo
 from src.utils.painel import (
     _obter_obm_principal,
@@ -117,9 +117,9 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
     except Exception:
         return False
 
-
 @app.route("/militares/importar", methods=["GET"])
 @login_required
+@require_perm("NAV_MIL_ATIVOS_IMPORT")
 def tela_importar_militares():
     obms = Obm.query.order_by(Obm.sigla).all()
     return render_template(
@@ -132,6 +132,9 @@ def tela_importar_militares():
 @login_required
 def analisar_importacao_militares():
     arquivo = request.files.get("arquivo")
+    
+    # Captura o modo escolhido no formulário de upload (padrão é misto)
+    modo = request.form.get("modo", "misto")
 
     if not arquivo or not arquivo.filename:
         flash("Selecione um arquivo Excel ou CSV.", "danger")
@@ -154,7 +157,8 @@ def analisar_importacao_militares():
 
         campos_preselecionados = [c for c in colunas_ok if c != "obm"]
 
-        resumo = analisar_importacao(df, campos_preselecionados)
+        # Passamos o MODO para a análise (para a prévia mostrar o resultado correto)
+        resumo = analisar_importacao(df, campos_preselecionados, modo=modo)
         obms = Obm.query.order_by(Obm.sigla).all()
 
         json_str = df.to_json(orient="records", force_ascii=False)
@@ -171,6 +175,7 @@ def analisar_importacao_militares():
             campos_preselecionados=campos_preselecionados,
             nome_arquivo=nome_arquivo,
             total_colunas=len(df.columns),
+            modo=modo, # <-- Enviamos para o template de confirmação
         )
 
     except Exception as e:
@@ -184,6 +189,9 @@ def reanalisar_importacao_militares():
     payload_b64 = request.form.get("payload_b64")
     campos_selecionados = request.form.getlist("campos")
     nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
+    
+    # Recupera o modo do formulário escondido na tela de confirmação
+    modo = request.form.get("modo", "misto")
 
     if not payload_b64:
         flash("Dados da planilha não encontrados.", "danger")
@@ -200,7 +208,9 @@ def reanalisar_importacao_militares():
 
         colunas_ok = colunas_reconhecidas(df)
         colunas_invalidas = colunas_nao_reconhecidas(df)
-        resumo = analisar_importacao(df, campos_selecionados)
+        
+        # Passamos o MODO novamente para a reanálise
+        resumo = analisar_importacao(df, campos_selecionados, modo=modo)
         obms = Obm.query.order_by(Obm.sigla).all()
 
         return render_template(
@@ -213,6 +223,7 @@ def reanalisar_importacao_militares():
             campos_preselecionados=campos_selecionados,
             nome_arquivo=nome_arquivo,
             total_colunas=len(df.columns),
+            modo=modo, # <-- Mantemos o modo vivo no template
         )
 
     except Exception as e:
@@ -225,7 +236,13 @@ def reanalisar_importacao_militares():
 def confirmar_importacao_militares():
     payload_b64 = request.form.get("payload_b64")
     campos_selecionados = request.form.getlist("campos")
-    modo = request.form.get("modo", "complementar")
+    
+    # Captura o modo invisível (Misto, Apenas Inserir, etc)
+    modo = request.form.get("modo", "misto") 
+    
+    # NOVO: Captura os Radio Buttons (Complementar ou Sobrescrever)
+    regra_atualizacao = request.form.get("regra_atualizacao", "complementar") 
+    
     aplicar_obm = request.form.get("aplicar_obm")
     obm_id = request.form.get("obm_id")
     nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
@@ -243,10 +260,8 @@ def confirmar_importacao_militares():
         json_str = json_bytes.decode("utf-8")
         df = pd.read_json(io.StringIO(json_str), orient="records", dtype=False)
     except Exception as e:
-        current_app.logger.exception(
-            "Erro ao reconstruir DataFrame da importação.")
-        flash(
-            f"Erro ao ler os dados da planilha para importação: {str(e)}", "danger")
+        current_app.logger.exception("Erro ao reconstruir DataFrame da importação.")
+        flash(f"Erro ao ler os dados da planilha para importação: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
 
     obm_id_final = None
@@ -261,13 +276,13 @@ def confirmar_importacao_militares():
         relatorio = importar_dataframe(
             df=df,
             campos_selecionados=campos_selecionados,
-            modo=modo,
+            modo=modo, # <-- O modo é entregue ao motor de importação aqui!
+            regra_atualizacao=regra_atualizacao, # <-- E a regra de atualização também!
             obm_id=obm_id_final,
             usuario_id=current_user.id,
         )
     except Exception as e:
-        current_app.logger.exception(
-            "Erro durante a importação dos militares.")
+        current_app.logger.exception("Erro durante a importação dos militares.")
         flash(f"Erro ao importar planilha: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
 
@@ -275,7 +290,7 @@ def confirmar_importacao_militares():
         salvar_historico_importacao(
             usuario_id=current_user.id,
             nome_arquivo=nome_arquivo,
-            modo=modo,
+            modo=modo, # Salva o modo no histórico pra auditoria
             campos_selecionados=campos_selecionados,
             relatorio=relatorio,
             total_linhas=len(df),
@@ -283,8 +298,7 @@ def confirmar_importacao_militares():
         )
     except Exception as e:
         current_app.logger.exception("Erro ao salvar histórico da importação.")
-        flash(
-            f"Importação concluída, mas falhou ao salvar o histórico: {str(e)}", "warning")
+        flash(f"Importação concluída, mas falhou ao salvar o histórico: {str(e)}", "warning")
 
     session["ultimo_relatorio_importacao_militares"] = relatorio
     session["ultimo_nome_arquivo_importacao_militares"] = nome_arquivo

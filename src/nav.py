@@ -274,6 +274,8 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                          perm="NAV_MIL_ATIVOS_MAPA"),
                 _mk_item("Adicionar Militar", "adicionar_militar",
                          perm="NAV_MIL_ATIVOS_ADD"),
+                _mk_item("Importar Planilha", "tela_importar_militares",
+                         perm="NAV_MIL_ATIVOS_IMPORT"),
                 _mk_item("Militares a disposição",
                          "militares_a_disposicao", perm="NAV_MIL_ATIVOS_DISP"),
                 _mk_item("Militares agregados", "militares_agregados",
