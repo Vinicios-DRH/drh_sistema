@@ -426,6 +426,19 @@ def painel_efetivo_publico_api():
         return jsonify({"ok": False, "error": "Erro ao carregar dados"}), 500
 
 
+@app.route("/painel-efetivo/limpar-cache")
+@login_required  # Opcional: apenas quem tá logado pode limpar
+def limpar_cache_painel():
+    try:
+        CACHE_PAINEL["dados"] = None
+        CACHE_PAINEL["ultima_atualizacao"] = 0
+        flash("Cache do painel limpo com sucesso! Os dados serão atualizados na próxima requisição.", "success")
+        return redirect(url_for("painel_efetivo_publico"))
+    except Exception as e:
+        print(f"Erro ao limpar cache: {e}")
+        return "Erro ao limpar cache", 500
+
+
 @app.route("/painel-efetivo")
 def painel_efetivo_publico():
     try:
