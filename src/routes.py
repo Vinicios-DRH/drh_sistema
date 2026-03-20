@@ -117,6 +117,7 @@ def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
     except Exception:
         return False
 
+
 @app.route("/militares/importar", methods=["GET"])
 @login_required
 @require_perm("NAV_MIL_ATIVOS_IMPORT")
@@ -132,7 +133,7 @@ def tela_importar_militares():
 @login_required
 def analisar_importacao_militares():
     arquivo = request.files.get("arquivo")
-    
+
     # Captura o modo escolhido no formulário de upload (padrão é misto)
     modo = request.form.get("modo", "misto")
 
@@ -175,7 +176,7 @@ def analisar_importacao_militares():
             campos_preselecionados=campos_preselecionados,
             nome_arquivo=nome_arquivo,
             total_colunas=len(df.columns),
-            modo=modo, # <-- Enviamos para o template de confirmação
+            modo=modo,  # <-- Enviamos para o template de confirmação
         )
 
     except Exception as e:
@@ -189,7 +190,7 @@ def reanalisar_importacao_militares():
     payload_b64 = request.form.get("payload_b64")
     campos_selecionados = request.form.getlist("campos")
     nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
-    
+
     # Recupera o modo do formulário escondido na tela de confirmação
     modo = request.form.get("modo", "misto")
 
@@ -208,7 +209,7 @@ def reanalisar_importacao_militares():
 
         colunas_ok = colunas_reconhecidas(df)
         colunas_invalidas = colunas_nao_reconhecidas(df)
-        
+
         # Passamos o MODO novamente para a reanálise
         resumo = analisar_importacao(df, campos_selecionados, modo=modo)
         obms = Obm.query.order_by(Obm.sigla).all()
@@ -223,7 +224,7 @@ def reanalisar_importacao_militares():
             campos_preselecionados=campos_selecionados,
             nome_arquivo=nome_arquivo,
             total_colunas=len(df.columns),
-            modo=modo, # <-- Mantemos o modo vivo no template
+            modo=modo,  # <-- Mantemos o modo vivo no template
         )
 
     except Exception as e:
@@ -236,13 +237,13 @@ def reanalisar_importacao_militares():
 def confirmar_importacao_militares():
     payload_b64 = request.form.get("payload_b64")
     campos_selecionados = request.form.getlist("campos")
-    
+
     # Captura o modo invisível (Misto, Apenas Inserir, etc)
-    modo = request.form.get("modo", "misto") 
-    
+    modo = request.form.get("modo", "misto")
+
     # NOVO: Captura os Radio Buttons (Complementar ou Sobrescrever)
-    regra_atualizacao = request.form.get("regra_atualizacao", "complementar") 
-    
+    regra_atualizacao = request.form.get("regra_atualizacao", "complementar")
+
     aplicar_obm = request.form.get("aplicar_obm")
     obm_id = request.form.get("obm_id")
     nome_arquivo = request.form.get("nome_arquivo", "arquivo_importado")
@@ -260,8 +261,10 @@ def confirmar_importacao_militares():
         json_str = json_bytes.decode("utf-8")
         df = pd.read_json(io.StringIO(json_str), orient="records", dtype=False)
     except Exception as e:
-        current_app.logger.exception("Erro ao reconstruir DataFrame da importação.")
-        flash(f"Erro ao ler os dados da planilha para importação: {str(e)}", "danger")
+        current_app.logger.exception(
+            "Erro ao reconstruir DataFrame da importação.")
+        flash(
+            f"Erro ao ler os dados da planilha para importação: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
 
     obm_id_final = None
@@ -276,13 +279,14 @@ def confirmar_importacao_militares():
         relatorio = importar_dataframe(
             df=df,
             campos_selecionados=campos_selecionados,
-            modo=modo, # <-- O modo é entregue ao motor de importação aqui!
-            regra_atualizacao=regra_atualizacao, # <-- E a regra de atualização também!
+            modo=modo,  # <-- O modo é entregue ao motor de importação aqui!
+            regra_atualizacao=regra_atualizacao,  # <-- E a regra de atualização também!
             obm_id=obm_id_final,
             usuario_id=current_user.id,
         )
     except Exception as e:
-        current_app.logger.exception("Erro durante a importação dos militares.")
+        current_app.logger.exception(
+            "Erro durante a importação dos militares.")
         flash(f"Erro ao importar planilha: {str(e)}", "danger")
         return redirect(url_for("tela_importar_militares"))
 
@@ -290,7 +294,7 @@ def confirmar_importacao_militares():
         salvar_historico_importacao(
             usuario_id=current_user.id,
             nome_arquivo=nome_arquivo,
-            modo=modo, # Salva o modo no histórico pra auditoria
+            modo=modo,  # Salva o modo no histórico pra auditoria
             campos_selecionados=campos_selecionados,
             relatorio=relatorio,
             total_linhas=len(df),
@@ -298,7 +302,8 @@ def confirmar_importacao_militares():
         )
     except Exception as e:
         current_app.logger.exception("Erro ao salvar histórico da importação.")
-        flash(f"Importação concluída, mas falhou ao salvar o histórico: {str(e)}", "warning")
+        flash(
+            f"Importação concluída, mas falhou ao salvar o histórico: {str(e)}", "warning")
 
     session["ultimo_relatorio_importacao_militares"] = relatorio
     session["ultimo_nome_arquivo_importacao_militares"] = nome_arquivo
@@ -809,6 +814,15 @@ def criar_senha(cpf):
 def acesso_negado():
     """Rota para exibir a página de acesso negado."""
     return render_template('acesso_negado.html')
+
+
+@app.errorhandler(403)
+def erro_acesso_proibido(e):
+    """
+    Sempre que qualquer parte do sistema gritar 'abort(403)', 
+    o Flask intercepta e joga o usuário para a rota acesso_negado.
+    """
+    return redirect(url_for('acesso_negado'))
 
 
 @app.route('/api/estatisticas', methods=['GET'])

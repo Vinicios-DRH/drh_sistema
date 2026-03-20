@@ -1,7 +1,7 @@
 # src/authz.py  (ou control.py, mas prefiro separar autorização)
 from functools import wraps
 
-from flask import abort
+from flask import abort, redirect, url_for
 from flask_login import current_user, login_required
 from src.models import UserPermissao
 from src import database as db
@@ -78,6 +78,6 @@ def require_perm(codigo: str):
         def wrapper(*args, **kwargs):
             if is_super() or has_perm(codigo):
                 return fn(*args, **kwargs)
-            abort(403)  # ou: return render_template("403.html"), 403
+            return redirect(url_for('acesso_negado'))
         return wrapper
     return deco
