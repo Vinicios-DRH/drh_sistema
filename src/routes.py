@@ -3857,50 +3857,50 @@ def pafs_nao_preenchidos():
     return render_template("pafs_nao_preenchidos.html", militares=militares_sem_paf)
 
 
-@app.route('/api-sesuite', methods=['GET'])
-def api_sesuite():
-    # Realiza a consulta no banco de dados
-    militares = (
-        database.session.query(Militar, Paf)
-        .outerjoin(Paf, Paf.militar_id == Militar.id)
-        .all()
-    )
+# @app.route('/api-sesuite', methods=['GET'])
+# def api_sesuite():
+#     # Realiza a consulta no banco de dados
+#     militares = (
+#         database.session.query(Militar, Paf)
+#         .outerjoin(Paf, Paf.militar_id == Militar.id)
+#         .all()
+#     )
 
-    # Lista para armazenar os dados que serão retornados no JSON
-    resultado = []
+#     # Lista para armazenar os dados que serão retornados no JSON
+#     resultado = []
 
-    # Itera sobre os resultados da consulta
-    for militar, paf in militares:
-        # Cria um dicionário com os dados do militar e do Paf
-        militar_data = {
-            'posto_grad': militar.posto_grad.sigla if militar.posto_grad else None,
-            'nome_completo': militar.nome_completo,
-            'matricula': militar.matricula,
-            'quadro': militar.quadro.quadro if militar.quadro else None,
-            'ferias_usufruto': {
-                'mes_usufruto': paf.mes_usufruto if paf else None,
-                'qtd_dias_primeiro_periodo': paf.qtd_dias_primeiro_periodo if paf else None,
-                'primeiro_periodo_ferias': paf.primeiro_periodo_ferias.strftime(
-                    '%Y-%m-%d') if paf and paf.primeiro_periodo_ferias else None,
-                'fim_primeiro_periodo': paf.fim_primeiro_periodo.strftime(
-                    '%Y-%m-%d') if paf and paf.fim_primeiro_periodo else None,
-                'qtd_dias_segundo_periodo': paf.qtd_dias_segundo_periodo if paf else None,
-                'segundo_periodo_ferias': paf.segundo_periodo_ferias.strftime(
-                    '%Y-%m-%d') if paf and paf.segundo_periodo_ferias else None,
-                'fim_segundo_periodo': paf.fim_segundo_periodo.strftime(
-                    '%Y-%m-%d') if paf and paf.fim_segundo_periodo else None,
-                'qtd_dias_terceiro_periodo': paf.qtd_dias_terceiro_periodo if paf else None,
-                'terceiro_periodo_ferias': paf.terceiro_periodo_ferias.strftime(
-                    '%Y-%m-%d') if paf and paf.terceiro_periodo_ferias else None,
-                'fim_terceiro_periodo': paf.fim_terceiro_periodo.strftime(
-                    '%Y-%m-%d') if paf and paf.fim_terceiro_periodo else None
-            }
-        }
-        # Adiciona o dicionário à lista de resultados
-        resultado.append(militar_data)
+#     # Itera sobre os resultados da consulta
+#     for militar, paf in militares:
+#         # Cria um dicionário com os dados do militar e do Paf
+#         militar_data = {
+#             'posto_grad': militar.posto_grad.sigla if militar.posto_grad else None,
+#             'nome_completo': militar.nome_completo,
+#             'matricula': militar.matricula,
+#             'quadro': militar.quadro.quadro if militar.quadro else None,
+#             'ferias_usufruto': {
+#                 'mes_usufruto': paf.mes_usufruto if paf else None,
+#                 'qtd_dias_primeiro_periodo': paf.qtd_dias_primeiro_periodo if paf else None,
+#                 'primeiro_periodo_ferias': paf.primeiro_periodo_ferias.strftime(
+#                     '%Y-%m-%d') if paf and paf.primeiro_periodo_ferias else None,
+#                 'fim_primeiro_periodo': paf.fim_primeiro_periodo.strftime(
+#                     '%Y-%m-%d') if paf and paf.fim_primeiro_periodo else None,
+#                 'qtd_dias_segundo_periodo': paf.qtd_dias_segundo_periodo if paf else None,
+#                 'segundo_periodo_ferias': paf.segundo_periodo_ferias.strftime(
+#                     '%Y-%m-%d') if paf and paf.segundo_periodo_ferias else None,
+#                 'fim_segundo_periodo': paf.fim_segundo_periodo.strftime(
+#                     '%Y-%m-%d') if paf and paf.fim_segundo_periodo else None,
+#                 'qtd_dias_terceiro_periodo': paf.qtd_dias_terceiro_periodo if paf else None,
+#                 'terceiro_periodo_ferias': paf.terceiro_periodo_ferias.strftime(
+#                     '%Y-%m-%d') if paf and paf.terceiro_periodo_ferias else None,
+#                 'fim_terceiro_periodo': paf.fim_terceiro_periodo.strftime(
+#                     '%Y-%m-%d') if paf and paf.fim_terceiro_periodo else None
+#             }
+#         }
+#         # Adiciona o dicionário à lista de resultados
+#         resultado.append(militar_data)
 
-    # Retorna a lista de resultados como JSON
-    return jsonify(resultado)
+#     # Retorna a lista de resultados como JSON
+#     return jsonify(resultado)
 
 
 @app.route("/debug/militar/<int:militar_id>/full")
