@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+
+<style>
+    /* ... (MANTENHA TODO O SEU CSS AQUI IGUAL AO ANTERIOR) ... */
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 16px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .95);
+        border: 1px solid rgba(255, 255, 255, .55);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        color: #111;
+    }
+
+    .table-shell {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 14px;
+        padding: 1rem;
+    }
+
+    #tabela-auditoria thead th {
+        background: transparent;
+        border-bottom: 2px solid #e2e8f0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    #tabela-auditoria tbody td {
+        vertical-align: middle;
+        font-size: 0.95rem;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 1rem 0.5rem;
+    }
+
+    #tabela-auditoria tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .coluna-badge {
+        display: inline-block;
+        padding: 0.35rem 0.7rem;
+        margin: 0.2rem;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .coluna-badge:hover {
+        background: #e2e8f0;
+    }
+
+    .filtro-box {
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.85rem;
+        color: #e2e8f0;
+        word-break: break-all;
+    }
+
+    div.dataTables_wrapper div.dataTables_filter input {
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.8rem;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 2rem 0.4rem 0.8rem;
+    }
+
+    .pagination .page-link {
+        border-radius: 6px;
+        margin: 0 3px;
+        border: 1px solid #e2e8f0;
+        color: #0b2e4f;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0b2e4f;
+        border-color: #0b2e4f;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4">
+    <div class="container-fluid px-3 px-md-4">
+
+        <div class="brand-header p-3 p-md-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-25 p-3 rounded-circle border border-light border-opacity-25">
+                    <i class="bi bi-shield-check text-light fs-3"></i>
+                </div>
+                <div>
+                    <h1 class="h4 mb-1 text-light">Auditoria de Exportações</h1>
+                    <div class="small text-light opacity-75">
+                        Histórico de acesso e downloads de dados sensíveis.
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <a href="{{ url_for('exportar_auditoria_excel') }}"
+                    class="btn btn-success rounded-pill px-4 py-2 shadow-sm border border-light border-opacity-25">
+                    <i class="bi bi-file-earmark-excel me-2"></i> Exportar Registros
+                </a>
+            </div>
+        </div>
+
+        <div class="glass-panel p-3 p-md-4">
+            <div class="table-shell">
+                <div class="table-responsive">
+                    <table id="tabela-auditoria" class="table align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Data da Exportação</th>
+                                <th>Tipo de Relatório</th>
+                                <th>Operador / ID</th>
+                                <th>Endereço IP</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td data-sort="{{ log.data_download.strftime('%Y%m%d%H%M%S') }}">
+                                    <div class="fw-bold text-dark"><i
+                                            class="bi bi-calendar-event me-2 text-primary"></i>{{
+                                        log.data_download.strftime('%d/%m/%Y') }}</div>
+                                    <div class="small text-muted"><i class="bi bi-clock me-2"></i>{{
+                                        log.data_download.strftime('%H:%M:%S') }}</div>
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                        {{ log.nome_relatorio or 'Planilha Genérica' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="fw-bold text-dark">{{ log.usuario.nome if log.usuario else 'Usuário
+                                        Deletado' }}</div>
+                                    <div class="small text-muted">Matrícula/ID: {{ log.usuario_id }}</div>
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="badge bg-light text-dark border border-secondary border-opacity-25 py-2 px-3">
+                                        <i class="bi bi-hdd-network me-1 text-secondary"></i> {{ log.ip_address }}
+                                    </span>
+                                </td>
+
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                        data-bs-toggle="modal" data-bs-target="#modalDetalhes{{ log.id }}">
+                                        Ver Detalhes <i class="bi bi-arrow-right ms-1"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% for log in logs %}
+<div class="modal fade" id="modalDetalhes{{ log.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content text-start border-0 shadow-lg">
+
+            <div class="modal-header bg-light border-bottom-0 pb-0">
+                <h5 class="modal-title text-dark fw-bold">
+                    <i class="bi bi-shield-exclamation text-primary me-2"></i>Dossiê de Exportação #{{ log.id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body bg-light pt-3 pb-4">
+
+                <div
+                    class="alert alert-primary bg-primary bg-opacity-10 border-primary border-opacity-25 d-flex align-items-center mb-4">
+                    <i class="bi bi-file-earmark-spreadsheet fs-4 me-3 text-primary"></i>
+                    <div>
+                        <div class="small text-primary fw-bold text-uppercase" style="letter-spacing: 0.5px;">Relatório
+                            Exportado</div>
+                        <div class="fs-5 fw-bold text-dark">{{ log.nome_relatorio or 'Planilha de Dados Gerais' }}</div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4 border-start border-primary border-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-secondary mb-3 text-uppercase"
+                            style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-person-badge me-1"></i> Perfil do Operador
+                        </h6>
+
+                        {% if log.usuario %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="small text-muted">Nome Completo</div>
+                                <div class="fw-bold text-dark">{{ log.usuario.nome or 'N/A' }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="small text-muted">E-mail</div>
+                                <div class="fw-bold text-dark">{{ log.usuario.email or 'N/A' }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">CPF</div>
+                                <div class="fw-bold text-dark">{{ log.usuario.cpf_norm or log.usuario.cpf or 'N/A' }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">Função no Sistema</div>
+                                <div>
+                                    {% if log.usuario.funcao_user %}
+                                    <span
+                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">{{
+                                        log.usuario.funcao_user.ocupacao }}</span>
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="small text-muted">Vínculo Militar</div>
+                                {% if log.usuario.militar_id and log.usuario.militar %}
+                                <button class="btn btn-sm btn-outline-primary mt-1" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseMilitar{{ log.id }}"
+                                    aria-expanded="false">
+                                    <i class="bi bi-person-vcard me-1"></i> Ver Ficha (ID: {{ log.usuario.militar_id }})
+                                </button>
+                                {% elif log.usuario.militar_id %}
+                                <div class="fw-bold text-dark">{{ log.usuario.militar_id }} <span
+                                        class="text-danger small">(S/ Cadastro)</span></div>
+                                {% else %}
+                                <div class="fw-bold text-dark">Nenhum</div>
+                                {% endif %}
+                            </div>
+
+                            {% if log.usuario.militar %}
+                            <div class="col-12 p-0">
+                                <div class="collapse mt-2" id="collapseMilitar{{ log.id }}">
+                                    <div
+                                        class="card card-body bg-white border border-primary border-opacity-25 shadow-sm rounded-3">
+                                        <h6 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                                            <i class="bi bi-info-square me-1"></i> Detalhes do Efetivo
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-sm-4">
+                                                <small class="text-muted d-block"
+                                                    style="font-size: 0.75rem;">Posto/Graduação</small>
+                                                <span class="fw-bold text-dark">{{ log.usuario.militar.posto_grad.sigla
+                                                    if log.usuario.militar.posto_grad else 'N/A' }}</span>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <small class="text-muted d-block"
+                                                    style="font-size: 0.75rem;">Quadro</small>
+                                                <span class="fw-bold text-dark">{{ log.usuario.militar.quadro.quadro if
+                                                    log.usuario.militar.quadro else 'N/A' }}</span>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Data de
+                                                    Inclusão</small>
+                                                <span class="fw-bold text-dark">{{
+                                                    log.usuario.militar.inclusao.strftime('%d/%m/%Y') if
+                                                    log.usuario.militar.inclusao else 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="col-md-6 mt-3 border-top pt-2">
+                                <div class="small text-muted">Último Acesso ao Sistema</div>
+                                <div class="fw-bold text-dark">{{ log.usuario.data_ultimo_acesso.strftime('%d/%m/%Y
+                                    %H:%M') if log.usuario.data_ultimo_acesso else 'N/A' }}</div>
+                            </div>
+                            <div class="col-md-6 mt-3 border-top pt-2">
+                                <div class="small text-muted">IP na hora do Download</div>
+                                <div class="fw-bold text-danger"><i class="bi bi-geo-alt-fill me-1"></i>{{
+                                    log.ip_address }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning mb-0 border-warning">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Atenção:</strong> O cadastro
+                            deste usuário foi excluído do sistema.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-secondary mb-3 text-uppercase"
+                            style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-layout-three-columns me-1"></i> Dados Extraídos (Colunas)
+                        </h6>
+                        <div>
+                            {% for coluna in log.colunas_selecionadas.split(';') %}
+                            <span class="coluna-badge">{{ coluna.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="fw-bold text-secondary mb-3 text-uppercase"
+                            style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-funnel me-1"></i> Filtros Aplicados na Busca
+                        </h6>
+                        <div class="filtro-box shadow-inner">
+                            {{ log.filtros_aplicados }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer bg-white border-top-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Fechar Dossiê</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#tabela-auditoria').DataTable({
+            responsive: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
+            order: [[0, 'desc']],
+            pageLength: 10
+        });
+    });
+</script>
+{% endblock %}

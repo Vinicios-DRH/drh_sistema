@@ -131,6 +131,7 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_ADMIN_PERMISSOES", "nome": "Menu: Administração > Permissões"},
     {"codigo": "NAV_ADMIN_OBM_GESTAO", "nome": "Menu: Administração > OBM Gestão"},
     {"codigo": "SYS_SUPER", "nome": "Sistema: Acesso tipo SUPER (override)"},
+    {"codigo": "NAV_ADMIN_AUDITORIA", "nome": "Menu: Administração > Auditoria de Exportações"},
 
     # ===== APP TAF =====
     {"codigo": "APP_TAF_LOGIN", "nome": "App TAF: Pode logar no aplicativo"},

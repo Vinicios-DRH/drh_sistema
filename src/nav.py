@@ -494,6 +494,10 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                          "admin_permissoes.index", perm="NAV_ADMIN_PERMISSOES"),
                 _mk_item("OBM Gestão (Gestoras/Subordinadas)",
                          "admin_obm_gestao.index", perm="NAV_ADMIN_OBM_GESTAO"),
+
+                # NOVO ITEM ADICIONADO AQUI:
+                _mk_item("Auditoria de Exportações",
+                         "auditoria_exportacoes", perm="NAV_ADMIN_AUDITORIA"),
             ],
         )
     )

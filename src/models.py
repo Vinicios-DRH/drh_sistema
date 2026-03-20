@@ -311,9 +311,9 @@ class User(database.Model, UserMixin):
 
     ip_address = database.Column(database.String(45))
     data_criacao = database.Column(
-        database.DateTime, default=datetime.utcnow())
+        database.DateTime, default=now_manaus_naive)
     data_ultimo_acesso = database.Column(
-        database.DateTime, default=datetime.utcnow())
+        database.DateTime, default=now_manaus_naive)
     endereco_acesso = database.Column(database.String(100))
 
     obm1 = database.relationship('Obm', foreign_keys=[obm_id_1])
@@ -324,6 +324,7 @@ class User(database.Model, UserMixin):
         'Localidade', foreign_keys=[localidade_id])
     permissoes = database.relationship(
         "UserPermissao", backref="user", lazy="select")
+    militar = database.relationship('Militar', foreign_keys=[militar_id])
 
 
 class Comportamento(database.Model):
@@ -1730,6 +1731,8 @@ class LogExportacaoExcel(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
+    # Para saber de qual tela o cara baixou
+    nome_relatorio = database.Column(database.String(150))
     data_download = database.Column(
         database.DateTime, default=now_manaus_naive)
     ip_address = database.Column(database.String(45))

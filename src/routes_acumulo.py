@@ -16,6 +16,7 @@ from src.decorators.helpers_docx import render_docx_from_template
 from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased
 from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
+from src.utils.utils import registrar_log_download
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 
@@ -2067,6 +2068,29 @@ def recebimento_export():
     bstatus = status if status != 'todos' else 'todos'
     suffix_obm = f"_obm{obm_id}" if obm_id else ""
     fname = f"declaracoes_{ano}_{bstatus}{suffix_obm}_com_vinculos_negativas_e_naoenviados.xlsx"
+
+    # 1. Montamos um dicionário com os filtros reais que vieram da URL
+    filtros_usados = {
+        "ano": ano,
+        "status": status,
+        "obm_id": obm_id if obm_id else "Todas as OBMs",
+        "busca": q if q else "Nenhuma palavra-chave"
+    }
+
+    # 2. Definimos as colunas principais (podemos resumir as abas exportadas aqui)
+    colunas_exportadas = [
+        "Aba 1: Resumo",
+        "Aba 2: Vínculos (positivas)",
+        "Aba 3: Declarações negativas",
+        "Aba 4: Não enviados"
+    ]
+
+    # 3. Chamamos a função global
+    registrar_log_download(
+        nome_relatorio="Declarações de Acúmulo de Cargo",
+        colunas_lista=colunas_exportadas,
+        filtros_dict=filtros_usados
+    )
 
     resp = send_file(
         bio,

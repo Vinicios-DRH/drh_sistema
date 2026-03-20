@@ -79,6 +79,7 @@ from src.services.importar_militares import (
     salvar_historico_importacao,
 )
 import time
+from src.utils.utils import registrar_log_download
 
 # --- CACHE DO PAINEL ---
 CACHE_PAINEL = {
@@ -637,6 +638,15 @@ def painel_efetivo_publico_exportar_excel():
         data_exportacao = datetime.now(
             ZoneInfo("America/Manaus")).strftime("%Y-%m-%d_%H-%M-%S")
 
+        registrar_log_download(
+            nome_relatorio="Painel Público - Atualização Cadastral",
+            colunas_lista=headers,
+            filtros_dict={"status": "Atualizado" if status == "atualizado" else "Pendente" if status == "pendente" else "Todos",
+                          "obm": Obm.query.get(obm_id).sigla if obm_id else "Todas" if obm_id is not None else "N/A",
+                          "posto_grad": PostoGrad.query.get(posto_grad_id).sigla if posto_grad_id else "Todos" if posto_grad_id is not None else "N/A",
+                          "situacao": Situacao.query.get(situacao_id).condicao if situacao_id else "Todas" if situacao_id is not None else "N/A",
+                          "q": q or "N/A"},
+        )
         return send_file(
             output,
             as_attachment=True,
@@ -3230,14 +3240,11 @@ def export_excel():
         # Salva os parâmetros da URL como string
         filtros_usados = str(request.args.to_dict())
 
-        log_auditoria = LogExportacaoExcel(
-            usuario_id=current_user.id,
-            ip_address=request.remote_addr,
-            colunas_selecionadas="; ".join(colunas_selecionadas),
-            filtros_aplicados=filtros_usados
+        registrar_log_download(
+            nome_relatorio="Exportação de Militares Filtrados",
+            colunas_lista=colunas_selecionadas,
+            filtros_dict={"status": "; ".join(filtros_usados)},
         )
-        database.session.add(log_auditoria)
-        database.session.commit()
         # -----------------
 
         return send_file(
@@ -3255,6 +3262,99 @@ def export_excel():
             'error': 'Ocorreu um erro ao exportar o Excel.',
             'details': str(e)
         }), 500
+
+
+@app.route("/auditoria/exportacoes", methods=["GET"])
+@login_required
+@checar_ocupacao('SUPER USER')
+def auditoria_exportacoes():
+    try:
+        # Busca os logs ordenados do mais recente para o mais antigo
+        # Assumindo que você fez o relationship 'usuario' na model LogExportacaoExcel
+        logs = LogExportacaoExcel.query.order_by(
+            LogExportacaoExcel.data_download.desc()).all()
+
+        return render_template("auditoria_exportacoes.html", logs=logs)
+    except Exception as e:
+        app.logger.error(f"Erro ao carregar auditoria: {str(e)}")
+        flash("Erro ao carregar os dados de auditoria.", "error")
+        return redirect(url_for('home'))
+
+
+@app.route("/auditoria/exportacoes/exportar-excel", methods=["GET"])
+@login_required
+@checar_ocupacao('SUPER USER')
+def exportar_auditoria_excel():
+    try:
+        logs = LogExportacaoExcel.query.order_by(
+            LogExportacaoExcel.data_download.desc()).all()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Log de Exportações"
+
+        # Cabeçalhos
+        headers = [
+            "ID Log", "Relatório Baixado", "Data e Hora", "Operador",
+            "CPF do Operador", "Endereço IP", "Qtd. Colunas", "Filtros Usados"
+        ]
+        ws.append(headers)
+
+        # Estilo do Header
+        header_fill = PatternFill("solid", fgColor="0B4A7D")
+        header_font = Font(color="FFFFFF", bold=True)
+        for col_num in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Dados
+        for log in logs:
+            cpf_user = log.usuario.cpf_norm if log.usuario else "N/A"
+            nome_user = log.usuario.nome if log.usuario else "Usuário Deletado"
+            data_str = log.data_download.strftime(
+                '%d/%m/%Y %H:%M:%S') if log.data_download else "N/A"
+            qtd_colunas = len(log.colunas_selecionadas.split(
+                ';')) if log.colunas_selecionadas else 0
+
+            ws.append([
+                log.id,
+                log.nome_relatorio or "Relatório Genérico",
+                data_str,
+                nome_user,
+                cpf_user,
+                log.ip_address,
+                qtd_colunas,
+                log.filtros_aplicados
+            ])
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        # ----------------------------------------------------------------- #
+        # O PULO DO GATO: Registra o download DESTA auditoria no banco!     #
+        # ----------------------------------------------------------------- #
+        registrar_log_download(
+            nome_relatorio="Auditoria de Exportações (Logs)",
+            colunas_lista=headers,
+            filtros_dict={"busca": "Todos os registros de log no banco"}
+        )
+
+        data_exportacao = datetime.now(
+            ZoneInfo("America/Manaus")).strftime("%Y%m%d_%H%M%S")
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"auditoria_downloads_{data_exportacao}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        app.logger.error(f"Erro ao exportar excel de auditoria: {str(e)}")
+        flash("Erro ao gerar o arquivo Excel.", "error")
+        return redirect(url_for('auditoria_exportacoes'))
 
 
 @app.route("/militares-a-disposicao")
@@ -3661,6 +3761,13 @@ def exportar_pafs(tabela):
     output = BytesIO()
     wb.save(output)
     output.seek(0)
+
+    registrar_log_download(
+        nome_relatorio="Plano Anual de Férias (PAF Geral)",
+        colunas_lista=colunas,  # Usa a própria variável 'colunas' que você já declarou lá em cima
+        filtros_dict={"ano_referencia": ultimo_ano,
+                      "escopo": "Toda a Corporação"}
+    )
 
     response = make_response(output.read())
     response.headers[
@@ -4157,6 +4264,16 @@ def exportar_pafs_obm(obm_id):
     output = BytesIO()
     wb.save(output)
     output.seek(0)
+
+    registrar_log_download(
+        nome_relatorio=f"Plano Anual de Férias (PAF) - {obm.sigla}",
+        colunas_lista=colunas,  # Puxa a lista de colunas dinâmica
+        filtros_dict={
+            "ano_referencia": ano,
+            "obm_id": obm_id,
+            "obm_sigla": obm.sigla
+        }
+    )
 
     filename = f"pafs_{obm.sigla}_{ano}.xlsx"
     response = make_response(output.read())
@@ -5129,6 +5246,12 @@ def exportar_motoristas_excel():
         output.seek(0)
 
         nome_arquivo = f"motoristas_classificados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        registrar_log_download(
+            nome_relatorio="Lista de Motoristas Classificados",
+            colunas_lista=headers,
+            filtros_dict={"status": "Apenas Classificados Ativos"}
+        )
 
         return send_file(
             output,
