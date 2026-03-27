@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    .print-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+        background: #fff;
+        color: #111;
+    }
+
+    .print-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+    }
+
+    .print-title {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .print-sub {
+        color: #4b5563;
+    }
+
+    .print-kpis {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+        margin: 18px 0 22px;
+    }
+
+    .print-kpi {
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    .print-kpi-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #6b7280;
+        font-weight: 700;
+    }
+
+    .print-kpi-value {
+        font-size: 22px;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .print-table th,
+    .print-table td {
+        border: 1px solid #d1d5db;
+        padding: 8px 10px;
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .print-table th {
+        background: #0b2f4f;
+        color: #fff;
+        text-align: left;
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            background: #fff !important;
+        }
+    }
+</style>
+
+<div class="print-shell">
+    <div class="print-head">
+        <div>
+            <div class="print-title">Relatório da Junta Médica</div>
+            <div class="print-sub">CBMAM • Licenças, inspeções e agregação</div>
+        </div>
+
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-dark">Salvar/Imprimir PDF</button>
+        </div>
+    </div>
+
+    <div class="print-kpis">
+        <div class="print-kpi">
+            <div class="print-kpi-label">Total</div>
+            <div class="print-kpi-value">{{ resumo.total }}</div>
+        </div>
+        <div class="print-kpi">
+            <div class="print-kpi-label">Em licença</div>
+            <div class="print-kpi-value">{{ resumo.em_licenca }}</div>
+        </div>
+        <div class="print-kpi">
+            <div class="print-kpi-label">Aptos</div>
+            <div class="print-kpi-value">{{ resumo.aptos }}</div>
+        </div>
+        <div class="print-kpi">
+            <div class="print-kpi-label">Restrições</div>
+            <div class="print-kpi-value">{{ resumo.restricoes }}</div>
+        </div>
+        <div class="print-kpi">
+            <div class="print-kpi-label">Aguardando inspeção</div>
+            <div class="print-kpi-value">{{ resumo.aguardando_inspecao }}</div>
+        </div>
+        <div class="print-kpi">
+            <div class="print-kpi-label">Agregados</div>
+            <div class="print-kpi-value">{{ resumo.agregados }}</div>
+        </div>
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th>Militar</th>
+                <th>Tipo</th>
+                <th>Status Registro</th>
+                <th>Status Atual</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Dias</th>
+                <th>Agregação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in dados %}
+            <tr>
+                <td>
+                    {{ item.registro.militar.posto_grad.sigla if item.registro.militar and
+                    item.registro.militar.posto_grad else '' }}
+                    {{ item.registro.militar.nome_completo if item.registro.militar else '' }}
+                </td>
+                <td>{{ item.tipo_label }}</td>
+                <td>{{ item.status_label }}</td>
+                <td>{{ item.status_atual_label }}</td>
+                <td>{{ item.registro.data_inicio.strftime('%d/%m/%Y') if item.registro.data_inicio else '' }}</td>
+                <td>{{ item.registro.data_fim.strftime('%d/%m/%Y') if item.registro.data_fim else '' }}</td>
+                <td>{{ item.registro.qtd_dias }}</td>
+                <td>
+                    {% if item.agregacao.atingiu_limite %}
+                    AGREGADO/Apto à agregação
+                    {% elif item.agregacao.alerta %}
+                    {{ item.agregacao.mensagem }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

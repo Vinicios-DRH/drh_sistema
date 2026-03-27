@@ -873,3 +873,70 @@ class FormResetarSenhaPublica(FlaskForm):
             "senha", message="As senhas precisam ser iguais.")]
     )
     botao_submit = SubmitField("Salvar nova senha")
+
+
+class FormLicencas(FlaskForm):
+    militar_id = HiddenField("Militar ID", validators=[DataRequired()])
+
+    militar_nome = StringField(
+        "Militar",
+        validators=[Optional()],
+        render_kw={"readonly": True}
+    )
+
+    posto_grad_id = StringField(
+        "Posto/Graduação", render_kw={"readonly": True})
+    quadro_id = StringField("Quadro", render_kw={"readonly": True})
+    obm_id_1 = StringField("OBM", render_kw={"readonly": True})
+
+    tipo_licenca = SelectField(
+        "Tipo de licença",
+        choices=[
+            ("LTS", "INCAPAZ TEMPORARIAMENTE PARA SERVIÇO (LTS)"),
+            ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE PESSOA DA FAMÍLIA"),
+            ("LM", "LICENÇA MATERNIDADE"),
+            ("APTO_RESTR", "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM"),
+            ("APTO_RECOM", "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM"),
+            ("APTO", "APTO AO SERVIÇO DO CBMAM"),
+            ("AGREGADO", "AGREGADO"),
+        ],
+        validators=[DataRequired()]
+    )
+
+    qtd_dias = IntegerField(
+        "Quantidade de dias",
+        validators=[DataRequired(), NumberRange(min=1, max=3650)],
+        render_kw={"min": 1}
+    )
+
+    data_inicio = DateField(
+        "A CONTAR DE",
+        format="%Y-%m-%d",
+        validators=[DataRequired()]
+    )
+
+    data_termino = DateField(
+        "TÉRMINO",
+        format="%Y-%m-%d",
+        validators=[Optional()],
+        render_kw={"readonly": True}
+    )
+
+    status = SelectField(
+        "Status",
+        choices=[
+            ("LTS", "LTS - INCAPAZ TEMPORARIAMENTE"),
+            ("LTSPF", "LTSPF"),
+            ("LM", "LICENÇA MATERNIDADE"),
+            ("APTO_RECOM", "APTO COM RECOMENDAÇÕES"),
+            ("APTO_RESTR", "APTO AO SERVIÇO DO CBMAM COM RESTRIÇÃO"),
+            ("APTO", "APTO AO SERVIÇO DO CBMAM SEM RESTRIÇÃO"),
+            ("AGREGADO", "AGREGADO"),
+        ],
+        validators=[Optional()]
+    )
+
+    sessao = StringField("Sessão da Junta", validators=[DataRequired()])
+    observacao = TextAreaField("Observações", validators=[Optional()])
+
+    botao_submit = SubmitField("Registrar")

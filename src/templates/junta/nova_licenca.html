@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block body %}
+<style>
+    :root {
+        --jm-bg-1: #061a2f;
+        --jm-bg-2: #0b2f4f;
+        --jm-bg-3: #123f68;
+        --jm-card: rgba(255, 255, 255, 0.10);
+        --jm-card-strong: rgba(255, 255, 255, 0.16);
+        --jm-border: rgba(255, 255, 255, 0.18);
+        --jm-text: #eaf4ff;
+        --jm-muted: #bdd1e6;
+        --jm-primary: #7cc7ff;
+        --jm-primary-2: #4ca6ff;
+        --jm-success: #56d89a;
+        --jm-warning: #ffc96b;
+        --jm-danger: #ff6b7d;
+        --jm-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+        --jm-radius-xl: 28px;
+        --jm-radius-lg: 20px;
+        --jm-radius-md: 16px;
+    }
+
+    .jm-page {
+        min-height: calc(100vh - 60px);
+        padding: 2rem 0 3rem;
+        background:
+            radial-gradient(circle at top left, rgba(124, 199, 255, 0.18), transparent 28%),
+            radial-gradient(circle at top right, rgba(86, 216, 154, 0.12), transparent 24%),
+            linear-gradient(135deg, var(--jm-bg-1) 0%, var(--jm-bg-2) 48%, var(--jm-bg-3) 100%);
+    }
+
+    .jm-shell {
+        max-width: 1380px;
+        margin: 0 auto;
+    }
+
+    .jm-glass {
+        background: var(--jm-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--jm-border);
+        box-shadow: var(--jm-shadow);
+    }
+
+    .jm-hero {
+        border-radius: var(--jm-radius-xl);
+        padding: 1.6rem 1.6rem 1.35rem;
+        color: var(--jm-text);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .jm-hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -40px auto;
+        width: 220px;
+        height: 220px;
+        background: radial-gradient(circle, rgba(124, 199, 255, 0.28), transparent 65%);
+        pointer-events: none;
+    }
+
+    .jm-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .85rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: var(--jm-text);
+        font-size: .82rem;
+        font-weight: 600;
+    }
+
+    .jm-muted {
+        color: var(--jm-muted);
+    }
+
+    .jm-card {
+        border-radius: var(--jm-radius-xl);
+        overflow: hidden;
+    }
+
+    .jm-card-header {
+        padding: 1.15rem 1.35rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        color: var(--jm-text);
+    }
+
+    .jm-card-body {
+        padding: 1.35rem;
+        color: var(--jm-text);
+    }
+
+    .jm-section-title {
+        font-size: .85rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--jm-muted);
+        margin-bottom: .9rem;
+        font-weight: 700;
+    }
+
+    .jm-input,
+    .jm-select,
+    .jm-textarea {
+        background: rgba(255, 255, 255, 0.10) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #fff !important;
+        border-radius: 16px !important;
+        min-height: 48px;
+        box-shadow: none !important;
+    }
+
+    .jm-input::placeholder,
+    .jm-textarea::placeholder {
+        color: rgba(234, 244, 255, 0.58);
+    }
+
+    .jm-input:focus,
+    .jm-select:focus,
+    .jm-textarea:focus {
+        border-color: rgba(124, 199, 255, 0.52) !important;
+        box-shadow: 0 0 0 .2rem rgba(76, 166, 255, 0.14) !important;
+    }
+
+    .jm-textarea {
+        min-height: 120px;
+    }
+
+    .jm-readonly {
+        background: rgba(255, 255, 255, 0.07) !important;
+    }
+
+    .jm-label {
+        color: var(--jm-text);
+        font-weight: 700;
+        margin-bottom: .45rem;
+        font-size: .92rem;
+    }
+
+    .jm-mini-card {
+        border-radius: 18px;
+        padding: .95rem 1rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        min-height: 94px;
+    }
+
+    .jm-mini-label {
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--jm-muted);
+        margin-bottom: .35rem;
+        font-weight: 700;
+    }
+
+    .jm-mini-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--jm-text);
+        line-height: 1.35;
+    }
+
+    .jm-alert {
+        border: 1px solid rgba(255, 201, 107, 0.32);
+        background: rgba(255, 201, 107, 0.14);
+        color: #ffe3aa;
+        border-radius: 18px;
+        padding: .95rem 1rem;
+    }
+
+    .jm-btn-primary {
+        border: 0;
+        border-radius: 16px;
+        padding: .85rem 1.25rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, #1d7bff, #45b0ff);
+        box-shadow: 0 12px 24px rgba(29, 123, 255, 0.28);
+    }
+
+    .jm-btn-primary:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .jm-btn-ghost {
+        border-radius: 16px;
+        padding: .85rem 1.25rem;
+        font-weight: 700;
+        color: var(--jm-text);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .jm-btn-ghost:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    #resultados_militar {
+        max-height: 280px;
+        overflow-y: auto;
+        display: none;
+        border-radius: 18px;
+        background: rgba(7, 20, 36, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+    }
+
+    #resultados_militar .list-group-item {
+        cursor: pointer;
+        background: transparent;
+        color: var(--jm-text);
+        border-color: rgba(255, 255, 255, 0.06);
+        padding: .9rem 1rem;
+    }
+
+    #resultados_militar .list-group-item:hover {
+        background: rgba(124, 199, 255, 0.10);
+    }
+
+    .alert {
+        border-radius: 16px;
+        border: 0;
+    }
+
+    .form-select option {
+        color: #111827;
+    }
+
+    @media (max-width: 768px) {
+        .jm-page {
+            padding: 1rem .35rem 2rem;
+        }
+
+        .jm-card-body,
+        .jm-card-header,
+        .jm-hero {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+</style>
+
+<div class="jm-page">
+    <div class="container-fluid jm-shell">
+        <div class="jm-glass jm-hero mb-4">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="jm-chip">Junta Médica</span>
+                        <span class="jm-chip">Registro histórico</span>
+                        <span class="jm-chip">CBMAM</span>
+                    </div>
+                    <h2 class="mb-2 fw-bold">Nova Licença / Inspeção Médica</h2>
+                    <p class="mb-0 jm-muted">
+                        Preencha os dados da Junta Médica com cálculo automático de término, status do registro e alerta
+                        para inspeção posterior em LTS prolongada.
+                    </p>
+                </div>
+                <button type="button" class="jm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalFinalizarBg">
+                    Finalizar lançamentos do dia
+                </button>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="jm-btn-ghost text-decoration-none">
+                        Ver registros
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="jm-glass jm-card mb-4">
+            <div
+                class="jm-card-body d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <div class="jm-section-title mb-2">Fechamento do dia</div>
+                    <div class="fw-bold fs-5 text-white">{{ pendentes_hoje }} lançamento(s) pendente(s) de BG hoje</div>
+                    <div class="jm-muted">Data de referência: {{ hoje.strftime('%d/%m/%Y') if hoje else '' }}</div>
+                </div>
+
+                <button type="button" class="btn jm-btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#modalFinalizarBg" {% if pendentes_hoje==0 %}disabled{% endif %}>
+                    Finalizar e informar nota BG
+                </button>
+            </div>
+        </div>
+        <div class="jm-glass jm-card">
+            <div class="jm-card-header">
+                <div>
+                    <h4 class="mb-1 fw-bold">Lançamento de licença</h4>
+                    <div class="jm-muted">Histórico imutável com preenchimento assistido</div>
+                </div>
+                <span class="jm-chip">Append-only</span>
+            </div>
+
+            <div class="jm-card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="mb-3">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('junta.nova_licenca') }}" id="form-licenca" autocomplete="off">
+                    {{ form.hidden_tag() }}
+                    {{ form.militar_id(id="militar_id") }}
+
+                    <div class="jm-section-title">Identificação do militar</div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="jm-label">Buscar militar</label>
+                            <input type="text" id="busca_militar" class="form-control jm-input"
+                                placeholder="Digite o nome do militar...">
+                            <div id="resultados_militar" class="list-group mt-2"></div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <label class="jm-label">{{ form.militar_nome.label.text }}</label>
+                            {{ form.militar_nome(class="form-control jm-input jm-readonly", id="militar_nome",
+                            readonly=true) }}
+                        </div>
+
+                        <div class="col-lg-7">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="jm-mini-card">
+                                        <div class="jm-mini-label">{{ form.posto_grad_id.label.text }}</div>
+                                        <div class="jm-mini-value" id="posto_grad_preview">—</div>
+                                        {{ form.posto_grad_id(class="d-none", id="posto_grad_id", readonly=true) }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="jm-mini-card">
+                                        <div class="jm-mini-label">{{ form.quadro_id.label.text }}</div>
+                                        <div class="jm-mini-value" id="quadro_preview">—</div>
+                                        {{ form.quadro_id(class="d-none", id="quadro_id", readonly=true) }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="jm-mini-card">
+                                        <div class="jm-mini-label">{{ form.obm_id_1.label.text }}</div>
+                                        <div class="jm-mini-value" id="obm_preview">—</div>
+                                        {{ form.obm_id_1(class="d-none", id="obm_id_1", readonly=true) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="jm-section-title">Dados da licença</div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-4">
+                            <label class="jm-label">{{ form.tipo_licenca.label.text }}</label>
+                            {{ form.tipo_licenca(class="form-select jm-select", id="tipo_licenca") }}
+                        </div>
+
+                        <div class="col-lg-2">
+                            <label class="jm-label">{{ form.qtd_dias.label.text }}</label>
+                            {{ form.qtd_dias(class="form-control jm-input", id="qtd_dias", placeholder="0") }}
+                        </div>
+
+                        <div class="col-lg-3">
+                            <label class="jm-label">{{ form.sessao.label.text }}</label>
+                            {{ form.sessao(class="form-control jm-input", placeholder="Ex.: Sessão Ordinária") }}
+                        </div>
+
+                        <div class="col-lg-3">
+                            <label class="jm-label">{{ form.data_inicio.label.text }}</label>
+                            {{ form.data_inicio(class="form-control jm-input", id="data_inicio") }}
+                        </div>
+
+                        <div class="col-lg-3">
+                            <label class="jm-label">{{ form.data_termino.label.text }}</label>
+                            {{ form.data_termino(class="form-control jm-input jm-readonly", id="data_termino",
+                            readonly=true) }}
+                        </div>
+
+                        <div class="col-lg-6">
+                            <label class="jm-label">{{ form.status.label.text }}</label>
+                            {{ form.status(class="form-select jm-select jm-readonly", id="status", disabled=true) }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="jm-label">{{ form.observacao.label.text }}</label>
+                            {{ form.observacao(class="form-control jm-textarea", rows="3", placeholder="Observações
+                            complementares, restrições, referências de inspeção, etc.") }}
+                        </div>
+                    </div>
+
+                    <div id="alerta_inspecao" class="jm-alert mt-4 d-none">
+                        Esta LTS possui 90 dias ou mais. Ao término, o militar deverá retornar à Junta Médica para nova
+                        avaliação.
+                    </div>
+
+                    <div class="mt-4 d-flex flex-wrap gap-2">
+                        {{ form.botao_submit(class="btn jm-btn-primary") }}
+                        <button type="button" class="btn jm-btn-ghost" id="btn_limpar">Limpar</button>
+                        <a href="{{ url_for('junta.listar_licencas') }}" class="btn jm-btn-ghost">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalFinalizarBg" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background:#0b2239;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:22px;">
+            <form method="POST" action="{{ url_for('junta.finalizar_bg_dia') }}">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Finalizar lançamentos do dia</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="jm-label">Data de referência</label>
+                        <input type="date" name="data_referencia" class="form-control jm-input"
+                            value="{{ hoje.strftime('%Y-%m-%d') if hoje else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="jm-label">Nota para BG</label>
+                        <input type="text" name="nota_bg" class="form-control jm-input" placeholder="Ex.: BG 045/2026"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="jm-label">Observação do fechamento</label>
+                        <textarea name="observacao_bg" class="form-control jm-textarea" rows="3"
+                            placeholder="Observação opcional sobre o fechamento do dia..."></textarea>
+                    </div>
+
+                    <div class="jm-alert">
+                        Todos os lançamentos pendentes da data informada serão vinculados à nota BG cadastrada.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn jm-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn jm-btn-primary">Finalizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const buscaMilitar = document.getElementById("busca_militar");
+        const resultados = document.getElementById("resultados_militar");
+
+        const militarId = document.getElementById("militar_id");
+        const militarNome = document.getElementById("militar_nome");
+        const postoGrad = document.getElementById("posto_grad_id");
+        const quadro = document.getElementById("quadro_id");
+        const obm = document.getElementById("obm_id_1");
+
+        const postoGradPreview = document.getElementById("posto_grad_preview");
+        const quadroPreview = document.getElementById("quadro_preview");
+        const obmPreview = document.getElementById("obm_preview");
+
+        const qtdDias = document.getElementById("qtd_dias");
+        const dataInicio = document.getElementById("data_inicio");
+        const dataTermino = document.getElementById("data_termino");
+        const tipoLicenca = document.getElementById("tipo_licenca");
+        const status = document.getElementById("status");
+        const alertaInspecao = document.getElementById("alerta_inspecao");
+        const btnLimpar = document.getElementById("btn_limpar");
+
+        let debounceTimer = null;
+
+        function limparMilitar() {
+            militarId.value = "";
+            militarNome.value = "";
+            postoGrad.value = "";
+            quadro.value = "";
+            obm.value = "";
+
+            postoGradPreview.textContent = "—";
+            quadroPreview.textContent = "—";
+            obmPreview.textContent = "—";
+        }
+
+        function esconderResultados() {
+            resultados.style.display = "none";
+            resultados.innerHTML = "";
+        }
+
+        function mostrarResultados(lista) {
+            resultados.innerHTML = "";
+
+            if (!lista.length) {
+                resultados.innerHTML = `
+                <div class="list-group-item text-muted">
+                    Nenhum militar encontrado.
+                </div>
+            `;
+                resultados.style.display = "block";
+                return;
+            }
+
+            lista.forEach(item => {
+                const el = document.createElement("button");
+                el.type = "button";
+                el.className = "list-group-item list-group-item-action";
+                el.innerHTML = `<div class="fw-semibold">${item.nome}</div>`;
+                el.addEventListener("click", async function () {
+                    militarId.value = item.id;
+                    militarNome.value = item.nome;
+                    buscaMilitar.value = item.nome;
+                    esconderResultados();
+                    await carregarMilitar(item.id);
+                });
+                resultados.appendChild(el);
+            });
+
+            resultados.style.display = "block";
+        }
+
+        async function buscarMilitares(nome) {
+            try {
+                const resp = await fetch(`/junta/api/militares/buscar?q=${encodeURIComponent(nome)}`);
+                if (!resp.ok) {
+                    esconderResultados();
+                    return;
+                }
+                const data = await resp.json();
+                mostrarResultados(data);
+            } catch (err) {
+                console.error(err);
+                esconderResultados();
+            }
+        }
+
+        async function carregarMilitar(id) {
+            try {
+                const resp = await fetch(`/junta/api/militar/${id}`);
+                if (!resp.ok) return;
+
+                const data = await resp.json();
+
+                militarNome.value = data.nome || "";
+                postoGrad.value = data.posto_grad || "";
+                quadro.value = data.quadro || "";
+                obm.value = data.obm || "";
+
+                postoGradPreview.textContent = data.posto_grad || "—";
+                quadroPreview.textContent = data.quadro || "—";
+                obmPreview.textContent = data.obm || "—";
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function calcularTerminoEStatus() {
+            const tipo = tipoLicenca.value;
+            const dias = parseInt(qtdDias.value || "0", 10);
+            const inicio = dataInicio.value;
+
+            if (inicio && dias > 0) {
+                const d = new Date(inicio + "T00:00:00");
+                d.setDate(d.getDate() + (dias - 1));
+                dataTermino.value = d.toISOString().split("T")[0];
+            } else {
+                dataTermino.value = "";
+            }
+
+            if (tipo === "LTS") status.value = "LTS";
+            else if (tipo === "LTSPF") status.value = "LTSPF";
+            else if (tipo === "LM") status.value = "LM";
+            else if (tipo === "APTO_RECOM") status.value = "APTO_RECOM";
+            else if (tipo === "APTO_RESTR") status.value = "APTO_RESTR";
+            else if (tipo === "APTO") status.value = "APTO";
+
+            if (tipo === "LTS" && dias >= 90) {
+                alertaInspecao.classList.remove("d-none");
+            } else {
+                alertaInspecao.classList.add("d-none");
+            }
+            if (tipo === "AGREGADO") {
+                status.value = "AGREGADO";
+                qtdDias.value = 1;
+                qtdDias.readOnly = true;
+
+                if (inicio) {
+                    dataTermino.value = inicio;
+                } else {
+                    dataTermino.value = "";
+                }
+
+                alertaInspecao.classList.add("d-none");
+                return;
+            } else {
+                qtdDias.readOnly = false;
+            }
+        }
+
+        buscaMilitar.addEventListener("input", function () {
+            const termo = this.value.trim();
+            limparMilitar();
+            clearTimeout(debounceTimer);
+
+            if (termo.length < 2) {
+                esconderResultados();
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                buscarMilitares(termo);
+            }, 250);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!resultados.contains(e.target) && e.target !== buscaMilitar) {
+                esconderResultados();
+            }
+        });
+
+        tipoLicenca.addEventListener("change", calcularTerminoEStatus);
+        qtdDias.addEventListener("input", calcularTerminoEStatus);
+        dataInicio.addEventListener("change", calcularTerminoEStatus);
+
+        btnLimpar.addEventListener("click", function () {
+            document.getElementById("form-licenca").reset();
+            limparMilitar();
+            buscaMilitar.value = "";
+            dataTermino.value = "";
+            esconderResultados();
+            alertaInspecao.classList.add("d-none");
+        });
+
+        calcularTerminoEStatus();
+    });
+</script>
+{% endblock %}

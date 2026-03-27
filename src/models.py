@@ -1761,3 +1761,76 @@ class LogAcesso(database.Model):
 
     # Relacionamento para buscar o nome do cara depois
     usuario = database.relationship('User', backref='logs_de_rota')
+
+
+class Licencas(database.Model):
+    __tablename__ = "licencas"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(
+        database.Integer,
+        database.ForeignKey("militar.id"),
+        nullable=False,
+        index=True
+    )
+
+    tipo_licenca = database.Column(
+        database.String(20), nullable=False, index=True)
+
+    # legado: manter por compatibilidade com histórico antigo
+    recebimento_bg = database.Column(database.String(50), nullable=True)
+
+    fechamento_bg_id = database.Column(
+        database.Integer,
+        database.ForeignKey("junta_fechamento_bg.id"),
+        nullable=True,
+        index=True
+    )
+
+    qtd_dias = database.Column(database.Integer, nullable=False)
+    data_inicio = database.Column(database.Date, nullable=False, index=True)
+    data_fim = database.Column(database.Date, nullable=False, index=True)
+    status = database.Column(database.String(40), nullable=False, index=True)
+    sessao = database.Column(database.String(30), nullable=False)
+    observacao = database.Column(database.Text, nullable=True)
+
+    created_at = database.Column(
+        database.DateTime, default=now_manaus_naive, nullable=False)
+
+    usuario_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id"),
+        nullable=False,
+        index=True
+    )
+
+    militar = database.relationship("Militar", backref="licencas")
+    usuario = database.relationship("User", backref="licencas_junta")
+    fechamento_bg = database.relationship(
+        "JuntaFechamentoBg", back_populates="licencas")
+
+
+class JuntaFechamentoBg(database.Model):
+    __tablename__ = "junta_fechamento_bg"
+
+    id = database.Column(database.Integer, primary_key=True)
+    data_referencia = database.Column(
+        database.Date, nullable=False, index=True)
+    nota_bg = database.Column(database.String(80), nullable=False, index=True)
+    observacao = database.Column(database.Text, nullable=True)
+
+    usuario_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id"),
+        nullable=False,
+        index=True
+    )
+
+    finalizado_em = database.Column(
+        database.DateTime, default=now_manaus_naive, nullable=False)
+    created_at = database.Column(
+        database.DateTime, default=now_manaus_naive, nullable=False)
+
+    usuario = database.relationship("User", backref="fechamentos_bg_junta")
+    licencas = database.relationship(
+        "Licencas", back_populates="fechamento_bg")
