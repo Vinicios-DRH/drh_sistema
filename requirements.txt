@@ -32,6 +32,7 @@ cycler==0.12.1
 defusedxml==0.7.1
 deprecation==2.1.0
 dnspython==2.6.1
+docxtpl==0.20.2
 email_validator==2.2.0
 et-xmlfile==1.1.0
 Flask==3.0.3
@@ -48,7 +49,7 @@ frozenlist==1.5.0
 geographiclib==2.0
 geopy==2.4.1
 gotrue==2.12.0
-greenlet==3.2.4
+greenlet==3.0.3
 gunicorn==23.0.0
 h11==0.14.0
 h2==4.2.0
@@ -83,7 +84,7 @@ pluggy==1.5.0
 postgrest==1.0.1
 prompt_toolkit==3.0.48
 propcache==0.3.1
-psycopg2-binary==2.9.10
+psycopg2==2.9.10
 pycparser==2.22
 pydantic==2.11.3
 pydantic_core==2.33.1
@@ -104,6 +105,7 @@ python-dotenv==1.1.1
 python-engineio==4.10.1
 python-socketio==5.11.4
 pytz==2024.1
+pywin32==311
 PyYAML==6.0.2
 qrcode==8.1
 realtime==2.4.2

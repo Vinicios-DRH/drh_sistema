@@ -1817,7 +1817,9 @@ class JuntaFechamentoBg(database.Model):
     data_referencia = database.Column(
         database.Date, nullable=False, index=True)
     nota_bg = database.Column(database.String(80), nullable=False, index=True)
+    sessao = database.Column(database.String(30), nullable=False)
     observacao = database.Column(database.Text, nullable=True)
+    arquivo_docx = database.Column(database.String(255), nullable=True)
 
     usuario_id = database.Column(
         database.Integer,

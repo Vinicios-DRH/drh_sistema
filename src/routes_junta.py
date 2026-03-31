@@ -1,7 +1,8 @@
 from io import BytesIO
 from math import ceil
+from pathlib import Path
 
-from flask import Blueprint, jsonify, render_template, request, redirect, send_file, url_for, flash
+from flask import Blueprint, jsonify, render_template, request, redirect, send_file, url_for, flash, send_from_directory
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
@@ -21,6 +22,7 @@ from src.services.junta_medica import (
     STATUS_LABELS,
     TIPO_LICENCA_LABELS,
 )
+from src.services.junta_bg_generator import gerar_nota_bg_docx
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
@@ -432,6 +434,7 @@ def finalizar_bg_dia():
     try:
         data_ref_str = (request.form.get("data_referencia") or "").strip()
         nota_bg = (request.form.get("nota_bg") or "").strip()
+        sessao_bg = (request.form.get("sessao_bg") or "").strip()
         observacao_bg = (request.form.get("observacao_bg") or "").strip()
 
         if not data_ref_str:
@@ -440,6 +443,10 @@ def finalizar_bg_dia():
 
         if not nota_bg:
             flash("Informe a nota para BG.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not sessao_bg:
+            flash("Informe a sessão do fechamento.", "danger")
             return redirect(url_for("junta.nova_licenca"))
 
         data_referencia = datetime.strptime(data_ref_str, "%Y-%m-%d").date()
@@ -455,12 +462,14 @@ def finalizar_bg_dia():
         )
 
         if not pendentes:
-            flash("Não há lançamentos pendentes para finalizar nessa data.", "warning")
+            flash(
+                "Não há lançamentos pendentes para finalizar nessa data e sessão.", "warning")
             return redirect(url_for("junta.nova_licenca"))
 
         fechamento = JuntaFechamentoBg(
             data_referencia=data_referencia,
             nota_bg=nota_bg,
+            sessao=sessao_bg,
             observacao=observacao_bg or None,
             usuario_id=current_user.id
         )
@@ -471,14 +480,41 @@ def finalizar_bg_dia():
         for lic in pendentes:
             lic.fechamento_bg_id = fechamento.id
 
+        # ainda sem commit final
+        arquivo = gerar_nota_bg_docx(fechamento.id, commit_db=False)
+
+        fechamento.arquivo_docx = arquivo
         database.session.commit()
 
         flash(
             f"Fechamento realizado com sucesso. {len(pendentes)} lançamento(s) vinculados à nota BG {nota_bg}.",
             "success"
         )
+
     except Exception as e:
         database.session.rollback()
         flash(f"Erro ao finalizar BG do dia: {str(e)}", "danger")
 
-    return redirect(url_for("junta.nova_licenca"))
+    return redirect(
+        url_for(
+            "junta.baixar_docx_fechamento",
+            fechamento_id=fechamento.id
+        )
+    )
+
+
+@junta_bp.route("/fechamento-bg/<int:fechamento_id>/baixar-docx", methods=["GET"])
+@login_required
+def baixar_docx_fechamento(fechamento_id):
+    fechamento = JuntaFechamentoBg.query.get_or_404(fechamento_id)
+
+    if not fechamento.arquivo_docx:
+        flash("Este fechamento ainda não possui documento gerado.", "warning")
+        return redirect(url_for("junta.listar_licencas"))
+
+    pasta = Path("src/static/junta_bg")
+    return send_from_directory(
+        directory=str(pasta.resolve()),
+        path=fechamento.arquivo_docx,
+        as_attachment=True
+    )

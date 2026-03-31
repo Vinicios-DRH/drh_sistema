@@ -893,7 +893,7 @@ class FormLicencas(FlaskForm):
         "Tipo de licença",
         choices=[
             ("LTS", "INCAPAZ TEMPORARIAMENTE PARA SERVIÇO (LTS)"),
-            ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE PESSOA DA FAMÍLIA"),
+            ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA"),
             ("LM", "LICENÇA MATERNIDADE"),
             ("APTO_RESTR", "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM"),
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM"),
@@ -929,8 +929,8 @@ class FormLicencas(FlaskForm):
             ("LTSPF", "LTSPF"),
             ("LM", "LICENÇA MATERNIDADE"),
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES"),
-            ("APTO_RESTR", "APTO AO SERVIÇO DO CBMAM COM RESTRIÇÃO"),
-            ("APTO", "APTO AO SERVIÇO DO CBMAM SEM RESTRIÇÃO"),
+            ("APTO_RESTR", "APTO PARA O SERVIÇO DO CBMAM COM RESTRIÇÃO"),
+            ("APTO", "APTO PARA O SERVIÇO DO CBMAM"),
             ("AGREGADO", "AGREGADO"),
         ],
         validators=[Optional()]
