@@ -2150,11 +2150,14 @@ def exibir_militar(militar_id):
         def normalizar_txt(txt):
             import unicodedata
             txt = (txt or "").strip().upper()
-            txt = unicodedata.normalize("NFKD", txt).encode("ASCII", "ignore").decode("ASCII")
+            txt = unicodedata.normalize("NFKD", txt).encode(
+                "ASCII", "ignore").decode("ASCII")
             return " ".join(txt.split())
 
-        estado_civil_obj = EstadoCivil.query.get(militar.estado_civil) if militar.estado_civil else None
-        estado_nome = normalizar_txt(estado_civil_obj.estado if estado_civil_obj else "")
+        estado_civil_obj = EstadoCivil.query.get(
+            militar.estado_civil) if militar.estado_civil else None
+        estado_nome = normalizar_txt(
+            estado_civil_obj.estado if estado_civil_obj else "")
 
         # mais flexível
         exige_conjuge = (
@@ -2165,9 +2168,11 @@ def exibir_militar(militar_id):
         conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
         conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
         conjuge_telefone = (request.form.get("conjuge_telefone") or "").strip()
-        conjuge_data_nascimento = (request.form.get("conjuge_data_nascimento") or "").strip()
+        conjuge_data_nascimento = (request.form.get(
+            "conjuge_data_nascimento") or "").strip()
         conjuge_endereco = (request.form.get("conjuge_endereco") or "").strip()
-        conjuge_observacao = (request.form.get("conjuge_observacao") or "").strip()
+        conjuge_observacao = (request.form.get(
+            "conjuge_observacao") or "").strip()
 
         conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
 
@@ -4555,7 +4560,6 @@ def motoristas():
     form_filtro.categoria_id.data = categoria_id
     form_filtro.viatura_id.data = viatura_id
 
-    # Query base — junta Militar e Motoristas
     query = (
         Motoristas.query
         .join(Militar)
@@ -4564,7 +4568,12 @@ def motoristas():
             joinedload(Motoristas.militar).joinedload(Militar.quadro),
             joinedload(Motoristas.categoria),
         )
-        .filter(Motoristas.desclassificar != 'SIM')
+        .filter(
+            or_(
+                Motoristas.desclassificar.is_(None),
+                Motoristas.desclassificar != 'SIM'
+            )
+        )
     )
 
     # Filtro por OBM
@@ -4612,7 +4621,10 @@ def motoristas():
     total_militares = Militar.query.count()
     total_motoristas = Motoristas.query.filter(
         Motoristas.modified.is_(None),
-        Motoristas.desclassificar != 'SIM'
+        or_(
+            Motoristas.desclassificar.is_(None),
+            Motoristas.desclassificar != 'SIM'
+        )
     ).count()
 
     # Gráfico: Percentual de militares que são motoristas
@@ -4630,7 +4642,10 @@ def motoristas():
         database.func.count(Motoristas.id)
     ).join(Motoristas).filter(
         Motoristas.modified.is_(None),
-        Motoristas.desclassificar != 'SIM'
+        or_(
+            Motoristas.desclassificar.is_(None),
+            Motoristas.desclassificar != 'SIM'
+        )
     ).group_by(Categoria.sigla).all()
 
     labels_categorias = [c[0] for c in categorias]
@@ -4651,7 +4666,10 @@ def motoristas():
         Motoristas, MilitarObmFuncao.militar_id == Motoristas.militar_id
     ).filter(
         Motoristas.modified.is_(None),
-        Motoristas.desclassificar != 'SIM'
+        or_(
+            Motoristas.desclassificar.is_(None),
+            Motoristas.desclassificar != 'SIM'
+        )
     ).group_by(Obm.sigla).all()
 
     labels_obms = [obm[0] for obm in obms]
@@ -4744,86 +4762,72 @@ def atualizar_motorista(motorista_id):
 
     form_motorista = FormMotoristas(obj=motorista)
 
-    # Define a opção única para o militar atual
     militar_atual = (motorista.militar.id, motorista.militar.nome_completo)
     form_motorista.nome_completo.choices = [militar_atual]
     form_motorista.nome_completo.data = motorista.militar.id
 
-    # Carrega opções de categoria
     form_motorista.categoria_id.choices = [
         (categoria.id, categoria.sigla) for categoria in Categoria.query.all()
     ]
     form_motorista.categoria_id.data = motorista.categoria_id
 
-    # Preenche dados exibidos
     form_motorista.matricula.data = motorista.militar.matricula
-    form_motorista.posto_grad_id.data = motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
-    form_motorista.obm_id_1.data = motorista.militar.obm_funcoes[
-        0].obm.sigla if motorista.militar.obm_funcoes else None
+    form_motorista.posto_grad_id.data = (
+        motorista.militar.posto_grad.sigla if motorista.militar.posto_grad else None
+    )
+    form_motorista.obm_id_1.data = (
+        motorista.militar.obm_funcoes[0].obm.sigla if motorista.militar.obm_funcoes else None
+    )
 
     if request.method == 'POST':
-        # Ação específica: desclassificar (vindo do modal)
         if request.form.get('action') == 'desclassificar':
-            motivo = request.form.get('motivo_desclassificacao', None)
             try:
-                # Marca o antigo como modificado (histórico)
+                # fecha o registro atual
                 motorista.modified = datetime.utcnow()
-                database.session.commit()
 
-                # Novo registro marcando desclassificado
-                novo_motorista = Motoristas(
-                    militar_id=motorista.militar_id,
-                    categoria_id=form_motorista.categoria_id.data or None,
-                    boletim_geral=form_motorista.boletim_geral.data,
-                    siged=form_motorista.siged.data,
-                    usuario_id=current_user.id,
-                    vencimento_cnh=form_motorista.vencimento_cnh.data,
-                    created=datetime.utcnow(),
-                    desclassificar=None
-                )
-
-                # opcional: salvar motivo concatenado (ou use outra coluna se preferir)
-                if motivo:
-                    # limite para evitar overflow da coluna (sua coluna é String(30) — cuidado!)
-                    # nesse exemplo eu salvo apenas uma flag e concateno motivo em outra tabela/coluna seria ideal.
-                    novo_motorista.desclassificar = 'SIM'
-                    # se quiser armazenar motivo curto (<=30): usar outra coluna; aqui guardo prefixo do motivo se couber
-                    # novo_motorista.desclassificar = (motivo[:30])  # *substitui* a flag se preferir
-                    # Para não perder a info, recomendo criar uma coluna `desclassificar_motivo` (ver migração abaixo)
-                # Salva novo registro
-                database.session.add(novo_motorista)
-                database.session.commit()
-
-                flash('Motorista desclassificado com sucesso!', 'warning')
-                return redirect(url_for('motoristas'))
-
-            except Exception as e:
-                database.session.rollback()
-                flash(f'Erro ao desclassificar motorista: {str(e)}', 'danger')
-                print("Erro ao desclassificar motorista:", e)
-                # cai para re-render do template com flash
-
-        # Caso seja submissão normal (salvar/editar)
-        if form_motorista.validate_on_submit():
-            try:
-                # Marca antigo como modificado (histórico)
-                motorista.modified = datetime.utcnow()
-                database.session.commit()
-
+                # cria o novo registro como DESCLASSIFICADO
                 novo_motorista = Motoristas(
                     militar_id=motorista.militar_id,
                     categoria_id=motorista.categoria_id,
                     boletim_geral=motorista.boletim_geral,
                     siged=motorista.siged,
-                    usuario_id=current_user.id,
+                    usuario_id=motorista.usuario_id,
                     vencimento_cnh=motorista.vencimento_cnh,
+                    cnh_imagem=motorista.cnh_imagem,
                     created=datetime.utcnow(),
                     desclassificar='SIM',
                     desclassificar_por=current_user.id,
                     desclassificar_em=datetime.utcnow()
                 )
 
-                # Verifica se imagem foi enviada
+                database.session.add(novo_motorista)
+                database.session.commit()
+
+                flash('Motorista desclassificado com sucesso!', 'warning')
+                return redirect(url_for('motoristas_desclassificados'))
+
+            except Exception as e:
+                database.session.rollback()
+                flash(f'Erro ao desclassificar motorista: {str(e)}', 'danger')
+
+        if form_motorista.validate_on_submit():
+            try:
+                motorista.modified = datetime.utcnow()
+
+                # cria novo registro ATIVO/ATUALIZADO
+                novo_motorista = Motoristas(
+                    militar_id=motorista.militar_id,
+                    categoria_id=form_motorista.categoria_id.data,
+                    boletim_geral=form_motorista.boletim_geral.data,
+                    siged=form_motorista.siged.data,
+                    usuario_id=current_user.id,
+                    vencimento_cnh=form_motorista.vencimento_cnh.data,
+                    created=datetime.utcnow(),
+                    desclassificar='NÃO',
+                    desclassificar_por=None,
+                    desclassificar_em=None
+                )
+
                 if form_motorista.cnh_imagem.data and form_motorista.cnh_imagem.data.filename != '':
                     file = form_motorista.cnh_imagem.data
                     ext = file.filename.split('.')[-1]
@@ -4834,17 +4838,16 @@ def atualizar_motorista(motorista_id):
                         f"{nome_formatado}_cnh_{timestamp}.{ext}")
                     file_bytes = file.read()
 
-                    # Upload para o root do bucket
                     app.supabase.storage.from_('motoristas').upload(
                         path=nome_arquivo,
                         file=file_bytes,
                         file_options={"content-type": file.mimetype}
                     )
 
-                    # Salva apenas o nome no banco
                     novo_motorista.cnh_imagem = nome_arquivo
+                else:
+                    novo_motorista.cnh_imagem = motorista.cnh_imagem
 
-                # Salva novo registro no banco
                 database.session.add(novo_motorista)
                 database.session.commit()
 
@@ -4854,7 +4857,6 @@ def atualizar_motorista(motorista_id):
             except Exception as e:
                 database.session.rollback()
                 flash(f'Erro ao atualizar motorista: {str(e)}', 'danger')
-                print("Erro ao atualizar motorista:", e)
 
     return render_template(
         'atualizar_motorista.html',
@@ -5127,6 +5129,9 @@ def exportar_motoristas_excel():
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center", vertical="center")
 
+        # SOMENTE classificados atuais:
+        # - modified IS NULL
+        # - desclassificar diferente de 'SIM' OU NULL
         subquery = (
             database.session.query(
                 Motoristas.militar_id,
@@ -5134,8 +5139,11 @@ def exportar_motoristas_excel():
             )
             .filter(
                 Motoristas.militar_id.isnot(None),
-                func.coalesce(func.upper(
-                    Motoristas.desclassificar), "") != "SIM"
+                Motoristas.modified.is_(None),
+                or_(
+                    Motoristas.desclassificar.is_(None),
+                    func.upper(Motoristas.desclassificar) != "SIM"
+                )
             )
             .group_by(Motoristas.militar_id)
             .subquery()
