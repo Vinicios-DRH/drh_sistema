@@ -2147,44 +2147,57 @@ def exibir_militar(militar_id):
             ))
 
         # ===== Cônjuge =====
-        estado_civil_obj = EstadoCivil.query.get(
-            militar.estado_civil) if militar.estado_civil else None
-        estado_nome = (estado_civil_obj.estado or "").strip(
-        ).upper() if estado_civil_obj else ""
-        exige_conjuge = estado_nome in {
-            "CASADO", "CASADA", "UNIÃO ESTÁVEL", "UNIAO ESTAVEL"}
+        def normalizar_txt(txt):
+            import unicodedata
+            txt = (txt or "").strip().upper()
+            txt = unicodedata.normalize("NFKD", txt).encode("ASCII", "ignore").decode("ASCII")
+            return " ".join(txt.split())
+
+        estado_civil_obj = EstadoCivil.query.get(militar.estado_civil) if militar.estado_civil else None
+        estado_nome = normalizar_txt(estado_civil_obj.estado if estado_civil_obj else "")
+
+        # mais flexível
+        exige_conjuge = (
+            "CASAD" in estado_nome or
+            "UNIAO ESTAVEL" in estado_nome
+        )
 
         conjuge_nome = (request.form.get("conjuge_nome") or "").strip()
         conjuge_cpf = (request.form.get("conjuge_cpf") or "").strip()
         conjuge_telefone = (request.form.get("conjuge_telefone") or "").strip()
-        conjuge_data_nascimento = (request.form.get(
-            "conjuge_data_nascimento") or "").strip()
+        conjuge_data_nascimento = (request.form.get("conjuge_data_nascimento") or "").strip()
         conjuge_endereco = (request.form.get("conjuge_endereco") or "").strip()
-        conjuge_observacao = (request.form.get(
-            "conjuge_observacao") or "").strip()
+        conjuge_observacao = (request.form.get("conjuge_observacao") or "").strip()
 
         conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
 
-        if exige_conjuge:
-            if conjuge_nome:
-                if not conjuge:
-                    conjuge = MilitarConjuge(
-                        militar_id=militar.id,
-                        criado_em=now_manaus_naive()
-                    )
-                    database.session.add(conjuge)
+        # salva se houver qualquer dado preenchido, não só o nome
+        tem_dado_conjuge = any([
+            conjuge_nome,
+            conjuge_cpf,
+            conjuge_telefone,
+            conjuge_data_nascimento,
+            conjuge_endereco,
+            conjuge_observacao,
+        ])
 
-                conjuge.nome = conjuge_nome
-                conjuge.cpf = conjuge_cpf or None
-                conjuge.telefone = conjuge_telefone or None
-                conjuge.data_nascimento = parse_date(conjuge_data_nascimento)
-                conjuge.endereco = conjuge_endereco or None
-                conjuge.observacao = conjuge_observacao or None
-                conjuge.atualizado_em = now_manaus_naive()
-            else:
-                if conjuge:
-                    database.session.delete(conjuge)
-        else:
+        if exige_conjuge and tem_dado_conjuge:
+            if not conjuge:
+                conjuge = MilitarConjuge(
+                    militar_id=militar.id,
+                    criado_em=now_manaus_naive()
+                )
+                database.session.add(conjuge)
+
+            conjuge.nome = conjuge_nome or "-"
+            conjuge.cpf = conjuge_cpf or None
+            conjuge.telefone = conjuge_telefone or None
+            conjuge.data_nascimento = parse_date(conjuge_data_nascimento)
+            conjuge.endereco = conjuge_endereco or None
+            conjuge.observacao = conjuge_observacao or None
+            conjuge.atualizado_em = now_manaus_naive()
+
+        elif not exige_conjuge:
             if conjuge:
                 database.session.delete(conjuge)
         situacao2_id_raw = request.form.get('situacao2_id', '').strip()
