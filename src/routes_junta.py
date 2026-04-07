@@ -23,6 +23,7 @@ from src.services.junta_medica import (
     TIPO_LICENCA_LABELS,
 )
 from src.services.junta_bg_generator import gerar_nota_bg_docx
+from src.services.junta_periodos import montar_blocos_por_militar
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
@@ -517,4 +518,80 @@ def baixar_docx_fechamento(fechamento_id):
         directory=str(pasta.resolve()),
         path=fechamento.arquivo_docx,
         as_attachment=True
+    )
+
+
+@junta_bp.route("/renovacoes", methods=["GET"])
+@login_required
+def painel_renovacoes():
+    mes = request.args.get("mes", type=int)
+    ano = request.args.get("ano", type=int)
+    tipo = (request.args.get("tipo") or "").strip()
+
+    query = (
+        Licencas.query
+        .options(
+            joinedload(Licencas.militar).joinedload(Militar.posto_grad),
+            joinedload(Licencas.militar).joinedload(Militar.quadro),
+        )
+        .order_by(Licencas.militar_id.asc(), Licencas.data_inicio.asc(), Licencas.id.asc())
+    )
+
+    if tipo:
+        query = query.filter(Licencas.tipo_licenca == tipo)
+
+    if mes and ano:
+        from datetime import date
+        from calendar import monthrange
+
+        inicio_mes = date(ano, mes, 1)
+        fim_mes = date(ano, mes, monthrange(ano, mes)[1])
+
+        query = query.filter(
+            Licencas.data_inicio <= fim_mes,
+            Licencas.data_fim >= inicio_mes
+        )
+
+    registros = query.all()
+    blocos_por_militar = montar_blocos_por_militar(registros)
+
+    linhas = []
+
+    for militar_id, blocos in blocos_por_militar.items():
+        for bloco in blocos:
+            primeiro_reg = bloco["registros"][0]
+            militar = primeiro_reg.militar
+
+            linhas.append({
+                "militar": militar,
+                "tipo_licenca": bloco["tipo_licenca"],
+                "tipo_label": bloco["tipo_label"],
+                "inicio_bloco": bloco["inicio_bloco"],
+                "fim_bloco": bloco["fim_bloco"],
+                "dias_continuos": bloco["dias_continuos"],
+                "renovacoes": bloco["renovacoes"],
+                "quantidade_registros": bloco["quantidade_registros"],
+                "ultima_renovacao": bloco["ultima_renovacao"],
+                "meses_abrangidos": bloco["meses_abrangidos"],
+                "datas_renovacao": bloco["datas_renovacao"],
+                "suspeito": bloco["suspeito"],
+                "motivo_suspeita": bloco["motivo_suspeita"],
+            })
+
+    linhas.sort(key=lambda x: (
+        x["suspeito"], x["renovacoes"], x["dias_continuos"]), reverse=True)
+
+    resumo = {
+        "total_blocos": len(linhas),
+        "com_renovacao": sum(1 for x in linhas if x["renovacoes"] > 0),
+        "suspeitos": sum(1 for x in linhas if x["suspeito"]),
+    }
+
+    return render_template(
+        "junta/painel_renovacoes.html",
+        linhas=linhas,
+        resumo=resumo,
+        filtro_mes=mes,
+        filtro_ano=ano,
+        filtro_tipo=tipo,
     )
