@@ -361,6 +361,38 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-lg-3" id="grupo_qtd_dias">
+                            <label class="jm-label">{{ form.qtd_dias.label.text }}</label>
+                            {{ form.qtd_dias(class="form-control jm-input", id="qtd_dias", placeholder="0") }}
+                        </div>
+
+                        <div class="col-lg-3" id="grupo_data_inicio">
+                            <label class="jm-label">{{ form.data_inicio.label.text }}</label>
+                            {{ form.data_inicio(class="form-control jm-input", id="data_inicio") }}
+                        </div>
+
+                        <div class="col-lg-3" id="grupo_data_termino">
+                            <label class="jm-label">{{ form.data_termino.label.text }}</label>
+                            {{ form.data_termino(class="form-control jm-input jm-readonly", id="data_termino",
+                            readonly=true) }}
+                        </div>
+
+                        <div class="col-lg-3 d-none" id="grupo_resultado_curso">
+                            <label class="jm-label">{{ form.resultado_curso.label.text }}</label>
+                            {{ form.resultado_curso(class="form-select jm-select", id="resultado_curso") }}
+                        </div>
+
+                        <div class="col-lg-3 d-none" id="grupo_numero_bg_curso">
+                            <label class="jm-label">{{ form.numero_bg_curso.label.text }}</label>
+                            {{ form.numero_bg_curso(class="form-control jm-input", id="numero_bg_curso",
+                            placeholder="Ex.: BG 032/2026") }}
+                        </div>
+
+                        <div class="col-lg-6 d-none" id="grupo_data_extenso_curso">
+                            <label class="jm-label">{{ form.data_extenso_curso.label.text }}</label>
+                            {{ form.data_extenso_curso(class="form-control jm-input jm-readonly",
+                            id="data_extenso_curso", readonly=true, value=data_extenso_hoje) }}
+                        </div>
                     </div>
 
                     <div class="jm-section-title">Dados da licença</div>
@@ -490,6 +522,17 @@
         const alertaInspecao = document.getElementById("alerta_inspecao");
         const btnLimpar = document.getElementById("btn_limpar");
 
+        const resultadoCurso = document.getElementById("resultado_curso");
+        const numeroBgCurso = document.getElementById("numero_bg_curso");
+        const dataExtensoCurso = document.getElementById("data_extenso_curso");
+
+        const grupoQtdDias = document.getElementById("grupo_qtd_dias");
+        const grupoDataInicio = document.getElementById("grupo_data_inicio");
+        const grupoDataTermino = document.getElementById("grupo_data_termino");
+        const grupoResultadoCurso = document.getElementById("grupo_resultado_curso");
+        const grupoNumeroBgCurso = document.getElementById("grupo_numero_bg_curso");
+        const grupoDataExtensoCurso = document.getElementById("grupo_data_extenso_curso");
+
         let debounceTimer = null;
 
         function limparMilitar() {
@@ -579,6 +622,24 @@
             const tipo = tipoLicenca.value;
             const dias = parseInt(qtdDias.value || "0", 10);
             const inicio = dataInicio.value;
+            const isCurso = tipo === "CURSO";
+
+            grupoQtdDias.classList.toggle("d-none", isCurso);
+            grupoDataInicio.classList.toggle("d-none", isCurso);
+            grupoDataTermino.classList.toggle("d-none", isCurso);
+
+            grupoResultadoCurso.classList.toggle("d-none", !isCurso);
+            grupoNumeroBgCurso.classList.toggle("d-none", !isCurso);
+            grupoDataExtensoCurso.classList.toggle("d-none", !isCurso);
+
+            if (isCurso) {
+                dataExtensoCurso.value = "{{ data_extenso_hoje }}";
+                dataTermino.value = "";
+                qtdDias.readOnly = false;
+                alertaInspecao.classList.add("d-none");
+                status.value = resultadoCurso.value || "CURSO_APTO";
+                return;
+            }
 
             if (inicio && dias > 0) {
                 const d = new Date(inicio + "T00:00:00");
@@ -594,12 +655,14 @@
             else if (tipo === "APTO_RECOM") status.value = "APTO_RECOM";
             else if (tipo === "APTO_RESTR") status.value = "APTO_RESTR";
             else if (tipo === "APTO") status.value = "APTO";
+            else if (tipo === "AGREGADO") status.value = "AGREGADO";
 
             if (tipo === "LTS" && dias >= 90) {
                 alertaInspecao.classList.remove("d-none");
             } else {
                 alertaInspecao.classList.add("d-none");
             }
+
             if (tipo === "AGREGADO") {
                 status.value = "AGREGADO";
                 qtdDias.value = 1;
@@ -617,6 +680,12 @@
                 qtdDias.readOnly = false;
             }
         }
+
+        resultadoCurso.addEventListener("change", function () {
+            if (tipoLicenca.value === "CURSO") {
+                status.value = this.value;
+            }
+        });
 
         buscaMilitar.addEventListener("input", function () {
             const termo = this.value.trim();

@@ -26,7 +26,8 @@ from src.services.junta_bg_generator import gerar_nota_bg_docx
 from src.services.junta_periodos import montar_blocos_por_militar
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from datetime import datetime
+from datetime import datetime, date
+from calendar import monthrange
 from zoneinfo import ZoneInfo
 
 junta_bp = Blueprint("junta", __name__, url_prefix="/junta")
@@ -55,11 +56,24 @@ def _obter_obm_atual(militar):
     return obm_sigla or ""
 
 
+MESES_PT = [
+    "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+    "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+]
+
+
+def data_por_extenso_maiuscula(dt):
+    if not dt:
+        return ""
+    return f"{dt.day} DE {MESES_PT[dt.month - 1]} DE {dt.year}"
+
+
 @junta_bp.route("/nova-licenca", methods=["GET", "POST"])
 @login_required
 def nova_licenca():
     form = FormLicencas()
     hoje = hoje_manaus()
+    data_extenso_hoje = data_por_extenso_maiuscula(hoje)
 
     if form.validate_on_submit():
         try:
@@ -81,9 +95,35 @@ def nova_licenca():
             status_atual = situacao["status_atual"]
 
             tipo = form.tipo_licenca.data
-            data_inicio = form.data_inicio.data
 
-            if tipo == "AGREGADO":
+            numero_bg_curso = None
+            data_extenso_curso = None
+
+            if tipo == "CURSO":
+                resultado_curso = (form.resultado_curso.data or "").strip()
+                numero_bg_curso = (form.numero_bg_curso.data or "").strip()
+
+                if resultado_curso not in {"CURSO_APTO", "CURSO_INAPTO"}:
+                    flash("Informe o resultado para fins de curso.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
+                if not numero_bg_curso:
+                    flash("Informe o número do BG para fins de curso.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
+                qtd_dias = 1
+                data_inicio = hoje
+                data_fim = hoje
+                status_registro = resultado_curso
+                data_extenso_curso = data_extenso_hoje
+
+            elif tipo == "AGREGADO":
+                data_inicio = form.data_inicio.data
+
+                if not data_inicio:
+                    flash("Informe a data para o registro de agregação.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
                 if status_atual != "APTO_RESTR":
                     flash(
                         "A agregação manual só pode ser registrada quando a situação atual do militar estiver como APTO COM RESTRIÇÕES.",
@@ -93,21 +133,34 @@ def nova_licenca():
 
                 qtd_dias = 1
                 data_fim = data_inicio
-            else:
-                qtd_dias = form.qtd_dias.data
-                data_fim = calcular_data_fim(data_inicio, qtd_dias)
+                status_registro = calcular_status_registro(tipo)
 
-            status_registro = calcular_status_registro(tipo)
+            else:
+                data_inicio = form.data_inicio.data
+                qtd_dias = form.qtd_dias.data
+
+                if not data_inicio:
+                    flash("Informe a data de início.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
+                if not qtd_dias:
+                    flash("Informe a quantidade de dias.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
+                data_fim = calcular_data_fim(data_inicio, qtd_dias)
+                status_registro = calcular_status_registro(tipo)
 
             nova = Licencas(
                 militar_id=militar.id,
                 tipo_licenca=tipo,
-                recebimento_bg=None,  # legado
+                recebimento_bg=None,
                 qtd_dias=qtd_dias,
                 data_inicio=data_inicio,
                 data_fim=data_fim,
                 status=status_registro,
                 sessao=form.sessao.data.strip(),
+                numero_bg_curso=numero_bg_curso,
+                data_extenso_curso=data_extenso_curso,
                 observacao=form.observacao.data.strip() if form.observacao.data else None,
                 usuario_id=current_user.id
             )
@@ -137,7 +190,8 @@ def nova_licenca():
         tipo_labels=TIPO_LICENCA_LABELS,
         status_labels=STATUS_LABELS,
         pendentes_hoje=pendentes_hoje,
-        hoje=hoje
+        hoje=hoje,
+        data_extenso_hoje=data_extenso_hoje
     )
 
 
@@ -541,9 +595,6 @@ def painel_renovacoes():
         query = query.filter(Licencas.tipo_licenca == tipo)
 
     if mes and ano:
-        from datetime import date
-        from calendar import monthrange
-
         inicio_mes = date(ano, mes, 1)
         fim_mes = date(ano, mes, monthrange(ano, mes)[1])
 

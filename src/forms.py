@@ -878,12 +878,8 @@ class FormResetarSenhaPublica(FlaskForm):
 class FormLicencas(FlaskForm):
     militar_id = HiddenField("Militar ID", validators=[DataRequired()])
 
-    militar_nome = StringField(
-        "Militar",
-        validators=[Optional()],
-        render_kw={"readonly": True}
-    )
-
+    militar_nome = StringField("Militar", validators=[
+                               Optional()], render_kw={"readonly": True})
     posto_grad_id = StringField(
         "Posto/Graduação", render_kw={"readonly": True})
     quadro_id = StringField("Quadro", render_kw={"readonly": True})
@@ -898,6 +894,7 @@ class FormLicencas(FlaskForm):
             ("APTO_RESTR", "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM"),
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM"),
             ("APTO", "APTO AO SERVIÇO DO CBMAM"),
+            ("CURSO", "CURSO"),
             ("AGREGADO", "AGREGADO"),
         ],
         validators=[DataRequired()]
@@ -905,14 +902,14 @@ class FormLicencas(FlaskForm):
 
     qtd_dias = IntegerField(
         "Quantidade de dias",
-        validators=[DataRequired(), NumberRange(min=1, max=3650)],
+        validators=[Optional(), NumberRange(min=1, max=3650)],
         render_kw={"min": 1}
     )
 
     data_inicio = DateField(
         "A CONTAR DE",
         format="%Y-%m-%d",
-        validators=[DataRequired()]
+        validators=[Optional()]
     )
 
     data_termino = DateField(
@@ -931,9 +928,27 @@ class FormLicencas(FlaskForm):
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES"),
             ("APTO_RESTR", "APTO PARA O SERVIÇO DO CBMAM COM RESTRIÇÃO"),
             ("APTO", "APTO PARA O SERVIÇO DO CBMAM"),
+            ("CURSO_APTO", "APTO PARA FINS DE CURSO"),
+            ("CURSO_INAPTO", "INAPTO PARA FINS DE CURSO"),
             ("AGREGADO", "AGREGADO"),
         ],
         validators=[Optional()]
+    )
+
+    resultado_curso = SelectField(
+        "Resultado para fins de curso",
+        choices=[
+            ("CURSO_APTO", "APTO PARA FINS DE CURSO"),
+            ("CURSO_INAPTO", "INAPTO PARA FINS DE CURSO"),
+        ],
+        validators=[Optional()]
+    )
+
+    numero_bg_curso = StringField("Número do BG", validators=[Optional()])
+    data_extenso_curso = StringField(
+        "Data por extenso",
+        validators=[Optional()],
+        render_kw={"readonly": True}
     )
 
     sessao = StringField("Sessão da Junta", validators=[DataRequired()])

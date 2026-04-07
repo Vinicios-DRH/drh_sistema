@@ -13,6 +13,7 @@ TIPO_LICENCA_LABELS = {
     "APTO_RECOM": "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO_RESTR": "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO": "APTO AO SERVIÇO DO CBMAM",
+    "CURSO": "CURSO",
     "AGREGADO": "AGREGADO",
 }
 
@@ -23,7 +24,8 @@ STATUS_LABELS = {
     "APTO_RECOM": "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO_RESTR": "APTO AO SERVIÇO DO CBMAM COM RESTRIÇÕES",
     "APTO": "APTO AO SERVIÇO DO CBMAM",
-    "AGUARDANDO_INSPECAO": "AGUARDANDO INSPEÇÃO DA JUNTA",
+    "CURSO_APTO": "APTO PARA FINS DE CURSO",
+    "CURSO_INAPTO": "INAPTO PARA FINS DE CURSO",
     "AGREGADO": "AGREGADO",
 }
 
@@ -35,6 +37,7 @@ LIMITES_AGREGACAO = {
 
 TIPOS_COM_LIMITE = set(LIMITES_AGREGACAO.keys())
 TIPOS_DECISAO = {"APTO", "APTO_RECOM", "APTO_RESTR", "AGREGADO"}
+TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO"}
 
 
 def calcular_data_fim(data_inicio: date, qtd_dias: int) -> date:
@@ -77,6 +80,10 @@ def label_status(status: Optional[str]) -> str:
     if not status:
         return "-"
     return STATUS_LABELS.get(status, status)
+
+
+def _filtrar_registros_medicos(registros):
+    return [r for r in registros if r.tipo_licenca not in TIPOS_IGNORADOS_STATUS_ATUAL]
 
 
 def _merge_intervalos(intervalos):
@@ -206,6 +213,8 @@ def calcular_status_atual(registros, hoje: Optional[date] = None) -> Optional[st
     """
     Calcula a situação atual do militar olhando o histórico completo.
     """
+    registros = _filtrar_registros_medicos(registros)
+    
     if not registros:
         return None
 
