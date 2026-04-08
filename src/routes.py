@@ -37,7 +37,7 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, load_only, aliased
-from sqlalchemy import case, func, or_, cast, String, and_
+from sqlalchemy import case, distinct, func, or_, cast, String, and_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Border, Font, Side
@@ -1092,6 +1092,504 @@ def home():
     except Exception as e:
         print(f"Erro: {e}")
         return jsonify({'error': 'Erro ao carregar a página'}), 500
+
+
+OBMS_OPERACIONAIS_CAPITAL = [2, 5, 7, 15, 26, 35, 59, 60, 61, 62, 63, 65, 86]
+LOCALIDADE_CAPITAL_ID = 1
+USER_ID_CHEFE_CBMC = 13
+
+
+def _parse_int(value):
+    try:
+        return int(value) if value not in (None, "", "None") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _filtros_painel_cbmc():
+    posto_grad_id = _parse_int(request.args.get("posto_grad_id"))
+    quadro_id = _parse_int(request.args.get("quadro_id"))
+    return {
+        "posto_grad_id": posto_grad_id,
+        "quadro_id": quadro_id,
+    }
+
+
+def _base_query_operacional_capital(filtros=None):
+    filtros = filtros or {}
+
+    query = (
+        Militar.query
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(Quadro, Quadro.id == Militar.quadro_id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+        )
+    )
+
+    if filtros.get("posto_grad_id"):
+        query = query.filter(Militar.posto_grad_id == filtros["posto_grad_id"])
+
+    if filtros.get("quadro_id"):
+        query = query.filter(Militar.quadro_id == filtros["quadro_id"])
+
+    return query
+
+
+def _ids_militares_operacional_capital(filtros=None):
+    rows = (
+        _base_query_operacional_capital(filtros)
+        .with_entities(distinct(Militar.id))
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
+def _militares_afastados_ids(filtros=None):
+    hoje = date.today()
+    militares_ids = _ids_militares_operacional_capital(filtros)
+
+    if not militares_ids:
+        return set()
+
+    ids_le = {
+        row[0] for row in (
+            database.session.query(LicencaEspecial.militar_id)
+            .filter(
+                LicencaEspecial.militar_id.in_(militares_ids),
+                LicencaEspecial.inicio_periodo_le.isnot(None),
+                LicencaEspecial.fim_periodo_le.isnot(None),
+                LicencaEspecial.inicio_periodo_le <= hoje,
+                LicencaEspecial.fim_periodo_le >= hoje,
+            )
+            .distinct()
+            .all()
+        )
+    }
+
+    ids_lts = {
+        row[0] for row in (
+            database.session.query(LicencaParaTratamentoDeSaude.militar_id)
+            .filter(
+                LicencaParaTratamentoDeSaude.militar_id.in_(militares_ids),
+                LicencaParaTratamentoDeSaude.inicio_periodo_lts.isnot(None),
+                LicencaParaTratamentoDeSaude.fim_periodo_lts.isnot(None),
+                LicencaParaTratamentoDeSaude.inicio_periodo_lts <= hoje,
+                LicencaParaTratamentoDeSaude.fim_periodo_lts >= hoje,
+            )
+            .distinct()
+            .all()
+        )
+    }
+
+    return ids_le.union(ids_lts)
+
+
+def _estatisticas_operacional_capital(filtros=None):
+    filtros = filtros or {}
+    militares_ids = _ids_militares_operacional_capital(filtros)
+
+    efetivo_total = len(militares_ids)
+
+    oficiais = (
+        database.session.query(func.count(distinct(Militar.id)))
+        .select_from(Militar)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .join(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+            PostoGrad.sigla.in_(
+                ["CEL", "TC", "MAJ", "CAP", "1º TEN", "2º TEN", "ASP", "AL CFO"]),
+        )
+    )
+
+    if filtros.get("posto_grad_id"):
+        oficiais = oficiais.filter(
+            Militar.posto_grad_id == filtros["posto_grad_id"])
+    if filtros.get("quadro_id"):
+        oficiais = oficiais.filter(Militar.quadro_id == filtros["quadro_id"])
+
+    oficiais = oficiais.scalar() or 0
+    pracas = max(efetivo_total - oficiais, 0)
+
+    combatentes_q = (
+        database.session.query(func.count(distinct(Militar.id)))
+        .select_from(Militar)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+            Militar.especialidade_id == 3
+        )
+    )
+
+    saude_q = (
+        database.session.query(func.count(distinct(Militar.id)))
+        .select_from(Militar)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+            Militar.especialidade_id.in_([1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        )
+    )
+
+    if filtros.get("posto_grad_id"):
+        combatentes_q = combatentes_q.filter(
+            Militar.posto_grad_id == filtros["posto_grad_id"])
+        saude_q = saude_q.filter(
+            Militar.posto_grad_id == filtros["posto_grad_id"])
+
+    if filtros.get("quadro_id"):
+        combatentes_q = combatentes_q.filter(
+            Militar.quadro_id == filtros["quadro_id"])
+        saude_q = saude_q.filter(Militar.quadro_id == filtros["quadro_id"])
+
+    combatentes = combatentes_q.scalar() or 0
+    saude = saude_q.scalar() or 0
+
+    afastados_ids = _militares_afastados_ids(filtros)
+    disponivel_operacional = max(efetivo_total - len(afastados_ids), 0)
+
+    hoje = date.today()
+
+    le_vigente = 0
+    lts_vigente = 0
+    if militares_ids:
+        le_vigente = (
+            LicencaEspecial.query
+            .filter(
+                LicencaEspecial.militar_id.in_(militares_ids),
+                LicencaEspecial.inicio_periodo_le.isnot(None),
+                LicencaEspecial.fim_periodo_le.isnot(None),
+                LicencaEspecial.inicio_periodo_le <= hoje,
+                LicencaEspecial.fim_periodo_le >= hoje,
+            )
+            .count()
+        )
+
+        lts_vigente = (
+            LicencaParaTratamentoDeSaude.query
+            .filter(
+                LicencaParaTratamentoDeSaude.militar_id.in_(militares_ids),
+                LicencaParaTratamentoDeSaude.inicio_periodo_lts.isnot(None),
+                LicencaParaTratamentoDeSaude.fim_periodo_lts.isnot(None),
+                LicencaParaTratamentoDeSaude.inicio_periodo_lts <= hoje,
+                LicencaParaTratamentoDeSaude.fim_periodo_lts >= hoje,
+            )
+            .count()
+        )
+
+    por_obm_q = (
+        database.session.query(
+            Obm.id.label("obm_id"),
+            Obm.sigla.label("obm_sigla"),
+            func.count(distinct(Militar.id)).label("total")
+        )
+        .select_from(Militar)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+        )
+    )
+
+    if filtros.get("posto_grad_id"):
+        por_obm_q = por_obm_q.filter(
+            Militar.posto_grad_id == filtros["posto_grad_id"])
+    if filtros.get("quadro_id"):
+        por_obm_q = por_obm_q.filter(Militar.quadro_id == filtros["quadro_id"])
+
+    por_obm = (
+        por_obm_q
+        .group_by(Obm.id, Obm.sigla)
+        .order_by(func.count(distinct(Militar.id)).desc(), Obm.sigla.asc())
+        .all()
+    )
+
+    return {
+        "efetivo_total": efetivo_total,
+        "oficiais": oficiais,
+        "pracas": pracas,
+        "combatentes": combatentes,
+        "saude": saude,
+        "licenca_especial": le_vigente,
+        "lts": lts_vigente,
+        "disponivel_operacional": disponivel_operacional,
+        "por_obm": por_obm,
+    }
+
+
+def _preview_le_operacional_capital(limit=5, filtros=None):
+    hoje = date.today()
+    militares_ids = _ids_militares_operacional_capital(filtros)
+
+    if not militares_ids:
+        return []
+
+    itens = (
+        LicencaEspecial.query
+        .options(
+            joinedload(LicencaEspecial.militar),
+            joinedload(LicencaEspecial.posto_grad),
+            joinedload(LicencaEspecial.destino),
+        )
+        .filter(
+            LicencaEspecial.militar_id.in_(militares_ids),
+            LicencaEspecial.inicio_periodo_le.isnot(None),
+            LicencaEspecial.fim_periodo_le.isnot(None),
+            LicencaEspecial.inicio_periodo_le <= hoje,
+            LicencaEspecial.fim_periodo_le >= hoje,
+        )
+        .order_by(LicencaEspecial.fim_periodo_le.asc(), LicencaEspecial.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "militar_id": item.militar_id,
+            "nome": item.militar.nome_completo if item.militar else "N/A",
+            "matricula": item.militar.matricula if item.militar else "N/A",
+            "posto_grad": item.posto_grad.sigla if item.posto_grad else "N/A",
+            "destino": item.destino.local if item.destino else "N/A",
+            "fim": item.fim_periodo_le.strftime("%d/%m/%Y") if item.fim_periodo_le else "N/A",
+            "dias_restantes": (item.fim_periodo_le - hoje).days if item.fim_periodo_le else None,
+        }
+        for item in itens
+    ]
+
+
+def _preview_lts_operacional_capital(limit=5, filtros=None):
+    hoje = date.today()
+    militares_ids = _ids_militares_operacional_capital(filtros)
+
+    if not militares_ids:
+        return []
+
+    itens = (
+        LicencaParaTratamentoDeSaude.query
+        .options(
+            joinedload(LicencaParaTratamentoDeSaude.militar),
+            joinedload(LicencaParaTratamentoDeSaude.posto_grad),
+            joinedload(LicencaParaTratamentoDeSaude.destino),
+        )
+        .filter(
+            LicencaParaTratamentoDeSaude.militar_id.in_(militares_ids),
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts.isnot(None),
+            LicencaParaTratamentoDeSaude.fim_periodo_lts.isnot(None),
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts <= hoje,
+            LicencaParaTratamentoDeSaude.fim_periodo_lts >= hoje,
+        )
+        .order_by(
+            LicencaParaTratamentoDeSaude.fim_periodo_lts.asc(),
+            LicencaParaTratamentoDeSaude.id.desc()
+        )
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "militar_id": item.militar_id,
+            "nome": item.militar.nome_completo if item.militar else "N/A",
+            "matricula": item.militar.matricula if item.militar else "N/A",
+            "posto_grad": item.posto_grad.sigla if item.posto_grad else "N/A",
+            "destino": item.destino.local if item.destino else "N/A",
+            "fim": item.fim_periodo_lts.strftime("%d/%m/%Y") if item.fim_periodo_lts else "N/A",
+            "dias_restantes": (item.fim_periodo_lts - hoje).days if item.fim_periodo_lts else None,
+        }
+        for item in itens
+    ]
+
+
+def _militares_disponiveis_operacional_capital(filtros=None, limit=300):
+    filtros = filtros or {}
+    afastados_ids = _militares_afastados_ids(filtros)
+
+    query = (
+        database.session.query(
+            Militar.id.label("militar_id"),
+            Militar.nome_completo,
+            Militar.matricula,
+            PostoGrad.sigla.label("posto_grad"),
+            Quadro.quadro.label("quadro"),
+            Obm.sigla.label("obm_sigla"),
+        )
+        .select_from(Militar)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
+        .outerjoin(Quadro, Quadro.id == Militar.quadro_id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+        )
+    )
+
+    if filtros.get("posto_grad_id"):
+        query = query.filter(Militar.posto_grad_id == filtros["posto_grad_id"])
+    if filtros.get("quadro_id"):
+        query = query.filter(Militar.quadro_id == filtros["quadro_id"])
+
+    if afastados_ids:
+        query = query.filter(~Militar.id.in_(afastados_ids))
+
+    itens = (
+        query
+        .order_by(Obm.sigla.asc(), PostoGrad.sigla.asc(), Militar.nome_completo.asc())
+        .limit(limit)
+        .all()
+    )
+
+    return itens
+
+
+def _opcoes_filtros_cbmc():
+    postos = (
+        database.session.query(PostoGrad.id, PostoGrad.sigla)
+        .join(Militar, Militar.posto_grad_id == PostoGrad.id)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+        )
+        .distinct()
+        .order_by(PostoGrad.sigla.asc())
+        .all()
+    )
+
+    quadros = (
+        database.session.query(Quadro.id, Quadro.quadro)
+        .join(Militar, Militar.quadro_id == Quadro.id)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .filter(
+            Militar.inativo.is_(False),
+            Militar.localidade_id == LOCALIDADE_CAPITAL_ID,
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id.in_(OBMS_OPERACIONAIS_CAPITAL),
+        )
+        .distinct()
+        .order_by(Quadro.quadro.asc())
+        .all()
+    )
+
+    return postos, quadros
+
+
+@app.route("/painel-cbmc-operacional")
+@login_required
+def painel_cbmc_operacional():
+    if current_user.id != USER_ID_CHEFE_CBMC:
+        abort(403)
+
+    try:
+        filtros = _filtros_painel_cbmc()
+        estatisticas = _estatisticas_operacional_capital(filtros=filtros)
+        licencas_especiais_preview = _preview_le_operacional_capital(
+            limit=5, filtros=filtros)
+        lts_preview = _preview_lts_operacional_capital(
+            limit=5, filtros=filtros)
+        militares_disponiveis = _militares_disponiveis_operacional_capital(
+            filtros=filtros, limit=300)
+        postos_grad, quadros = _opcoes_filtros_cbmc()
+
+        return render_template(
+            "painel_cbmc_operacional.html",
+            **estatisticas,
+            licencas_especiais_preview=licencas_especiais_preview,
+            lts_preview=lts_preview,
+            militares_disponiveis=militares_disponiveis,
+            postos_grad=postos_grad,
+            quadros=quadros,
+            filtros=filtros,
+            obms_operacionais=OBMS_OPERACIONAIS_CAPITAL,
+        )
+    except Exception as e:
+        print(f"Erro no painel operacional do CBMC: {e}")
+        return jsonify({"error": "Erro ao carregar o painel operacional do CBMC"}), 500
+
+
+@app.route("/painel-cbmc-operacional/exportar-excel")
+@login_required
+def exportar_excel_painel_cbmc_operacional():
+    if current_user.id != USER_ID_CHEFE_CBMC:
+        abort(403)
+
+    try:
+        filtros = _filtros_painel_cbmc()
+        militares_disponiveis = _militares_disponiveis_operacional_capital(
+            filtros=filtros, limit=100000)
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Efetivo Operacional CBMC"
+
+        headers = ["NOME", "MATRÍCULA", "POSTO/GRAD", "QUADRO", "OBM"]
+        ws.append(headers)
+
+        header_fill = PatternFill(
+            fill_type="solid", start_color="B5121B", end_color="B5121B")
+        header_font = Font(color="FFFFFF", bold=True)
+
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        for item in militares_disponiveis:
+            ws.append([
+                item.nome_completo or "",
+                item.matricula or "",
+                item.posto_grad or "",
+                item.quadro or "",
+                item.obm_sigla or "",
+            ])
+
+        widths = {
+            "A": 45,
+            "B": 18,
+            "C": 16,
+            "D": 20,
+            "E": 14,
+        }
+        for col, width in widths.items():
+            ws.column_dimensions[col].width = width
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="painel_cbmc_operacional.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        print(f"Erro ao exportar Excel do painel CBMC: {e}")
+        return jsonify({"error": "Erro ao exportar Excel"}), 500
 
 
 @app.route("/admin/reprocessar-vigencias", methods=["POST"])

@@ -238,6 +238,14 @@
                     <span class="badge text-bg-light text-dark p-2">
                         <i class="bi bi-clipboard-check me-1"></i> Rotinas administrativas
                     </span>
+
+                    {% if current_user.is_authenticated and current_user.id == 13 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('painel_cbmc_operacional') }}">
+                            <i class="bi bi-building-check me-1"></i> Painel Operacional CBMC
+                        </a>
+                    </li>
+                    {% endif %}
                 </div>
             </div>
         </div>

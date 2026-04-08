@@ -1,0 +1,540 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    :root {
+        --ink-200: #e8eef6;
+        --glass-brd: rgba(255, 255, 255, .12);
+        --brand-red: #B5121B;
+        --brand-blue: #0b2e4f;
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+    }
+
+    .hero {
+        min-height: 100vh;
+        position: relative;
+        background: linear-gradient(180deg, rgba(0, 0, 0, .45), rgba(0, 0, 0, .60)),
+        url('{{ url_for("static", filename="img/bombeiros_2.jpeg") }}') center/cover no-repeat;
+    }
+
+    .brand-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+        border: 1px solid var(--glass-brd);
+        border-radius: 18px;
+        color: var(--ink-200);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, .94);
+        color: #111;
+        border: 1px solid rgba(255, 255, 255, .5);
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .stat-card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        padding: 1rem;
+        height: 100%;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .07);
+    }
+
+    .stat-label {
+        font-size: .84rem;
+        color: #64748b;
+        margin-bottom: .35rem;
+    }
+
+    .stat-value {
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: var(--brand-blue);
+        line-height: 1;
+    }
+
+    .stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(11, 46, 79, .08);
+        color: var(--brand-blue);
+        font-size: 1.2rem;
+    }
+
+    .panel-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--brand-blue);
+        margin-bottom: .2rem;
+    }
+
+    .panel-subtitle {
+        color: #64748b;
+        font-size: .9rem;
+    }
+
+    .mini-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .mini-table thead th {
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: #64748b;
+        padding: .85rem .75rem;
+        border-bottom: 1px solid rgba(0, 0, 0, .08);
+        background: #f8fafc;
+    }
+
+    .mini-table tbody td {
+        padding: .9rem .75rem;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        vertical-align: middle;
+    }
+
+    .mini-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .name-link {
+        text-decoration: none;
+        font-weight: 700;
+        color: var(--brand-blue);
+    }
+
+    .name-link:hover {
+        color: #0d6efd;
+    }
+
+    .muted-line {
+        font-size: .82rem;
+        color: #6b7280;
+    }
+
+    .days-badge {
+        display: inline-block;
+        min-width: 42px;
+        text-align: center;
+        border-radius: 10px;
+        padding: .3rem .5rem;
+        font-size: .82rem;
+        font-weight: 700;
+        background: #eef2ff;
+        color: #334155;
+    }
+
+    .empty-box {
+        padding: 1.25rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .filter-box {
+        background: rgba(255, 255, 255, .12);
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 16px;
+        padding: 1rem;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .chart-wrap {
+        position: relative;
+        min-height: 360px;
+    }
+
+    .btn-soft-light {
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, .18);
+    }
+
+    .btn-soft-light:hover {
+        background: rgba(255, 255, 255, .20);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="hero py-3 py-md-4">
+    <div class="container py-2 py-md-4">
+
+        <div class="brand-header p-3 p-md-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" width="58" height="58" class="rounded"
+                        alt="CBMAM">
+                    <div>
+                        <h1 class="h4 mb-1">Painel Operacional do CBMC</h1>
+                        <div class="small text-light opacity-75">
+                            Efetivo operacional da capital — lotações ativas nas OBMs do CBMC
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('exportar_excel_painel_cbmc_operacional', posto_grad_id=filtros.posto_grad_id, quadro_id=filtros.quadro_id) }}"
+                        class="btn btn-soft-light">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-box mb-4">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white">Posto/Graduação</label>
+                    <select name="posto_grad_id" class="form-select">
+                        <option value="">Todos</option>
+                        {% for item in postos_grad %}
+                        <option value="{{ item.id }}" {% if filtros.posto_grad_id==item.id %}selected{% endif %}>
+                            {{ item.sigla }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white">Quadro</label>
+                    <select name="quadro_id" class="form-select">
+                        <option value="">Todos</option>
+                        {% for item in quadros %}
+                        <option value="{{ item.id }}" {% if filtros.quadro_id==item.id %}selected{% endif %}>
+                            {{ item.quadro }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-light w-100">
+                            <i class="bi bi-funnel me-1"></i> Filtrar
+                        </button>
+                        <a href="{{ url_for('painel_cbmc_operacional') }}" class="btn btn-outline-light w-100">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Efetivo Total</div>
+                        <div class="stat-value">{{ efetivo_total }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-shield-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Disponível Operacional</div>
+                        <div class="stat-value">{{ disponivel_operacional }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Oficiais</div>
+                        <div class="stat-value">{{ oficiais }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-star-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Praças</div>
+                        <div class="stat-value">{{ pracas }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Combatentes</div>
+                        <div class="stat-value">{{ combatentes }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-fire"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Saúde</div>
+                        <div class="stat-value">{{ saude }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Licença Especial</div>
+                        <div class="stat-value">{{ licenca_especial }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="stat-card d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">LTS</div>
+                        <div class="stat-value">{{ lts }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-hospital-fill"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-7">
+                <div class="glass-panel p-3 p-md-4 h-100">
+                    <div class="panel-title">Gráfico de efetivo por OBM</div>
+                    <div class="panel-subtitle mb-3">Distribuição atual do efetivo operacional filtrado</div>
+                    <div class="chart-wrap">
+                        <canvas id="graficoObm"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-5">
+                <div class="glass-panel p-3 p-md-4 h-100">
+                    <div class="panel-title">Distribuição por OBM</div>
+                    <div class="panel-subtitle mb-3">Resumo numérico por lotação</div>
+
+                    {% if por_obm %}
+                    <div class="table-responsive">
+                        <table class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>OBM</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in por_obm %}
+                                <tr>
+                                    <td>{{ item.obm_sigla }}</td>
+                                    <td>{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-box">Nenhum militar encontrado para os filtros informados.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="glass-panel p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <div class="panel-title">Militares disponíveis agora</div>
+                            <div class="panel-subtitle">Efetivo sem LE e sem LTS vigente</div>
+                        </div>
+                        <span class="badge text-bg-primary">{{ militares_disponiveis|length }} registros exibidos</span>
+                    </div>
+
+                    {% if militares_disponiveis %}
+                    <div class="table-responsive">
+                        <table class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Militar</th>
+                                    <th>Matrícula</th>
+                                    <th>Posto/Grad</th>
+                                    <th>Quadro</th>
+                                    <th>OBM</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in militares_disponiveis %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                                            class="name-link">
+                                            {{ item.nome_completo }}
+                                        </a>
+                                    </td>
+                                    <td>{{ item.matricula or '-' }}</td>
+                                    <td>{{ item.posto_grad or '-' }}</td>
+                                    <td>{{ item.quadro or '-' }}</td>
+                                    <td>{{ item.obm_sigla or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-box">Nenhum militar disponível encontrado com os filtros atuais.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-xl-6">
+                <div class="glass-panel p-3 p-md-4 h-100">
+                    <div class="panel-title">Licença Especial em andamento</div>
+                    <div class="panel-subtitle mb-3">Top 5 mais próximas do término</div>
+
+                    {% if licencas_especiais_preview %}
+                    <div class="table-responsive">
+                        <table class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Militar</th>
+                                    <th>Posto/Grad</th>
+                                    <th>Destino</th>
+                                    <th>Término</th>
+                                    <th>Dias</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in licencas_especiais_preview %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                                            class="name-link">
+                                            {{ item.nome }}
+                                        </a>
+                                        <div class="muted-line">Matrícula {{ item.matricula }}</div>
+                                    </td>
+                                    <td>{{ item.posto_grad }}</td>
+                                    <td>{{ item.destino }}</td>
+                                    <td>{{ item.fim }}</td>
+                                    <td><span class="days-badge">{{ item.dias_restantes }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-box">Nenhuma Licença Especial vigente nesse efetivo.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <div class="glass-panel p-3 p-md-4 h-100">
+                    <div class="panel-title">LTS em andamento</div>
+                    <div class="panel-subtitle mb-3">Top 5 mais próximas do término</div>
+
+                    {% if lts_preview %}
+                    <div class="table-responsive">
+                        <table class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Militar</th>
+                                    <th>Posto/Grad</th>
+                                    <th>Destino</th>
+                                    <th>Término</th>
+                                    <th>Dias</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in lts_preview %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                                            class="name-link">
+                                            {{ item.nome }}
+                                        </a>
+                                        <div class="muted-line">Matrícula {{ item.matricula }}</div>
+                                    </td>
+                                    <td>{{ item.posto_grad }}</td>
+                                    <td>{{ item.destino }}</td>
+                                    <td>{{ item.fim }}</td>
+                                    <td><span class="days-badge">{{ item.dias_restantes }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-box">Nenhuma LTS vigente nesse efetivo.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script>
+    const obmLabels = {{ por_obm | map(attribute = 'obm_sigla') | list | tojson }};
+    const obmValores = {{ por_obm | map(attribute = 'total') | list | tojson }};
+
+    const ctx = document.getElementById('graficoObm');
+
+    if (ctx && obmLabels.length > 0) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: obmLabels,
+                datasets: [{
+                    label: 'Efetivo',
+                    data: obmValores,
+                    backgroundColor: 'rgba(181, 18, 27, 0.78)',
+                    borderColor: 'rgba(11, 46, 79, 1)',
+                    borderWidth: 1.5,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
