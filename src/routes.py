@@ -2418,7 +2418,9 @@ def exibir_militar(militar_id):
         return bg.id if bg else None
 
     def encerrar_status_anteriores(militar, condicao_atual):
-        """Fecha registros vigentes de AGREGADO / À DISPOSIÇÃO que não batem com a situação atual."""
+        """Fecha registros vigentes de AGREGADO / À DISPOSIÇÃO / LICENÇA ESPECIAL
+        que não batem com a situação atual.
+        """
         hoje = date.today()
         ontem = hoje - timedelta(days=1)
 
@@ -2434,7 +2436,7 @@ def exibir_militar(militar_id):
             ).all()
 
             for ag in agregacoes_vigentes:
-                ag.fim_periodo_agregacao = ontem  # <<< aqui muda
+                ag.fim_periodo_agregacao = ontem
                 ag.atualizar_status()
 
         # Se a situação atual NÃO é À DISPOSIÇÃO, fecha disposições vigentes
@@ -2449,8 +2451,23 @@ def exibir_militar(militar_id):
             ).all()
 
             for disp in disposicoes_vigentes:
-                disp.fim_periodo_disposicao = ontem  # <<< e aqui também
+                disp.fim_periodo_disposicao = ontem
                 disp.atualizar_status()
+
+        # Se a situação atual NÃO é LICENÇA ESPECIAL, fecha LE vigente
+        if condicao_atual != 'LICENÇA ESPECIAL':
+            les_vigentes = LicencaEspecial.query.filter(
+                LicencaEspecial.militar_id == militar.id,
+                LicencaEspecial.inicio_periodo_le <= hoje,
+                or_(
+                    LicencaEspecial.fim_periodo_le == None,
+                    LicencaEspecial.fim_periodo_le >= hoje,
+                )
+            ).all()
+
+            for le in les_vigentes:
+                le.fim_periodo_le = ontem
+                le.atualizar_status()
 
     can_edit = has_perm("MILITAR_UPDATE")
     can_delete = has_perm("MILITAR_DELETE")
@@ -2860,8 +2877,16 @@ def exibir_militar(militar_id):
         # LICENÇA ESPECIAL
         if situacao_selecionada and situacao_selecionada.condicao == 'LICENÇA ESPECIAL':
             bg_id = safe_bg_id(militar.id)
-            militar_le = LicencaEspecial.query.filter_by(
-                militar_id=militar.id).first()
+            hoje = date.today()
+
+            militar_le = LicencaEspecial.query.filter(
+                LicencaEspecial.militar_id == militar.id,
+                or_(
+                    LicencaEspecial.fim_periodo_le == None,
+                    LicencaEspecial.fim_periodo_le >= hoje
+                )
+            ).order_by(LicencaEspecial.id.desc()).first()
+
             if not militar_le:
                 militar_le = LicencaEspecial(militar_id=militar.id)
                 database.session.add(militar_le)
@@ -2870,10 +2895,8 @@ def exibir_militar(militar_id):
             militar_le.quadro_id = form_militar.quadro_id.data
             militar_le.destino_id = form_militar.destino_id.data
             militar_le.situacao_id = situacao_selecionada.id
-            militar_le.inicio_periodo_le = parse_date(
-                form_militar.inicio_periodo.data)
-            militar_le.fim_periodo_le = parse_date(
-                form_militar.fim_periodo.data)
+            militar_le.inicio_periodo_le = parse_date(form_militar.inicio_periodo.data)
+            militar_le.fim_periodo_le = parse_date(form_militar.fim_periodo.data)
             militar_le.publicacao_bg_id = bg_id
             militar_le.atualizar_status()
 
@@ -3903,12 +3926,24 @@ def militares_agregados():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def licenca_especial():
+    hoje = date.today()
+
     militares_le = (
         LicencaEspecial.query
         .join(Militar, LicencaEspecial.militar_id == Militar.id)
         .filter(Militar.inativo.is_(False))
+        .filter(LicencaEspecial.inicio_periodo_le.isnot(None))
+        .filter(LicencaEspecial.inicio_periodo_le <= hoje)
+        .filter(
+            or_(
+                LicencaEspecial.fim_periodo_le.is_(None),
+                LicencaEspecial.fim_periodo_le >= hoje
+            )
+        )
+        .order_by(Militar.nome_completo.asc())
         .all()
     )
+
     return render_template('licenca_especial.html', militares_le=militares_le)
 
 
