@@ -41,7 +41,8 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_MIL_ATIVOS_MAPA", "nome": "Menu: Militares Ativos > Mapa da Força"},
     {"codigo": "NAV_MIL_ATIVOS_ADD",
         "nome": "Menu: Militares Ativos > Adicionar Militar"},
-    {"codigo": "NAV_MIL_ATIVOS_IMPORT", "nome": "Menu: Militares Ativos > Importar Planilha"},
+    {"codigo": "NAV_MIL_ATIVOS_IMPORT",
+        "nome": "Menu: Militares Ativos > Importar Planilha"},
 
     {"codigo": "NAV_MIL_ATIVOS_DISP",
         "nome": "Menu: Militares Ativos > Militares à disposição"},
@@ -49,7 +50,6 @@ PERMISSOES_CATALOGO = [
         "nome": "Menu: Militares Ativos > Militares agregados"},
     {"codigo": "NAV_MIL_ATIVOS_LE", "nome": "Menu: Militares Ativos > Licença Especial"},
     {"codigo": "NAV_MIL_ATIVOS_LTS", "nome": "Menu: Militares Ativos > LTS"},
-    {"codigo": "NAV_MIL_ATIVOS_QR", "nome": "Menu: Militares Ativos > Gerar QrCodes"},
     {"codigo": "NAV_MIL_ATIVOS_CADETES",
         "nome": "Menu: Militares Ativos > Militares por cadete"},
 
@@ -116,6 +116,12 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_UTIL_USUARIOS", "nome": "Menu: Utilidades > Usuários"},
     {"codigo": "NAV_UTIL_CRIAR", "nome": "Menu: Utilidades > Adicionar Usuário"},
 
+    # ===== Ferramentas =====
+    {"codigo": "NAV_FERRAMENTAS", "nome": "Menu: Ferramentas (grupo)"},
+    {"codigo": "NAV_FERRAMENTAS_QR", "nome": "Menu: Ferramentas > Gerar QrCodes"},
+    {"codigo": "NAV_FERRAMENTAS_REMOVE_BG",
+        "nome": "Menu: Ferramentas > Removedor de Fundo"},
+
     # ===== Férias =====
     {"codigo": "NAV_FERIAS", "nome": "Menu: Férias (grupo)"},
     {"codigo": "NAV_FERIAS_CHEFIA", "nome": "Menu: Férias > (Chefia)"},
@@ -131,7 +137,8 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_ADMIN_PERMISSOES", "nome": "Menu: Administração > Permissões"},
     {"codigo": "NAV_ADMIN_OBM_GESTAO", "nome": "Menu: Administração > OBM Gestão"},
     {"codigo": "SYS_SUPER", "nome": "Sistema: Acesso tipo SUPER (override)"},
-    {"codigo": "NAV_ADMIN_AUDITORIA", "nome": "Menu: Administração > Auditoria de Exportações"},
+    {"codigo": "NAV_ADMIN_AUDITORIA",
+        "nome": "Menu: Administração > Auditoria de Exportações"},
 
     # ===== APP TAF =====
     {"codigo": "APP_TAF_LOGIN", "nome": "App TAF: Pode logar no aplicativo"},

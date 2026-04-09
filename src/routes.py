@@ -1096,7 +1096,7 @@ def home():
 
 OBMS_OPERACIONAIS_CAPITAL = [2, 5, 7, 15, 26, 35, 59, 60, 61, 62, 63, 65, 86]
 LOCALIDADE_CAPITAL_ID = 1
-USER_ID_CHEFE_CBMC = 13
+USER_ID_CHEFE_CBMC = [1, 8, 13]
 
 
 def _parse_int(value):

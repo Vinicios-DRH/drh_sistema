@@ -187,7 +187,9 @@ from src.routes_taf import taf_admin_bp
 from src.routes_historico import bp_historico
 from src.routes_atualizacao_cadastral import bp_atualizacao_cadastral
 from src.routes_junta import junta_bp
+from src.routes_remove_bg import remove_bg_bp
 
+app.register_blueprint(remove_bg_bp)
 app.register_blueprint(junta_bp)
 app.register_blueprint(bp_atualizacao_cadastral)
 app.register_blueprint(bp_historico)

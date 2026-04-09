@@ -283,8 +283,6 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                 _mk_item("Licença Especial", "licenca_especial",
                          perm="NAV_MIL_ATIVOS_LE"),
                 _mk_item("LTS", "lts", perm="NAV_MIL_ATIVOS_LTS"),
-                _mk_item("Gerar QrCodes", "gerar_qrcodes",
-                         perm="NAV_MIL_ATIVOS_QR"),
                 _mk_item("Militares por cadete", "relatorio_cadetes_militares",
                          perm="NAV_MIL_ATIVOS_CADETES"),
                 _mk_item(
@@ -349,25 +347,25 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
-    nav.append(
-        _mk_group(
-            "Convocação Concurso",
-            icon="fas fa-id-card",
-            perm="NAV_CONVOCACAO",
-            rule=rule_drh_like,
-            children=[
-                _mk_item("Relatório Convocação",
-                         "relatorio_convocacao", perm="NAV_CONVOCACAO_REL"),
-                _mk_item("Adicionar Convocado", "adicionar_convocacao",
-                         perm="NAV_CONVOCACAO_ADD"),
-                _mk_item("Importar Convocados", "importar_convocados",
-                         perm="NAV_CONVOCACAO_IMPORT"),
-                _mk_item("Controle Convocacao", "controle_convocacao",
-                         perm="NAV_CONVOCACAO_CTRL"),
-                _mk_item("Dashboard", "dashboard", perm="NAV_CONVOCACAO_DASH"),
-            ],
-        )
-    )
+    # nav.append(
+    #     _mk_group(
+    #         "Convocação Concurso",
+    #         icon="fas fa-id-card",
+    #         perm="NAV_CONVOCACAO",
+    #         rule=rule_drh_like,
+    #         children=[
+    #             _mk_item("Relatório Convocação",
+    #                      "relatorio_convocacao", perm="NAV_CONVOCACAO_REL"),
+    #             _mk_item("Adicionar Convocado", "adicionar_convocacao",
+    #                      perm="NAV_CONVOCACAO_ADD"),
+    #             _mk_item("Importar Convocados", "importar_convocados",
+    #                      perm="NAV_CONVOCACAO_IMPORT"),
+    #             _mk_item("Controle Convocacao", "controle_convocacao",
+    #                      perm="NAV_CONVOCACAO_CTRL"),
+    #             _mk_item("Dashboard", "dashboard", perm="NAV_CONVOCACAO_DASH"),
+    #         ],
+    #     )
+    # )
 
     # Alunos Soldados
     nav.append(
@@ -417,6 +415,29 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                 _mk_item("Usuários", "usuarios", perm="NAV_UTIL_USUARIOS"),
                 _mk_item("Adicionar Usuário", "criar_conta",
                          perm="NAV_UTIL_CRIAR"),
+            ],
+        )
+    )
+
+    nav.append(
+        _mk_group(
+            "Ferramentas",
+            icon="fas fa-tools",
+            perm="NAV_FERRAMENTAS",
+            rule=rule_drh_like,
+            children=[
+                _mk_item(
+                    "Gerar QrCodes",
+                    "gerar_qrcodes",
+                    icon="fas fa-qrcode",
+                    perm="NAV_FERRAMENTAS_QR",
+                ),
+                _mk_item(
+                    "Removedor de Fundo",
+                    "remove_bg.remover_fundo",
+                    icon="fas fa-image",
+                    perm="NAV_FERRAMENTAS_REMOVE_BG",
+                ),
             ],
         )
     )

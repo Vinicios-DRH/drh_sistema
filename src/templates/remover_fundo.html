@@ -1,0 +1,1146 @@
+{% extends 'base.html' %}
+
+{% block title %}Remover Fundo{% endblock %}
+
+{% block body %}
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.08);
+        --glass-brd: rgba(255, 255, 255, 0.14);
+        --ink-soft: #cdd7e3;
+        --brand-red: #B5121B;
+        --brand-blue: #0b2e4f;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+        --page-bg:
+            radial-gradient(circle at top left, rgba(181, 18, 27, 0.18), transparent 24%),
+            radial-gradient(circle at top right, rgba(34, 197, 94, 0.10), transparent 18%),
+            linear-gradient(135deg, #09111d 0%, #0b223a 45%, #102f52 100%);
+    }
+
+    html,
+    body {
+        min-height: 100%;
+    }
+
+    body {
+        background: var(--page-bg) fixed !important;
+        background-color: #09111d !important;
+    }
+
+    /* tenta pegar a área superior do base.html */
+    header,
+    .navbar,
+    .topbar,
+    .app-header,
+    .main-header,
+    .navbar-custom,
+    .header-bar {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+    }
+
+    /* wrappers comuns do base */
+    main,
+    .content-wrapper,
+    .page-wrapper,
+    .main-content,
+    .content,
+    .container-fluid.page-body {
+        background: transparent !important;
+    }
+
+    .bg-remove-page {
+        min-height: calc(100vh - 80px);
+        background: transparent;
+        padding: 28px 0 48px;
+    }
+
+    .hero-card,
+    .glass-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-brd);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .28);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 24px;
+    }
+
+    .hero-card {
+        padding: 28px;
+        color: #fff;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -60px -60px auto;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(181, 18, 27, 0.30), transparent 65%);
+        pointer-events: none;
+    }
+
+    .hero-title {
+        font-size: clamp(1.6rem, 3vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -.03em;
+        margin-bottom: .5rem;
+    }
+
+    .hero-subtitle {
+        color: var(--ink-soft);
+        max-width: 780px;
+        margin: 0;
+    }
+
+    .glass-card {
+        padding: 22px;
+        color: #fff;
+        position: relative;
+    }
+
+    .dropzone {
+        position: relative;
+        border: 2px dashed rgba(255, 255, 255, .22);
+        border-radius: 22px;
+        min-height: 240px;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, .015)),
+            rgba(255, 255, 255, .03);
+        transition: .25s ease;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, .48);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, .22), inset 0 0 0 1px rgba(255, 255, 255, .06);
+    }
+
+    .dropzone-inner {
+        min-height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+    }
+
+    .dropzone-icon {
+        font-size: 3rem;
+        margin-bottom: 12px;
+        opacity: .92;
+    }
+
+    .dropzone-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: .35rem;
+    }
+
+    .dropzone-subtitle {
+        color: var(--ink-soft);
+        margin: 0;
+    }
+
+    .dropzone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .section-label {
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        color: rgba(255, 255, 255, .68);
+        margin-bottom: .65rem;
+        font-weight: 700;
+    }
+
+    .form-label {
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .form-select,
+    .form-range,
+    .form-check-input,
+    .form-control,
+    .form-control-color {
+        box-shadow: none !important;
+    }
+
+    .form-select,
+    .form-control {
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        background: rgba(255, 255, 255, .08);
+        color: #fff;
+    }
+
+    .form-select option {
+        color: #111;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, .50);
+    }
+
+    .form-control-color {
+        width: 100%;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        background: rgba(255, 255, 255, .08);
+        padding: 6px;
+    }
+
+    .range-value {
+        min-width: 38px;
+        display: inline-block;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .info-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .08);
+        color: #fff;
+        font-size: .92rem;
+        margin: 0 8px 8px 0;
+    }
+
+    .action-btn {
+        border-radius: 16px;
+        padding: 12px 18px;
+        font-weight: 700;
+        border: 0;
+        transition: .25s ease;
+    }
+
+    .action-btn:disabled {
+        opacity: .75;
+        cursor: not-allowed;
+    }
+
+    .btn-processar {
+        background: linear-gradient(135deg, #B5121B, #d4343d);
+        color: #fff;
+        box-shadow: 0 10px 30px rgba(181, 18, 27, .28);
+    }
+
+    .btn-download {
+        background: linear-gradient(135deg, #1d4ed8, #2563eb);
+        color: #fff;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, .28);
+    }
+
+    .btn-limpar {
+        background: rgba(255, 255, 255, .09);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .status-box {
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .06);
+        border: 1px solid rgba(255, 255, 255, .08);
+        color: #fff;
+        padding: 14px 16px;
+    }
+
+    .status-box.success {
+        border-color: rgba(34, 197, 94, .35);
+    }
+
+    .status-box.error {
+        border-color: rgba(239, 68, 68, .35);
+    }
+
+    .status-box.loading {
+        border-color: rgba(245, 158, 11, .35);
+    }
+
+    .mini-meta {
+        color: var(--ink-soft);
+        font-size: .92rem;
+    }
+
+    .preview-box {
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, .10);
+        background:
+            linear-gradient(45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, .045) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, .045) 75%);
+        background-size: 22px 22px;
+        background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+        min-height: 420px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .preview-box img {
+        max-width: 100%;
+        max-height: 380px;
+        object-fit: contain;
+        border-radius: 16px;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, .24);
+    }
+
+    .preview-placeholder {
+        color: var(--ink-soft);
+        text-align: center;
+    }
+
+    .hidden,
+    .view-hidden {
+        display: none !important;
+    }
+
+    .compare-mode-switch {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .compare-mode-btn {
+        flex: 1;
+        border: 1px solid rgba(255, 255, 255, .12);
+        background: rgba(255, 255, 255, .08);
+        color: #fff;
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-weight: 700;
+        transition: .2s ease;
+    }
+
+    .compare-mode-btn.active {
+        background: linear-gradient(135deg, #1d4ed8, #2563eb);
+        border-color: rgba(255, 255, 255, .18);
+        box-shadow: 0 8px 22px rgba(37, 99, 235, .28);
+    }
+
+    .compare-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 420px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .12);
+        background:
+            linear-gradient(45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, .045) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, .045) 75%);
+        background-size: 22px 22px;
+        background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+    }
+
+    .compare-base,
+    .compare-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+    }
+
+    .compare-base img,
+    .compare-overlay img,
+    .final-result-box img {
+        max-width: 100%;
+        max-height: 380px;
+        object-fit: contain;
+        border-radius: 16px;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, .24);
+        user-select: none;
+        pointer-events: none;
+    }
+
+    .compare-overlay {
+        width: 50%;
+        overflow: hidden;
+        border-right: 2px solid rgba(255, 255, 255, .92);
+    }
+
+    .compare-handle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .96);
+        color: #0b2e4f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        z-index: 3;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+        border: 2px solid rgba(11, 46, 79, .08);
+        pointer-events: none;
+    }
+
+    .compare-divider {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 2px;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, .92);
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .compare-slider-wrap {
+        margin-top: 16px;
+    }
+
+    .compare-badge {
+        position: absolute;
+        top: 14px;
+        z-index: 4;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #fff;
+        background: rgba(0, 0, 0, .45);
+        backdrop-filter: blur(8px);
+    }
+
+    .compare-badge.before {
+        left: 14px;
+    }
+
+    .compare-badge.after {
+        right: 14px;
+    }
+
+    .compare-hint {
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: .9rem;
+        margin-top: 10px;
+    }
+
+    .final-result-box {
+        min-height: 420px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background:
+            linear-gradient(45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(255, 255, 255, .045) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, .045) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, .045) 75%);
+        background-size: 22px 22px;
+        background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+    }
+
+    .loader-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 13, 24, .68);
+        backdrop-filter: blur(6px);
+        border-radius: 24px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+
+    .loader-overlay.show {
+        display: flex;
+    }
+
+    .loader-card {
+        width: min(320px, 92%);
+        padding: 22px 18px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .12);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+        text-align: center;
+        color: #fff;
+    }
+
+    .magic-loader {
+        width: 76px;
+        height: 76px;
+        margin: 0 auto 14px;
+        position: relative;
+    }
+
+    .magic-loader .ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        animation: spin 1.4s linear infinite;
+    }
+
+    .magic-loader .ring:nth-child(1) {
+        border-top-color: #ffffff;
+        opacity: .95;
+    }
+
+    .magic-loader .ring:nth-child(2) {
+        inset: 8px;
+        border-right-color: #B5121B;
+        animation-direction: reverse;
+        animation-duration: 1.1s;
+    }
+
+    .magic-loader .ring:nth-child(3) {
+        inset: 16px;
+        border-bottom-color: #60a5fa;
+        animation-duration: 1.7s;
+    }
+
+    .magic-loader .core {
+        position: absolute;
+        inset: 26px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #fff, rgba(255, 255, 255, .15));
+        box-shadow: 0 0 22px rgba(255, 255, 255, .35);
+        animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .loader-text {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: .35rem;
+    }
+
+    .loader-subtext {
+        color: var(--ink-soft);
+        font-size: .92rem;
+        margin: 0;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(.92);
+            opacity: .75;
+        }
+
+        50% {
+            transform: scale(1.08);
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+
+        .preview-box,
+        .compare-wrapper,
+        .final-result-box {
+            min-height: 320px;
+        }
+
+        .preview-box img,
+        .compare-base img,
+        .compare-overlay img,
+        .final-result-box img {
+            max-height: 280px;
+        }
+    }
+</style>
+
+<div class="bg-remove-page">
+    <div class="container">
+        <div class="hero-card mb-4">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <div class="hero-title">Remover fundo de imagem</div>
+                    <p class="hero-subtitle">
+                        Faça upload, remova o fundo, compare antes e depois com slider, aplique fundo branco ou cor
+                        sólida
+                        e baixe em PNG ou JPG.
+                    </p>
+                </div>
+
+                <div class="text-lg-end">
+                    <div class="info-chip"><i class="bi bi-sliders"></i> Comparador intuitivo</div>
+                    <div class="info-chip"><i class="bi bi-palette"></i> Fundo branco ou sólido</div>
+                    <div class="info-chip"><i class="bi bi-download"></i> PNG ou JPG</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-xl-4">
+                <div class="glass-card h-100" id="controlsCard">
+                    <div class="loader-overlay" id="loaderOverlay">
+                        <div class="loader-card">
+                            <div class="magic-loader">
+                                <span class="ring"></span>
+                                <span class="ring"></span>
+                                <span class="ring"></span>
+                                <span class="core"></span>
+                            </div>
+                            <div class="loader-text">Processando imagem...</div>
+                            <p class="loader-subtext">Removendo fundo e preparando o preview final.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Upload</div>
+
+                    <label class="dropzone mb-4" id="dropzone">
+                        <input type="file" id="imagem" accept=".png,.jpg,.jpeg,.webp">
+                        <div class="dropzone-inner" id="dropzoneInner">
+                            <div>
+                                <div class="dropzone-icon">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                </div>
+                                <div class="dropzone-title">Arraste e solte a imagem aqui</div>
+                                <p class="dropzone-subtitle">ou clique para selecionar um arquivo</p>
+                                <p class="dropzone-subtitle mt-2">Limite: 15 MB</p>
+                            </div>
+                        </div>
+                    </label>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="modo_saida">Qualidade de saída</label>
+                        <select class="form-select" id="modo_saida">
+                            <option value="original" selected>Original</option>
+                            <option value="uhd">UHD (upscale se necessário)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="formato_saida">Formato de download</label>
+                        <select class="form-select" id="formato_saida">
+                            <option value="png" selected>PNG transparente</option>
+                            <option value="jpg">JPG</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="tipo_fundo">Fundo final</label>
+                        <select class="form-select" id="tipo_fundo">
+                            <option value="transparent" selected>Transparente</option>
+                            <option value="white">Branco automático</option>
+                            <option value="solid">Cor sólida</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 hidden" id="solidColorWrap">
+                        <label class="form-label" for="cor_fundo">Escolha a cor do fundo</label>
+                        <input type="color" class="form-control form-control-color" id="cor_fundo" value="#0b2e4f">
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="recortar" checked>
+                        <label class="form-check-label" for="recortar">
+                            Recortar bordas transparentes automaticamente
+                        </label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="compactar">
+                        <label class="form-check-label" for="compactar">
+                            Compactar imagem de saída
+                        </label>
+                    </div>
+
+                    <div class="mb-3 hidden" id="compressWrap">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0" for="compress_level">Nível de compactação</label>
+                            <span class="range-value" id="compressValue">6</span>
+                        </div>
+                        <input type="range" class="form-range" id="compress_level" min="0" max="9" step="1" value="6">
+                        <div class="mini-meta">
+                            Quanto maior, mais compressão. Pode ficar um pouco mais lento.
+                        </div>
+                    </div>
+
+                    <div class="status-box mt-4 hidden" id="statusBox"></div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="action-btn btn-processar" id="btnProcessar" type="button">
+                            <i class="bi bi-magic me-2"></i>Remover fundo
+                        </button>
+                        <button class="action-btn btn-download hidden" id="btnDownload" type="button">
+                            <i class="bi bi-download me-2"></i>Baixar resultado
+                        </button>
+                        <button class="action-btn btn-limpar" id="btnLimpar" type="button">
+                            <i class="bi bi-x-circle me-2"></i>Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="glass-card h-100">
+                    <div class="section-label">Preview original</div>
+                    <div class="preview-box">
+                        <div class="preview-placeholder" id="placeholderOriginal">
+                            <i class="bi bi-card-image fs-1 d-block mb-2"></i>
+                            Nenhuma imagem carregada
+                        </div>
+                        <img id="previewOriginal" class="hidden" alt="Preview original">
+                    </div>
+                    <div class="mini-meta mt-3" id="metaOriginal">Aguardando imagem...</div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="glass-card h-100">
+                    <div class="section-label">Resultado</div>
+
+                    <div class="compare-mode-switch hidden" id="compareModeSwitch">
+                        <button type="button" class="compare-mode-btn" id="btnModoFinal">Resultado final</button>
+                        <button type="button" class="compare-mode-btn" id="btnModoComparar">Comparar</button>
+                    </div>
+
+                    <div class="preview-box" id="comparePlaceholderBox">
+                        <div class="preview-placeholder" id="placeholderResultado">
+                            <i class="bi bi-stars fs-1 d-block mb-2"></i>
+                            O resultado aparecerá aqui
+                        </div>
+                    </div>
+
+                    <div id="finalResultContainer" class="view-hidden">
+                        <div class="final-result-box">
+                            <img id="finalResultImage" alt="Resultado final">
+                        </div>
+                    </div>
+
+                    <div id="compareContainer" class="view-hidden">
+                        <div class="compare-wrapper">
+                            <div class="compare-badge before">Original</div>
+                            <div class="compare-badge after">Sem fundo</div>
+
+                            <div class="compare-base">
+                                <img id="compareBefore" alt="Original">
+                            </div>
+
+                            <div class="compare-overlay" id="compareOverlay">
+                                <img id="compareAfter" alt="Sem fundo">
+                            </div>
+
+                            <div class="compare-divider" id="compareDivider"></div>
+                            <div class="compare-handle" id="compareHandle">
+                                <i class="bi bi-arrows-move"></i>
+                            </div>
+                        </div>
+
+                        <div class="compare-slider-wrap">
+                            <input type="range" class="form-range" id="compareSlider" min="0" max="100" value="50">
+                        </div>
+                        <div class="compare-hint">Arraste o controle para comparar melhor.</div>
+                    </div>
+
+                    <div class="mini-meta mt-3" id="metaResultado">Ainda não processado.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const inputImagem = document.getElementById("imagem");
+        const dropzone = document.getElementById("dropzone");
+        const dropzoneInner = document.getElementById("dropzoneInner");
+
+        const modoSaida = document.getElementById("modo_saida");
+        const formatoSaida = document.getElementById("formato_saida");
+        const tipoFundo = document.getElementById("tipo_fundo");
+        const solidColorWrap = document.getElementById("solidColorWrap");
+        const corFundo = document.getElementById("cor_fundo");
+
+        const recortar = document.getElementById("recortar");
+        const compactar = document.getElementById("compactar");
+        const compressWrap = document.getElementById("compressWrap");
+        const compressLevel = document.getElementById("compress_level");
+        const compressValue = document.getElementById("compressValue");
+
+        const btnProcessar = document.getElementById("btnProcessar");
+        const btnDownload = document.getElementById("btnDownload");
+        const btnLimpar = document.getElementById("btnLimpar");
+
+        const previewOriginal = document.getElementById("previewOriginal");
+        const placeholderOriginal = document.getElementById("placeholderOriginal");
+        const metaOriginal = document.getElementById("metaOriginal");
+        const metaResultado = document.getElementById("metaResultado");
+        const statusBox = document.getElementById("statusBox");
+
+        const compareModeSwitch = document.getElementById("compareModeSwitch");
+        const btnModoFinal = document.getElementById("btnModoFinal");
+        const btnModoComparar = document.getElementById("btnModoComparar");
+
+        const comparePlaceholderBox = document.getElementById("comparePlaceholderBox");
+        const placeholderResultado = document.getElementById("placeholderResultado");
+
+        const finalResultContainer = document.getElementById("finalResultContainer");
+        const finalResultImage = document.getElementById("finalResultImage");
+
+        const compareContainer = document.getElementById("compareContainer");
+        const compareBefore = document.getElementById("compareBefore");
+        const compareAfter = document.getElementById("compareAfter");
+        const compareOverlay = document.getElementById("compareOverlay");
+        const compareSlider = document.getElementById("compareSlider");
+        const compareDivider = document.getElementById("compareDivider");
+        const compareHandle = document.getElementById("compareHandle");
+
+        const loaderOverlay = document.getElementById("loaderOverlay");
+
+        let arquivoAtual = null;
+        let originalObjectUrl = null;
+        let resultObjectUrl = null;
+        let resultBlob = null;
+        let resultFilename = "imagem_sem_fundo.png";
+
+        function formatBytes(bytes) {
+            if (!bytes && bytes !== 0) return "-";
+            const sizes = ["B", "KB", "MB", "GB"];
+            if (bytes === 0) return "0 B";
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+        }
+
+        function showStatus(message, type = "loading") {
+            statusBox.className = `status-box ${type}`;
+            statusBox.classList.remove("hidden");
+            statusBox.innerHTML = message;
+        }
+
+        function clearStatus() {
+            statusBox.className = "status-box hidden";
+            statusBox.innerHTML = "";
+        }
+
+        function toggleLoader(show) {
+            loaderOverlay.classList.toggle("show", show);
+        }
+
+        function updateCompare(position) {
+            compareOverlay.style.width = `${position}%`;
+            compareDivider.style.left = `${position}%`;
+            compareHandle.style.left = `${position}%`;
+        }
+
+        function ativarModoFinal() {
+            btnModoFinal.classList.add("active");
+            btnModoComparar.classList.remove("active");
+            finalResultContainer.classList.remove("view-hidden");
+            compareContainer.classList.add("view-hidden");
+        }
+
+        function ativarModoComparar() {
+            btnModoComparar.classList.add("active");
+            btnModoFinal.classList.remove("active");
+            compareContainer.classList.remove("view-hidden");
+            finalResultContainer.classList.add("view-hidden");
+        }
+
+        compareSlider.addEventListener("input", () => updateCompare(compareSlider.value));
+        btnModoFinal.addEventListener("click", ativarModoFinal);
+        btnModoComparar.addEventListener("click", ativarModoComparar);
+
+        function resetResultado() {
+            if (resultObjectUrl) {
+                URL.revokeObjectURL(resultObjectUrl);
+                resultObjectUrl = null;
+            }
+
+            resultBlob = null;
+            resultFilename = "imagem_sem_fundo.png";
+
+            compareBefore.src = "";
+            compareAfter.src = "";
+            finalResultImage.src = "";
+
+            compareContainer.classList.add("view-hidden");
+            finalResultContainer.classList.add("view-hidden");
+            compareModeSwitch.classList.add("hidden");
+
+            comparePlaceholderBox.classList.remove("hidden");
+            placeholderResultado.classList.remove("hidden");
+
+            metaResultado.textContent = "Ainda não processado.";
+            btnDownload.classList.add("hidden");
+
+            compareSlider.value = 50;
+            updateCompare(50);
+        }
+
+        function setArquivo(file) {
+            arquivoAtual = file;
+            resetResultado();
+            clearStatus();
+
+            if (!file) {
+                if (originalObjectUrl) {
+                    URL.revokeObjectURL(originalObjectUrl);
+                    originalObjectUrl = null;
+                }
+
+                previewOriginal.src = "";
+                previewOriginal.classList.add("hidden");
+                placeholderOriginal.classList.remove("hidden");
+                metaOriginal.textContent = "Aguardando imagem...";
+                return;
+            }
+
+            if (originalObjectUrl) {
+                URL.revokeObjectURL(originalObjectUrl);
+            }
+
+            originalObjectUrl = URL.createObjectURL(file);
+            previewOriginal.src = originalObjectUrl;
+            previewOriginal.classList.remove("hidden");
+            placeholderOriginal.classList.add("hidden");
+
+            metaOriginal.innerHTML = `
+            <strong>${file.name}</strong><br>
+            Tamanho: ${formatBytes(file.size)}<br>
+            Tipo: ${file.type || "desconhecido"}
+        `;
+
+            dropzoneInner.innerHTML = `
+            <div>
+                <div class="dropzone-icon">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <div class="dropzone-title">Imagem selecionada</div>
+                <p class="dropzone-subtitle">${file.name}</p>
+            </div>
+        `;
+        }
+
+        inputImagem.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            setArquivo(file || null);
+        });
+
+        ["dragenter", "dragover"].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add("dragover");
+            });
+        });
+
+        ["dragleave", "drop"].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove("dragover");
+            });
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            inputImagem.files = dataTransfer.files;
+            setArquivo(file);
+        });
+
+        compactar.addEventListener("change", () => {
+            compressWrap.classList.toggle("hidden", !compactar.checked);
+        });
+
+        compressLevel.addEventListener("input", () => {
+            compressValue.textContent = compressLevel.value;
+        });
+
+        tipoFundo.addEventListener("change", () => {
+            solidColorWrap.classList.toggle("hidden", tipoFundo.value !== "solid");
+
+            if (tipoFundo.value === "transparent" && formatoSaida.value === "jpg") {
+                tipoFundo.value = "white";
+                solidColorWrap.classList.add("hidden");
+            }
+        });
+
+        formatoSaida.addEventListener("change", () => {
+            if (formatoSaida.value === "jpg" && tipoFundo.value === "transparent") {
+                tipoFundo.value = "white";
+                solidColorWrap.classList.add("hidden");
+            }
+        });
+
+        btnProcessar.addEventListener("click", async () => {
+            if (!arquivoAtual) {
+                showStatus("Selecione uma imagem antes de processar.", "error");
+                return;
+            }
+
+            const extensoesPermitidas = ["image/png", "image/jpeg", "image/webp"];
+            if (arquivoAtual.type && !extensoesPermitidas.includes(arquivoAtual.type)) {
+                showStatus("Formato inválido. Envie PNG, JPG, JPEG ou WEBP.", "error");
+                return;
+            }
+
+            if (arquivoAtual.size > (15 * 1024 * 1024)) {
+                showStatus("A imagem excede o limite de 15 MB.", "error");
+                return;
+            }
+
+            try {
+                btnProcessar.disabled = true;
+                btnDownload.classList.add("hidden");
+                toggleLoader(true);
+                resetResultado();
+                showStatus("Removendo fundo e montando o preview...", "loading");
+
+                const formData = new FormData();
+                formData.append("imagem", arquivoAtual);
+                formData.append("modo_saida", modoSaida.value);
+                formData.append("formato_saida", formatoSaida.value);
+                formData.append("tipo_fundo", tipoFundo.value);
+                formData.append("cor_fundo", corFundo.value);
+                formData.append("recortar", String(recortar.checked));
+                formData.append("compactar", String(compactar.checked));
+                formData.append("compress_level", compressLevel.value);
+
+                const response = await fetch("{{ url_for('remove_bg.processar_remocao_fundo') }}", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+
+                if (!response.ok) {
+                    if (contentType.includes("application/json")) {
+                        const err = await response.json();
+                        throw new Error(err.erro || "Falha ao processar a imagem.");
+                    }
+                    throw new Error("Falha ao processar a imagem.");
+                }
+
+                resultBlob = await response.blob();
+
+                const disposition = response.headers.get("Content-Disposition") || "";
+                const match = disposition.match(/filename\*=UTF-8''([^;]+)/i) ||
+                    disposition.match(/filename="?([^";]+)"?/i);
+
+                if (match && match[1]) {
+                    resultFilename = decodeURIComponent(match[1].replace(/"/g, ""));
+                } else {
+                    const base = arquivoAtual.name.replace(/\.[^.]+$/, "");
+                    resultFilename = `${base}_sem_fundo.${formatoSaida.value}`;
+                }
+
+                resultObjectUrl = URL.createObjectURL(resultBlob);
+
+                compareBefore.src = originalObjectUrl;
+                compareAfter.src = resultObjectUrl;
+                finalResultImage.src = resultObjectUrl;
+
+                comparePlaceholderBox.classList.add("hidden");
+                placeholderResultado.classList.add("hidden");
+                compareModeSwitch.classList.remove("hidden");
+
+                compareSlider.value = 50;
+                updateCompare(50);
+                ativarModoFinal();
+
+                metaResultado.innerHTML = `
+                Resultado gerado com sucesso.<br>
+                Tamanho: ${formatBytes(resultBlob.size)}<br>
+                Saída: ${formatoSaida.value.toUpperCase()}<br>
+                Fundo: ${tipoFundo.value === "transparent" ? "Transparente" : (tipoFundo.value === "white" ? "Branco" : "Cor sólida")}
+            `;
+
+                btnDownload.classList.remove("hidden");
+                showStatus("Imagem processada com sucesso.", "success");
+            } catch (error) {
+                showStatus(error.message || "Erro ao processar imagem.", "error");
+            } finally {
+                btnProcessar.disabled = false;
+                toggleLoader(false);
+            }
+        });
+
+        btnDownload.addEventListener("click", () => {
+            if (!resultBlob || !resultObjectUrl) return;
+
+            const a = document.createElement("a");
+            a.href = resultObjectUrl;
+            a.download = resultFilename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        });
+
+        btnLimpar.addEventListener("click", () => {
+            inputImagem.value = "";
+
+            if (originalObjectUrl) {
+                URL.revokeObjectURL(originalObjectUrl);
+                originalObjectUrl = null;
+            }
+
+            setArquivo(null);
+            resetResultado();
+            clearStatus();
+
+            formatoSaida.value = "png";
+            tipoFundo.value = "transparent";
+            corFundo.value = "#0b2e4f";
+            compactar.checked = false;
+            compressWrap.classList.add("hidden");
+            solidColorWrap.classList.add("hidden");
+
+            dropzoneInner.innerHTML = `
+            <div>
+                <div class="dropzone-icon">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <div class="dropzone-title">Arraste e solte a imagem aqui</div>
+                <p class="dropzone-subtitle">ou clique para selecionar um arquivo</p>
+                <p class="dropzone-subtitle mt-2">Limite: 15 MB</p>
+            </div>
+        `;
+        });
+    })();
+</script>
+{% endblock %}
