@@ -961,6 +961,25 @@ def resetar_senha_publica(token):
     return render_template("auth/resetar_senha_publica.html", form=form, area=area)
 
 
+def _periodo_vigente_expr(inicio_col, fim_col):
+    hoje = date.today()
+    return and_(
+        inicio_col.isnot(None),
+        inicio_col <= hoje,
+        or_(
+            fim_col.is_(None),
+            fim_col >= hoje
+        )
+    )
+
+
+def _periodo_incompleto_expr(inicio_col, fim_col):
+    return or_(
+        inicio_col.is_(None),
+        fim_col.is_(None)
+    )
+
+
 def _status_periodo(inicio, fim, termino_label):
     hoje = date.today()
 
@@ -980,21 +999,19 @@ def _dias_restantes(fim):
 
 
 def _preview_licencas_especiais(limit=5):
-    hoje = date.today()
-
     itens = (
         LicencaEspecial.query
+        .join(Militar, Militar.id == LicencaEspecial.militar_id)
         .options(
             joinedload(LicencaEspecial.militar),
             joinedload(LicencaEspecial.posto_grad),
             joinedload(LicencaEspecial.destino),
         )
-        .filter(
-            LicencaEspecial.inicio_periodo_le.isnot(None),
-            LicencaEspecial.fim_periodo_le.isnot(None),
-            LicencaEspecial.inicio_periodo_le <= hoje,
-            LicencaEspecial.fim_periodo_le >= hoje,
-        )
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            LicencaEspecial.inicio_periodo_le,
+            LicencaEspecial.fim_periodo_le
+        ))
         .order_by(LicencaEspecial.fim_periodo_le.asc(), LicencaEspecial.id.desc())
         .limit(limit)
         .all()
@@ -1021,23 +1038,23 @@ def _preview_licencas_especiais(limit=5):
 
 
 def _preview_lts(limit=5):
-    hoje = date.today()
-
     itens = (
         LicencaParaTratamentoDeSaude.query
+        .join(Militar, Militar.id == LicencaParaTratamentoDeSaude.militar_id)
         .options(
             joinedload(LicencaParaTratamentoDeSaude.militar),
             joinedload(LicencaParaTratamentoDeSaude.posto_grad),
             joinedload(LicencaParaTratamentoDeSaude.destino),
         )
-        .filter(
-            LicencaParaTratamentoDeSaude.inicio_periodo_lts.isnot(None),
-            LicencaParaTratamentoDeSaude.fim_periodo_lts.isnot(None),
-            LicencaParaTratamentoDeSaude.inicio_periodo_lts <= hoje,
-            LicencaParaTratamentoDeSaude.fim_periodo_lts >= hoje,
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts,
+            LicencaParaTratamentoDeSaude.fim_periodo_lts
+        ))
+        .order_by(
+            LicencaParaTratamentoDeSaude.fim_periodo_lts.asc(),
+            LicencaParaTratamentoDeSaude.id.desc()
         )
-        .order_by(LicencaParaTratamentoDeSaude.fim_periodo_lts.asc(),
-                  LicencaParaTratamentoDeSaude.id.desc())
         .limit(limit)
         .all()
     )
@@ -2835,9 +2852,17 @@ def exibir_militar(militar_id):
         encerrar_status_anteriores(militar, condicao_atual)
 
         if situacao_selecionada and situacao_selecionada.condicao == 'AGREGADO':
-            bg_id = safe_bg_id(militar.id)  # pode ser None
-            militar_agregado = MilitaresAgregados.query.filter_by(
-                militar_id=militar.id).first()
+            bg_id = safe_bg_id(militar.id)
+            hoje = date.today()
+
+            militar_agregado = MilitaresAgregados.query.filter(
+                MilitaresAgregados.militar_id == militar.id,
+                or_(
+                    MilitaresAgregados.fim_periodo_agregacao.is_(None),
+                    MilitaresAgregados.fim_periodo_agregacao >= hoje
+                )
+            ).order_by(MilitaresAgregados.id.desc()).first()
+
             if not militar_agregado:
                 militar_agregado = MilitaresAgregados(militar_id=militar.id)
                 database.session.add(militar_agregado)
@@ -2856,8 +2881,16 @@ def exibir_militar(militar_id):
         # À DISPOSIÇÃO
         if situacao_selecionada and situacao_selecionada.condicao == 'À DISPOSIÇÃO':
             bg_id = safe_bg_id(militar.id)
-            militar_a_disposicao = MilitaresADisposicao.query.filter_by(
-                militar_id=militar.id).first()
+            hoje = date.today()
+
+            militar_a_disposicao = MilitaresADisposicao.query.filter(
+                MilitaresADisposicao.militar_id == militar.id,
+                or_(
+                    MilitaresADisposicao.fim_periodo_disposicao.is_(None),
+                    MilitaresADisposicao.fim_periodo_disposicao >= hoje
+                )
+            ).order_by(MilitaresADisposicao.id.desc()).first()
+
             if not militar_a_disposicao:
                 militar_a_disposicao = MilitaresADisposicao(
                     militar_id=militar.id)
@@ -2895,8 +2928,10 @@ def exibir_militar(militar_id):
             militar_le.quadro_id = form_militar.quadro_id.data
             militar_le.destino_id = form_militar.destino_id.data
             militar_le.situacao_id = situacao_selecionada.id
-            militar_le.inicio_periodo_le = parse_date(form_militar.inicio_periodo.data)
-            militar_le.fim_periodo_le = parse_date(form_militar.fim_periodo.data)
+            militar_le.inicio_periodo_le = parse_date(
+                form_militar.inicio_periodo.data)
+            militar_le.fim_periodo_le = parse_date(
+                form_militar.fim_periodo.data)
             militar_le.publicacao_bg_id = bg_id
             militar_le.atualizar_status()
 
@@ -3900,26 +3935,86 @@ def exportar_auditoria_excel():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_a_disposicao():
-    militares_a_disposicao = (
+    hoje = date.today()
+
+    condicao_vigente = and_(
+        MilitaresADisposicao.inicio_periodo.isnot(None),
+        MilitaresADisposicao.inicio_periodo <= hoje,
+        or_(
+            MilitaresADisposicao.fim_periodo_disposicao.is_(None),
+            MilitaresADisposicao.fim_periodo_disposicao >= hoje
+        )
+    )
+
+    condicao_incompleto = or_(
+        Militar.cadastro_atualizado.is_(False),
+        Militar.cadastro_atualizado.is_(None)
+    )
+
+    militares = (
         MilitaresADisposicao.query
         .join(Militar, MilitaresADisposicao.militar_id == Militar.id)
         .filter(Militar.inativo.is_(False))
+        .filter(
+            or_(
+                condicao_vigente,
+                condicao_incompleto
+            )
+        )
+        .order_by(
+            case((condicao_vigente, 0), else_=1),
+            Militar.nome_completo.asc()
+        )
         .all()
     )
-    return render_template('militares_a_disposicao.html', militares=militares_a_disposicao)
+
+    return render_template(
+        "militares_a_disposicao.html",
+        militares=militares
+    )
 
 
 @app.route("/militares-agregados")
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_agregados():
-    militares_agregados = (
+    hoje = date.today()
+
+    condicao_vigente = and_(
+        MilitaresAgregados.inicio_periodo.isnot(None),
+        MilitaresAgregados.inicio_periodo <= hoje,
+        or_(
+            MilitaresAgregados.fim_periodo_agregacao.is_(None),
+            MilitaresAgregados.fim_periodo_agregacao >= hoje
+        )
+    )
+
+    condicao_incompleto = or_(
+        Militar.cadastro_atualizado.is_(False),
+        Militar.cadastro_atualizado.is_(None)
+    )
+
+    militares = (
         MilitaresAgregados.query
         .join(Militar, MilitaresAgregados.militar_id == Militar.id)
         .filter(Militar.inativo.is_(False))
+        .filter(
+            or_(
+                condicao_vigente,
+                condicao_incompleto
+            )
+        )
+        .order_by(
+            case((condicao_vigente, 0), else_=1),
+            Militar.nome_completo.asc()
+        )
         .all()
     )
-    return render_template('militares_agregados.html', militares=militares_agregados)
+
+    return render_template(
+        'militares_agregados.html',
+        militares=militares
+    )
 
 
 @app.route("/licenca-especial")

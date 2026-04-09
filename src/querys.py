@@ -1,12 +1,14 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 
 import pytz
 from flask import request
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 
 from src import bcrypt, database
 from src.models import (
+    LicencaEspecial,
+    LicencaParaTratamentoDeSaude,
     Militar,
     MilitaresAgregados,
     MilitaresADisposicao,
@@ -15,30 +17,45 @@ from src.models import (
     MilitarObmFuncao,
 )
 
+def _periodo_vigente_expr(inicio_col, fim_col):
+    hoje = date.today()
+    return and_(
+        inicio_col.isnot(None),
+        inicio_col <= hoje,
+        or_(
+            fim_col.is_(None),
+            fim_col >= hoje
+        )
+    )
+
+
+def _periodo_incompleto_expr(inicio_col, fim_col):
+    return or_(
+        inicio_col.is_(None),
+        fim_col.is_(None)
+    )
+
 
 def obter_estatisticas_militares():
     """
     Executa as consultas necessárias e retorna os resultados em um dicionário.
     Todas as estatísticas consideram apenas militares ATIVOS (inativo = False).
+    Situações com período usam somente registros VIGENTES.
     """
 
-    # Query base: somente militares ativos
     militares_ativos = Militar.query.filter(Militar.inativo.is_(False))
 
-    # Total de militares ativos (inclui civis)
+    # Totais gerais
     efetivo_total = militares_ativos.count()
 
-    # Excluindo os civis (posto_grad_id != 15)
     efetivo_total_sem_civis = militares_ativos.filter(
         Militar.posto_grad_id != 15
     ).count()
 
-    # Apenas civis (ativos)
     efetivo_civis = militares_ativos.filter(
         Militar.posto_grad_id == 15
     ).count()
 
-    # Oficiais (ativos)
     oficiais_superiores = militares_ativos.filter(
         Militar.posto_grad_id.in_([14, 13, 12])
     ).count()
@@ -51,68 +68,86 @@ def obter_estatisticas_militares():
         Militar.posto_grad_id.in_([10, 9])
     ).count()
 
-    # Praças (ativos)
     pracas = militares_ativos.filter(
         Militar.posto_grad_id.in_([16, 6, 5, 4, 3, 2, 1])
     ).count()
 
-    # À disposição — apenas de militares ativos
+    # À disposição — só vigentes
     a_disposicao = (
         MilitaresADisposicao.query
         .join(Militar, Militar.id == MilitaresADisposicao.militar_id)
         .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            MilitaresADisposicao.inicio_periodo,
+            MilitaresADisposicao.fim_periodo_disposicao
+        ))
         .count()
     )
 
-    # Agregados — apenas de militares ativos
+    # Agregados — só vigentes
     agregados_total = (
         MilitaresAgregados.query
         .join(Militar, Militar.id == MilitaresAgregados.militar_id)
         .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            MilitaresAgregados.inicio_periodo,
+            MilitaresAgregados.fim_periodo_agregacao
+        ))
         .count()
     )
 
     agregados = (
-        militares_ativos
-        .join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
-        .filter(Militar.agregacoes_id == 5)
+        MilitaresAgregados.query
+        .join(Militar, Militar.id == MilitaresAgregados.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            MilitaresAgregados.inicio_periodo,
+            MilitaresAgregados.fim_periodo_agregacao
+        ))
+        # ajuste se esse ID não for o certo
+        .filter(MilitaresAgregados.situacao_id == 5)
         .count()
     )
 
     agregados_lts = (
-        militares_ativos
-        .join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
-        .filter(Militar.agregacoes_id == 2)
+        MilitaresAgregados.query
+        .join(Militar, Militar.id == MilitaresAgregados.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            MilitaresAgregados.inicio_periodo,
+            MilitaresAgregados.fim_periodo_agregacao
+        ))
+        # ajuste conforme tua regra real
+        .filter(MilitaresAgregados.situacao_id == 2)
         .count()
     )
 
     agregados_rr = (
-        militares_ativos
-        .join(MilitaresAgregados, Militar.id == MilitaresAgregados.militar_id)
-        .filter(Militar.agregacoes_id == 4)
+        MilitaresAgregados.query
+        .join(Militar, Militar.id == MilitaresAgregados.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            MilitaresAgregados.inicio_periodo,
+            MilitaresAgregados.fim_periodo_agregacao
+        ))
+        # ajuste conforme tua regra real
+        .filter(MilitaresAgregados.situacao_id == 4)
         .count()
     )
 
-    # Especialidades / saúde / localidade (sempre só ativos)
+    # Especialidades / saúde / localidade
     militares_combatentes = militares_ativos.filter(
         Militar.especialidade_id == 3
     ).count()
 
     militares_saude = militares_ativos.filter(
-        Militar.especialidade_id.in_(
-            [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        )
+        Militar.especialidade_id.in_([1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     ).count()
 
-    cbc = militares_ativos.filter(
-        Militar.localidade_id == 1
-    ).count()
+    cbc = militares_ativos.filter(Militar.localidade_id == 1).count()
+    cbi = militares_ativos.filter(Militar.localidade_id == 2).count()
 
-    cbi = militares_ativos.filter(
-        Militar.localidade_id == 2
-    ).count()
-
-    # Quadros / postos específicos
+    # Quadros
     qobm = militares_ativos.filter(and_(
         Militar.posto_grad_id.in_([9, 10, 11, 12, 13, 14]),
         Militar.quadro_id == 2,
@@ -183,14 +218,28 @@ def obter_estatisticas_militares():
         Militar.especialidade_id.in_([1, 10, 11, 12])
     )).count()
 
-    # Situações — sempre só ativos
-    licenca_especial = militares_ativos.filter(
-        Militar.situacao_id == 4
-    ).count()
+    # Situações por período vigente
+    licenca_especial = (
+        LicencaEspecial.query
+        .join(Militar, Militar.id == LicencaEspecial.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            LicencaEspecial.inicio_periodo_le,
+            LicencaEspecial.fim_periodo_le
+        ))
+        .count()
+    )
 
-    lts = militares_ativos.filter(
-        Militar.situacao_id == 6
-    ).count()
+    lts = (
+        LicencaParaTratamentoDeSaude.query
+        .join(Militar, Militar.id == LicencaParaTratamentoDeSaude.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(_periodo_vigente_expr(
+            LicencaParaTratamentoDeSaude.inicio_periodo_lts,
+            LicencaParaTratamentoDeSaude.fim_periodo_lts
+        ))
+        .count()
+    )
 
     maternidade = militares_ativos.filter(
         Militar.situacao_id == 5
