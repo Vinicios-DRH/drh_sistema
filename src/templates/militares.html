@@ -202,6 +202,7 @@
 %}
 {% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
 {% for v in request.args.getlist('situacao_ids') %}{% set _ = params.append('situacao_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('destino_ids') %}{% set _ = params.append('destino_ids=' ~ v) %}{% endfor %}
 {% if request.args.get('sexo') %}{% set _ = params.append('sexo=' ~ request.args.get('sexo')) %}{% endif %}
 {% set _ = params.append('page=' ~ p) %}
 {{ params|join('&') }}
@@ -291,6 +292,7 @@
                             <th>Matrícula</th>
                             <th class="col-obms">OBMs</th>
                             <th class="col-funcoes">Funções</th>
+                            <th>Destino</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -335,6 +337,7 @@
                                 {% endif %}
                                 {% else %} — {% endif %}
                             </td>
+                            <td>{{ militar.destino or '—' }}</td>
                         </tr>
                         {% endfor %}
                         {% endif %}
@@ -540,6 +543,27 @@
                             <select name="situacao_ids" class="form-select js-multi" multiple>
                                 {% for val, label in form_militar.situacao_id.choices if val != '' %}
                                 {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Destino -->
+                    <div class="col-md-4">
+                        <div class="filter-card">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Destino</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="destino_ids">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="destino_ids">Limpar</button>
+                                </div>
+                            </div>
+                            <select name="destino_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.destino_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('destino_ids') %}
                                 <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
                                 {% endfor %}
                             </select>

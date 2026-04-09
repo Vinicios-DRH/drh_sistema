@@ -3358,6 +3358,9 @@ def militares():
         (l.id, l.sigla) for l in Localidade.query.order_by(Localidade.sigla).all()]
     f.situacao_id.choices = [(s.id, s.condicao)
                              for s in Situacao.query.order_by(Situacao.condicao).all()]
+    f.destino_id.choices = [
+        (d.id, d.local) for d in Destino.query.order_by(Destino.local).all()
+    ]
 
     page = request.args.get('page', 1, type=int)
     search = (request.args.get('search') or '').strip()
@@ -3369,6 +3372,7 @@ def militares():
     especialidade_ids = request.args.getlist('especialidade_ids', type=int)
     localidade_ids = request.args.getlist('localidade_ids', type=int)
     situacao_ids = request.args.getlist('situacao_ids', type=int)
+    destino_ids = request.args.getlist('destino_ids', type=int)
 
     sexo_filtro = (request.args.get('sexo') or '').strip().upper()
 
@@ -3379,7 +3383,8 @@ def militares():
                  selectinload(Militar.obm_funcoes).selectinload(
                      MilitarObmFuncao.funcao),
                  selectinload(Militar.posto_grad),
-                 selectinload(Militar.quadro)
+                 selectinload(Militar.quadro),
+                 selectinload(Militar.destino)
              )
              .filter(Militar.inativo.is_(False))
              )
@@ -3427,6 +3432,8 @@ def militares():
         query = query.filter(Militar.localidade_id.in_(localidade_ids))
     if situacao_ids:
         query = query.filter(Militar.situacao_id.in_(situacao_ids))
+    if destino_ids:
+        query = query.filter(Militar.destino_id.in_(destino_ids))
 
     if obm_ids or funcao_ids:
         query = (query
@@ -3492,6 +3499,7 @@ def militares():
             'funcoes': funcoes_recentes,
             'posto_grad': militar.posto_grad.sigla if militar.posto_grad else '',
             'quadro': militar.quadro.quadro if militar.quadro else '',
+            'destino': militar.destino.local if militar.destino else '',
             'matricula': militar.matricula,
         })
 

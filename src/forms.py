@@ -208,6 +208,8 @@ class FormFiltroMilitar(FlaskForm):
         'Localidade', choices=[], coerce=_coerce_int, validators=[Optional()])
     situacao_id = SelectMultipleField(
         'Situação', choices=[], coerce=_coerce_int, validators=[Optional()])
+    destino_id = SelectMultipleField(
+        'Destino', coerce=_coerce_int, choices=[], validators=[Optional()])
 
 
 class FormLogin(FlaskForm):
