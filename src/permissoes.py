@@ -176,4 +176,9 @@ PERMISSOES_CATALOGO = [
 
     {"codigo": "ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT",
      "nome": "Atualização Cadastral: Exportar relatórios da conferência cadastral"},
+
+    {"codigo": "NAV_CONFERENCIA_PAGADORIA", "nome": "Menu: Conferência de Pagadoria (grupo)"},
+    {"codigo": "NAV_CONFERENCIA_PAGADORIA_PAINEL", "nome": "Menu: Conferência de Pagadoria > Painel"},
+    {"codigo": "CONFERENCIA_PAGADORIA_CHECK", "nome": "Conferência de Pagadoria: Marcar check"},
+    {"codigo": "CONFERENCIA_PAGADORIA_TOGGLE", "nome": "Conferência de Pagadoria: Marcar/desmarcar check"},
 ]

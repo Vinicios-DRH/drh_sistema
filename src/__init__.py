@@ -190,6 +190,9 @@ from src.routes_junta import junta_bp
 from src.routes_remove_bg import remove_bg_bp
 from src import routes_mapa_funcional
 
+from src.routes_conferencia_pagadoria import bp_conferencia_pagadoria
+app.register_blueprint(bp_conferencia_pagadoria)
+
 app.register_blueprint(remove_bg_bp)
 app.register_blueprint(junta_bp)
 app.register_blueprint(bp_atualizacao_cadastral)

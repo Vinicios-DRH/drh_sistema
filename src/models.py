@@ -410,7 +410,7 @@ class Militar(database.Model):
     especialidade_id = database.Column(
         database.Integer, database.ForeignKey('especialidade.id'))
 
-    pronto = database.Column(database.String(30)) # "PRONTO", "AGREGADO", etc.
+    pronto = database.Column(database.String(30))  # "PRONTO", "AGREGADO", etc.
     situacao_id = database.Column(
         database.Integer, database.ForeignKey('situacao.id'))
     agregacoes_id = database.Column(
@@ -1839,3 +1839,57 @@ class Licencas(database.Model):
     usuario = database.relationship("User", backref="licencas_junta")
     fechamento_bg = database.relationship(
         "JuntaFechamentoBg", back_populates="licencas")
+
+
+class ConferenciaPagadoria(database.Model):
+    __tablename__ = "conferencia_pagadoria"
+
+    id = database.Column(database.Integer, primary_key=True)
+
+    militar_id = database.Column(
+        database.Integer,
+        database.ForeignKey("militar.id"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    conferido = database.Column(
+        database.Boolean, nullable=False, default=False)
+
+    conferido_por_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id"),
+        nullable=True,
+        index=True
+    )
+
+    conferido_em = database.Column(
+        database.DateTime,
+        nullable=True
+    )
+
+    observacao = database.Column(database.String(255))
+
+    criado_em = database.Column(
+        database.DateTime,
+        default=now_manaus_naive,
+        nullable=False
+    )
+
+    atualizado_em = database.Column(
+        database.DateTime,
+        default=now_manaus_naive,
+        onupdate=now_manaus_naive,
+        nullable=False
+    )
+
+    militar = database.relationship(
+        "Militar",
+        backref=database.backref("conferencia_pagadoria", uselist=False)
+    )
+
+    conferido_por = database.relationship(
+        "User",
+        foreign_keys=[conferido_por_id]
+    )

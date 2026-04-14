@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="page-bg py-4">
+    <div class="container-fluid">
+
+        <div class="glass-hero mb-4">
+            <div>
+                <h2 class="mb-1">Conferência da Pagadoria</h2>
+                <p class="mb-0 text-light opacity-75">
+                    Confira a OBM do militar no sistema deles e marque o check aqui.
+                </p>
+            </div>
+            <div class="hero-badge">
+                Painel Operacional
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h5 class="mb-0">Militares</h5>
+                <input type="text" id="filtroTabela" class="form-control form-control-sm w-auto"
+                    placeholder="Buscar militar...">
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tabelaConferencia">
+                    <thead>
+                        <tr>
+                            <th>Militar</th>
+                            <th>Matrícula</th>
+                            <th>CPF</th>
+                            <th>OBM 1</th>
+                            <th>OBM 2</th>
+                            <th>Status</th>
+                            <th>Quem conferiu</th>
+                            <th>Horário</th>
+                            <th class="text-center">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for militar, conf, obm_1, obm_2 in militares %}
+                        <tr data-militar-id="{{ militar.id }}">
+                            <td>
+                                <div class="fw-semibold">{{ militar.nome_completo }}</div>
+                                <small class="text-muted">{{ militar.posto_grad.sigla if militar.posto_grad else ''
+                                    }}</small>
+                            </td>
+                            <td>{{ militar.matricula or '-' }}</td>
+                            <td>{{ militar.cpf or '-' }}</td>
+                            <td>{{ obm_1 or '-' }}</td>
+                            <td>{{ obm_2 or '-' }}</td>
+                            <td class="status-col">
+                                {% if conf and conf.conferido %}
+                                <span class="badge rounded-pill text-bg-success">Conferido</span>
+                                {% else %}
+                                <span class="badge rounded-pill text-bg-secondary">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td class="usuario-col">
+                                {{ conf.conferido_por.nome if conf and conf.conferido_por else '-' }}
+                            </td>
+                            <td class="horario-col">
+                                {{ conf.conferido_em.strftime('%d/%m/%Y %H:%M') if conf and conf.conferido_em else '-'
+                                }}
+                            </td>
+                            <td class="text-center">
+                                <button
+                                    class="btn btn-sm btn-check-action {% if conf and conf.conferido %}btn-success{% else %}btn-outline-light{% endif %}">
+                                    <i class="bi bi-check2-circle"></i>
+                                    {% if conf and conf.conferido %}Conferido{% else %}Dar check{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .page-bg {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%);
+    }
+
+    .glass-hero,
+    .glass-card {
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .14);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 20px;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, .18);
+    }
+
+    .glass-hero {
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        color: #fff;
+    }
+
+    .hero-badge {
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .12);
+        border: 1px solid rgba(255, 255, 255, .18);
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .glass-card {
+        padding: 20px;
+        color: #fff;
+    }
+
+    .table {
+        color: #fff;
+    }
+
+    .table thead th {
+        border-bottom: 1px solid rgba(255, 255, 255, .14);
+        color: rgba(255, 255, 255, .85);
+        font-size: .92rem;
+    }
+
+    .table tbody td {
+        border-color: rgba(255, 255, 255, .08);
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background: rgba(255, 255, 255, .05);
+    }
+
+    #filtroTabela {
+        min-width: 240px;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #fff;
+    }
+
+    #filtroTabela::placeholder {
+        color: rgba(255, 255, 255, .55);
+    }
+
+    .btn-check-action {
+        min-width: 120px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const filtro = document.getElementById("filtroTabela");
+        const linhas = document.querySelectorAll("#tabelaConferencia tbody tr");
+
+        filtro.addEventListener("input", function () {
+            const termo = this.value.toLowerCase();
+
+            linhas.forEach(linha => {
+                const texto = linha.innerText.toLowerCase();
+                linha.style.display = texto.includes(termo) ? "" : "none";
+            });
+        });
+
+        document.querySelectorAll(".btn-check-action").forEach(btn => {
+            btn.addEventListener("click", async function () {
+                const tr = this.closest("tr");
+                const militarId = tr.dataset.militarId;
+
+                try {
+                    const resp = await fetch(`/conferencia-pagadoria/${militarId}/check`, {
+                        method: "POST",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        }
+                    });
+
+                    const data = await resp.json();
+
+                    if (data.ok) {
+                        tr.querySelector(".status-col").innerHTML =
+                            '<span class="badge rounded-pill text-bg-success">Conferido</span>';
+
+                        tr.querySelector(".usuario-col").textContent = data.conferido_por;
+                        tr.querySelector(".horario-col").textContent = data.conferido_em;
+
+                        this.classList.remove("btn-outline-light");
+                        this.classList.add("btn-success");
+                        this.innerHTML = '<i class="bi bi-check2-circle"></i> Conferido';
+                    }
+                } catch (e) {
+                    alert("Erro ao registrar o check.");
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

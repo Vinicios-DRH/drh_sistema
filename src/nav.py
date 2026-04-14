@@ -347,6 +347,23 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
+    nav.append(
+        _mk_group(
+            "Conferência de Pagadoria",
+            icon="fas fa-money-check-alt",
+            perm="NAV_CONFERENCIA_PAGADORIA",
+            rule=rule_drh_like,
+            children=[
+                _mk_item(
+                    "Painel",
+                    "conferencia_pagadoria.painel",
+                    icon="fas fa-clipboard-check",
+                    perm="NAV_CONFERENCIA_PAGADORIA_PAINEL",
+                ),
+            ],
+        )
+    )
+
     # nav.append(
     #     _mk_group(
     #         "Convocação Concurso",
