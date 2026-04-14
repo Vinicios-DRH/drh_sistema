@@ -57,7 +57,6 @@ COLUMN_SYNONYMS = {
     "endereco": "endereco",
     "endereço": "endereco",
 
-    # relacionais por texto
     "posto_grad": "posto_grad",
     "posto grad": "posto_grad",
     "posto/grad": "posto_grad",
@@ -67,12 +66,46 @@ COLUMN_SYNONYMS = {
     "estado civil": "estado_civil",
     "especialidade": "especialidade",
     "destino": "destino",
-    "situacao": "situacao",
-    "situação": "situacao",
+
+    # NOVO BLOCO FUNCIONAL
+    "situacao": "situacao_principal",
+    "situação": "situacao_principal",
+    "pronto": "situacao_principal",
+
+    "modalidade": "modalidade",
+    "situacao funcional": "modalidade",
+
+    "motivo": "motivo",
+    "agregacao": "motivo",
+    "agregação": "motivo",
+    "agregacoes": "motivo",
+    "agregações": "motivo",
+
+    "inicio_periodo": "inicio_periodo",
+    "inicio periodo": "inicio_periodo",
+    "início período": "inicio_periodo",
+    "inicio": "inicio_periodo",
+    "início": "inicio_periodo",
+    "data_inicio": "inicio_periodo",
+    "data início": "inicio_periodo",
+
+    "fim_periodo": "fim_periodo",
+    "fim periodo": "fim_periodo",
+    "término": "fim_periodo",
+    "termino": "fim_periodo",
+    "fim": "fim_periodo",
+    "data_fim": "fim_periodo",
+    "data fim": "fim_periodo",
+
+    "publicacao": "situacao_militar",
+    "publicação": "situacao_militar",
+    "situacao_militar": "situacao_militar",
+    "situação militar": "situacao_militar",
+    "bg": "situacao_militar",
+    "boletim": "situacao_militar",
+
     "situacao2": "situacao2",
     "situação2": "situacao2",
-    "agregacoes": "agregacoes",
-    "agregações": "agregacoes",
     "agregacoes2": "agregacoes2",
     "agregações2": "agregacoes2",
     "gc": "gc",
@@ -107,9 +140,16 @@ IMPORTABLE_FIELDS = {
     "estado_civil": "fk",
     "especialidade": "fk",
     "destino": "fk",
-    "situacao": "fk",
+
+    # NOVOS
+    "situacao_principal": str,
+    "modalidade": "fk",
+    "motivo": "fk",
+    "inicio_periodo": "date",
+    "fim_periodo": "date",
+    "situacao_militar": str,
+
     "situacao2": "fk",
-    "agregacoes": "fk",
     "agregacoes2": "fk",
     "gc": "fk",
     "punicao": "fk",
@@ -154,11 +194,11 @@ FK_FIELD_MAP = {
         "lookup_field": "local",
         "label": "Destino",
     },
-    "situacao": {
+    "modalidade": {
         "target_attr": "situacao_id",
         "model": Situacao,
         "lookup_field": "condicao",
-        "label": "Situação",
+        "label": "Modalidade",
     },
     "situacao2": {
         "target_attr": "situacao2_id",
@@ -166,11 +206,11 @@ FK_FIELD_MAP = {
         "lookup_field": "condicao",
         "label": "Situação 2",
     },
-    "agregacoes": {
+    "motivo": {
         "target_attr": "agregacoes_id",
         "model": Agregacoes,
         "lookup_field": "tipo",
-        "label": "Agregações",
+        "label": "Motivo",
     },
     "agregacoes2": {
         "target_attr": "agregacoes2_id",
@@ -211,6 +251,13 @@ FK_FIELD_MAP = {
 }
 
 IDENTIFIER_FIELDS = ["cpf", "matricula", "rg", "nome_completo"]
+
+SIMPLE_FIELD_TARGET_MAP = {
+    "situacao_principal": "pronto",
+    "inicio_periodo": "inicio_periodo",
+    "fim_periodo": "fim_periodo",
+    "situacao_militar": "situacao_militar",
+}
 
 
 def normalizar_texto_base(valor: str) -> str:
@@ -431,6 +478,14 @@ def converter_valor_campo(campo, valor):
     if campo == "rg":
         return normalizar_rg(valor)
 
+    if campo == "situacao_principal":
+        texto = normalizar_texto_base(valor)
+        if texto == "pronto":
+            return "PRONTO"
+        if texto == "agregado":
+            return "AGREGADO"
+        return limpar_string(valor).upper()
+
     if tipo == "fk":
         return limpar_string(valor)
 
@@ -477,7 +532,8 @@ def sugerir_campos_faltantes(militar, row_data, campos_selecionados):
         else:
             if campo == "obm":
                 continue
-            valor_atual = getattr(militar, campo, None)
+            target_attr = SIMPLE_FIELD_TARGET_MAP.get(campo, campo)
+            valor_atual = getattr(militar, target_attr, None)
 
         atual_txt = "" if valor_atual is None else str(valor_atual).strip()
         novo_txt = "" if valor_novo is None else str(valor_novo).strip()
@@ -729,21 +785,24 @@ def importar_dataframe(df, campos_selecionados, modo="misto", regra_atualizacao=
                     continue
 
                 # campos simples
-                if not hasattr(militar, campo):
+                target_attr = SIMPLE_FIELD_TARGET_MAP.get(campo, campo)
+
+                if not hasattr(militar, target_attr):
                     continue
 
                 valor_convertido = converter_valor_campo(campo, valor_bruto)
                 if valor_vazio(valor_convertido):
                     continue
 
-                valor_atual = getattr(militar, campo, None)
+                valor_atual = getattr(militar, target_attr, None)
 
                 if regra_atualizacao == "complementar":
                     if valor_vazio(valor_atual):
-                        setattr(militar, campo, valor_convertido)
+                        setattr(militar, target_attr, valor_convertido)
                         alterou = True
-                        relatorio["alteracoes_por_campo"][campo] = relatorio["alteracoes_por_campo"].get(
-                            campo, 0) + 1
+                        relatorio["alteracoes_por_campo"][target_attr] = relatorio["alteracoes_por_campo"].get(
+                            target_attr, 0
+                        ) + 1
                 elif regra_atualizacao == "sobrescrever":
                     atual_txt = "" if valor_atual is None else str(
                         valor_atual).strip()
@@ -751,10 +810,11 @@ def importar_dataframe(df, campos_selecionados, modo="misto", regra_atualizacao=
                         valor_convertido).strip()
 
                     if atual_txt != novo_txt:
-                        setattr(militar, campo, valor_convertido)
+                        setattr(militar, target_attr, valor_convertido)
                         alterou = True
-                        relatorio["alteracoes_por_campo"][campo] = relatorio["alteracoes_por_campo"].get(
-                            campo, 0) + 1
+                        relatorio["alteracoes_por_campo"][target_attr] = relatorio["alteracoes_por_campo"].get(
+                            target_attr, 0
+                        ) + 1
 
             obm_final = obm_id
             if not obm_final and "obm" in campos_selecionados:
