@@ -82,7 +82,8 @@
         box-shadow: var(--shadow-sm);
     }
 
-    .metric-card .card-body {
+    .metric-card .card-body,
+    .panel-card .card-body {
         padding: 1.1rem 1.2rem;
     }
 
@@ -119,10 +120,6 @@
 
     .metric-progress .progress-bar {
         border-radius: 999px;
-    }
-
-    .panel-card .card-body {
-        padding: 1.1rem 1.2rem;
     }
 
     .filters-title {
@@ -203,46 +200,6 @@
         background: #fbfdff;
     }
 
-    .table-conferencia th:nth-child(1),
-    .table-conferencia td:nth-child(1) {
-        width: 24%;
-    }
-
-    .table-conferencia th:nth-child(2),
-    .table-conferencia td:nth-child(2) {
-        width: 11%;
-    }
-
-    .table-conferencia th:nth-child(3),
-    .table-conferencia td:nth-child(3) {
-        width: 10%;
-    }
-
-    .table-conferencia th:nth-child(4),
-    .table-conferencia td:nth-child(4) {
-        width: 10%;
-    }
-
-    .table-conferencia th:nth-child(5),
-    .table-conferencia td:nth-child(5) {
-        width: 10%;
-    }
-
-    .table-conferencia th:nth-child(6),
-    .table-conferencia td:nth-child(6) {
-        width: 13%;
-    }
-
-    .table-conferencia th:nth-child(7),
-    .table-conferencia td:nth-child(7) {
-        width: 14%;
-    }
-
-    .table-conferencia th:nth-child(8),
-    .table-conferencia td:nth-child(8) {
-        width: 8%;
-    }
-
     .cell-clip {
         overflow-wrap: break-word;
         word-wrap: break-word;
@@ -301,19 +258,6 @@
         color: var(--ink-500);
         text-align: center;
     }
-
-    @media (min-width: 1400px) {
-        .conf-page {
-            padding-left: 2rem;
-            padding-right: 2rem;
-        }
-    }
-
-    @media (max-width: 991.98px) {
-        .hero-title {
-            font-size: 1.55rem;
-        }
-    }
 </style>
 
 <div class="container-fluid conf-page">
@@ -323,22 +267,21 @@
                 <div>
                     <h1 class="hero-title">Conferência Cadastral</h1>
                     <p class="hero-subtitle">
-                        Painel de acompanhamento e validação cadastral dos militares ativos.
+                        Visão global da conferência cadastral dos militares ativos.
                     </p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 hero-actions">
-                    <a href="{{ url_for('atualizacao_cadastral.conferencia_proximo_pendente', modo=modo) }}"
-                        class="btn btn-light">
+                    <a href="{{ url_for('atualizacao_cadastral.conferencia_proximo_pendente') }}" class="btn btn-light">
                         Próximo pendente
                     </a>
 
-                    <a href="{{ url_for('atualizacao_cadastral.conferencia_exportar_excel', modo=modo) }}"
+                    <a href="{{ url_for('atualizacao_cadastral.conferencia_exportar_excel') }}"
                         class="btn btn-hero-light">
                         Exportar Excel
                     </a>
 
-                    <a href="{{ url_for('atualizacao_cadastral.conferencia_exportar_pdf', modo=modo) }}"
+                    <a href="{{ url_for('atualizacao_cadastral.conferencia_exportar_pdf') }}"
                         class="btn btn-hero-light">
                         Exportar PDF
                     </a>
@@ -382,8 +325,7 @@
                     <div class="metric-value">{{ percentual }}%</div>
                     <div class="metric-progress mt-2">
                         <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentual }}%;"
-                            aria-valuenow="{{ percentual }}" aria-valuemin="0" aria-valuemax="100">
-                        </div>
+                            aria-valuenow="{{ percentual }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
@@ -394,17 +336,17 @@
         <div class="card-body">
             <div class="mb-3">
                 <div class="filters-title">Filtros</div>
-                <p class="filters-subtitle">Refine a listagem para localizar e conferir cadastros com mais rapidez.</p>
+                <p class="filters-subtitle">Refine a listagem para localizar militares conferidos ou pendentes.</p>
             </div>
 
             <form method="GET" class="row g-3 align-items-end">
-                <div class="col-12 col-lg-4">
+                <div class="col-12 col-lg-6">
                     <label class="form-label fw-semibold text-secondary small mb-2">Busca</label>
-                    <input type="text" name="q" class="form-control" placeholder="Nome, matrícula ou CPF..."
-                        value="{{ q }}">
+                    <input type="text" name="q" class="form-control"
+                        placeholder="Nome, nome de guerra, matrícula ou CPF..." value="{{ q }}">
                 </div>
 
-                <div class="col-12 col-md-4 col-lg-2">
+                <div class="col-12 col-md-4 col-lg-3">
                     <label class="form-label fw-semibold text-secondary small mb-2">Status</label>
                     <select name="status" class="form-select">
                         <option value="">Todos</option>
@@ -415,19 +357,11 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold text-secondary small mb-2">Modo</label>
-                    <select name="modo" class="form-select">
-                        <option value="meu" {% if modo=='meu' %}selected{% endif %}>Minha conferência</option>
-                        <option value="global" {% if modo=='global' %}selected{% endif %}>Visão global</option>
-                    </select>
-                </div>
-
-                <div class="col-6 col-md-2 col-lg-2 d-grid">
+                <div class="col-6 col-md-4 col-lg-1 d-grid">
                     <button class="btn btn-primary">Filtrar</button>
                 </div>
 
-                <div class="col-6 col-md-2 col-lg-2 d-grid">
+                <div class="col-6 col-md-4 col-lg-2 d-grid">
                     <a href="{{ url_for('atualizacao_cadastral.conferencia_lista') }}" class="btn btn-light border">
                         Limpar
                     </a>
@@ -484,7 +418,7 @@
                         <td class="cell-clip">{{ conferido_por_nome or '-' }}</td>
 
                         <td class="text-end">
-                            <a href="{{ url_for('atualizacao_cadastral.conferencia_detalhe', militar_id=militar.id, modo=modo) }}"
+                            <a href="{{ url_for('atualizacao_cadastral.conferencia_detalhe', militar_id=militar.id) }}"
                                 class="btn btn-sm btn-outline-primary btn-table">
                                 Ver ficha
                             </a>

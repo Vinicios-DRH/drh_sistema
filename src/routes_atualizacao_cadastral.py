@@ -483,15 +483,23 @@ def auditoria():
 # ---------------- AUDITORIA DE CONFERÊNCIA CADASTRAL ----------------
 
 # ---------------- Rotas para conferência cadastral (marcar como conferido, listar conferências, etc) ----------------
+# ---------------- Rotas para conferência cadastral (visão global) ----------------
 @bp_atualizacao_cadastral.route("/conferencia", methods=["GET"])
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_READ")
 def conferencia_lista():
     q = (request.args.get("q") or "").strip()
-    status = (request.args.get("status") or "").strip()
-    modo = (request.args.get("modo") or "meu").strip().lower()
-    # modo = "meu" -> conferência do usuário logado
-    # modo = "global" -> mostra se qualquer usuário conferiu
+    status = (request.args.get("status") or "").strip().lower()
+
+    # Última conferência global por militar
+    sub = (
+        database.session.query(
+            MilitarConferenciaCadastral.militar_id.label("militar_id"),
+            func.max(MilitarConferenciaCadastral.id).label("max_id")
+        )
+        .group_by(MilitarConferenciaCadastral.militar_id)
+        .subquery()
+    )
 
     query = (
         database.session.query(
@@ -509,40 +517,14 @@ def conferencia_lista():
             )
         )
         .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .outerjoin(sub, sub.c.militar_id == Militar.id)
+        .outerjoin(
+            MilitarConferenciaCadastral,
+            MilitarConferenciaCadastral.id == sub.c.max_id
+        )
+        .outerjoin(User, User.id == MilitarConferenciaCadastral.user_id)
         .filter(Militar.inativo.is_(False))
     )
-
-    if modo == "global":
-        sub = (
-            database.session.query(
-                MilitarConferenciaCadastral.militar_id.label("militar_id"),
-                func.max(MilitarConferenciaCadastral.id).label("max_id")
-            )
-            .group_by(MilitarConferenciaCadastral.militar_id)
-            .subquery()
-        )
-
-        query = (
-            query
-            .outerjoin(sub, sub.c.militar_id == Militar.id)
-            .outerjoin(
-                MilitarConferenciaCadastral,
-                MilitarConferenciaCadastral.id == sub.c.max_id
-            )
-            .outerjoin(User, User.id == MilitarConferenciaCadastral.user_id)
-        )
-    else:
-        query = (
-            query
-            .outerjoin(
-                MilitarConferenciaCadastral,
-                and_(
-                    MilitarConferenciaCadastral.militar_id == Militar.id,
-                    MilitarConferenciaCadastral.user_id == current_user.id
-                )
-            )
-            .outerjoin(User, User.id == MilitarConferenciaCadastral.user_id)
-        )
 
     if q:
         like = f"%{q}%"
@@ -564,24 +546,13 @@ def conferencia_lista():
 
     total = Militar.query.filter(Militar.inativo.is_(False)).count()
 
-    if modo == "global":
-        total_conferido = (
-            database.session.query(func.count(func.distinct(
-                MilitarConferenciaCadastral.militar_id)))
-            .join(Militar, Militar.id == MilitarConferenciaCadastral.militar_id)
-            .filter(Militar.inativo.is_(False))
-            .scalar()
-        ) or 0
-    else:
-        total_conferido = (
-            database.session.query(MilitarConferenciaCadastral.id)
-            .join(Militar, Militar.id == MilitarConferenciaCadastral.militar_id)
-            .filter(
-                Militar.inativo.is_(False),
-                MilitarConferenciaCadastral.user_id == current_user.id
-            )
-            .count()
-        )
+    total_conferido = (
+        database.session.query(func.count(func.distinct(
+            MilitarConferenciaCadastral.militar_id)))
+        .join(Militar, Militar.id == MilitarConferenciaCadastral.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .scalar()
+    ) or 0
 
     total_pendente = max(total - total_conferido, 0)
     percentual = round((total_conferido / total * 100), 1) if total else 0
@@ -595,7 +566,6 @@ def conferencia_lista():
         percentual=percentual,
         q=q,
         status=status,
-        modo=modo,
     )
 
 
@@ -603,52 +573,36 @@ def conferencia_lista():
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_READ")
 def conferencia_proximo_pendente():
-    modo = (request.args.get("modo") or "meu").strip().lower()
+    sub = (
+        database.session.query(MilitarConferenciaCadastral.militar_id)
+        .distinct()
+        .subquery()
+    )
 
-    query = Militar.query.filter(Militar.inativo.is_(False))
-
-    if modo == "global":
-        sub = (
-            database.session.query(MilitarConferenciaCadastral.militar_id)
-            .distinct()
-            .subquery()
+    proximo = (
+        Militar.query
+        .filter(
+            Militar.inativo.is_(False),
+            ~Militar.id.in_(sub)
         )
-        proximo = (
-            query
-            .filter(~Militar.id.in_(sub))
-            .order_by(Militar.nome_completo.asc())
-            .first()
-        )
-    else:
-        sub = (
-            database.session.query(MilitarConferenciaCadastral.militar_id)
-            .filter(MilitarConferenciaCadastral.user_id == current_user.id)
-            .subquery()
-        )
-        proximo = (
-            query
-            .filter(~Militar.id.in_(sub))
-            .order_by(Militar.nome_completo.asc())
-            .first()
-        )
+        .order_by(Militar.nome_completo.asc())
+        .first()
+    )
 
     if not proximo:
         flash("Não há militares pendentes para conferência.", "success")
-        return redirect(url_for("atualizacao_cadastral.conferencia_lista", modo=modo))
+        return redirect(url_for("atualizacao_cadastral.conferencia_lista"))
 
     return redirect(
         url_for("atualizacao_cadastral.conferencia_detalhe",
-                militar_id=proximo.id, modo=modo)
+                militar_id=proximo.id)
     )
-# ---------------- Detalhes da conferência cadastral (marcar/desmarcar conferência, ver detalhes do militar, etc) ----------------
 
 
 @bp_atualizacao_cadastral.route("/conferencia/<int:militar_id>", methods=["GET"])
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_AUDITORIA_READ")
 def conferencia_detalhe(militar_id):
-    modo = (request.args.get("modo") or "meu").strip().lower()
-
     militar = (
         Militar.query
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
@@ -695,7 +649,6 @@ def conferencia_detalhe(militar_id):
         conferencia_global=conferencia_global,
         cadastro_completo=cadastro_completo,
         campos_pendentes=campos_pendentes,
-        modo=modo,
     )
 
 
@@ -703,8 +656,6 @@ def conferencia_detalhe(militar_id):
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_CHECK")
 def conferencia_marcar(militar_id):
-    modo = (request.args.get("modo") or "meu").strip().lower()
-
     militar = Militar.query.filter(
         Militar.id == militar_id,
         Militar.inativo.is_(False)
@@ -728,15 +679,13 @@ def conferencia_marcar(militar_id):
     else:
         flash("Esse militar já foi conferido por você.", "info")
 
-    return redirect(url_for("atualizacao_cadastral.conferencia_proximo_pendente", modo=modo))
+    return redirect(url_for("atualizacao_cadastral.conferencia_proximo_pendente"))
 
 
 @bp_atualizacao_cadastral.route("/conferencia/<int:militar_id>/desmarcar", methods=["POST"])
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_CHECK")
 def conferencia_desmarcar(militar_id):
-    modo = (request.args.get("modo") or "meu").strip().lower()
-
     militar = Militar.query.filter(
         Militar.id == militar_id,
         Militar.inativo.is_(False)
@@ -754,10 +703,13 @@ def conferencia_desmarcar(militar_id):
     else:
         flash("Esse militar ainda não foi marcado por você.", "warning")
 
-    return redirect(url_for("atualizacao_cadastral.conferencia_detalhe", militar_id=militar.id, modo=modo))
-
-
+    return redirect(
+        url_for("atualizacao_cadastral.conferencia_detalhe",
+                militar_id=militar.id)
+    )
 # ---------------- Exportação para Excel dos militares pendentes de conferência ----------------
+
+
 @bp_atualizacao_cadastral.route("/conferencia/exportar-excel", methods=["GET"])
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT")
@@ -859,9 +811,13 @@ def conferencia_exportar_excel():
 @login_required
 @require_perm("ATUALIZACAO_CADASTRAL_CONFERENCIA_EXPORT")
 def conferencia_exportar_pdf():
-    modo = (request.args.get("modo") or "meu").strip().lower()
+    sub = (
+        database.session.query(MilitarConferenciaCadastral.militar_id)
+        .distinct()
+        .subquery()
+    )
 
-    query = (
+    pendentes = (
         database.session.query(
             Militar.nome_completo,
             Militar.matricula,
@@ -877,25 +833,13 @@ def conferencia_exportar_pdf():
             )
         )
         .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
-        .filter(Militar.inativo.is_(False))
+        .filter(
+            Militar.inativo.is_(False),
+            ~Militar.id.in_(sub)
+        )
+        .order_by(Militar.nome_completo.asc())
+        .all()
     )
-
-    if modo == "global":
-        sub = (
-            database.session.query(MilitarConferenciaCadastral.militar_id)
-            .distinct()
-            .subquery()
-        )
-        query = query.filter(~Militar.id.in_(sub))
-    else:
-        sub = (
-            database.session.query(MilitarConferenciaCadastral.militar_id)
-            .filter(MilitarConferenciaCadastral.user_id == current_user.id)
-            .subquery()
-        )
-        query = query.filter(~Militar.id.in_(sub))
-
-    pendentes = query.order_by(Militar.nome_completo.asc()).all()
 
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
