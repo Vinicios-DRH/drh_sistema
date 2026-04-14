@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container-fluid py-4">
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h6 class="text-muted">Total no mapa</h6>
+                    <h2>{{ linhas|length }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h6 class="text-muted">Agregados</h6>
+                    <h2>{{ linhas | selectattr('esta_agregado') | list | length }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h6 class="text-muted">À disposição</h6>
+                    <h2>{{ linhas | selectattr('esta_disposicao') | list | length }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h6 class="text-muted">Interseção</h6>
+                    <h2>{{ linhas | selectattr('na_intersecao') | list | length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Mapa Funcional</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tabela-mapa">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Posto/Grad</th>
+                            <th>Quadro</th>
+                            <th>Destino</th>
+                            <th>Situação</th>
+                            <th>Modalidade</th>
+                            <th>Status</th>
+                            <th>Férias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in linhas %}
+                        <tr>
+                            <td>{{ item.nome }}</td>
+                            <td>{{ item.posto_grad }}</td>
+                            <td>{{ item.quadro }}</td>
+                            <td>{{ item.destino }}</td>
+                            <td>{{ item.situacao_principal }}</td>
+                            <td>{{ item.modalidade }}</td>
+                            <td>
+                                {% if item.na_intersecao %}
+                                <span class="badge bg-danger">INTERSEÇÃO</span>
+                                {% elif item.esta_agregado %}
+                                <span class="badge bg-warning text-dark">AGREGADO</span>
+                                {% elif item.esta_disposicao %}
+                                <span class="badge bg-info text-dark">À DISPOSIÇÃO</span>
+                                {% elif item.esta_le %}
+                                <span class="badge bg-primary">LE</span>
+                                {% elif item.esta_lts %}
+                                <span class="badge bg-secondary">LTS</span>
+                                {% else %}
+                                <span class="badge bg-success">PRONTO</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.em_ferias %}
+                                <span class="badge bg-dark">EM FÉRIAS</span>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

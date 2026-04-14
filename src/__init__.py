@@ -188,6 +188,7 @@ from src.routes_historico import bp_historico
 from src.routes_atualizacao_cadastral import bp_atualizacao_cadastral
 from src.routes_junta import junta_bp
 from src.routes_remove_bg import remove_bg_bp
+from src import routes_mapa_funcional
 
 app.register_blueprint(remove_bg_bp)
 app.register_blueprint(junta_bp)

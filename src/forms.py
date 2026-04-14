@@ -76,9 +76,28 @@ class FormMilitar(FlaskForm):
         "Dígito do Título de Eleitor", render_kw={"placeholder": "00"})
     zona = StringField("Zona")
     secao = StringField("Seção")
-    pronto = SelectField("Pronto", choices=[('sim', 'Sim'), ('nao', 'Não')])
-    situacao_id = SelectField("Situação", choices=[])
-    agregacoes_id = SelectField("Agregações", choices=[])
+    pronto = SelectField(
+        "Situação",
+        choices=[
+            ("PRONTO", "PRONTO"),
+            ("AGREGADO", "AGREGADO"),
+        ],
+        validators=[Optional()]
+    )
+
+    situacao_id = SelectField(
+        "Modalidade",
+        choices=[],
+        coerce=coerce_int_or_none,
+        validators=[Optional()]
+    )
+
+    agregacoes_id = SelectField(
+        "Motivo",
+        choices=[],
+        coerce=coerce_int_or_none,
+        validators=[Optional()]
+    )
     destino_id = SelectField("Destino", choices=[])
     inicio_periodo = DateField(
         "INÍCIO", format='%Y-%m-%d', validators=[Optional()])

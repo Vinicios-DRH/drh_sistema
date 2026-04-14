@@ -410,7 +410,7 @@ class Militar(database.Model):
     especialidade_id = database.Column(
         database.Integer, database.ForeignKey('especialidade.id'))
 
-    pronto = database.Column(database.String(5))
+    pronto = database.Column(database.String(30)) # "PRONTO", "AGREGADO", etc.
     situacao_id = database.Column(
         database.Integer, database.ForeignKey('situacao.id'))
     agregacoes_id = database.Column(
