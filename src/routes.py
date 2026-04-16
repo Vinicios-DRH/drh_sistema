@@ -2278,9 +2278,6 @@ MOTIVOS_RENOMEAR = {'AGREGADO': 'ÓRGÃO'}
 def exibir_militar(militar_id):
     if not is_super_or_perm("MILITAR_READ"):
         abort(403)
-
-    
-
     militar = Militar.query.get_or_404(militar_id)
     database.session.expire_all()
 
