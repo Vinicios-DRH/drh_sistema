@@ -201,7 +201,7 @@
 {% for v in request.args.getlist('especialidade_ids') %}{% set _ = params.append('especialidade_ids=' ~ v) %}{% endfor
 %}
 {% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
-{% for v in request.args.getlist('situacao_ids') %}{% set _ = params.append('situacao_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('modalidade_ids') %}{% set _ = params.append('modalidade_ids=' ~ v) %}{% endfor %}
 {% for v in request.args.getlist('destino_ids') %}{% set _ = params.append('destino_ids=' ~ v) %}{% endfor %}
 {% if request.args.get('sexo') %}{% set _ = params.append('sexo=' ~ request.args.get('sexo')) %}{% endif %}
 {% set _ = params.append('page=' ~ p) %}
@@ -535,14 +535,14 @@
                                 <span class="filter-title">Situação</span>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" type="button"
-                                        data-select-all="situacao_ids">Selecionar tudo</button>
+                                        data-select-all="modalidade_ids">Selecionar tudo</button>
                                     <button class="btn btn-outline-secondary" type="button"
-                                        data-clear="situacao_ids">Limpar</button>
+                                        data-clear="modalidade_ids">Limpar</button>
                                 </div>
                             </div>
-                            <select name="situacao_ids" class="form-select js-multi" multiple>
-                                {% for val, label in form_militar.situacao_id.choices if val != '' %}
-                                {% set sel = (val|string) in request.args.getlist('situacao_ids') %}
+                            <select name="modalidade_ids" class="form-select js-multi" multiple>
+                                {% for val, label in form_militar.modalidade_id.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('modalidade_ids') %}
                                 <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
                                 {% endfor %}
                             </select>

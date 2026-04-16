@@ -76,7 +76,7 @@ class FormMilitar(FlaskForm):
         "Dígito do Título de Eleitor", render_kw={"placeholder": "00"})
     zona = StringField("Zona")
     secao = StringField("Seção")
-    pronto = SelectField(
+    situacao = SelectField(
         "Situação",
         choices=[
             ("PRONTO", "PRONTO"),
@@ -85,14 +85,14 @@ class FormMilitar(FlaskForm):
         validators=[Optional()]
     )
 
-    situacao_id = SelectField(
+    modalidade_id = SelectField(
         "Modalidade",
         choices=[],
         coerce=coerce_int_or_none,
         validators=[Optional()]
     )
 
-    agregacoes_id = SelectField(
+    motivo_id = SelectField(
         "Motivo",
         choices=[],
         coerce=coerce_int_or_none,
@@ -225,7 +225,7 @@ class FormFiltroMilitar(FlaskForm):
         'Especialidade', choices=[], coerce=_coerce_int, validators=[Optional()])
     localidade_id = SelectMultipleField(
         'Localidade', choices=[], coerce=_coerce_int, validators=[Optional()])
-    situacao_id = SelectMultipleField(
+    modalidade_id = SelectMultipleField(
         'Situação', choices=[], coerce=_coerce_int, validators=[Optional()])
     destino_id = SelectMultipleField(
         'Destino', coerce=_coerce_int, choices=[], validators=[Optional()])

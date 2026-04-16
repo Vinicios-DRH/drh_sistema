@@ -96,7 +96,7 @@ def api_header(militar_id: int):
         LEFT JOIN posto_grad pg ON pg.id = m.posto_grad_id
         LEFT JOIN quadro q ON q.id = m.quadro_id
         LEFT JOIN localidade l ON l.id = m.localidade_id
-        LEFT JOIN situacao s1 ON s1.id = m.situacao_id
+        LEFT JOIN situacao s1 ON s1.id = m.modalidade_id
         LEFT JOIN situacao s2 ON s2.id = m.situacao2_id
         LEFT JOIN especialidade e ON e.id = m.especialidade_id
         LEFT JOIN destino d ON d.id = m.destino_id

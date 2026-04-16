@@ -2,7 +2,7 @@
 -- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.agregacoes (
-  id integer NOT NULL DEFAULT nextval('agregacoes_id_seq'::regclass),
+  id integer NOT NULL DEFAULT nextval('motivo_id_seq'::regclass),
   tipo character varying,
   CONSTRAINT agregacoes_pkey PRIMARY KEY (id)
 );
@@ -238,7 +238,7 @@ CREATE TABLE public.licenca_especial (
   posto_grad_id integer,
   quadro_id integer,
   destino_id integer,
-  situacao_id integer,
+  modalidade_id integer,
   inicio_periodo_le date,
   fim_periodo_le date,
   status character varying,
@@ -250,7 +250,7 @@ CREATE TABLE public.licenca_especial (
   CONSTRAINT licenca_especial_posto_grad_id_fkey FOREIGN KEY (posto_grad_id) REFERENCES public.posto_grad(id),
   CONSTRAINT licenca_especial_quadro_id_fkey FOREIGN KEY (quadro_id) REFERENCES public.quadro(id),
   CONSTRAINT licenca_especial_destino_id_fkey FOREIGN KEY (destino_id) REFERENCES public.destino(id),
-  CONSTRAINT licenca_especial_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacao(id),
+  CONSTRAINT licenca_especial_modalidade_id_fkey FOREIGN KEY (modalidade_id) REFERENCES public.situacao(id),
   CONSTRAINT licenca_especial_publicacao_bg_id_fkey FOREIGN KEY (publicacao_bg_id) REFERENCES public.publicacaobg(id)
 );
 CREATE TABLE public.licenca_para_tratamento_de_saude (
@@ -259,7 +259,7 @@ CREATE TABLE public.licenca_para_tratamento_de_saude (
   posto_grad_id integer,
   quadro_id integer,
   destino_id integer,
-  situacao_id integer,
+  modalidade_id integer,
   inicio_periodo_lts date,
   fim_periodo_lts date,
   status character varying,
@@ -271,7 +271,7 @@ CREATE TABLE public.licenca_para_tratamento_de_saude (
   CONSTRAINT licenca_para_tratamento_de_saude_posto_grad_id_fkey FOREIGN KEY (posto_grad_id) REFERENCES public.posto_grad(id),
   CONSTRAINT licenca_para_tratamento_de_saude_quadro_id_fkey FOREIGN KEY (quadro_id) REFERENCES public.quadro(id),
   CONSTRAINT licenca_para_tratamento_de_saude_destino_id_fkey FOREIGN KEY (destino_id) REFERENCES public.destino(id),
-  CONSTRAINT licenca_para_tratamento_de_saude_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacao(id),
+  CONSTRAINT licenca_para_tratamento_de_saude_modalidade_id_fkey FOREIGN KEY (modalidade_id) REFERENCES public.situacao(id),
   CONSTRAINT licenca_para_tratamento_de_saude_publicacao_bg_id_fkey FOREIGN KEY (publicacao_bg_id) REFERENCES public.publicacaobg(id)
 );
 CREATE TABLE public.localidade (
@@ -333,8 +333,8 @@ CREATE TABLE public.militar (
   estado_civil integer,
   especialidade_id integer,
   pronto character varying,
-  situacao_id integer,
-  agregacoes_id integer,
+  modalidade_id integer,
+  motivo_id integer,
   destino_id integer,
   inicio_periodo date,
   fim_periodo date,
@@ -406,8 +406,8 @@ CREATE TABLE public.militar (
   CONSTRAINT militar_comportamento_id_fkey FOREIGN KEY (comportamento_id) REFERENCES public.comportamento(id),
   CONSTRAINT militar_estado_civil_fkey FOREIGN KEY (estado_civil) REFERENCES public.estado_civil(id),
   CONSTRAINT militar_especialidade_id_fkey FOREIGN KEY (especialidade_id) REFERENCES public.especialidade(id),
-  CONSTRAINT militar_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacao(id),
-  CONSTRAINT militar_agregacoes_id_fkey FOREIGN KEY (agregacoes_id) REFERENCES public.agregacoes(id),
+  CONSTRAINT militar_modalidade_id_fkey FOREIGN KEY (modalidade_id) REFERENCES public.situacao(id),
+  CONSTRAINT militar_motivo_id_fkey FOREIGN KEY (motivo_id) REFERENCES public.agregacoes(id),
   CONSTRAINT militar_destino_id_fkey FOREIGN KEY (destino_id) REFERENCES public.destino(id),
   CONSTRAINT militar_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.user(id),
   CONSTRAINT militar_funcao_gratificada_id_fkey FOREIGN KEY (funcao_gratificada_id) REFERENCES public.funcao_gratificada(id)
@@ -431,7 +431,7 @@ CREATE TABLE public.militares_a_disposicao (
   posto_grad_id integer,
   quadro_id integer,
   destino_id integer,
-  situacao_id integer,
+  modalidade_id integer,
   inicio_periodo date,
   fim_periodo_disposicao date,
   status character varying,
@@ -443,7 +443,7 @@ CREATE TABLE public.militares_a_disposicao (
   CONSTRAINT militares_a_disposicao_posto_grad_id_fkey FOREIGN KEY (posto_grad_id) REFERENCES public.posto_grad(id),
   CONSTRAINT militares_a_disposicao_quadro_id_fkey FOREIGN KEY (quadro_id) REFERENCES public.quadro(id),
   CONSTRAINT militares_a_disposicao_destino_id_fkey FOREIGN KEY (destino_id) REFERENCES public.destino(id),
-  CONSTRAINT militares_a_disposicao_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacao(id),
+  CONSTRAINT militares_a_disposicao_modalidade_id_fkey FOREIGN KEY (modalidade_id) REFERENCES public.situacao(id),
   CONSTRAINT militares_a_disposicao_publicacao_bg_id_fkey FOREIGN KEY (publicacao_bg_id) REFERENCES public.publicacaobg(id)
 );
 CREATE TABLE public.militares_agregados (
@@ -452,7 +452,7 @@ CREATE TABLE public.militares_agregados (
   posto_grad_id integer,
   quadro_id integer,
   destino_id integer,
-  situacao_id integer,
+  modalidade_id integer,
   inicio_periodo date,
   fim_periodo_agregacao date,
   status character varying,
@@ -464,7 +464,7 @@ CREATE TABLE public.militares_agregados (
   CONSTRAINT militares_agregados_posto_grad_id_fkey FOREIGN KEY (posto_grad_id) REFERENCES public.posto_grad(id),
   CONSTRAINT militares_agregados_quadro_id_fkey FOREIGN KEY (quadro_id) REFERENCES public.quadro(id),
   CONSTRAINT militares_agregados_destino_id_fkey FOREIGN KEY (destino_id) REFERENCES public.destino(id),
-  CONSTRAINT militares_agregados_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacao(id),
+  CONSTRAINT militares_agregados_modalidade_id_fkey FOREIGN KEY (modalidade_id) REFERENCES public.situacao(id),
   CONSTRAINT militares_agregados_publicacao_bg_id_fkey FOREIGN KEY (publicacao_bg_id) REFERENCES public.publicacaobg(id)
 );
 CREATE TABLE public.militares_inativos (
@@ -710,7 +710,7 @@ CREATE TABLE public.segundo_vinculo (
   CONSTRAINT segundo_vinculo_militar_id_fkey FOREIGN KEY (militar_id) REFERENCES public.militar(id)
 );
 CREATE TABLE public.situacao (
-  id integer NOT NULL DEFAULT nextval('situacao_id_seq'::regclass),
+  id integer NOT NULL DEFAULT nextval('modalidade_id_seq'::regclass),
   condicao character varying,
   CONSTRAINT situacao_pkey PRIMARY KEY (id)
 );

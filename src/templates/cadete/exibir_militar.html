@@ -524,14 +524,15 @@
                                 <div class="col-md-2">{{ form_militar.pronto.label(class="form-label",
                                     id="label_pronto") }}{{ form_militar.pronto(class="form-control", id='pronto',
                                     readonly=True) }}</div>
-                                <div class="col-md-4">{{ form_militar.situacao_id.label(class="form-label",
-                                    id="label_situacao") }}{{ form_militar.situacao_id(class="form-select" + ('
-                                    is-invalid' if form_militar.situacao_id.errors else ''), id='situacao_id') }}{% if
-                                    form_militar.situacao_id.errors %}<div class="invalid-feedback">{% for e in
-                                        form_militar.situacao_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
-                                <div class="col-md-4">{{ form_militar.agregacoes_id.label(class="form-label",
-                                    id="label_agregacoes") }}{{ form_militar.agregacoes_id(class="form-select" + ('
-                                    is-invalid' if form_militar.agregacoes_id.errors else ''), id='agregacoes_id') }}
+                                <div class="col-md-4">{{ form_militar.modalidade_id.label(class="form-label",
+                                    id="label_situacao") }}{{ form_militar.modalidade_id(class="form-select" + ('
+                                    is-invalid' if form_militar.modalidade_id.errors else ''), id='modalidade_id') }}{%
+                                    if
+                                    form_militar.modalidade_id.errors %}<div class="invalid-feedback">{% for e in
+                                        form_militar.modalidade_id.errors %}{{e}}{% endfor %}</div>{% endif %}</div>
+                                <div class="col-md-4">{{ form_militar.motivo_id.label(class="form-label",
+                                    id="label_agregacoes") }}{{ form_militar.motivo_id(class="form-select" + ('
+                                    is-invalid' if form_militar.motivo_id.errors else ''), id='motivo_id') }}
                                 </div>
                                 <div class="col-md-6">{{ form_militar.destino_id.label(class="form-label") }}{{
                                     form_militar.destino_id(class="form-select" + (' is-invalid' if

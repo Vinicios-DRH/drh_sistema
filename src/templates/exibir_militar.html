@@ -663,7 +663,17 @@
 
         <div class="summary-mini">
           <div class="k">Situação</div>
-          <div class="v">{{ militar.situacao.condicao if militar.situacao else '—' }}</div>
+          <div class="v">{{ militar.situacao or '—' }}</div>
+        </div>
+
+        <div class="summary-mini">
+          <div class="k">Modalidade</div>
+          <div class="v">{{ militar.modalidade.descricao if militar.modalidade else '—' }}</div>
+        </div>
+
+        <div class="summary-mini">
+          <div class="k">Motivo</div>
+          <div class="v">{{ militar.motivo.descricao if militar.motivo else '—' }}</div>
         </div>
 
         <div class="summary-mini">
@@ -941,34 +951,34 @@
               <div class="cluster-body">
                 <div class="row g-3">
                   <div class="col-md-2">
-                    <label for="pronto" class="field-label">Situação</label>
-                    <select id="pronto" name="pronto" class="form-select">
+                    <label for="situacao" class="field-label">Situação</label>
+                    <select id="situacao" name="situacao" class="form-select">
                       <option value="">-- Selecione --</option>
-                      <option value="PRONTO" {{ 'selected' if (form_militar.pronto.data or militar.pronto)=='PRONTO'
+                      <option value="PRONTO" {{ 'selected' if (form_militar.situacao.data or militar.situacao)=='PRONTO'
                         else '' }}>PRONTO</option>
-                      <option value="AGREGADO" {{ 'selected' if (form_militar.pronto.data or militar.pronto)=='AGREGADO'
+                      <option value="AGREGADO" {{ 'selected' if (form_militar.situacao.data or militar.situacao)=='AGREGADO'
                         else '' }}>AGREGADO</option>
-                      <option value="À DISPOSIÇÃO" {{ 'selected' if (form_militar.pronto.data or militar.pronto)=='À DISPOSIÇÃO'
-                        else '' }}>À DISPOSIÇÃO</option>
+                      <option value="À DISPOSIÇÃO" {{ 'selected' if (form_militar.situacao.data or
+                        militar.situacao)=='À DISPOSIÇÃO' else '' }}>À DISPOSIÇÃO</option>
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label for="situacao_id" class="field-label">Modalidade</label>
-                    <select id="situacao_id" name="situacao_id" class="form-select">
-                      {% for val, label in form_militar.situacao_id.choices %}
-                      <option value="{{ val }}" {{ 'selected' if (form_militar.situacao_id.data==val or
-                        militar.situacao_id==val) else '' }}>
+                    <label for="modalidade_id" class="field-label">Modalidade</label>
+                    <select id="modalidade_id" name="modalidade_id" class="form-select">
+                      {% for val, label in form_militar.modalidade_id.choices %}
+                      <option value="{{ val }}" {{ 'selected' if (form_militar.modalidade_id.data==val or
+                        militar.modalidade_id==val) else '' }}>
                         {{ label }}
                       </option>
                       {% endfor %}
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label for="agregacoes_id" class="field-label">Motivo</label>
-                    <select id="agregacoes_id" name="agregacoes_id" class="form-select">
-                      {% for val, label in form_militar.agregacoes_id.choices %}
-                      <option value="{{ val }}" {{ 'selected' if (form_militar.agregacoes_id.data==val or
-                        militar.agregacoes_id==val) else '' }}>
+                    <label for="motivo_id" class="field-label">Motivo</label>
+                    <select id="motivo_id" name="motivo_id" class="form-select">
+                      {% for val, label in form_militar.motivo_id.choices %}
+                      <option value="{{ val }}" {{ 'selected' if (form_militar.motivo_id.data==val or
+                        militar.motivo_id==val) else '' }}>
                         {{ label }}
                       </option>
                       {% endfor %}
@@ -987,7 +997,7 @@
                       <label for="situacao2_id" class="field-label">Situação Extra</label>
                       <select id="situacao2_id" name="situacao2_id" class="form-select">
                         <option value="">-- Selecione --</option>
-                        {% for val, label in form_militar.situacao_id.choices %}
+                        {% for val, label in form_militar.modalidade_id.choices %}
                         <option value="{{ val }}" {{ 'selected' if militar.situacao2_id==val else '' }}>{{ label }}
                         </option>
                         {% endfor %}
@@ -998,7 +1008,7 @@
                       <label for="agregacoes2_id" class="field-label">Agregação Extra</label>
                       <select id="agregacoes2_id" name="agregacoes2_id" class="form-select">
                         <option value="">-- Selecione --</option>
-                        {% for val, label in form_militar.agregacoes_id.choices %}
+                        {% for val, label in form_militar.motivo_id.choices %}
                         <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id==val else '' }}>{{ label }}
                         </option>
                         {% endfor %}
@@ -1530,7 +1540,7 @@
 
     updateSummary();
 
-    const selSituacao = document.getElementById('situacao_id');
+    const selSituacao = document.getElementById('modalidade_id');
     const badgeHero = document.getElementById('statusBadgeHero');
 
     function updateBadge() {

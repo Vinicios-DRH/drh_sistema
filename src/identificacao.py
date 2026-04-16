@@ -6,16 +6,20 @@ from datetime import datetime
 from src import database as db
 
 # Mantém seu normalizador de matrícula
+
+
 def normaliza_matricula(valor: str) -> str:
     if not valor:
         return ""
     return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
+
 
 def _query_por_cpf(model_cls, cpf_num: str, coluna_cpf):
     """Busca genérica por CPF, ignorando máscara/pontos/traços no BD."""
     return (model_cls.query
             .filter(func.regexp_replace(cast(coluna_cpf, String), r'[^0-9]', '', 'g') == cpf_num)
             .first())
+
 
 def buscar_pessoa_por_cpf(cpf_formatado: str):
     """
@@ -39,6 +43,7 @@ def buscar_pessoa_por_cpf(cpf_formatado: str):
         return {'tipo': 'aluno', 'obj': alu}
 
     return None
+
 
 def get_aluno_por_user(user):
     """Busca FichaAlunos pelo CPF do User (ignorando máscara)."""
@@ -79,7 +84,7 @@ def ensure_militar_from_aluno(aluno, user=None, obm_padrao=26, funcao_padrao=27)
             # mínimos para seus formulários/consultas:
             posto_grad_id=17,
             quadro_id=1,
-            situacao_id=9,          # "ALUNO" (ou o que 9 representa)
+            modalidade_id=9,          # "ALUNO" (ou o que 9 representa)
             pronto="SIM",           # opcional; ajuste se preferir None
             inativo=False,
             data_criacao=datetime.utcnow(),

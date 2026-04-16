@@ -17,6 +17,7 @@ from src.models import (
     MilitarObmFuncao,
 )
 
+
 def _periodo_vigente_expr(inicio_col, fim_col):
     hoje = date.today()
     return and_(
@@ -105,7 +106,7 @@ def obter_estatisticas_militares():
             MilitaresAgregados.fim_periodo_agregacao
         ))
         # ajuste se esse ID não for o certo
-        .filter(MilitaresAgregados.situacao_id == 5)
+        .filter(MilitaresAgregados.modalidade_id == 5)
         .count()
     )
 
@@ -118,7 +119,7 @@ def obter_estatisticas_militares():
             MilitaresAgregados.fim_periodo_agregacao
         ))
         # ajuste conforme tua regra real
-        .filter(MilitaresAgregados.situacao_id == 2)
+        .filter(MilitaresAgregados.modalidade_id == 2)
         .count()
     )
 
@@ -131,7 +132,7 @@ def obter_estatisticas_militares():
             MilitaresAgregados.fim_periodo_agregacao
         ))
         # ajuste conforme tua regra real
-        .filter(MilitaresAgregados.situacao_id == 4)
+        .filter(MilitaresAgregados.modalidade_id == 4)
         .count()
     )
 
@@ -242,7 +243,7 @@ def obter_estatisticas_militares():
     )
 
     maternidade = militares_ativos.filter(
-        Militar.situacao_id == 5
+        Militar.modalidade_id == 5
     ).count()
 
     return {

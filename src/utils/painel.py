@@ -8,7 +8,7 @@ from src.models import (
     Obm,
     MilitarContatoEmergencia,
     MilitarConjuge,
-    Situacao,
+    Modalidade,
     AuditoriaAtualizacaoCadastral,
 )
 from src.utils.cadastro_status import (
@@ -21,7 +21,7 @@ def _query_militares_ativos_atualizacao():
     return (
         Militar.query
         .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)
-        .outerjoin(Situacao, Situacao.id == Militar.situacao_id)
+        .outerjoin(Modalidade, Modalidade.id == Militar.modalidade_id)
         .filter(
             and_(
                 or_(
@@ -37,7 +37,7 @@ def _query_militares_ativos_atualizacao():
     )
 
 
-def _aplicar_filtros(query, q="", status="", posto_grad_id=None, situacao_id=None):
+def _aplicar_filtros(query, q="", status="", posto_grad_id=None, modalidade_id=None):
     q = (q or "").strip()
     status = (status or "").strip()
 
@@ -64,8 +64,8 @@ def _aplicar_filtros(query, q="", status="", posto_grad_id=None, situacao_id=Non
     if posto_grad_id:
         query = query.filter(Militar.posto_grad_id == posto_grad_id)
 
-    if situacao_id:
-        query = query.filter(Militar.situacao_id == situacao_id)
+    if modalidade_id:
+        query = query.filter(Militar.modalidade_id == modalidade_id)
 
     return query
 
@@ -150,7 +150,7 @@ def _base_load_lista():
             Militar.nome_guerra,
             Militar.matricula,
             Militar.posto_grad_id,
-            Militar.situacao_id,
+            Militar.modalidade_id,
             Militar.atualizacao_cadastral_em,
             Militar.cadastro_atualizado,
         ),
@@ -158,9 +158,9 @@ def _base_load_lista():
             PostoGrad.id,
             PostoGrad.sigla,
         ),
-        selectinload(Militar.situacao).load_only(
-            Situacao.id,
-            Situacao.condicao,
+        selectinload(Militar.modalidade).load_only(
+            Modalidade.id,
+            Modalidade.nome,
         ),
         selectinload(Militar.auditorias_atualizacao).load_only(
             AuditoriaAtualizacaoCadastral.id,
@@ -192,7 +192,7 @@ def _base_load_detalhe():
             Militar.nome_guerra,
             Militar.matricula,
             Militar.posto_grad_id,
-            Militar.situacao_id,
+            Militar.modalidade_id,
             Militar.atualizacao_cadastral_em,
             Militar.cadastro_atualizado,
             Militar.nome_pai,
@@ -226,9 +226,9 @@ def _base_load_detalhe():
             PostoGrad.id,
             PostoGrad.sigla,
         ),
-        selectinload(Militar.situacao).load_only(
-            Situacao.id,
-            Situacao.condicao,
+        selectinload(Militar.modalidade).load_only(
+            Modalidade.id,
+            Modalidade.nome,
         ),
         selectinload(Militar.obm_funcoes)
         .load_only(
@@ -259,13 +259,13 @@ def _base_load_detalhe():
     )
 
 
-def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None, situacao_id=None):
+def obter_resumo_atualizacao_cadastral(obm_id=None, posto_grad_id=None, modalidade_id=None):
     query = _aplicar_filtros(
         _query_militares_ativos_atualizacao(),
         q="",
         status="",
         posto_grad_id=posto_grad_id,
-        situacao_id=situacao_id,
+        modalidade_id=modalidade_id,
     )
 
     militares = (
@@ -298,7 +298,7 @@ def obter_militares_atualizacao_cadastral(
     status="",
     obm_id=None,
     posto_grad_id=None,
-    situacao_id=None,
+    modalidade_id=None,
     page=1,
     per_page=50
 ):
@@ -307,7 +307,7 @@ def obter_militares_atualizacao_cadastral(
         q=q,
         status=status,
         posto_grad_id=posto_grad_id,
-        situacao_id=situacao_id,
+        modalidade_id=modalidade_id,
     )
 
     militares = (
@@ -352,9 +352,9 @@ def listar_postos_grad_atualizacao():
 
 def listar_situacoes_atualizacao():
     return (
-        Situacao.query
-        .options(load_only(Situacao.id, Situacao.condicao))
-        .order_by(Situacao.condicao.asc())
+        Modalidade.query
+        .options(load_only(Modalidade.id, Modalidade.nome))
+        .order_by(Modalidade.nome.asc())
         .all()
     )
 

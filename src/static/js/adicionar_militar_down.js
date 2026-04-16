@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'sexo', label: 'Sexo' },
         { id: 'raca', label: 'Raça/Cor' },
         { id: 'localidade_id', label: 'Localidade' },
-        { id: 'situacao_id', label: 'Situação' },
+        { id: 'modalidade_id', label: 'Situação' },
         { id: 'destino_id', label: 'Destino' },
         // Se quiser tornar "grau_instrucao" obrigatório: 
         // { id:'grau_instrucao',   label:'Grau de instrução' },

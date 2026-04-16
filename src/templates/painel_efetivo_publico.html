@@ -858,10 +858,10 @@
 
                                         <div class="col-12 col-md-6 col-xl-2">
                                             <label class="form-label fw-bold">Situação</label>
-                                            <select name="situacao_id" id="filtro-situacao" class="form-select">
+                                            <select name="modalidade_id" id="filtro-situacao" class="form-select">
                                                 <option value="">Todas</option>
                                                 {% for situacao in situacoes %}
-                                                <option value="{{ situacao.id }}" {% if situacao_id==situacao.id
+                                                <option value="{{ situacao.id }}" {% if modalidade_id==situacao.id
                                                     %}selected{% endif %}>
                                                     {{ situacao.condicao }}
                                                 </option>
@@ -1213,7 +1213,7 @@
                 status: filtroStatus ? (filtroStatus.value || "") : "",
                 obm_id: filtroObm ? (filtroObm.value || "") : "",
                 posto_grad_id: filtroPostoGrad ? (filtroPostoGrad.value || "") : "",
-                situacao_id: filtroSituacao ? (filtroSituacao.value || "") : ""
+                modalidade_id: filtroSituacao ? (filtroSituacao.value || "") : ""
             });
 
             btnExportarExcel.href = `/painel-efetivo/exportar-excel?${params.toString()}`;
@@ -1275,7 +1275,7 @@
                     status: filtroStatus ? (filtroStatus.value || "") : "",
                     obm_id: filtroObm ? (filtroObm.value || "") : "",
                     posto_grad_id: filtroPostoGrad ? (filtroPostoGrad.value || "") : "",
-                    situacao_id: filtroSituacao ? (filtroSituacao.value || "") : ""
+                    modalidade_id: filtroSituacao ? (filtroSituacao.value || "") : ""
                 });
 
                 const response = await fetch(`/painel-efetivo/api?${params.toString()}`, {
