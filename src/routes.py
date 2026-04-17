@@ -1682,6 +1682,8 @@ def somente_numeros(valor):
 @login_required
 @checar_ocupacao('SUPER USER')
 def criar_conta():
+    if current_user.funcao_user.ocupacao != 'SUPER USER':
+        abort(403)
     form_criar_usuario = FormCriarUsuario()
 
     choices = [(funcao_user.id, funcao_user.ocupacao)
@@ -3880,63 +3882,21 @@ def exportar_excel(tabela):
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
-@app.route("/api/usuarios", methods=["GET"])
-@login_required
-@checar_ocupacao('DIRETOR', 'SUPER USER')
-def api_usuarios():
-    # Parâmetros vindos do DataTables
-    draw = int(request.args.get('draw', 1))
-    start = int(request.args.get('start', 0))
-    length = int(request.args.get('length', 10))
-    search_value = request.args.get('search[value]', '')
-
-    query = User.query.join(FuncaoUser, User.funcao_user_id == FuncaoUser.id)
-
-    if search_value:
-        query = query.filter(
-            database.or_(
-                User.nome.ilike(f"%{search_value}%"),
-                User.cpf.ilike(f"%{search_value}%"),
-                FuncaoUser.ocupacao.ilike(f"%{search_value}%"),
-            )
-        )
-
-    total_records = User.query.count()
-    filtered_records = query.count()
-
-    usuarios = query.add_columns(
-        User.id, User.nome, User.cpf,
-        FuncaoUser.ocupacao.label('funcao_ocupacao')
-    ).offset(start).limit(length).all()
-
-    data = []
-    for usuario in usuarios:
-        data.append([
-            usuario.nome,
-            usuario.cpf,
-            usuario.funcao_ocupacao,
-            f"""
-            <a href="{url_for('exibir_usuario', id_usuario=usuario.id)}" class="btn btn-sm btn-primary"><i class="bi bi-eye-fill"></i></a>
-            <a href="{url_for('exibir_usuario', id_usuario=usuario.id)}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-fill"></i></a>
-            <a href="{url_for('excluir_usuario', usuario_id=usuario.id)}" class="btn btn-sm btn-danger"
-            onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
-            <i class="bi bi-trash-fill"></i></a>
-            """
-        ])
-
-    return {
-        "draw": draw,
-        "recordsTotal": total_records,
-        "recordsFiltered": filtered_records,
-        "data": data
-    }
-
-
 @app.route("/usuarios", methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def usuarios():
-    return render_template('usuarios.html')
+    # Busca todos os usuários com suas funções
+    # Usamos joinedload ou join para otimizar a query e não sobrecarregar o banco
+    usuarios_banco = User.query.join(FuncaoUser).add_columns(
+        User.id, 
+        User.nome, 
+        User.cpf, 
+        User.ativo,
+        FuncaoUser.ocupacao.label('funcao_ocupacao')
+    ).order_by(User.nome.asc()).all()
+
+    return render_template('usuarios.html', usuarios=usuarios_banco)
 
 
 @app.route('/usuario/<int:id_usuario>', methods=['GET', 'POST'])
@@ -4045,6 +4005,25 @@ def perfil(id_usuario):
                 f'Erro ao atualizar o usuário. Tente novamente. {e}', 'alert-danger')
 
     return render_template('perfil.html', usuario=usuario_info, form=form)
+
+
+@app.route('/usuario/toggle-status/<int:id_usuario>', methods=['POST'])
+@login_required
+@checar_ocupacao('SUPER USER')
+def toggle_status_usuario(id_usuario):
+    usuario = User.query.get_or_404(id_usuario)
+
+    # Impede que o Super User se bloqueie por acidente
+    if usuario.id == current_user.id:
+        flash("Você não pode desativar sua própria conta!", "alert-warning")
+        return redirect(request.referrer)
+
+    usuario.ativo = not usuario.ativo
+    database.session.commit()
+
+    status = "ativado" if usuario.ativo else "bloqueado"
+    flash(f"Usuário {usuario.nome} foi {status} com sucesso!", "alert-success")
+    return redirect(request.referrer)
 
 
 @app.route("/exportar-pafs/<string:tabela>")

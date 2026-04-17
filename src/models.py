@@ -331,7 +331,7 @@ class User(database.Model, UserMixin):
     data_ultimo_acesso = database.Column(
         database.DateTime, default=now_manaus_naive)
     endereco_acesso = database.Column(database.String(100))
-
+    ativo = database.Column(database.Boolean, default=True, nullable=False)
     obm1 = database.relationship('Obm', foreign_keys=[obm_id_1])
     obm2 = database.relationship('Obm', foreign_keys=[obm_id_2])
     funcao_user = database.relationship(

@@ -1,4 +1,4 @@
-from flask import Flask, abort, request
+from flask import Flask, abort, flash, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -86,6 +86,21 @@ def big_brother_log_acesso():
         # Se der erro no log, a gente só "printa" no console, 
         # mas não quebra a navegação do usuário.
         print(f"[ERRO DE AUDITORIA - BIG BROTHER]: {str(e)}")
+
+
+@app.before_request
+def verificar_usuario_ativo():
+    # Não bloqueia rotas de login ou estáticos para não criar loop
+    if request.path.startswith('/static') or request.path == '/login' or request.path == '/logout':
+        return
+
+    if current_user.is_authenticated:
+        if not getattr(current_user, 'ativo', True):
+            from flask_login import logout_user
+            logout_user() # Expulsa a sessão atual
+            flash("Sua conta foi desativada por um administrador.", "alert-danger")
+            return redirect(url_for('login'))
+
 
 # Inicializa extensões
 database = SQLAlchemy(app)
