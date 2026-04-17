@@ -2515,10 +2515,22 @@ def exibir_militar(militar_id):
         militar.estado_civil = form_militar.estado_civil.data
         militar.especialidade_id = form_militar.especialidade_id.data
 
-        militar.situacao = form_militar.situacao.data
-        militar.modalidade_id = form_militar.modalidade_id.data
-        militar.motivo_id = form_militar.motivo_id.data
-        militar.destino_id = form_militar.destino_id.data
+        militar.situacao = form_militar.situacao.data or None
+        militar.modalidade_id = (
+            int(form_militar.modalidade_id.data)
+            if form_militar.modalidade_id.data not in ("", None)
+            else None
+        )
+        militar.motivo_id = (
+            int(form_militar.motivo_id.data)
+            if form_militar.motivo_id.data not in ("", None)
+            else None
+        )
+        militar.destino_id = (
+            int(form_militar.destino_id.data)
+            if form_militar.destino_id.data not in ("", None)
+            else None
+        )
         militar.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
         militar.fim_periodo = parse_date_flex(form_militar.fim_periodo.data)

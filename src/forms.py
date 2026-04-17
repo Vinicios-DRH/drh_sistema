@@ -98,7 +98,12 @@ class FormMilitar(FlaskForm):
         coerce=coerce_int_or_none,
         validators=[Optional()]
     )
-    destino_id = SelectField("Destino", choices=[])
+    destino_id = SelectField(
+        "Destino",
+        choices=[],
+        coerce=coerce_int_or_none,
+        validators=[Optional()]
+    )
     inicio_periodo = DateField(
         "INÍCIO", format='%Y-%m-%d', validators=[Optional()])
     fim_periodo = DateField("TÉRMINO", format='%Y-%m-%d',
