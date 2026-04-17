@@ -3439,11 +3439,11 @@ def tabela_militares():
                 '%d/%m/%Y') if militar.inclusao else 'N/A'
 
             if militar.id in adisposicao_ids:
-                situacao_exibe = 'À DISPOSIÇÃO'
+                modalidade_exibe = 'À DISPOSIÇÃO'
             elif militar.id in agregados_ids:
-                situacao_exibe = 'AGREGADO'
+                modalidade_exibe = 'AGREGADO'
             else:
-                situacao_exibe = militar.modalidade.descricao if militar.modalidade else 'N/A'
+                modalidade_exibe = militar.modalidade.descricao if militar.modalidade else 'N/A'
 
             sexo_raw = (militar.sexo or '').strip().lower()
             sexo_exibe = (
@@ -3465,7 +3465,7 @@ def tabela_militares():
                 'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
-                'modalidade': situacao_exibe,
+                'modalidade': modalidade_exibe,
                 'destino': destino_txt,
                 'inclusao': inclusao_fmt,
                 'obms': obms,
@@ -3548,11 +3548,11 @@ def export_excel():
                 '%d/%m/%Y') if militar.inclusao else 'N/A'
 
             if militar.id in adisposicao_ids:
-                situacao_exibe = 'À DISPOSIÇÃO'
+                modalidade_exibe = 'À DISPOSIÇÃO'
             elif militar.id in agregados_ids:
-                situacao_exibe = 'AGREGADO'
+                modalidade_exibe = 'AGREGADO'
             else:
-                situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
+                modalidade_exibe = militar.modalidade.descricao if militar.modalidade else 'N/A'
 
             sexo_raw = (militar.sexo or '').strip().lower()
             sexo_exibe = (
@@ -3575,7 +3575,7 @@ def export_excel():
                 'Inclusão': inclusao_fmt,
                 'Especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'Localidade': militar.localidade.sigla if militar.localidade else 'N/A',
-                'Situação': situacao_exibe,
+                'Modalidade': modalidade_exibe,
                 'Destino': destino_txt,
                 'OBM 1': obms[0] if len(obms) > 0 else 'N/A',
                 'Função 1': funcoes[0] if len(funcoes) > 0 else 'N/A',
@@ -3624,7 +3624,7 @@ def export_excel():
                 'Nome Completo': 38, 'Nome de Guerra': 24, 'Posto/Graduação': 18,
                 'Quadro': 18, 'Sexo': 14, 'Raça/Cor': 16, 'CPF': 16, 'RG': 16,
                 'Matrícula': 16, 'Inclusão': 14, 'Especialidade': 24, 'Localidade': 14,
-                'Situação': 16, 'Destino': 24, 'OBM 1': 16, 'Função 1': 24,
+                'Modalidade': 20, 'Destino': 24, 'OBM 1': 16, 'Função 1': 24,
                 'OBM 2': 16, 'Função 2': 24, 'Data de Nascimento': 16, 'Graduação': 18,
                 'Grau de Instrução': 22, 'Pós-Graduação': 20, 'Mestrado': 18, 'Doutorado': 18
             }
