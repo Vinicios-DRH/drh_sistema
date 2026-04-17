@@ -1680,10 +1680,10 @@ def somente_numeros(valor):
 
 @app.route("/criar-conta", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('SUPER USER')
 def criar_conta():
-    if current_user.funcao_user.ocupacao != 'SUPER USER':
+    if current_user.id != 1:
         abort(403)
+
     form_criar_usuario = FormCriarUsuario()
 
     choices = [(funcao_user.id, funcao_user.ocupacao)
@@ -3884,14 +3884,14 @@ def exportar_excel(tabela):
 
 @app.route("/usuarios", methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'SUPER USER')
 def usuarios():
-    # Busca todos os usuários com suas funções
-    # Usamos joinedload ou join para otimizar a query e não sobrecarregar o banco
+    if current_user.id != 1:
+        abort(403)
+
     usuarios_banco = User.query.join(FuncaoUser).add_columns(
-        User.id, 
-        User.nome, 
-        User.cpf, 
+        User.id,
+        User.nome,
+        User.cpf,
         User.ativo,
         FuncaoUser.ocupacao.label('funcao_ocupacao')
     ).order_by(User.nome.asc()).all()
@@ -3903,6 +3903,9 @@ def usuarios():
 @login_required
 @checar_ocupacao('DIRETOR', 'SUPER USER')
 def exibir_usuario(id_usuario):
+    # Trava absoluta: Só o ID 1 entra
+    if current_user.id != 1:
+        abort(403)
     # Carregar o usuário diretamente
     usuario = User.query.get_or_404(id_usuario)
 
@@ -4009,8 +4012,9 @@ def perfil(id_usuario):
 
 @app.route('/usuario/toggle-status/<int:id_usuario>', methods=['POST'])
 @login_required
-@checar_ocupacao('SUPER USER')
 def toggle_status_usuario(id_usuario):
+    if current_user.id != 1:
+        abort(403)
     usuario = User.query.get_or_404(id_usuario)
 
     # Impede que o Super User se bloqueie por acidente
