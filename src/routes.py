@@ -3443,7 +3443,7 @@ def tabela_militares():
             elif militar.id in agregados_ids:
                 situacao_exibe = 'AGREGADO'
             else:
-                situacao_exibe = militar.situacao.condicao if militar.situacao else 'N/A'
+                situacao_exibe = militar.modalidade.descricao if militar.modalidade else 'N/A'
 
             sexo_raw = (militar.sexo or '').strip().lower()
             sexo_exibe = (
@@ -3465,7 +3465,7 @@ def tabela_militares():
                 'quadro': militar.quadro.quadro if militar.quadro else 'N/A',
                 'especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'localidade': militar.localidade.sigla if militar.localidade else 'N/A',
-                'situacao': situacao_exibe,
+                'modalidade': situacao_exibe,
                 'destino': destino_txt,
                 'inclusao': inclusao_fmt,
                 'obms': obms,

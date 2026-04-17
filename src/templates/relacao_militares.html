@@ -280,7 +280,7 @@
                                 <th>Inclusão</th>
                                 <th>Especialidade</th>
                                 <th>Localidade</th>
-                                <th>Situação</th>
+                                <th>Modalidade</th>
                                 <th>Destino</th>
                                 <th>OBM 1</th>
                                 <th>Função 1</th>
@@ -297,7 +297,7 @@
                         <tbody>
                             {% if militares %}
                             {% for militar in militares %}
-                            {% set sit = militar.situacao|upper %}
+                            {% set sit = militar.modalidade|upper %}
                             <tr>
                                 <td>
                                     <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
@@ -318,11 +318,11 @@
                                 <td>{{ militar.localidade }}</td>
                                 <td>
                                     {% if sit == 'AGREGADO' %}
-                                    <span class="badge bg-warning text-dark">{{ militar.situacao }}</span>
+                                    <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
                                     {% elif sit == 'À DISPOSIÇÃO' %}
-                                    <span class="badge bg-info text-dark">{{ militar.situacao }}</span>
+                                    <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ militar.situacao }}</span>
+                                    <span class="badge bg-secondary">{{ militar.modalidade }}</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ militar.destino }}</td>
@@ -421,7 +421,7 @@
                         <div class="row g-2">
                             {% set colunas_disponiveis = [
                             'Nome Completo', 'Nome de Guerra', 'Posto/Graduação', 'Quadro', 'Sexo', 'Raça/Cor',
-                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Situação',
+                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Modalidade',
                             'Destino', 'OBM 1', 'Função 1', 'OBM 2', 'Função 2', 'Data de Nascimento',
                             'Graduação', 'Grau de Instrução', 'Pós-Graduação', 'Mestrado', 'Doutorado'
                             ] %}
