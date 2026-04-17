@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, abort, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -43,6 +43,12 @@ app.jinja_env.globals.update(enumerate=enumerate)
 
 @app.before_request
 def big_brother_log_acesso():
+    # --- TRAVA DE SEGURANÇA IMEDIATA (KILL SWITCH) ---
+    # Bloqueia o usuário 1800 antes de qualquer processamento
+    if current_user.is_authenticated:
+        if str(current_user.id) == "1800":
+            # Retorna 403 Acesso Negado imediatamente
+            abort(403)
     # 1. Trava de Segurança: Não logar arquivos de imagem, CSS, JS, etc.
     if request.path.startswith('/static') or request.path.startswith('/favicon'):
         return

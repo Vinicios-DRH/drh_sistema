@@ -1680,7 +1680,7 @@ def somente_numeros(valor):
 
 @app.route("/criar-conta", methods=['GET', 'POST'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('SUPER USER')
 def criar_conta():
     form_criar_usuario = FormCriarUsuario()
 
