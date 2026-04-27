@@ -2795,7 +2795,7 @@ def exibir_militar(militar_id):
         try:
             database.session.commit()
             flash("Militar atualizado com sucesso!", "success")
-            return redirect(url_for("exibir_militar", militar_id=militar.id))
+            return redirect(url_for("militares"))
         except Exception as e:
             database.session.rollback()
             current_app.logger.exception("Erro ao atualizar militar")
