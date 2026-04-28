@@ -95,6 +95,7 @@ def encerrar_le_vigente(militar_id):
 
     registros = LicencaEspecial.query.filter(
         LicencaEspecial.militar_id == militar_id,
+        LicencaEspecial.inicio_periodo_le <= hoje,
         or_(
             LicencaEspecial.fim_periodo_le.is_(None),
             LicencaEspecial.fim_periodo_le >= hoje
@@ -102,9 +103,8 @@ def encerrar_le_vigente(militar_id):
     ).all()
 
     for reg in registros:
-        if not reg.fim_periodo_le or reg.fim_periodo_le >= hoje:
-            reg.fim_periodo_le = ontem
-            reg.atualizar_status()
+        reg.fim_periodo_le = ontem
+        reg.atualizar_status()
 
 
 def encerrar_lts_vigente(militar_id):
@@ -191,8 +191,15 @@ def sincronizar_blocos_funcionais(militar, form_militar):
 
     # LE
     if modalidade_nome == "LICENÇA ESPECIAL":
-        militar_le = LicencaEspecial.query.filter_by(
-            militar_id=militar.id).first()
+        inicio_le = parse_date_flex(form_militar.inicio_periodo.data)
+        fim_le = parse_date_flex(form_militar.fim_periodo.data)
+
+        militar_le = LicencaEspecial.query.filter(
+            LicencaEspecial.militar_id == militar.id,
+            LicencaEspecial.inicio_periodo_le == inicio_le,
+            LicencaEspecial.fim_periodo_le == fim_le,
+        ).first()
+
         if not militar_le:
             militar_le = LicencaEspecial(militar_id=militar.id)
             database.session.add(militar_le)
@@ -200,11 +207,9 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_le.posto_grad_id = form_militar.posto_grad_id.data
         militar_le.quadro_id = form_militar.quadro_id.data
         militar_le.destino_id = form_militar.destino_id.data
-        militar_le.situacao_id = modalidade_obj.id if modalidade_obj else None
-        militar_le.inicio_periodo_le = parse_date_flex(
-            form_militar.inicio_periodo.data)
-        militar_le.fim_periodo_le = parse_date_flex(
-            form_militar.fim_periodo.data)
+        militar_le.modalidade_id = modalidade_obj.id if modalidade_obj else None
+        militar_le.inicio_periodo_le = inicio_le
+        militar_le.fim_periodo_le = fim_le
         militar_le.publicacao_bg_id = bg_id
         militar_le.atualizar_status()
     else:

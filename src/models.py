@@ -4,7 +4,7 @@ from sqlalchemy.orm import backref, foreign
 
 from src import database, login_manager
 from flask_login import UserMixin
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from sqlalchemy.event import listens_for
 from sqlalchemy import func, CheckConstraint, text, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -241,12 +241,31 @@ class LicencaEspecial(database.Model):
     publicacao_bg = database.relationship('PublicacaoBg')
 
     def atualizar_status(self):
-        today = datetime.today().date()
-        if self.inicio_periodo_le and self.fim_periodo_le:
-            if self.inicio_periodo_le <= today <= self.fim_periodo_le:
-                self.status = 'Vigente'
-            else:
-                self.status = 'Término da Licença Especial'
+        today = date.today()
+
+        if not self.inicio_periodo_le:
+            self.status = "A iniciar"
+            return
+
+        if today < self.inicio_periodo_le:
+            self.status = "A iniciar"
+            return
+
+        if self.fim_periodo_le and today > self.fim_periodo_le:
+            self.status = "Término da Licença Especial"
+            return
+
+        self.status = "Vigente"
+
+
+@listens_for(LicencaEspecial, "before_insert")
+def licenca_especial_before_insert(mapper, connection, target):
+    target.atualizar_status()
+
+
+@listens_for(LicencaEspecial, "before_update")
+def licenca_especial_before_update(mapper, connection, target):
+    target.atualizar_status()
 
 
 class LicencaParaTratamentoDeSaude(database.Model):
