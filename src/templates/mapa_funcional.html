@@ -4,56 +4,98 @@
 <style>
     .mf-page {
         min-height: 100vh;
-        padding: 1.5rem 0 2rem;
+        padding: 1.5rem 0 2.5rem;
         background:
-            radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 22%),
-            radial-gradient(circle at top right, rgba(13, 110, 253, .10), transparent 24%),
+            radial-gradient(circle at top left, rgba(181, 18, 27, .10), transparent 24%),
+            radial-gradient(circle at top right, rgba(13, 110, 253, .12), transparent 26%),
             linear-gradient(180deg, #eef4fb 0%, #e8f1fa 100%);
+    }
+
+    .mf-hero {
+        border-radius: 30px;
+        color: #fff;
+        background: linear-gradient(135deg, #082946, #114b7a 55%, #B5121B 125%);
+        box-shadow: 0 24px 60px rgba(15, 58, 111, .22);
     }
 
     .mf-card {
         border: 0;
-        border-radius: 22px;
-        box-shadow: 0 14px 32px rgba(16, 56, 112, .08);
-        background: rgba(255, 255, 255, .88);
-        backdrop-filter: blur(10px);
-    }
-
-    .mf-hero {
-        border-radius: 28px;
-        color: #fff;
-        background: linear-gradient(135deg, #0b2e4f, #114b7a 55%, #B5121B 120%);
-        box-shadow: 0 22px 56px rgba(15, 58, 111, .18);
+        border-radius: 24px;
+        box-shadow: 0 14px 34px rgba(16, 56, 112, .08);
+        background: rgba(255, 255, 255, .90);
+        backdrop-filter: blur(12px);
     }
 
     .mf-kpi {
-        border-radius: 20px;
-        padding: 1rem 1.1rem;
-        background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(245, 248, 252, .96));
-        border: 1px solid rgba(16, 56, 112, .06);
+        border-radius: 22px;
+        padding: 1rem 1.15rem;
         height: 100%;
+        background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(244, 248, 252, .96));
+        border: 1px solid rgba(16, 56, 112, .07);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mf-kpi::after {
+        content: "";
+        position: absolute;
+        right: -25px;
+        top: -25px;
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        background: rgba(13, 110, 253, .08);
     }
 
     .mf-kpi .label {
-        font-size: .78rem;
-        font-weight: 700;
+        font-size: .75rem;
+        font-weight: 800;
         color: #6b7b93;
         text-transform: uppercase;
-        letter-spacing: .04em;
+        letter-spacing: .05em;
     }
 
     .mf-kpi .value {
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 1.85rem;
+        font-weight: 900;
         color: #18334f;
         line-height: 1.1;
         margin-top: .35rem;
     }
 
+    .mf-kpi .hint {
+        font-size: .78rem;
+        color: #7b8796;
+        margin-top: .2rem;
+    }
+
     .mf-filter .form-control,
     .mf-filter .form-select {
-        min-height: 46px;
+        min-height: 45px;
         border-radius: 14px;
+    }
+
+    .mf-chip {
+        border: 0;
+        border-radius: 999px;
+        padding: .5rem .8rem;
+        font-size: .78rem;
+        font-weight: 800;
+        background: rgba(15, 68, 126, .08);
+        color: #0f447e;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+    }
+
+    .mf-chip:hover {
+        background: rgba(15, 68, 126, .14);
+        color: #0f447e;
+    }
+
+    .mf-table {
+        width: 100%;
     }
 
     .mf-table thead th {
@@ -61,23 +103,45 @@
         color: #fff;
         border: 0 !important;
         white-space: nowrap;
-        font-size: .82rem;
+        font-size: .76rem;
         text-transform: uppercase;
-        letter-spacing: .03em;
+        letter-spacing: .035em;
+        vertical-align: middle;
     }
 
     .mf-table tbody td {
-        vertical-align: middle;
+        vertical-align: top;
         white-space: nowrap;
+        font-size: .88rem;
+    }
+
+    .mf-person {
+        min-width: 260px;
+        white-space: normal;
+    }
+
+    .mf-person .name {
+        font-weight: 900;
+        color: #16324f;
+        line-height: 1.2;
+    }
+
+    .mf-person .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin-top: .35rem;
     }
 
     .badge-soft {
         display: inline-flex;
         align-items: center;
+        gap: .28rem;
         border-radius: 999px;
         padding: .35rem .65rem;
-        font-weight: 700;
-        font-size: .75rem;
+        font-weight: 800;
+        font-size: .72rem;
+        line-height: 1;
     }
 
     .b-blue {
@@ -96,8 +160,8 @@
     }
 
     .b-yellow {
-        background: rgba(255, 193, 7, .22);
-        color: #7a5a00;
+        background: rgba(255, 193, 7, .23);
+        color: #765700;
     }
 
     .b-gray {
@@ -110,436 +174,760 @@
         color: #212529;
     }
 
+    .b-purple {
+        background: rgba(111, 66, 193, .12);
+        color: #5a32a3;
+    }
+
+    .mf-record-card {
+        min-width: 250px;
+        border: 1px solid rgba(16, 56, 112, .08);
+        border-radius: 16px;
+        padding: .75rem;
+        background: rgba(248, 251, 255, .95);
+    }
+
+    .mf-record-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .45rem;
+    }
+
+    .mf-record-title strong {
+        color: #18334f;
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .mf-record-date {
+        font-size: .76rem;
+        color: #6c7584;
+        line-height: 1.35;
+    }
+
+    .mf-status-form {
+        display: flex;
+        gap: .35rem;
+        margin-top: .6rem;
+    }
+
+    .mf-status-form .form-select {
+        min-width: 155px;
+        border-radius: 12px;
+        font-size: .78rem;
+    }
+
+    .mf-status-form .btn {
+        border-radius: 12px;
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .mf-warning-row {
+        background: rgba(220, 53, 69, .035);
+    }
+
     .chart-shell {
-        height: 320px;
+        height: 290px;
     }
 
     .table-responsive {
         overflow-x: auto;
     }
+
+    .mf-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .mf-empty {
+        border: 1px dashed rgba(16, 56, 112, .25);
+        border-radius: 18px;
+        padding: 2rem;
+        text-align: center;
+        color: #6c7584;
+        background: rgba(255, 255, 255, .55);
+    }
+
+    .modal-content {
+        border: 0;
+        border-radius: 24px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #0b2e4f, #114b7a);
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .mf-hero {
+            border-radius: 22px;
+        }
+
+        .mf-table tbody td {
+            font-size: .82rem;
+        }
+    }
 </style>
 
-<div class="mf-page">
-    <div class="container-fluid">
+{% macro badge_status(status) %}
+{% set st = (status or '')|upper %}
+{% if st in ['VIGENTE', 'VIGENTE'] %}
+<span class="badge-soft b-green"><i class="bi bi-check-circle"></i> {{ status }}</span>
+{% elif st in ['VENCIDO', 'VENCEU', 'TÉRMINO DE AGREGAÇÃO', 'TÉRMINO DA LICENÇA ESPECIAL', 'TÉRMINO DA LICENÇA PARA
+TRATAMENTO DE SAÚDE'] %}
+<span class="badge-soft b-red"><i class="bi bi-exclamation-triangle"></i> {{ status }}</span>
+{% elif st in ['A INICIAR'] %}
+<span class="badge-soft b-yellow"><i class="bi bi-clock"></i> {{ status }}</span>
+{% elif st in ['RENOVADO'] %}
+<span class="badge-soft b-blue"><i class="bi bi-arrow-repeat"></i> {{ status }}</span>
+{% elif st in ['SUSPENSO', 'INATIVO', 'ENCERRADO MANUALMENTE'] %}
+<span class="badge-soft b-gray"><i class="bi bi-pause-circle"></i> {{ status }}</span>
+{% else %}
+<span class="badge-soft b-gray">{{ status or '—' }}</span>
+{% endif %}
+{% endmacro %}
 
-        <div class="mf-hero p-4 p-lg-5 mb-4">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                <div>
-                    <div class="small text-uppercase fw-bold mb-2" style="letter-spacing:.08em; opacity:.85;">
-                        Painel Integrado
-                    </div>
-                    <h1 class="h2 fw-bold mb-2">Mapa Funcional</h1>
-                    <p class="mb-0" style="max-width:900px; opacity:.92;">
-                        Visão consolidada de agregação, disposição, LE, LTS, férias e destino funcional,
-                        com foco especial em DEFESA CIVIL, interseções e vencimentos.
-                    </p>
-                </div>
-                <div class="text-end">
-                    <div class="small opacity-75">Registros no resultado</div>
-                    <div class="display-6 fw-bold">{{ resumo.total }}</div>
-                </div>
+{% macro periodo_info(info) %}
+<div class="mf-record-date">
+    <div><strong>Início:</strong> {{ info.inicio.strftime('%d/%m/%Y') if info.inicio else '—' }}</div>
+    <div><strong>Fim:</strong> {{ info.fim.strftime('%d/%m/%Y') if info.fim else 'Sem data fim' }}</div>
+    {% if info.dias_para_fim is not none %}
+    <div>
+        <strong>Dias:</strong>
+        {% if info.dias_para_fim < 0 %} vencido há {{ info.dias_para_fim|abs }} dia(s) {% elif info.dias_para_fim==0 %}
+            vence hoje {% else %} faltam {{ info.dias_para_fim }} dia(s) {% endif %} </div>
+            {% endif %}
+            {% if info.status_calculado and info.status_calculado != info.status %}
+            <div class="mt-1 text-muted">
+                <i class="bi bi-cpu"></i> Sistema: {{ info.status_calculado }}
             </div>
-        </div>
-
-        <div class="mf-card p-4 mb-4">
-            <form method="GET" class="mf-filter">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Busca</label>
-                        <input type="text" class="form-control" name="q" value="{{ filtros.q }}"
-                            placeholder="Nome, matrícula, posto, destino...">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Situação</label>
-                        <select name="situacao_principal" class="form-select">
-                            <option value="">Todas</option>
-                            <option value="PRONTO" {{ 'selected' if filtros.situacao_principal=='PRONTO' else '' }}>
-                                PRONTO</option>
-                            <option value="AGREGADO" {{ 'selected' if filtros.situacao_principal=='AGREGADO' else '' }}>
-                                AGREGADO</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Modalidade</label>
-                        <input type="text" class="form-control" name="modalidade" value="{{ filtros.modalidade }}"
-                            placeholder="À DISPOSIÇÃO, LTS...">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Destino</label>
-                        <input type="text" class="form-control" name="destino" value="{{ filtros.destino }}"
-                            placeholder="DEFESA CIVIL...">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Status macro</label>
-                        <select name="status_macro" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="PRONTO" {{ 'selected' if filtros.status_macro=='PRONTO' else '' }}>PRONTO
-                            </option>
-                            <option value="AGREGADO" {{ 'selected' if filtros.status_macro=='AGREGADO' else '' }}>
-                                AGREGADO</option>
-                            <option value="À DISPOSIÇÃO" {{ 'selected' if filtros.status_macro=='À DISPOSIÇÃO' else ''
-                                }}>À DISPOSIÇÃO</option>
-                            <option value="LE" {{ 'selected' if filtros.status_macro=='LE' else '' }}>LE</option>
-                            <option value="LTS" {{ 'selected' if filtros.status_macro=='LTS' else '' }}>LTS</option>
-                            <option value="INTERSEÇÃO" {{ 'selected' if filtros.status_macro=='INTERSEÇÃO' else '' }}>
-                                INTERSEÇÃO</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Data inicial</label>
-                        <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio or '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Data final</label>
-                        <input type="date" class="form-control" name="data_fim" value="{{ data_fim or '' }}">
-                    </div>
-
-                    <div class="col-md-8 d-flex flex-wrap align-items-end gap-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="apenas_intersecao" value="1"
-                                id="apenas_intersecao" {{ 'checked' if filtros.apenas_intersecao=='1' else '' }}>
-                            <label class="form-check-label" for="apenas_intersecao">Somente interseção</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="apenas_defesa_civil" value="1"
-                                id="apenas_defesa_civil" {{ 'checked' if filtros.apenas_defesa_civil=='1' else '' }}>
-                            <label class="form-check-label" for="apenas_defesa_civil">Somente DEFESA CIVIL</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="somente_ferias" value="1"
-                                id="somente_ferias" {{ 'checked' if filtros.somente_ferias=='1' else '' }}>
-                            <label class="form-check-label" for="somente_ferias">Somente em férias</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="somente_vencidos" value="1"
-                                id="somente_vencidos" {{ 'checked' if filtros.somente_vencidos=='1' else '' }}>
-                            <label class="form-check-label" for="somente_vencidos">Somente vencidos</label>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-funnel me-1"></i> Filtrar
-                        </button>
-                        <a href="{{ url_for('mapa_funcional') }}" class="btn btn-outline-secondary">
-                            Limpar
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">Total</div>
-                    <div class="value">{{ resumo.total }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">Agregados</div>
-                    <div class="value">{{ resumo.agregados }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">À disposição</div>
-                    <div class="value">{{ resumo.disposicao }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">Interseção</div>
-                    <div class="value">{{ resumo.intersecao }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">LE</div>
-                    <div class="value">{{ resumo.le }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="mf-kpi">
-                    <div class="label">LTS</div>
-                    <div class="value">{{ resumo.lts }}</div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">Em férias</div>
-                    <div class="value">{{ resumo.ferias }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">DEFESA CIVIL</div>
-                    <div class="value">{{ resumo.defesa_civil }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">Disp. vigentes</div>
-                    <div class="value">{{ resumo.disposicoes_vigentes }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">Disp. vencidas</div>
-                    <div class="value">{{ resumo.disposicoes_vencidas }}</div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">Agregações vigentes</div>
-                    <div class="value">{{ resumo.agregados_vigentes }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">Agregações vencidas</div>
-                    <div class="value">{{ resumo.agregados_vencidos }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">LE vigentes</div>
-                    <div class="value">{{ resumo.le_vigentes }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-3">
-                <div class="mf-kpi">
-                    <div class="label">LTS vigentes</div>
-                    <div class="value">{{ resumo.lts_vigentes }}</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mb-4">
-            <div class="col-xl-4">
-                <div class="mf-card p-3">
-                    <h5 class="mb-3">Status macro</h5>
-                    <div class="chart-shell">
-                        <canvas id="chartStatus"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="mf-card p-3">
-                    <h5 class="mb-3">Top destinos</h5>
-                    <div class="chart-shell">
-                        <canvas id="chartDestinos"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="mf-card p-3">
-                    <h5 class="mb-3">Top postos/grad</h5>
-                    <div class="chart-shell">
-                        <canvas id="chartPostos"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mf-card p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="mb-0">Mapa Funcional</h5>
-                <div class="small text-muted">
-                    Resultado filtrado: <strong>{{ linhas|length }}</strong> militares
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mf-table" id="tabela-mapa">
-                    <thead>
-                        <tr>
-                            <th>Militar</th>
-                            <th>Posto/Grad</th>
-                            <th>Quadro</th>
-                            <th>Destino</th>
-                            <th>Situação</th>
-                            <th>Modalidade</th>
-                            <th>Agregação</th>
-                            <th>Disposição</th>
-                            <th>LE</th>
-                            <th>LTS</th>
-                            <th>Férias</th>
-                            <th>Resumo</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in linhas %}
-                        <tr>
-                            <td>
-                                <div class="fw-bold">{{ item.nome }}</div>
-                                <div class="small text-muted">{{ item.matricula or '—' }}</div>
-                            </td>
-                            <td>{{ item.posto_grad or '—' }}</td>
-                            <td>{{ item.quadro or '—' }}</td>
-                            <td>
-                                {% if "DEFESA CIVIL" in (item.destino or "").upper() %}
-                                <span class="badge-soft b-blue">{{ item.destino }}</span>
-                                {% else %}
-                                {{ item.destino }}
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.situacao_principal == 'AGREGADO' %}
-                                <span class="badge-soft b-yellow">{{ item.situacao_principal }}</span>
-                                {% else %}
-                                <span class="badge-soft b-green">{{ item.situacao_principal }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ item.modalidade or '—' }}</td>
-
-                            <td>
-                                {% if item.agregado_info.existe %}
-                                {% if item.agregado_info.status == 'VIGENTE' %}
-                                <span class="badge-soft b-green">VIGENTE</span>
-                                {% elif item.agregado_info.status == 'VENCIDO' %}
-                                <span class="badge-soft b-red">VENCIDO</span>
-                                {% else %}
-                                <span class="badge-soft b-gray">{{ item.agregado_info.status }}</span>
-                                {% endif %}
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.disposicao_info.existe %}
-                                {% if item.disposicao_info.status == 'VIGENTE' %}
-                                <span class="badge-soft b-green">VIGENTE</span>
-                                {% elif item.disposicao_info.status == 'VENCIDO' %}
-                                <span class="badge-soft b-red">VENCIDO</span>
-                                {% else %}
-                                <span class="badge-soft b-gray">{{ item.disposicao_info.status }}</span>
-                                {% endif %}
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.le_info.existe %}
-                                {% if item.le_info.status == 'VIGENTE' %}
-                                <span class="badge-soft b-green">VIGENTE</span>
-                                {% elif item.le_info.status == 'VENCIDO' %}
-                                <span class="badge-soft b-red">VENCIDO</span>
-                                {% else %}
-                                <span class="badge-soft b-gray">{{ item.le_info.status }}</span>
-                                {% endif %}
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.lts_info.existe %}
-                                {% if item.lts_info.status == 'VIGENTE' %}
-                                <span class="badge-soft b-green">VIGENTE</span>
-                                {% elif item.lts_info.status == 'VENCIDO' %}
-                                <span class="badge-soft b-red">VENCIDO</span>
-                                {% else %}
-                                <span class="badge-soft b-gray">{{ item.lts_info.status }}</span>
-                                {% endif %}
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.em_ferias %}
-                                <span class="badge-soft b-dark">EM FÉRIAS</span>
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.na_intersecao %}
-                                <span class="badge-soft b-red">INTERSEÇÃO</span>
-                                {% else %}
-                                <span class="small">{{ item.status_resumido }}</span>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    Abrir ficha
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
+            {% endif %}
     </div>
-</div>
+    {% endmacro %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const statusLabels = {{ resumo.status_labels| tojson }};
-    const statusValues = {{ resumo.status_values| tojson }};
+    {% macro form_status(tipo, info) %}
+    <form method="POST" action="{{ url_for('alterar_status_mapa_funcional') }}" class="mf-status-form">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
+        <input type="hidden" name="registro_id" value="{{ info.id }}">
 
-    const destinosLabels = {{ resumo.destinos_labels| tojson }};
-    const destinosValues = {{ resumo.destinos_values| tojson }};
+        <select name="status" class="form-select form-select-sm">
+            {% if tipo == 'agregado' %}
+            {% set opcoes = ['Vigente', 'A iniciar', 'Término de Agregação', 'Encerrado manualmente', 'Renovado',
+            'Suspenso', 'Inativo'] %}
+            {% else %}
+            {% set opcoes = ['Vigente', 'A iniciar', 'Venceu', 'Encerrado manualmente', 'Renovado', 'Suspenso',
+            'Inativo'] %}
+            {% endif %}
 
-    const postosLabels = {{ resumo.postos_labels| tojson }};
-    const postosValues = {{ resumo.postos_values| tojson }};
+            {% for st in opcoes %}
+            <option value="{{ st }}" {{ 'selected' if (info.status or '' )|lower==st|lower else '' }}>
+                {{ st }}
+            </option>
+            {% endfor %}
+        </select>
 
-    new Chart(document.getElementById("chartStatus"), {
-        type: "doughnut",
-        data: {
-            labels: statusLabels,
-            datasets: [{
-                data: statusValues
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
+        <button class="btn btn-sm btn-primary" title="Salvar status">
+            <i class="bi bi-check-lg"></i>
+        </button>
+    </form>
+    {% endmacro %}
 
-    new Chart(document.getElementById("chartDestinos"), {
-        type: "bar",
-        data: {
-            labels: destinosLabels,
-            datasets: [{
-                label: "Militares",
-                data: destinosValues
-            }]
-        },
-        options: {
+    {% macro registro_card(titulo, tipo, info, permite_editar=False) %}
+    <div class="mf-record-card">
+        <div class="mf-record-title">
+            <strong>{{ titulo }}</strong>
+            {% if info.existe %}
+            {{ badge_status(info.status) }}
+            {% else %}
+            <span class="badge-soft b-gray">NÃO</span>
+            {% endif %}
+        </div>
+
+        {% if info.existe %}
+        {{ periodo_info(info) }}
+        {% if permite_editar %}
+        {{ form_status(tipo, info) }}
+        {% endif %}
+        {% else %}
+        <div class="text-muted small">Sem registro nesta tabela.</div>
+        {% endif %}
+    </div>
+    {% endmacro %}
+
+    <div class="mf-page">
+        <div class="container-fluid">
+
+            <div class="mf-hero p-4 p-lg-5 mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="small text-uppercase fw-bold mb-2" style="letter-spacing:.08em; opacity:.85;">
+                            Gerenciador funcional
+                        </div>
+                        <h1 class="h2 fw-bold mb-2">Mapa Funcional</h1>
+                        <p class="mb-0" style="max-width:950px; opacity:.92;">
+                            Controle operacional de agregações e militares à disposição, com cruzamento automático de
+                            Licença Especial, LTS, férias do PAF, destino funcional, vencimentos e interseções.
+                        </p>
+
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <a class="mf-chip" href="{{ url_for('mapa_funcional', somente_vencidos='1') }}">
+                                <i class="bi bi-exclamation-triangle"></i> Vencidos
+                            </a>
+                            <a class="mf-chip" href="{{ url_for('mapa_funcional', apenas_intersecao='1') }}">
+                                <i class="bi bi-intersect"></i> Interseções
+                            </a>
+                            <a class="mf-chip" href="{{ url_for('mapa_funcional', somente_ferias='1') }}">
+                                <i class="bi bi-calendar2-week"></i> Em férias
+                            </a>
+                            <a class="mf-chip" href="{{ url_for('mapa_funcional', apenas_defesa_civil='1') }}">
+                                <i class="bi bi-shield-check"></i> Defesa Civil
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <div class="small opacity-75">Registros no resultado</div>
+                        <div class="display-5 fw-bold">{{ resumo.total }}</div>
+                        <div class="small opacity-75">militares listados</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">Total</div>
+                        <div class="value">{{ resumo.total }}</div>
+                        <div class="hint">resultado filtrado</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">Agregados</div>
+                        <div class="value">{{ resumo.agregados }}</div>
+                        <div class="hint">{{ resumo.agregados_vencidos }} vencido(s)</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">À disposição</div>
+                        <div class="value">{{ resumo.disposicao }}</div>
+                        <div class="hint">{{ resumo.disposicoes_vencidas }} vencida(s)</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">Interseção</div>
+                        <div class="value">{{ resumo.intersecao }}</div>
+                        <div class="hint">mais de uma condição</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">LE</div>
+                        <div class="value">{{ resumo.le }}</div>
+                        <div class="hint">{{ resumo.le_vigentes }} vigente(s)</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-2">
+                    <div class="mf-kpi">
+                        <div class="label">LTS</div>
+                        <div class="value">{{ resumo.lts }}</div>
+                        <div class="hint">{{ resumo.lts_vigentes }} vigente(s)</div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-xl-3">
+                    <div class="mf-kpi">
+                        <div class="label">Em férias</div>
+                        <div class="value">{{ resumo.ferias }}</div>
+                        <div class="hint">conforme período pesquisado</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="mf-kpi">
+                        <div class="label">Defesa Civil</div>
+                        <div class="value">{{ resumo.defesa_civil }}</div>
+                        <div class="hint">destino identificado</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="mf-kpi">
+                        <div class="label">Disp. vigentes</div>
+                        <div class="value">{{ resumo.disposicoes_vigentes }}</div>
+                        <div class="hint">status atual</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="mf-kpi">
+                        <div class="label">Agreg. vigentes</div>
+                        <div class="value">{{ resumo.agregados_vigentes }}</div>
+                        <div class="hint">status atual</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mf-card p-4 mb-4">
+                <div class="mf-toolbar mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1">Filtros de gestão</h5>
+                        <div class="text-muted small">
+                            Use para localizar militar, destino, vencimentos, férias, LE, LTS e interseções.
+                        </div>
+                    </div>
+                    <a href="{{ url_for('mapa_funcional') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar filtros
+                    </a>
+                </div>
+
+                <form method="GET" class="mf-filter">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Busca geral</label>
+                            <input type="text" class="form-control" name="q" value="{{ filtros.q }}"
+                                placeholder="Nome, matrícula, posto, quadro, destino...">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Situação</label>
+                            <select name="situacao_principal" class="form-select">
+                                <option value="">Todas</option>
+                                <option value="PRONTO" {{ 'selected' if filtros.situacao_principal=='PRONTO' else '' }}>
+                                    PRONTO</option>
+                                <option value="AGREGADO" {{ 'selected' if filtros.situacao_principal=='AGREGADO' else ''
+                                    }}>AGREGADO</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Status macro</label>
+                            <select name="status_macro" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="PRONTO" {{ 'selected' if filtros.status_macro=='PRONTO' else '' }}>PRONTO
+                                </option>
+                                <option value="AGREGADO" {{ 'selected' if filtros.status_macro=='AGREGADO' else '' }}>
+                                    AGREGADO</option>
+                                <option value="À DISPOSIÇÃO" {{ 'selected' if filtros.status_macro=='À DISPOSIÇÃO'
+                                    else '' }}>À DISPOSIÇÃO</option>
+                                <option value="LE" {{ 'selected' if filtros.status_macro=='LE' else '' }}>LE</option>
+                                <option value="LTS" {{ 'selected' if filtros.status_macro=='LTS' else '' }}>LTS</option>
+                                <option value="INTERSEÇÃO" {{ 'selected' if filtros.status_macro=='INTERSEÇÃO' else ''
+                                    }}>INTERSEÇÃO</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Modalidade</label>
+                            <input type="text" class="form-control" name="modalidade" value="{{ filtros.modalidade }}"
+                                placeholder="À DISPOSIÇÃO, LTS...">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Destino</label>
+                            <input type="text" class="form-control" name="destino" value="{{ filtros.destino }}"
+                                placeholder="DEFESA CIVIL...">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Data inicial</label>
+                            <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio or '' }}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Data final</label>
+                            <input type="date" class="form-control" name="data_fim" value="{{ data_fim or '' }}">
+                        </div>
+
+                        <div class="col-md-8 d-flex flex-wrap align-items-end gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="apenas_intersecao" value="1"
+                                    id="apenas_intersecao" {{ 'checked' if filtros.apenas_intersecao=='1' else '' }}>
+                                <label class="form-check-label" for="apenas_intersecao">Somente interseção</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="apenas_defesa_civil" value="1"
+                                    id="apenas_defesa_civil" {{ 'checked' if filtros.apenas_defesa_civil=='1' else ''
+                                    }}>
+                                <label class="form-check-label" for="apenas_defesa_civil">Somente Defesa Civil</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="somente_ferias" value="1"
+                                    id="somente_ferias" {{ 'checked' if filtros.somente_ferias=='1' else '' }}>
+                                <label class="form-check-label" for="somente_ferias">Somente em férias</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="somente_vencidos" value="1"
+                                    id="somente_vencidos" {{ 'checked' if filtros.somente_vencidos=='1' else '' }}>
+                                <label class="form-check-label" for="somente_vencidos">Somente vencidos</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel me-1"></i> Aplicar filtros
+                            </button>
+                            <a href="{{ url_for('mapa_funcional') }}" class="btn btn-outline-secondary">
+                                Limpar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-xl-4">
+                    <div class="mf-card p-3">
+                        <h5 class="fw-bold mb-3">Status macro</h5>
+                        <div class="chart-shell">
+                            <canvas id="chartStatus"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="mf-card p-3">
+                        <h5 class="fw-bold mb-3">Top destinos</h5>
+                        <div class="chart-shell">
+                            <canvas id="chartDestinos"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="mf-card p-3">
+                        <h5 class="fw-bold mb-3">Top postos/graduações</h5>
+                        <div class="chart-shell">
+                            <canvas id="chartPostos"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mf-card p-3 p-lg-4">
+                <div class="mf-toolbar mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1">Gerenciador de registros</h5>
+                        <div class="small text-muted">
+                            Resultado filtrado: <strong>{{ linhas|length }}</strong> militar(es).
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                {% if linhas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mf-table" id="tabela-mapa">
+                        <thead>
+                            <tr>
+                                <th>Militar</th>
+                                <th>Destino / condição</th>
+                                <th>Agregação</th>
+                                <th>À disposição</th>
+                                <th>LE</th>
+                                <th>LTS</th>
+                                <th>Férias</th>
+                                <th>Resumo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in linhas %}
+                            {% set tem_vencido = (
+                            item.agregado_info.status in ['VENCIDO', 'Venceu', 'Término de Agregação'] or
+                            item.disposicao_info.status in ['VENCIDO', 'Venceu'] or
+                            item.le_info.status in ['VENCIDO', 'Término da Licença Especial'] or
+                            item.lts_info.status in ['VENCIDO', 'Término da Licença para Tratamento de Saúde']
+                            ) %}
+
+                            <tr class="{{ 'mf-warning-row' if tem_vencido or item.na_intersecao else '' }}">
+                                <td>
+                                    <div class="mf-person">
+                                        <div class="name">{{ item.nome }}</div>
+                                        <div class="meta">
+                                            <span class="badge-soft b-gray">{{ item.matricula or 'Sem matrícula'
+                                                }}</span>
+                                            <span class="badge-soft b-blue">{{ item.posto_grad or 'P/G N/I' }}</span>
+                                            <span class="badge-soft b-gray">{{ item.quadro or 'Quadro N/I' }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="mb-2">
+                                        {% if "DEFESA CIVIL" in (item.destino or "").upper() %}
+                                        <span class="badge-soft b-blue">
+                                            <i class="bi bi-shield-check"></i> {{ item.destino }}
+                                        </span>
+                                        {% else %}
+                                        <span class="fw-semibold">{{ item.destino or 'NÃO INFORMADO' }}</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="d-flex flex-column gap-1">
+                                        {% if item.situacao_principal == 'AGREGADO' %}
+                                        <span class="badge-soft b-yellow">{{ item.situacao_principal }}</span>
+                                        {% else %}
+                                        <span class="badge-soft b-green">{{ item.situacao_principal }}</span>
+                                        {% endif %}
+
+                                        {% if item.modalidade %}
+                                        <span class="small text-muted">
+                                            <i class="bi bi-diagram-3"></i> {{ item.modalidade }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {{ registro_card('Agregação', 'agregado', item.agregado_info, True) }}
+                                </td>
+
+                                <td>
+                                    {{ registro_card('Disposição', 'disposicao', item.disposicao_info, True) }}
+                                </td>
+
+                                <td>
+                                    {{ registro_card('Licença Especial', 'le', item.le_info, False) }}
+                                </td>
+
+                                <td>
+                                    {{ registro_card('LTS', 'lts', item.lts_info, False) }}
+                                </td>
+
+                                <td>
+                                    {% if item.em_ferias %}
+                                    <span class="badge-soft b-dark">
+                                        <i class="bi bi-calendar2-week"></i> EM FÉRIAS
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-column gap-2">
+                                        {% if item.na_intersecao %}
+                                        <span class="badge-soft b-red">
+                                            <i class="bi bi-exclamation-octagon"></i> INTERSEÇÃO
+                                        </span>
+                                        {% endif %}
+
+                                        {% if tem_vencido %}
+                                        <span class="badge-soft b-red">
+                                            <i class="bi bi-exclamation-triangle"></i> EXISTE VENCIDO
+                                        </span>
+                                        {% endif %}
+
+                                        {% if item.em_ferias %}
+                                        <span class="badge-soft b-dark">
+                                            <i class="bi bi-calendar-check"></i> FÉRIAS
+                                        </span>
+                                        {% endif %}
+
+                                        <span class="small text-muted" style="white-space:normal; max-width:260px;">
+                                            {{ item.status_resumido }}
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-column gap-2">
+                                        <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-person-lines-fill me-1"></i> Abrir ficha
+                                        </a>
+
+                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                            data-bs-target="#modalDetalhes{{ item.militar_id }}">
+                                            <i class="bi bi-sliders me-1"></i> Gerenciar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="modalDetalhes{{ item.militar_id }}" tabindex="-1"
+                                aria-labelledby="modalDetalhesLabel{{ item.militar_id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <div>
+                                                <h5 class="modal-title fw-bold"
+                                                    id="modalDetalhesLabel{{ item.militar_id }}">
+                                                    {{ item.nome }}
+                                                </h5>
+                                                <div class="small opacity-75">
+                                                    {{ item.posto_grad or '—' }} · {{ item.quadro or '—' }} · Matrícula
+                                                    {{ item.matricula or '—' }}
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn-close btn-close-white"
+                                                data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <div class="row g-3 mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="mf-kpi">
+                                                        <div class="label">Destino</div>
+                                                        <div class="value fs-5">{{ item.destino or 'N/I' }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="mf-kpi">
+                                                        <div class="label">Situação</div>
+                                                        <div class="value fs-5">{{ item.situacao_principal or 'PRONTO'
+                                                            }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="mf-kpi">
+                                                        <div class="label">Modalidade</div>
+                                                        <div class="value fs-5">{{ item.modalidade or 'N/I' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-lg-6">
+                                                    {{ registro_card('Gerenciar agregação', 'agregado',
+                                                    item.agregado_info, True) }}
+                                                </div>
+
+                                                <div class="col-lg-6">
+                                                    {{ registro_card('Gerenciar disposição', 'disposicao',
+                                                    item.disposicao_info, True) }}
+                                                </div>
+
+                                                <div class="col-lg-6">
+                                                    {{ registro_card('Licença Especial', 'le', item.le_info, False) }}
+                                                </div>
+
+                                                <div class="col-lg-6">
+                                                    {{ registro_card('LTS', 'lts', item.lts_info, False) }}
+                                                </div>
+
+                                                <div class="col-lg-12">
+                                                    <div class="mf-record-card">
+                                                        <div class="mf-record-title">
+                                                            <strong>Férias / PAF</strong>
+                                                            {% if item.em_ferias %}
+                                                            <span class="badge-soft b-dark">EM FÉRIAS</span>
+                                                            {% else %}
+                                                            <span class="badge-soft b-gray">NÃO</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="small text-muted">
+                                                            A verificação usa o período informado nos filtros. Se não
+                                                            houver período,
+                                                            use a data atual como referência no service.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                                                class="btn btn-outline-primary">
+                                                Abrir ficha completa
+                                            </a>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Fechar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="mf-empty">
+                    <h5 class="fw-bold mb-2">Nenhum registro encontrado</h5>
+                    <p class="mb-0">Tente remover filtros ou ajustar o período pesquisado.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const statusLabels = {{ resumo.status_labels| tojson }};
+        const statusValues = {{ resumo.status_values| tojson }};
+
+        const destinosLabels = {{ resumo.destinos_labels| tojson }};
+        const destinosValues = {{ resumo.destinos_values| tojson }};
+
+        const postosLabels = {{ resumo.postos_labels| tojson }};
+        const postosValues = {{ resumo.postos_values| tojson }};
+
+        const chartDefaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
-            indexAxis: "y"
-        }
-    });
+            plugins: {
+                legend: {
+                    position: "bottom"
+                }
+            }
+        };
 
-    new Chart(document.getElementById("chartPostos"), {
-        type: "bar",
-        data: {
-            labels: postosLabels,
-            datasets: [{
-                label: "Militares",
-                data: postosValues
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-</script>
-{% endblock %}
+        new Chart(document.getElementById("chartStatus"), {
+            type: "doughnut",
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues
+                }]
+            },
+            options: chartDefaultOptions
+        });
+
+        new Chart(document.getElementById("chartDestinos"), {
+            type: "bar",
+            data: {
+                labels: destinosLabels,
+                datasets: [{
+                    label: "Militares",
+                    data: destinosValues
+                }]
+            },
+            options: {
+                ...chartDefaultOptions,
+                indexAxis: "y"
+            }
+        });
+
+        new Chart(document.getElementById("chartPostos"), {
+            type: "bar",
+            data: {
+                labels: postosLabels,
+                datasets: [{
+                    label: "Militares",
+                    data: postosValues
+                }]
+            },
+            options: chartDefaultOptions
+        });
+    </script>
+    {% endblock %}

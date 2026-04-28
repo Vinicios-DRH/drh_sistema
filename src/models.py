@@ -165,12 +165,21 @@ class MilitaresADisposicao(database.Model):
         'PublicacaoBg', overlaps="militar,bg_publicacao")
 
     def atualizar_status(self):
-        today = datetime.today().date()
-        if self.inicio_periodo and self.fim_periodo_disposicao:
-            if self.inicio_periodo <= today <= self.fim_periodo_disposicao:
+        hoje = datetime.today().date()
+
+        if not self.inicio_periodo:
+            self.status = 'Inativo'
+            return
+
+        if self.fim_periodo_disposicao:
+            if self.inicio_periodo <= hoje <= self.fim_periodo_disposicao:
                 self.status = 'Vigente'
+            elif self.fim_periodo_disposicao < hoje:
+                self.status = 'Venceu'
             else:
-                self.status = 'Término da Diposição'
+                self.status = 'A iniciar'
+        else:
+            self.status = 'Vigente'
 
 
 class MilitaresAgregados(database.Model):
@@ -203,12 +212,21 @@ class MilitaresAgregados(database.Model):
     publicacao_bg = database.relationship('PublicacaoBg')
 
     def atualizar_status(self):
-        today = datetime.today().date()
-        if self.inicio_periodo and self.fim_periodo_agregacao:
-            if self.inicio_periodo <= today <= self.fim_periodo_agregacao:
+        hoje = datetime.today().date()
+
+        if not self.inicio_periodo:
+            self.status = 'Inativo'
+            return
+
+        if self.fim_periodo_agregacao:
+            if self.inicio_periodo <= hoje <= self.fim_periodo_agregacao:
                 self.status = 'Vigente'
-            else:
+            elif self.fim_periodo_agregacao < hoje:
                 self.status = 'Término de Agregação'
+            else:
+                self.status = 'A iniciar'
+        else:
+            self.status = 'Vigente'
 
 
 class LicencaEspecial(database.Model):

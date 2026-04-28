@@ -7,7 +7,7 @@ from src.models import (
     MilitaresADisposicao,
     LicencaEspecial,
     LicencaParaTratamentoDeSaude,
-    Paf,
+    Paf
 )
 
 
@@ -136,20 +136,27 @@ def _registro_info(registro, campo_inicio, campo_fim, hoje):
     if not registro:
         return {
             "existe": False,
+            "id": None,
             "inicio": None,
             "fim": None,
             "status": "NÃO",
+            "status_calculado": "NÃO",
             "dias_para_fim": None,
         }
 
     inicio = _to_date(getattr(registro, campo_inicio, None))
     fim = _to_date(getattr(registro, campo_fim, None))
 
+    status_calculado = _status_periodo(inicio, fim, hoje)
+    status_salvo = getattr(registro, "status", None)
+
     return {
         "existe": True,
+        "id": registro.id,
         "inicio": inicio,
         "fim": fim,
-        "status": _status_periodo(inicio, fim, hoje),
+        "status": status_salvo or status_calculado,
+        "status_calculado": status_calculado,
         "dias_para_fim": _dias_para_fim(fim, hoje),
     }
 
@@ -266,6 +273,9 @@ def _aplicar_filtros(linhas, filtros):
 def montar_mapa_funcional(data_inicio=None, data_fim=None, filtros=None):
     hoje = date.today()
 
+    data_inicio_ref = _parse_date_str(data_inicio) or hoje
+    data_fim_ref = _parse_date_str(data_fim) or hoje
+
     militares = (
         Militar.query
         .filter(Militar.inativo.is_(False))
@@ -341,8 +351,8 @@ def montar_mapa_funcional(data_inicio=None, data_fim=None, filtros=None):
 
         em_ferias = _militar_em_ferias(
             paf_por_militar.get(militar.id),
-            data_inicio,
-            data_fim
+            data_inicio_ref,
+            data_fim_ref
         )
 
         linha = {
@@ -351,8 +361,8 @@ def montar_mapa_funcional(data_inicio=None, data_fim=None, filtros=None):
             "matricula": militar.matricula,
             "posto_grad": militar.posto_grad.sigla if militar.posto_grad else "",
             "quadro": militar.quadro.quadro if militar.quadro else "",
-            "situacao_principal": militar.pronto or "PRONTO",
-            "modalidade": militar.situacao.condicao if militar.situacao else "",
+            "situacao_principal": militar.situacao or "PRONTO",
+            "modalidade": militar.modalidade.descricao if militar.modalidade else "",
             "destino": _obter_destino_nome(militar, agregado, disposicao, le, lts),
 
             "agregado": agregado,

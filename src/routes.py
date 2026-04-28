@@ -2787,8 +2787,7 @@ def exibir_militar(militar_id):
                         boletim_geral=valor
                     ))
             else:
-                if bg_existente:
-                    database.session.delete(bg_existente)
+                continue
 
         sincronizar_blocos_funcionais(militar, form_militar)
 
