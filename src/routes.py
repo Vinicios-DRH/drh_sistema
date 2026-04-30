@@ -134,6 +134,21 @@ def tela_importar_militares():
     )
 
 
+@app.route("/militares/importar/modelo", methods=["GET"])
+@login_required
+@require_perm("NAV_MIL_ATIVOS_IMPORT")
+def download_modelo_importacao():
+    # Ajuste o caminho de acordo com a pasta onde você salvou o arquivo no seu projeto
+    caminho_arquivo = os.path.join(
+        current_app.root_path, 'static/downloads', 'modelo_planilha_importacao.xlsx')
+
+    return send_file(
+        caminho_arquivo,
+        as_attachment=True,
+        download_name="modelo_planilha_importacao.xlsx"
+    )
+
+
 @app.route("/militares/importar/analisar", methods=["POST"])
 @login_required
 def analisar_importacao_militares():

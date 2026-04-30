@@ -264,7 +264,8 @@
                             </div>
                             <h5 class="text-dark fw-bold mb-1">Clique ou arraste a planilha aqui</h5>
                             <p class="text-muted small mb-0">Formatos aceitos: <strong>.xlsx</strong>,
-                                <strong>.xls</strong> e <strong>.csv</strong></p>
+                                <strong>.xls</strong> e <strong>.csv</strong>
+                            </p>
 
                             <div id="fileNameDisplay" class="mt-3 badge bg-primary fs-6 d-none">Nenhum arquivo
                                 selecionado</div>
@@ -333,6 +334,19 @@
             </div>
 
             <div class="col-lg-4">
+                <div class="glass-card p-4 mb-4">
+                    <div class="section-title text-primary">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Planilha Modelo
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Utilize nosso arquivo modelo pré-formatado com as colunas corretas para garantir uma importação
+                        sem erros.
+                    </p>
+                    <a href="{{ url_for('download_modelo_importacao') }}"
+                        class="btn btn-glass-soft w-100 text-center d-flex align-items-center justify-content-center">
+                        <i class="bi bi-download me-2"></i> Baixar modelo_planilha_importacao.xlsx
+                    </a>
+                </div>
                 <div class="glass-card p-4 mb-4 sticky-top" style="top: 20px;">
                     <div class="section-title">Campos comuns reconhecidos</div>
                     <div class="mb-4">
