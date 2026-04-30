@@ -400,6 +400,34 @@ def montar_mapa_funcional(data_inicio=None, data_fim=None, filtros=None):
     return linhas
 
 
+def _normalizar_status(status):
+    if not status:
+        return ""
+
+    status = str(status).strip().upper()
+
+    mapa = {
+        "VIGENTE": "VIGENTE",
+        "A INICIAR": "A INICIAR",
+
+        "VENCEU": "VENCIDO",
+        "VENCIDO": "VENCIDO",
+        "TÉRMINO DE AGREGAÇÃO": "VENCIDO",
+        "TERMINO DE AGREGAÇÃO": "VENCIDO",
+        "TÉRMINO DA LICENÇA ESPECIAL": "VENCIDO",
+        "TERMINO DA LICENÇA ESPECIAL": "VENCIDO",
+        "TÉRMINO DA LICENÇA PARA TRATAMENTO DE SAÚDE": "VENCIDO",
+        "TERMINO DA LICENÇA PARA TRATAMENTO DE SAÚDE": "VENCIDO",
+
+        "ENCERRADO MANUALMENTE": "ENCERRADO",
+        "INATIVO": "INATIVO",
+        "SUSPENSO": "SUSPENSO",
+        "RENOVADO": "RENOVADO",
+    }
+
+    return mapa.get(status, status)
+
+
 def gerar_resumo_mapa(linhas):
     destinos_counter = Counter()
     status_counter = Counter()
@@ -419,36 +447,43 @@ def gerar_resumo_mapa(linhas):
         status_counter[x["status_macro"]] += 1
         posto_counter[x["posto_grad"] or "N/I"] += 1
 
-        if x["agregado_info"]["status"] == "VIGENTE":
+        st_agregado = _normalizar_status(x["agregado_info"]["status"])
+        st_disposicao = _normalizar_status(x["disposicao_info"]["status"])
+        st_le = _normalizar_status(x["le_info"]["status"])
+        st_lts = _normalizar_status(x["lts_info"]["status"])
+
+        if st_agregado == "VIGENTE":
             agregados_vigentes += 1
-        if x["agregado_info"]["status"] == "VENCIDO":
+        elif st_agregado == "VENCIDO":
             agregados_vencidos += 1
 
-        if x["disposicao_info"]["status"] == "VIGENTE":
+        if st_disposicao == "VIGENTE":
             disposicoes_vigentes += 1
-        if x["disposicao_info"]["status"] == "VENCIDO":
+        elif st_disposicao == "VENCIDO":
             disposicoes_vencidas += 1
 
-        if x["le_info"]["status"] == "VIGENTE":
+        if st_le == "VIGENTE":
             le_vigentes += 1
-        if x["le_info"]["status"] == "VENCIDO":
+        elif st_le == "VENCIDO":
             le_vencidas += 1
 
-        if x["lts_info"]["status"] == "VIGENTE":
+        if st_lts == "VIGENTE":
             lts_vigentes += 1
-        if x["lts_info"]["status"] == "VENCIDO":
+        elif st_lts == "VENCIDO":
             lts_vencidas += 1
-
-    top_destinos = destinos_counter.most_common(8)
-    top_postos = posto_counter.most_common(8)
 
     return {
         "total": len(linhas),
-        "agregados": sum(1 for x in linhas if x["esta_agregado"]),
-        "disposicao": sum(1 for x in linhas if x["esta_disposicao"]),
-        "intersecao": sum(1 for x in linhas if x["na_intersecao"]),
-        "le": sum(1 for x in linhas if x["esta_le"]),
-        "lts": sum(1 for x in linhas if x["esta_lts"]),
+
+        "agregados": agregados_vigentes,
+        "disposicao": disposicoes_vigentes,
+        "intersecao": sum(
+            1 for x in linhas
+            if _normalizar_status(x["agregado_info"]["status"]) == "VIGENTE"
+            and _normalizar_status(x["disposicao_info"]["status"]) == "VIGENTE"
+        ),
+        "le": le_vigentes,
+        "lts": lts_vigentes,
         "ferias": sum(1 for x in linhas if x["em_ferias"]),
         "defesa_civil": sum(
             1 for x in linhas
@@ -457,19 +492,22 @@ def gerar_resumo_mapa(linhas):
 
         "agregados_vigentes": agregados_vigentes,
         "agregados_vencidos": agregados_vencidos,
+
         "disposicoes_vigentes": disposicoes_vigentes,
         "disposicoes_vencidas": disposicoes_vencidas,
+
         "le_vigentes": le_vigentes,
         "le_vencidas": le_vencidas,
+
         "lts_vigentes": lts_vigentes,
         "lts_vencidas": lts_vencidas,
-
-        "destinos_labels": [x[0] for x in top_destinos],
-        "destinos_values": [x[1] for x in top_destinos],
 
         "status_labels": list(status_counter.keys()),
         "status_values": list(status_counter.values()),
 
-        "postos_labels": [x[0] for x in top_postos],
-        "postos_values": [x[1] for x in top_postos],
+        "destinos_labels": [x[0] for x in destinos_counter.most_common(10)],
+        "destinos_values": [x[1] for x in destinos_counter.most_common(10)],
+
+        "postos_labels": [x[0] for x in posto_counter.most_common(10)],
+        "postos_values": [x[1] for x in posto_counter.most_common(10)],
     }

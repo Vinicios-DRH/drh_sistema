@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from src import app, database
 from src.models import MilitaresAgregados, MilitaresADisposicao
 from src.decorators.control import checar_ocupacao
-
+from src.querys import obter_estatisticas_militares
 from src.services.mapa_funcional_service import (
     montar_mapa_funcional,
     gerar_resumo_mapa,
@@ -43,6 +43,15 @@ def mapa_funcional():
     )
 
     resumo = gerar_resumo_mapa(linhas)
+
+    estatisticas_home = obter_estatisticas_militares()
+
+    resumo["total"] = estatisticas_home["efetivo_total"]
+    resumo["agregados"] = estatisticas_home["agregados_total"]
+    resumo["agregados_vigentes"] = estatisticas_home["agregados_total"]
+    resumo["disposicao"] = estatisticas_home["a_disposicao"]
+    resumo["le"] = estatisticas_home["licenca_especial"]
+    resumo["lts"] = estatisticas_home["lts"]
 
     return render_template(
         "mapa_funcional.html",
@@ -84,16 +93,19 @@ def alterar_status_mapa_funcional():
     if novo_status not in STATUS_PERMITIDOS:
         flash("Status inválido.", "danger")
         return redirect(url_for("mapa_funcional"))
-
     if tipo == "agregado":
-        registro = MilitaresAgregados.query.get_or_404(registro_id)
+        MilitaresAgregados.query.filter_by(id=registro_id).update(
+            {"status": novo_status},
+            synchronize_session=False
+        )
     elif tipo == "disposicao":
-        registro = MilitaresADisposicao.query.get_or_404(registro_id)
+        MilitaresADisposicao.query.filter_by(id=registro_id).update(
+            {"status": novo_status},
+            synchronize_session=False
+        )
     else:
         flash("Tipo de registro inválido.", "danger")
         return redirect(url_for("mapa_funcional"))
-
-    registro.status = novo_status
 
     database.session.commit()
 

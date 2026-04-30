@@ -463,7 +463,7 @@ def upload_post():
 @login_required
 @checar_ocupacao(
     'DIRETOR DRH', 'CHEFE DRH', 'SUPER USER',
-    'DIRETOR', 'CHEFE', 'DRH'
+    'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL'
 )
 def drh_lista_processos():
     qtxt = (request.args.get("q") or "").strip()
@@ -542,7 +542,7 @@ def get_client_ip():
 
 @bp_dep.get("/drh/dependentes/<int:processo_id>")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
 def drh_detalhe_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -558,7 +558,7 @@ def drh_detalhe_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/conferir")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
 def drh_conferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -589,7 +589,7 @@ def drh_conferir_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/indeferir")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
 def drh_indeferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
@@ -622,7 +622,7 @@ def drh_indeferir_processo(processo_id):
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/deferir")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH')
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
 def drh_deferir_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
 
