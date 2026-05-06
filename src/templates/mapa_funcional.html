@@ -761,100 +761,6 @@ TRATAMENTO DE SAÚDE'] %}
                                     </div>
                                 </td>
                             </tr>
-
-                            <div class="modal fade" id="modalDetalhes{{ item.militar_id }}" tabindex="-1"
-                                aria-labelledby="modalDetalhesLabel{{ item.militar_id }}" aria-hidden="true">
-                                <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <div>
-                                                <h5 class="modal-title fw-bold"
-                                                    id="modalDetalhesLabel{{ item.militar_id }}">
-                                                    {{ item.nome }}
-                                                </h5>
-                                                <div class="small opacity-75">
-                                                    {{ item.posto_grad or '—' }} · {{ item.quadro or '—' }} · Matrícula
-                                                    {{ item.matricula or '—' }}
-                                                </div>
-                                            </div>
-                                            <button type="button" class="btn-close btn-close-white"
-                                                data-bs-dismiss="modal" aria-label="Fechar"></button>
-                                        </div>
-
-                                        <div class="modal-body">
-                                            <div class="row g-3 mb-3">
-                                                <div class="col-md-4">
-                                                    <div class="mf-kpi">
-                                                        <div class="label">Destino</div>
-                                                        <div class="value fs-5">{{ item.destino or 'N/I' }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <div class="mf-kpi">
-                                                        <div class="label">Situação</div>
-                                                        <div class="value fs-5">{{ item.situacao_principal or 'PRONTO'
-                                                            }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <div class="mf-kpi">
-                                                        <div class="label">Modalidade</div>
-                                                        <div class="value fs-5">{{ item.modalidade or 'N/I' }}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="row g-3">
-                                                <div class="col-lg-6">
-                                                    {{ registro_card('Gerenciar agregação', 'agregado',
-                                                    item.agregado_info, True) }}
-                                                </div>
-
-                                                <div class="col-lg-6">
-                                                    {{ registro_card('Gerenciar disposição', 'disposicao',
-                                                    item.disposicao_info, True) }}
-                                                </div>
-
-                                                <div class="col-lg-6">
-                                                    {{ registro_card('Licença Especial', 'le', item.le_info, False) }}
-                                                </div>
-
-                                                <div class="col-lg-6">
-                                                    {{ registro_card('LTS', 'lts', item.lts_info, False) }}
-                                                </div>
-
-                                                <div class="col-lg-12">
-                                                    <div class="mf-record-card">
-                                                        <div class="mf-record-title">
-                                                            <strong>Férias / PAF</strong>
-                                                            {% if item.em_ferias %}
-                                                            <span class="badge-soft b-dark">EM FÉRIAS</span>
-                                                            {% else %}
-                                                            <span class="badge-soft b-gray">NÃO</span>
-                                                            {% endif %}
-                                                        </div>
-                                                        <div class="small text-muted">
-                                                            A verificação usa o período informado nos filtros. Se não
-                                                            houver período,
-                                                            use a data atual como referência no service.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="modal-footer">
-                                            <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
-                                                class="btn btn-outline-primary">
-                                                Abrir ficha completa
-                                            </a>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                Fechar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -869,6 +775,105 @@ TRATAMENTO DE SAÚDE'] %}
 
         </div>
     </div>
+
+    <!-- =============================================================== -->
+    <!-- ÁREA DE MODAIS (Fora do container principal e da tag table) -->
+    <!-- =============================================================== -->
+    {% for item in linhas %}
+    <div class="modal fade" id="modalDetalhes{{ item.militar_id }}" tabindex="-1"
+        aria-labelledby="modalDetalhesLabel{{ item.militar_id }}" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="modalDetalhesLabel{{ item.militar_id }}">
+                            {{ item.nome }}
+                        </h5>
+                        <div class="small opacity-75">
+                            {{ item.posto_grad or '—' }} · {{ item.quadro or '—' }} · Matrícula
+                            {{ item.matricula or '—' }}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="mf-kpi">
+                                <div class="label">Destino</div>
+                                <div class="value fs-5">{{ item.destino or 'N/I' }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mf-kpi">
+                                <div class="label">Situação</div>
+                                <div class="value fs-5">{{ item.situacao_principal or 'PRONTO'
+                                    }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mf-kpi">
+                                <div class="label">Modalidade</div>
+                                <div class="value fs-5">{{ item.modalidade or 'N/I' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            {{ registro_card('Gerenciar agregação', 'agregado',
+                            item.agregado_info, True) }}
+                        </div>
+
+                        <div class="col-lg-6">
+                            {{ registro_card('Gerenciar disposição', 'disposicao',
+                            item.disposicao_info, True) }}
+                        </div>
+
+                        <div class="col-lg-6">
+                            {{ registro_card('Licença Especial', 'le', item.le_info, False) }}
+                        </div>
+
+                        <div class="col-lg-6">
+                            {{ registro_card('LTS', 'lts', item.lts_info, False) }}
+                        </div>
+
+                        <div class="col-lg-12">
+                            <div class="mf-record-card">
+                                <div class="mf-record-title">
+                                    <strong>Férias / PAF</strong>
+                                    {% if item.em_ferias %}
+                                    <span class="badge-soft b-dark">EM FÉRIAS</span>
+                                    {% else %}
+                                    <span class="badge-soft b-gray">NÃO</span>
+                                    {% endif %}
+                                </div>
+                                <div class="small text-muted">
+                                    A verificação usa o período informado nos filtros. Se não
+                                    houver período,
+                                    use a data atual como referência no service.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a href="{{ url_for('exibir_militar', militar_id=item.militar_id) }}"
+                        class="btn btn-outline-primary">
+                        Abrir ficha completa
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    <!-- =============================================================== -->
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
