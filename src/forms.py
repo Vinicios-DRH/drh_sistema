@@ -81,6 +81,7 @@ class FormMilitar(FlaskForm):
         choices=[
             ("PRONTO", "PRONTO"),
             ("AGREGADO", "AGREGADO"),
+            ("À DISPOSIÇÃO", "À DISPOSIÇÃO"),
         ],
         validators=[Optional()]
     )

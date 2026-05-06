@@ -2342,97 +2342,47 @@ def exibir_militar(militar_id):
 
     form_militar = FormMilitar(obj=militar)
 
-    if militar.completa_25_inclusao:
-        form_militar.completa_25_inclusao.data = militar.completa_25_inclusao.strftime(
-            "%d/%m/%Y")
-    if militar.completa_30_inclusao:
-        form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime(
-            "%d/%m/%Y")
-    if militar.completa_25_anos_sv:
-        form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime(
-            "%d/%m/%Y")
-    if militar.completa_30_anos_sv:
-        form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime(
-            "%d/%m/%Y")
-
+    # =========================================================================
+    # 1. DEFINIÇÃO DE CHOICES (FORA DO GET PARA O POST PODER VALIDAR)
+    # =========================================================================
     form_militar.funcao_gratificada_id.choices = [
-        (fg.id, fg.gratificacao) for fg in FuncaoGratificada.query.all()
-    ]
+        (fg.id, fg.gratificacao) for fg in FuncaoGratificada.query.all()]
     form_militar.posto_grad_id.choices = [
-        (posto.id, posto.sigla) for posto in PostoGrad.query.all()
-    ]
+        (posto.id, posto.sigla) for posto in PostoGrad.query.all()]
     form_militar.quadro_id.choices = [
-        (quadro.id, quadro.quadro) for quadro in Quadro.query.all()
-    ]
+        (quadro.id, quadro.quadro) for quadro in Quadro.query.all()]
     form_militar.localidade_id.choices = [
-        (loc.id, loc.sigla) for loc in Localidade.query.all()
-    ]
+        (loc.id, loc.sigla) for loc in Localidade.query.all()]
 
-    form_militar.obm_ids_1.choices = [("", "-- Selecione uma opção --")] + [
-        (obm.id, obm.sigla) for obm in Obm.query.all()
-    ]
+    form_militar.obm_ids_1.choices = [
+        ("", "-- Selecione uma opção --")] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
     form_militar.funcao_ids_1.choices = [("", "-- Selecione uma opção --")] + [
-        (funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()
-    ]
-    form_militar.obm_ids_2.choices = [("", "-- Selecione uma opção --")] + [
-        (obm.id, obm.sigla) for obm in Obm.query.all()
-    ]
+        (funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()]
+    form_militar.obm_ids_2.choices = [
+        ("", "-- Selecione uma opção --")] + [(obm.id, obm.sigla) for obm in Obm.query.all()]
     form_militar.funcao_ids_2.choices = [("", "-- Selecione uma opção --")] + [
-        (funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()
-    ]
+        (funcao.id, funcao.ocupacao) for funcao in Funcao.query.all()]
 
-    modalidades = (
-        Modalidade.query
-        .filter(Modalidade.descricao.in_(MODALIDADES_VALIDAS))
-        .order_by(Modalidade.descricao.asc())
-        .all()
-    )
-    form_militar.modalidade_id.choices = [("", "-- Selecione --")] + [
-        (m.id, m.descricao) for m in modalidades
-    ]
+    modalidades = Modalidade.query.filter(Modalidade.descricao.in_(
+        MODALIDADES_VALIDAS)).order_by(Modalidade.descricao.asc()).all()
+    form_militar.modalidade_id.choices = [
+        ("", "-- Selecione --")] + [(m.id, m.descricao) for m in modalidades]
 
     form_militar.estado_civil.choices = [
-        (estado.id, estado.estado) for estado in EstadoCivil.query.all()
-    ]
+        (estado.id, estado.estado) for estado in EstadoCivil.query.all()]
     form_militar.especialidade_id.choices = [
-        (esp.id, esp.ocupacao) for esp in Especialidade.query.all()
-    ]
-    form_militar.destino_id.choices = [("", "-- Selecione uma opção --")] + [
-        (dest.id, dest.local) for dest in Destino.query.all()
-    ]
+        (esp.id, esp.ocupacao) for esp in Especialidade.query.all()]
+    form_militar.destino_id.choices = [
+        ("", "-- Selecione uma opção --")] + [(dest.id, dest.local) for dest in Destino.query.all()]
 
     motivos = Motivo.query.order_by(Motivo.descricao.asc()).all()
-    form_militar.motivo_id.choices = [("", "-- Selecione --")] + [
-        (m.id, m.descricao) for m in motivos
-    ]
+    form_militar.motivo_id.choices = [
+        ("", "-- Selecione --")] + [(m.id, m.descricao) for m in motivos]
 
     form_militar.punicao_id.choices = [
-        (punicao.id, punicao.sancao) for punicao in Punicao.query.all()
-    ]
+        (punicao.id, punicao.sancao) for punicao in Punicao.query.all()]
     form_militar.comportamento_id.choices = [("", "-- Selecione uma opção --")] + [
-        (comp.id, comp.conduta) for comp in Comportamento.query.all()
-    ]
-
-    if obm_funcao_tipo_1:
-        form_militar.obm_ids_1.data = obm_funcao_tipo_1.obm_id
-        form_militar.funcao_ids_1.data = obm_funcao_tipo_1.funcao_id
-
-    if obm_funcao_tipo_2:
-        form_militar.obm_ids_2.data = obm_funcao_tipo_2.obm_id
-        form_militar.funcao_ids_2.data = obm_funcao_tipo_2.funcao_id
-
-    form_militar.sexo.data = militar.sexo if militar.sexo else None
-    form_militar.raca.data = militar.raca if militar.raca else None
-
-    hoje = date.today()
-    dn = militar.data_nascimento.date() if isinstance(
-        militar.data_nascimento, datetime) else militar.data_nascimento
-    if dn:
-        idade = hoje.year - dn.year - \
-            ((hoje.month, hoje.day) < (dn.month, dn.day))
-    else:
-        idade = None
-    form_militar.idade_atual.data = idade
+        (comp.id, comp.conduta) for comp in Comportamento.query.all()]
 
     campos_bg = [
         "transferencia", "situacao_militar", "cfsd", "cfc", "cfs", "cas",
@@ -2444,36 +2394,81 @@ def exibir_militar(militar_id):
         "situacao_militar_2",
     ]
 
-    publicacoes_bg = PublicacaoBg.query.filter_by(militar_id=militar.id).all()
+    # Variável auxiliar para o template não quebrar no Jinja
+    bg_sit2_val = ""
 
-    for campo in campos_bg:
-        if hasattr(form_militar, campo):
-            getattr(form_militar, campo).data = ""
-
-    for pub in publicacoes_bg:
-        if pub.tipo_bg in campos_bg and hasattr(form_militar, pub.tipo_bg):
-            getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
-
-    bg_sit2_ultima = (
-        PublicacaoBg.query
-        .filter_by(militar_id=militar.id, tipo_bg="situacao_militar_2")
-        .order_by(PublicacaoBg.id.desc())
-        .first()
-    )
-    if hasattr(form_militar, "situacao_militar_2"):
-        form_militar.situacao_militar_2.data = bg_sit2_ultima.boletim_geral if bg_sit2_ultima else ""
-
-    can_edit = has_perm("MILITAR_UPDATE")
-    can_delete = has_perm("MILITAR_DELETE")
-
+    # =========================================================================
+    # 2. PREENCHIMENTO DE DADOS PARA EXIBIÇÃO (APENAS GET)
+    # =========================================================================
     if request.method == "GET":
+        if militar.completa_25_inclusao:
+            form_militar.completa_25_inclusao.data = militar.completa_25_inclusao.strftime(
+                "%d/%m/%Y")
+        if militar.completa_30_inclusao:
+            form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime(
+                "%d/%m/%Y")
+        if militar.completa_25_anos_sv:
+            form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime(
+                "%d/%m/%Y")
+        if militar.completa_30_anos_sv:
+            form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime(
+                "%d/%m/%Y")
+
+        if obm_funcao_tipo_1:
+            form_militar.obm_ids_1.data = obm_funcao_tipo_1.obm_id
+            form_militar.funcao_ids_1.data = obm_funcao_tipo_1.funcao_id
+
+        if obm_funcao_tipo_2:
+            form_militar.obm_ids_2.data = obm_funcao_tipo_2.obm_id
+            form_militar.funcao_ids_2.data = obm_funcao_tipo_2.funcao_id
+
+        form_militar.sexo.data = militar.sexo if militar.sexo else None
+        form_militar.raca.data = militar.raca if militar.raca else None
+
+        hoje = date.today()
+        dn = militar.data_nascimento.date() if isinstance(
+            militar.data_nascimento, datetime) else militar.data_nascimento
+        if dn:
+            idade = hoje.year - dn.year - \
+                ((hoje.month, hoje.day) < (dn.month, dn.day))
+        else:
+            idade = None
+        form_militar.idade_atual.data = idade
+
+        publicacoes_bg = PublicacaoBg.query.filter_by(
+            militar_id=militar.id).all()
+
+        for campo in campos_bg:
+            if hasattr(form_militar, campo):
+                getattr(form_militar, campo).data = ""
+
+        for pub in publicacoes_bg:
+            if pub.tipo_bg in campos_bg and hasattr(form_militar, pub.tipo_bg):
+                getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
+
+        bg_sit2_ultima = (
+            PublicacaoBg.query
+            .filter_by(militar_id=militar.id, tipo_bg="situacao_militar_2")
+            .order_by(PublicacaoBg.id.desc())
+            .first()
+        )
+
+        bg_sit2_val = bg_sit2_ultima.boletim_geral if bg_sit2_ultima else ""
+        if hasattr(form_militar, "situacao_militar_2"):
+            form_militar.situacao_militar_2.data = bg_sit2_val
+
         form_militar.situacao.data = militar.situacao or None
         form_militar.modalidade_id.data = militar.modalidade_id or None
         form_militar.motivo_id.data = militar.motivo_id or None
         form_militar.destino_id.data = militar.destino_id or None
 
+    can_edit = has_perm("MILITAR_UPDATE")
+    can_delete = has_perm("MILITAR_DELETE")
+
+    # =========================================================================
+    # 3. SALVAMENTO DOS DADOS (POST E VALIDAÇÃO)
+    # =========================================================================
     if form_militar.validate_on_submit():
-        form_militar.process(request.form)
 
         militar.nome_completo = form_militar.nome_completo.data
         militar.nome_guerra = form_militar.nome_guerra.data
@@ -2517,10 +2512,6 @@ def exibir_militar(militar_id):
             if form_militar.completa_30_anos_sv.data else None
         )
 
-        militar.inicio_periodo = parse_date_flex(
-            form_militar.inicio_periodo.data)
-        militar.fim_periodo = parse_date_flex(form_militar.fim_periodo.data)
-
         militar.punicao_id = form_militar.punicao_id.data
         militar.comportamento_id = form_militar.comportamento_id.data
         militar.efetivo_servico = form_militar.efetivo_servico.data
@@ -2532,26 +2523,48 @@ def exibir_militar(militar_id):
         militar.estado_civil = form_militar.estado_civil.data
         militar.especialidade_id = form_militar.especialidade_id.data
 
+        # --- DADOS DE SITUAÇÃO PRINCIPAIS ---
         militar.situacao = form_militar.situacao.data or None
-        militar.modalidade_id = (
-            int(form_militar.modalidade_id.data)
-            if form_militar.modalidade_id.data not in ("", None)
-            else None
-        )
-        militar.motivo_id = (
-            int(form_militar.motivo_id.data)
-            if form_militar.motivo_id.data not in ("", None)
-            else None
-        )
-        militar.destino_id = (
-            int(form_militar.destino_id.data)
-            if form_militar.destino_id.data not in ("", None)
-            else None
-        )
+        militar.modalidade_id = int(
+            form_militar.modalidade_id.data) if form_militar.modalidade_id.data not in ("", None) else None
+        militar.motivo_id = int(
+            form_militar.motivo_id.data) if form_militar.motivo_id.data not in ("", None) else None
+        militar.destino_id = int(
+            form_militar.destino_id.data) if form_militar.destino_id.data not in ("", None) else None
         militar.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
         militar.fim_periodo = parse_date_flex(form_militar.fim_periodo.data)
 
+        # --- DADOS MANUAIS DA SITUAÇÃO EXTRA (CAPTURADOS DO REQUEST.FORM) ---
+        situacao2_id_req = request.form.get("situacao2_id")
+        militar.situacao2_id = int(
+            situacao2_id_req) if situacao2_id_req else None
+
+        agregacoes2_id_req = request.form.get("agregacoes2_id")
+        militar.agregacoes2_id = int(
+            agregacoes2_id_req) if agregacoes2_id_req else None
+
+        militar.inicio_situacao2 = parse_date_flex(
+            request.form.get("inicio_situacao2"))
+        militar.fim_situacao2 = parse_date_flex(
+            request.form.get("fim_situacao2"))
+
+        # Capturando a publicação da Situação 2 manualmente também
+        bg_sit2_input = request.form.get("situacao_militar_2")
+        if bg_sit2_input is not None:
+            bg_existente_sit2 = PublicacaoBg.query.filter_by(
+                militar_id=militar.id, tipo_bg="situacao_militar_2").first()
+            if bg_sit2_input.strip():
+                if bg_existente_sit2:
+                    bg_existente_sit2.boletim_geral = bg_sit2_input.strip()
+                else:
+                    database.session.add(PublicacaoBg(
+                        militar_id=militar.id, tipo_bg="situacao_militar_2", boletim_geral=bg_sit2_input.strip()))
+            elif bg_existente_sit2:
+                # Se o usuário apagou o campo, podemos querer limpar a publicação
+                database.session.delete(bg_existente_sit2)
+
+        # --- DEMAIS CAMPOS ---
         militar.ltip_afastamento_cargo_eletivo = form_militar.ltip_afastamento_cargo_eletivo.data
         militar.periodo_ltip = form_militar.periodo_ltip.data
         militar.total_ltip = form_militar.total_ltip.data
@@ -2586,19 +2599,14 @@ def exibir_militar(militar_id):
         militar.cor_olhos = form_militar.cor_olhos.data
         militar.cor_cabelos = form_militar.cor_cabelos.data
         militar.bigode = bool(form_militar.bigode.data)
-
         militar.medida_cabeca = form_militar.medida_cabeca.data
         militar.numero_sapato = form_militar.numero_sapato.data
         militar.medida_calca = form_militar.medida_calca.data
         militar.medida_camisa = form_militar.medida_camisa.data
-
         militar.tipo_sanguineo = form_militar.tipo_sanguineo.data
         militar.sinais_particulares = form_militar.sinais_particulares.data
-
         militar.tatuagem = bool(form_militar.tatuagem.data)
-        militar.local_tatuagem = (
-            form_militar.local_tatuagem.data if form_militar.tatuagem.data else None
-        )
+        militar.local_tatuagem = form_militar.local_tatuagem.data if form_militar.tatuagem.data else None
 
         militar.inclusao_bg = form_militar.inclusao_bg.data
         militar.soldado_tres = form_militar.soldado_tres.data
@@ -2618,6 +2626,7 @@ def exibir_militar(militar_id):
         militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
         militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
 
+        # --- GRADUAÇÕES ---
         graduacoes_curso = request.form.getlist("graduacoes_curso[]")
         graduacoes_instituicao = request.form.getlist(
             "graduacoes_instituicao[]")
@@ -2643,6 +2652,7 @@ def exibir_militar(militar_id):
                 criado_em=now_manaus_naive()
             ))
 
+        # --- CONTATOS DE EMERGÊNCIA ---
         contato_nome = request.form.getlist("contato_nome[]")
         contato_parentesco = request.form.getlist("contato_parentesco[]")
         contato_telefone = request.form.getlist("contato_telefone[]")
@@ -2674,6 +2684,7 @@ def exibir_militar(militar_id):
                 criado_em=now_manaus_naive()
             ))
 
+        # --- CÔNJUGE ---
         def normalizar_txt(txt):
             import unicodedata
             txt = (txt or "").strip().upper()
@@ -2698,35 +2709,32 @@ def exibir_militar(militar_id):
         conjuge_observacao = (request.form.get(
             "conjuge_observacao") or "").strip()
 
-        conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
+        conjuge_db = MilitarConjuge.query.filter_by(
+            militar_id=militar.id).first()
 
         tem_dado_conjuge = any([
-            conjuge_nome,
-            conjuge_cpf,
-            conjuge_telefone,
-            conjuge_data_nascimento,
-            conjuge_endereco,
-            conjuge_observacao,
+            conjuge_nome, conjuge_cpf, conjuge_telefone,
+            conjuge_data_nascimento, conjuge_endereco, conjuge_observacao,
         ])
 
         if exige_conjuge and tem_dado_conjuge:
-            if not conjuge:
-                conjuge = MilitarConjuge(
-                    militar_id=militar.id,
-                    criado_em=now_manaus_naive()
-                )
-                database.session.add(conjuge)
+            if not conjuge_db:
+                conjuge_db = MilitarConjuge(
+                    militar_id=militar.id, criado_em=now_manaus_naive())
+                database.session.add(conjuge_db)
 
-            conjuge.nome = conjuge_nome or "-"
-            conjuge.cpf = conjuge_cpf or None
-            conjuge.telefone = conjuge_telefone or None
-            conjuge.data_nascimento = parse_date_flex(conjuge_data_nascimento)
-            conjuge.endereco = conjuge_endereco or None
-            conjuge.observacao = conjuge_observacao or None
+            conjuge_db.nome = conjuge_nome or "-"
+            conjuge_db.cpf = conjuge_cpf or None
+            conjuge_db.telefone = conjuge_telefone or None
+            conjuge_db.data_nascimento = parse_date_flex(
+                conjuge_data_nascimento)
+            conjuge_db.endereco = conjuge_endereco or None
+            conjuge_db.observacao = conjuge_observacao or None
         else:
-            if conjuge:
-                database.session.delete(conjuge)
+            if conjuge_db:
+                database.session.delete(conjuge_db)
 
+        # --- OBM & FUNÇÃO ---
         obm_1 = form_militar.obm_ids_1.data
         funcao_1 = form_militar.funcao_ids_1.data
         obm_2 = form_militar.obm_ids_2.data
@@ -2752,58 +2760,40 @@ def exibir_militar(militar_id):
                 elif registro.obm_id != obm_2 or registro.funcao_id != funcao_2:
                     registro.data_fim = now_manaus_naive()
 
-        registro_tipo_1 = (
-            MilitarObmFuncao.query
-            .filter_by(militar_id=militar.id, tipo=1)
-            .filter(MilitarObmFuncao.data_fim.is_(None))
-            .first()
-        )
+        registro_tipo_1 = MilitarObmFuncao.query.filter_by(
+            militar_id=militar.id, tipo=1).filter(MilitarObmFuncao.data_fim.is_(None)).first()
         if obm_1 and funcao_1 and not registro_tipo_1:
             database.session.add(MilitarObmFuncao(
-                militar_id=militar.id,
-                obm_id=obm_1,
-                funcao_id=funcao_1,
-                tipo=1,
-                data_criacao=now_manaus_naive()
+                militar_id=militar.id, obm_id=obm_1, funcao_id=funcao_1, tipo=1, data_criacao=now_manaus_naive()
             ))
 
-        registro_tipo_2 = (
-            MilitarObmFuncao.query
-            .filter_by(militar_id=militar.id, tipo=2)
-            .filter(MilitarObmFuncao.data_fim.is_(None))
-            .first()
-        )
+        registro_tipo_2 = MilitarObmFuncao.query.filter_by(
+            militar_id=militar.id, tipo=2).filter(MilitarObmFuncao.data_fim.is_(None)).first()
         if obm_2 and funcao_2 and not registro_tipo_2:
             database.session.add(MilitarObmFuncao(
-                militar_id=militar.id,
-                obm_id=obm_2,
-                funcao_id=funcao_2,
-                tipo=2,
-                data_criacao=now_manaus_naive()
+                militar_id=militar.id, obm_id=obm_2, funcao_id=funcao_2, tipo=2, data_criacao=now_manaus_naive()
             ))
 
+        # --- PUBLICAÇÕES BG (WTFORMS) ---
         for campo in campos_bg:
+            if campo == "situacao_militar_2":
+                continue  # Já lidamos com isso manualmente mais acima
+
             if not hasattr(form_militar, campo):
                 continue
 
             valor = getattr(form_militar, campo).data
             bg_existente = PublicacaoBg.query.filter_by(
-                militar_id=militar.id,
-                tipo_bg=campo
-            ).first()
+                militar_id=militar.id, tipo_bg=campo).first()
 
             if valor:
                 if bg_existente:
                     bg_existente.boletim_geral = valor
                 else:
                     database.session.add(PublicacaoBg(
-                        militar_id=militar.id,
-                        tipo_bg=campo,
-                        boletim_geral=valor
-                    ))
-            else:
-                continue
+                        militar_id=militar.id, tipo_bg=campo, boletim_geral=valor))
 
+        # --- FINALIZAÇÃO ---
         sincronizar_blocos_funcionais(militar, form_militar)
 
         try:
@@ -2815,6 +2805,16 @@ def exibir_militar(militar_id):
             current_app.logger.exception("Erro ao atualizar militar")
             flash(f"Erro ao atualizar militar: {str(e)}", "danger")
 
+    # =========================================================================
+    # 4. CAPTURADOR DE ERROS SILENCIOSOS
+    # =========================================================================
+    elif request.method == "POST":
+        for field, errors in form_militar.errors.items():
+            for error in errors:
+                label = getattr(form_militar, field).label.text if hasattr(
+                    getattr(form_militar, field), 'label') else field
+                flash(f"Erro no campo {label}: {error}", "danger")
+
     return render_template(
         "exibir_militar.html",
         form_militar=form_militar,
@@ -2824,6 +2824,8 @@ def exibir_militar(militar_id):
         conjuge=conjuge,
         can_edit=can_edit,
         can_delete=can_delete,
+        bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get(
+            "situacao_militar_2", "")
     )
 
 
