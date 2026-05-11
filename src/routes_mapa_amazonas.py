@@ -46,8 +46,6 @@ def api_dados_mapa():
     query = database.session.query(
         Obm.id,
         Obm.sigla,
-        # SOLUÇÃO 1: Count Distinct garante que cada militar seja contado apenas 1 vez,
-        # mesmo que ele tenha 2 ou mais funções ativas.
         database.func.count(database.func.distinct(
             Militar.id)).label('total_efetivo')
     ).join(
@@ -120,11 +118,11 @@ def api_militares_obm(obm_id):
         else_=99
     )
 
+    # Removido o .distinct() para evitar conflito com o CASE no ORDER BY
     query = database.session.query(
         Militar, PostoGrad
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
-        # SOLUÇÃO 2: Outer Join impede que militares com problema de cadastro na patente sumam da lista.
     ).outerjoin(
         PostoGrad, PostoGrad.id == Militar.posto_grad_id
     ).filter(
@@ -134,14 +132,18 @@ def api_militares_obm(obm_id):
     ).order_by(
         ordem_hierarquica,
         Militar.antiguidade.asc()
-    ).distinct().all()  # SOLUÇÃO 3: Distinct elimina a renderização dupla no frontend.
+    ).all()
 
     resultado = []
+    militares_vistos = set()  # Set para rastrear quem já foi adicionado
+
     for militar, posto in query:
-        resultado.append({
-            "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
-            # Se a patente voltar nula por causa do outerjoin, mostramos S/P
-            "posto": posto.sigla if posto else "S/P"
-        })
+        # Só adiciona na lista se o ID do militar ainda não estiver no Set
+        if militar.id not in militares_vistos:
+            militares_vistos.add(militar.id)
+            resultado.append({
+                "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
+                "posto": posto.sigla if posto else "S/P"
+            })
 
     return jsonify(resultado)
