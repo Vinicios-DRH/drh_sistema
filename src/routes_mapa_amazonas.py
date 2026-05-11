@@ -46,8 +46,7 @@ def api_dados_mapa():
     query = database.session.query(
         Obm.id,
         Obm.sigla,
-        database.func.count(database.func.distinct(
-            Militar.id)).label('total_efetivo')
+        database.func.count(Militar.id).label('total_efetivo')
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.obm_id == Obm.id
     ).join(
@@ -94,6 +93,7 @@ def api_dados_mapa():
 def api_militares_obm(obm_id):
     """Retorna os militares da OBM ordenados por hierarquia e antiguidade."""
 
+    # Mapeamento do peso hierárquico com as nomenclaturas exatas do banco
     ordem_hierarquica = case(
         {
             'CEL': 1,
@@ -115,35 +115,29 @@ def api_militares_obm(obm_id):
             'SD': 17
         },
         value=database.func.upper(PostoGrad.sigla),
-        else_=99
+        else_=99  # Civis ou patentes não mapeadas vão pro final da fila
     )
 
-    # Removido o .distinct() para evitar conflito com o CASE no ORDER BY
     query = database.session.query(
         Militar, PostoGrad
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
-    ).outerjoin(
+    ).join(
         PostoGrad, PostoGrad.id == Militar.posto_grad_id
     ).filter(
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
         Militar.posto_grad_id != 15
     ).order_by(
-        ordem_hierarquica,
-        Militar.antiguidade.asc()
+        ordem_hierarquica,          # Ordena primeiro pelo peso da patente
+        Militar.antiguidade.asc()   # Em caso de empate na patente, ordena pela antiguidade
     ).all()
 
     resultado = []
-    militares_vistos = set()  # Set para rastrear quem já foi adicionado
-
     for militar, posto in query:
-        # Só adiciona na lista se o ID do militar ainda não estiver no Set
-        if militar.id not in militares_vistos:
-            militares_vistos.add(militar.id)
-            resultado.append({
-                "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
-                "posto": posto.sigla if posto else "S/P"
-            })
+        resultado.append({
+            "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
+            "posto": posto.sigla
+        })
 
     return jsonify(resultado)
