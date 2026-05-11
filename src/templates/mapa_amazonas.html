@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
+        /* Transformamos o body em um contêiner Flexbox vertical */
         body {
             margin: 0;
             padding: 0;
@@ -16,20 +17,23 @@
             background-color: #121212;
             color: #ffffff;
             overflow: hidden;
-            /* Evita scroll na tela principal com a modal aberta */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* Ocupa sempre 100% da tela */
         }
 
         #header {
             padding: 15px 30px;
             background-color: #1a1a1a;
             border-bottom: 2px solid #d32f2f;
-            /* Linha de destaque CBMAM */
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            position: relative;
             z-index: 1000;
             display: flex;
             align-items: center;
             gap: 20px;
+            flex-shrink: 0;
+            /* Impede que o cabeçalho seja "espremido" */
         }
 
         .header-logo {
@@ -54,9 +58,37 @@
             font-weight: bold;
         }
 
-        #mapa {
+        /* Responsividade do cabeçalho para telas de celular */
+        @media (max-width: 600px) {
+            #header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+                gap: 10px;
+            }
+
+            .header-logo {
+                width: 70px;
+                height: 70px;
+            }
+        }
+
+        /* Novo contêiner que abraça o mapa e a modal ocupando o resto da tela */
+        #container-principal {
+            position: relative;
+            flex-grow: 1;
+            /* Pega automaticamente todo o espaço restante */
+            display: flex;
+            overflow: hidden;
             width: 100vw;
-            height: calc(100vh - 84px);
+        }
+
+        #mapa {
+            flex-grow: 1;
+            /* O mapa expande junto com o contêiner */
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
 
         /* Tooltip (Hover) */
@@ -96,18 +128,16 @@
             font-weight: bold;
         }
 
-        /* Limpa estilos nativos do divIcon */
         .leaflet-div-icon.custom-text-icon {
             background: transparent;
             border: none;
             overflow: visible;
         }
 
-        /* Novo visual do Markpoint */
+        /* Markpoint */
         .pin-container {
             position: absolute;
             transform: translate(-50%, -50%);
-            /* Centraliza exato na coordenada */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -137,20 +167,17 @@
             font-weight: bold;
             white-space: nowrap;
             margin-top: 4px;
-            /* Espaço entre a logo e o texto */
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
             transition: background-color 0.2s ease;
             z-index: 1;
         }
 
-        /* Efeitos ao passar o mouse */
         .pin-container:hover {
             z-index: 1000 !important;
         }
 
         .pin-container:hover .pin-logo {
             transform: scale(1.15);
-            /* Dá um zoom leve na logo */
             border-color: #ff5252;
         }
 
@@ -162,10 +189,14 @@
         /* Modal / Sidebar do Efetivo */
         #modal-efetivo {
             position: absolute;
-            top: 84px;
+            top: 0;
+            /* Como agora ela vive dentro do container-principal, o topo é 0 */
             right: -400px;
             width: 350px;
-            height: calc(100vh - 84px);
+            max-width: 100vw;
+            /* Responsividade: não passa da largura do celular */
+            height: 100%;
+            /* Acompanha 100% da altura do mapa */
             background-color: #1a1a1a;
             border-left: 2px solid #d32f2f;
             box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
@@ -240,14 +271,16 @@
         </div>
     </div>
 
-    <div id="mapa"></div>
+    <div id="container-principal">
+        <div id="mapa"></div>
 
-    <div id="modal-efetivo">
-        <div class="modal-header">
-            <h2 id="modal-titulo">Efetivo da OBM</h2>
-            <button class="close-btn" onclick="fecharModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="lista-militares">
+        <div id="modal-efetivo">
+            <div class="modal-header">
+                <h2 id="modal-titulo">Efetivo da OBM</h2>
+                <button class="close-btn" onclick="fecharModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="lista-militares">
+            </div>
         </div>
     </div>
 
@@ -287,7 +320,6 @@
             .then(response => response.json())
             .then(dados => {
                 dados.forEach(dado => {
-                    // Estrutura do novo Markpoint (Logo + Texto embaixo)
                     const textLabel = L.divIcon({
                         className: 'custom-text-icon',
                         html: `
@@ -311,7 +343,7 @@
                     marcador.bindTooltip(conteudoTooltip, {
                         className: 'custom-tooltip',
                         direction: 'top',
-                        offset: [0, -30], // Ajustado para aparecer logo acima da logo
+                        offset: [0, -30],
                         opacity: 0.95
                     });
 
