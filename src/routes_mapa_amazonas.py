@@ -1,12 +1,10 @@
 from flask import Blueprint, render_template, jsonify
 from sqlalchemy.orm import aliased
 from src import database  # Ajuste a importação do banco conforme seu projeto
-from src.models import Militar, Obm, MilitarObmFuncao
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad
 
-# Criação do Blueprint para as rotas do mapa
 mapa_bp = Blueprint('mapa_amazonas', __name__)
 
-# Coordenadas aproximadas para renderização no mapa
 COORDENADAS_CIDADES = {
     "MANAUS": [-3.1190, -60.0217],
     "LÁBREA": [-7.2597, -64.7983],
@@ -39,16 +37,14 @@ COORDENADAS_CIDADES = {
 
 @mapa_bp.route('/mapa-efetivo')
 def renderizar_mapa():
-    """Rota que renderiza a página HTML do Dashboard."""
     return render_template('mapa_amazonas.html')
 
 
 @mapa_bp.route('/api/mapa-dados')
 def api_dados_mapa():
-    """API que retorna os dados do efetivo agrupados por OBM e geolocalizados."""
-
-    # Consulta: conta militares por OBM, filtrando civis e pegando a lotação ativa
+    # Incluímos o Obm.id na pesquisa
     query = database.session.query(
+        Obm.id,
         Obm.sigla,
         database.func.count(Militar.id).label('total_efetivo')
     ).join(
@@ -57,26 +53,23 @@ def api_dados_mapa():
         Militar, Militar.id == MilitarObmFuncao.militar_id
     ).filter(
         Militar.posto_grad_id != 15,
-        MilitarObmFuncao.data_fim.is_(None)  # Lotação vigente
-    ).group_by(Obm.sigla).all()
+        MilitarObmFuncao.data_fim.is_(None)
+    ).group_by(Obm.id, Obm.sigla).all()
 
     resultado = []
 
-    for sigla, efetivo in query:
+    for obm_id, sigla, efetivo in query:
         sigla_upper = sigla.upper()
-        cidade_destino = "MANAUS"  # Padrão: Capital
+        cidade_destino = "MANAUS"
 
-        # Lógica: se tem nome de cidade de interior na sigla, aloca para aquela cidade
         for cidade in COORDENADAS_CIDADES.keys():
             if cidade != "MANAUS" and cidade in sigla_upper:
                 cidade_destino = cidade
                 break
 
-        # Monta o dicionário de resposta com um pequeno offset para OBMs na mesma cidade não ficarem sobrepostas
         import random
         lat_base, lng_base = COORDENADAS_CIDADES[cidade_destino]
 
-        # Adiciona um micro-deslocamento se houver mais de uma OBM na mesma cidade (ex: capital)
         lat = lat_base + \
             random.uniform(-0.015,
                            0.015) if cidade_destino == "MANAUS" else lat_base
@@ -85,11 +78,37 @@ def api_dados_mapa():
                            0.015) if cidade_destino == "MANAUS" else lng_base
 
         resultado.append({
+            "obm_id": obm_id,
             "obm": sigla,
             "efetivo": efetivo,
             "cidade": cidade_destino,
             "lat": lat,
             "lng": lng
+        })
+
+    return jsonify(resultado)
+
+
+@mapa_bp.route('/api/militares-obm/<int:obm_id>')
+def api_militares_obm(obm_id):
+    """Nova rota para listar os militares de uma OBM específica."""
+    query = database.session.query(
+        Militar, PostoGrad
+    ).join(
+        MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
+    ).join(
+        PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).filter(
+        MilitarObmFuncao.obm_id == obm_id,
+        MilitarObmFuncao.data_fim.is_(None),
+        Militar.posto_grad_id != 15
+    ).order_by(PostoGrad.id).all()  # Ordena por patente (dependendo de como os IDs estão no seu banco)
+
+    resultado = []
+    for militar, posto in query:
+        resultado.append({
+            "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
+            "posto": posto.sigla
         })
 
     return jsonify(resultado)

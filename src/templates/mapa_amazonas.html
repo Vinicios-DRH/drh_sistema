@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Geográfico - Efetivo</title>
+    <title>Dashboard Geográfico CBMAM - Efetivo</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -15,52 +15,68 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #121212;
             color: #ffffff;
+            overflow: hidden;
+            /* Evita scroll na tela principal com a modal aberta */
         }
 
         #header {
-            padding: 20px 30px;
-            background-color: #1e1e1e;
-            border-bottom: 1px solid #333;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            background-color: #1a1a1a;
+            border-bottom: 2px solid #d32f2f;
+            /* Linha de destaque CBMAM */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             position: relative;
             z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
         }
 
         #header h1 {
             margin: 0;
             font-size: 24px;
             font-weight: 600;
-            color: #4CAF50;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #header p {
             margin: 5px 0 0 0;
             font-size: 14px;
-            color: #aaa;
+            color: #d32f2f;
+            font-weight: bold;
         }
 
         #mapa {
             width: 100vw;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 84px);
         }
 
-        /* Popups */
-        .custom-popup .leaflet-popup-content-wrapper {
-            background-color: #1e1e1e;
+        /* Tooltip (Hover) */
+        .leaflet-tooltip.custom-tooltip {
+            background-color: #1a1a1a;
             color: #fff;
             border-radius: 8px;
-            border: 1px solid #4CAF50;
+            border: 1px solid #d32f2f;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            padding: 12px;
         }
 
-        .custom-popup .leaflet-popup-tip {
-            background-color: #1e1e1e;
-            border: 1px solid #4CAF50;
+        .leaflet-tooltip-top.custom-tooltip:before {
+            border-top-color: #d32f2f;
         }
 
         .popup-title {
             font-size: 16px;
             font-weight: bold;
-            color: #4CAF50;
+            color: #e53935;
             margin-bottom: 8px;
             border-bottom: 1px solid #333;
             padding-bottom: 4px;
@@ -68,45 +84,148 @@
 
         .popup-info {
             font-size: 14px;
-            margin: 0;
+            margin: 0 0 5px 0;
         }
 
         .efetivo-badge {
             display: inline-block;
-            background-color: #4CAF50;
-            color: #121212;
+            background-color: #d32f2f;
+            color: #ffffff;
             padding: 2px 8px;
             border-radius: 12px;
             font-weight: bold;
-            margin-top: 5px;
         }
 
-        /* Estilo da nova etiqueta de texto no mapa */
+        /* Limpa estilos nativos do divIcon */
         .leaflet-div-icon.custom-text-icon {
             background: transparent;
             border: none;
+            overflow: visible;
         }
 
-        .label-mapa {
-            background-color: rgba(30, 30, 30, 0.85);
-            color: #ffffff;
-            border: 1px solid #4CAF50;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            white-space: nowrap;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-            /* Centraliza a div exatamente na coordenada */
+        /* Novo visual do Markpoint */
+        .pin-container {
+            position: absolute;
             transform: translate(-50%, -50%);
-            transition: all 0.2s ease;
+            /* Centraliza exato na coordenada */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             cursor: pointer;
         }
 
-        .label-mapa:hover {
-            background-color: #4CAF50;
-            color: #121212;
+        .pin-logo {
+            width: 32px;
+            height: 32px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            border: 2px solid #d32f2f;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+            object-fit: contain;
+            padding: 2px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            z-index: 2;
+        }
+
+        .pin-text {
+            background-color: rgba(26, 26, 26, 0.85);
+            color: #ffffff;
+            border: 1px solid #d32f2f;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-top: 4px;
+            /* Espaço entre a logo e o texto */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.2s ease;
+            z-index: 1;
+        }
+
+        /* Efeitos ao passar o mouse */
+        .pin-container:hover {
             z-index: 1000 !important;
+        }
+
+        .pin-container:hover .pin-logo {
+            transform: scale(1.15);
+            /* Dá um zoom leve na logo */
+            border-color: #ff5252;
+        }
+
+        .pin-container:hover .pin-text {
+            background-color: #d32f2f;
+            color: #ffffff;
+        }
+
+        /* Modal / Sidebar do Efetivo */
+        #modal-efetivo {
+            position: absolute;
+            top: 84px;
+            right: -400px;
+            width: 350px;
+            height: calc(100vh - 84px);
+            background-color: #1a1a1a;
+            border-left: 2px solid #d32f2f;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #modal-efetivo.aberta {
+            right: 0;
+        }
+
+        .modal-header {
+            padding: 20px;
+            background-color: #d32f2f;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .card-militar {
+            background-color: #2a2a2a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #d32f2f;
+            font-size: 14px;
+        }
+
+        .card-militar strong {
+            color: #aaa;
+            margin-right: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #aaa;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -114,19 +233,35 @@
 <body>
 
     <div id="header">
-        <h1>Visão Geral de Efetivo</h1>
-        <p>Distribuição operacional no Estado do Amazonas</p>
+        <img src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo CBMAM" class="header-logo">
+        <div>
+            <h1>Painel Estratégico</h1>
+            <p>Distribuição Operacional CBMAM - Amazonas</p>
+        </div>
     </div>
 
     <div id="mapa"></div>
 
+    <div id="modal-efetivo">
+        <div class="modal-header">
+            <h2 id="modal-titulo">Efetivo da OBM</h2>
+            <button class="close-btn" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="lista-militares">
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const mapa = L.map('mapa').setView([-3.1190, -60.0217], 5);
+        const mapa = L.map('mapa', {
+            zoomControl: false
+        }).setView([-3.1190, -60.0217], 5);
+
+        L.control.zoom({ position: 'bottomleft' }).addTo(mapa);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 20
         }).addTo(mapa);
@@ -137,41 +272,91 @@
             .then(data => {
                 L.geoJSON(data, {
                     style: {
-                        color: '#4CAF50',
+                        color: '#d32f2f',
                         weight: 2,
                         opacity: 0.6,
-                        fillColor: '#4CAF50',
-                        fillOpacity: 0.04
+                        fillColor: '#d32f2f',
+                        fillOpacity: 0.05
                     }
                 }).addTo(mapa);
             })
-            .catch(erro => console.error('Erro ao carregar o contorno do Amazonas:', erro));
+            .catch(erro => console.error('Erro ao carregar malha:', erro));
 
         // Dados do efetivo
         fetch('/api/mapa-dados')
             .then(response => response.json())
             .then(dados => {
                 dados.forEach(dado => {
-                    // O ícone agora é dinâmico e criado para cada item
-                    // Usamos dado.obm (ou dado.cidade, se preferir)
+                    // Estrutura do novo Markpoint (Logo + Texto embaixo)
                     const textLabel = L.divIcon({
                         className: 'custom-text-icon',
-                        html: `<div class="label-mapa">${dado.obm}</div>`,
-                        iconSize: [0, 0] // Define como zero para que a div defina o próprio tamanho (com o white-space: nowrap)
+                        html: `
+                            <div class="pin-container">
+                                <img class="pin-logo" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="CBMAM">
+                                <div class="pin-text">${dado.obm}</div>
+                            </div>
+                        `,
+                        iconSize: [0, 0]
                     });
 
                     const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel }).addTo(mapa);
 
-                    const conteudoPopup = `
+                    const conteudoTooltip = `
                         <div class="popup-title">${dado.obm}</div>
-                        <p class="popup-info"><strong>Localidade:</strong> ${dado.cidade}</p>
-                        <p class="popup-info"><strong>Militares:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
+                        <p class="popup-info"><strong>Base:</strong> ${dado.cidade}</p>
+                        <p class="popup-info"><strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
+                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para listar militares</p>
                     `;
 
-                    marcador.bindPopup(conteudoPopup, { className: 'custom-popup' });
+                    marcador.bindTooltip(conteudoTooltip, {
+                        className: 'custom-tooltip',
+                        direction: 'top',
+                        offset: [0, -30], // Ajustado para aparecer logo acima da logo
+                        opacity: 0.95
+                    });
+
+                    marcador.on('click', () => {
+                        abrirModalMilitares(dado.obm_id, dado.obm);
+                    });
                 });
             })
             .catch(erro => console.error('Erro ao carregar dados do mapa:', erro));
+
+        function abrirModalMilitares(obmId, obmSigla) {
+            const modal = document.getElementById('modal-efetivo');
+            const titulo = document.getElementById('modal-titulo');
+            const lista = document.getElementById('lista-militares');
+
+            modal.classList.add('aberta');
+            titulo.innerText = obmSigla;
+            lista.innerHTML = '<div class="loading">Buscando dados no servidor...</div>';
+
+            fetch(`/api/militares-obm/${obmId}`)
+                .then(res => res.json())
+                .then(militares => {
+                    if (militares.length === 0) {
+                        lista.innerHTML = '<div class="loading">Nenhum militar registrado.</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    militares.forEach(m => {
+                        html += `
+                            <div class="card-militar">
+                                <strong>${m.posto}</strong> ${m.nome}
+                            </div>
+                        `;
+                    });
+                    lista.innerHTML = html;
+                })
+                .catch(erro => {
+                    lista.innerHTML = '<div class="loading" style="color: #d32f2f;">Erro ao buscar dados.</div>';
+                });
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-efetivo').classList.remove('aberta');
+        }
     </script>
 </body>
 
