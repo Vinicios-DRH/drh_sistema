@@ -4,15 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Geográfico - Efetivo</title>
+    <title>Dashboard Geográfico CBMAM - Efetivo</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* Transformamos o body em um contêiner Flexbox vertical */
         body {
             margin: 0;
             padding: 0;
@@ -23,9 +20,9 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            /* Ocupa sempre 100% da tela */
         }
 
-        /* --- HEADER --- */
         #header {
             padding: 15px 30px;
             background-color: #1a1a1a;
@@ -36,11 +33,12 @@
             align-items: center;
             gap: 20px;
             flex-shrink: 0;
+            /* Impede que o cabeçalho seja "espremido" */
         }
 
         .header-logo {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             object-fit: contain;
         }
 
@@ -60,10 +58,26 @@
             font-weight: bold;
         }
 
-        /* --- CONTAINER PRINCIPAL (MAPA + MODAL) --- */
+        /* Responsividade do cabeçalho para telas de celular */
+        @media (max-width: 600px) {
+            #header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+                gap: 10px;
+            }
+
+            .header-logo {
+                width: 70px;
+                height: 70px;
+            }
+        }
+
+        /* Novo contêiner que abraça o mapa e a modal ocupando o resto da tela */
         #container-principal {
             position: relative;
             flex-grow: 1;
+            /* Pega automaticamente todo o espaço restante */
             display: flex;
             overflow: hidden;
             width: 100vw;
@@ -71,58 +85,47 @@
 
         #mapa {
             flex-grow: 1;
+            /* O mapa expande junto com o contêiner */
             width: 100%;
             height: 100%;
             z-index: 1;
         }
 
-        /* --- FOOTER DE ESTATÍSTICAS --- */
-        #footer-stats {
+        /* Tooltip (Hover) */
+        .leaflet-tooltip.custom-tooltip {
             background-color: #1a1a1a;
-            border-top: 2px solid #d32f2f;
-            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 15px;
+            color: #fff;
+            border-radius: 8px;
+            border: 1px solid #d32f2f;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            padding: 12px;
         }
 
-        .stat-card {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
+        .leaflet-tooltip-top.custom-tooltip:before {
+            border-top-color: #d32f2f;
         }
 
-        .stat-title {
-            font-size: 12px;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
-            font-size: 22px;
+        .popup-title {
+            font-size: 16px;
             font-weight: bold;
-            color: #d32f2f;
+            color: #e53935;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
         }
 
-        /* --- CLUSTERIZAÇÃO E MARKERS --- */
-        .marker-cluster-small,
-        .marker-cluster-medium,
-        .marker-cluster-large {
-            background-color: rgba(211, 47, 47, 0.6);
+        .popup-info {
+            font-size: 14px;
+            margin: 0 0 5px 0;
         }
 
-        .marker-cluster-small div,
-        .marker-cluster-medium div,
-        .marker-cluster-large div {
-            background-color: rgba(211, 47, 47, 0.9);
-            color: white;
+        .efetivo-badge {
+            display: inline-block;
+            background-color: #d32f2f;
+            color: #ffffff;
+            padding: 2px 8px;
+            border-radius: 12px;
             font-weight: bold;
-            border: 2px solid #121212;
         }
 
         .leaflet-div-icon.custom-text-icon {
@@ -131,6 +134,7 @@
             overflow: visible;
         }
 
+        /* Markpoint */
         .pin-container {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -182,51 +186,17 @@
             color: #ffffff;
         }
 
-        /* --- TOOLTIP --- */
-        .leaflet-tooltip.custom-tooltip {
-            background-color: #1a1a1a;
-            color: #fff;
-            border-radius: 8px;
-            border: 1px solid #d32f2f;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-            padding: 12px;
-        }
-
-        .leaflet-tooltip-top.custom-tooltip:before {
-            border-top-color: #d32f2f;
-        }
-
-        .popup-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #e53935;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
-        }
-
-        .popup-info {
-            font-size: 14px;
-            margin: 0 0 5px 0;
-        }
-
-        .efetivo-badge {
-            display: inline-block;
-            background-color: #d32f2f;
-            color: #ffffff;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-        }
-
-        /* --- MODAL LATERAL --- */
+        /* Modal / Sidebar do Efetivo */
         #modal-efetivo {
             position: absolute;
             top: 0;
-            right: -450px;
-            width: 400px;
+            /* Como agora ela vive dentro do container-principal, o topo é 0 */
+            right: -400px;
+            width: 350px;
             max-width: 100vw;
+            /* Responsividade: não passa da largura do celular */
             height: 100%;
+            /* Acompanha 100% da altura do mapa */
             background-color: #1a1a1a;
             border-left: 2px solid #d32f2f;
             box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
@@ -267,23 +237,13 @@
             padding: 20px;
             overflow-y: auto;
             flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .chart-container {
-            background-color: #2a2a2a;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            margin-bottom: 10px;
         }
 
         .card-militar {
             background-color: #2a2a2a;
             padding: 10px 15px;
             border-radius: 6px;
+            margin-bottom: 10px;
             border-left: 4px solid #d32f2f;
             font-size: 14px;
         }
@@ -298,29 +258,6 @@
             color: #aaa;
             margin-top: 20px;
         }
-
-        /* Responsividade Básica */
-        @media (max-width: 600px) {
-            #header {
-                flex-direction: column;
-                text-align: center;
-                padding: 15px;
-                gap: 10px;
-            }
-
-            .header-logo {
-                width: 60px;
-                height: 60px;
-            }
-
-            .stat-value {
-                font-size: 18px;
-            }
-
-            .stat-title {
-                font-size: 10px;
-            }
-        }
     </style>
 </head>
 
@@ -330,7 +267,7 @@
         <img src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo CBMAM" class="header-logo">
         <div>
             <h1>Painel Estratégico</h1>
-            <p>Distribuição Operacional - Amazonas</p>
+            <p>Distribuição Operacional CBMAM - Amazonas</p>
         </div>
     </div>
 
@@ -342,39 +279,18 @@
                 <h2 id="modal-titulo">Efetivo da OBM</h2>
                 <button class="close-btn" onclick="fecharModal()">&times;</button>
             </div>
-            <div class="modal-body" id="corpo-modal">
-                <div id="loading-modal" class="loading" style="display: none;">Buscando dados no servidor...</div>
-
-                <div class="chart-container" id="container-grafico" style="display: none;">
-                    <canvas id="graficoEfetivo" style="max-height: 220px;"></canvas>
-                </div>
-
-                <div id="lista-militares"></div>
+            <div class="modal-body" id="lista-militares">
             </div>
         </div>
     </div>
 
-    <div id="footer-stats">
-        <div class="stat-card">
-            <span class="stat-title">Efetivo Operacional Ativo</span>
-            <span class="stat-value" id="stat-total">--</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-title">Média de Idade</span>
-            <span class="stat-value" id="stat-idade">-- anos</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-title">Índice de Prontidão</span>
-            <span class="stat-value" id="stat-prontidao">--</span>
-        </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // 1. Inicializa Mapa
-        const mapa = L.map('mapa', { zoomControl: false }).setView([-3.1190, -60.0217], 5);
+        const mapa = L.map('mapa', {
+            zoomControl: false
+        }).setView([-3.1190, -60.0217], 5);
+
         L.control.zoom({ position: 'bottomleft' }).addTo(mapa);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -383,33 +299,23 @@
             maxZoom: 20
         }).addTo(mapa);
 
-        // 2. Grupo de Clusterização
-        const markerCluster = L.markerClusterGroup({
-            maxClusterRadius: 40,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true
-        });
-
-        // 3. Contorno do Estado
+        // Contorno do Amazonas
         fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/13?formato=application/vnd.geo+json')
             .then(response => response.json())
             .then(data => {
                 L.geoJSON(data, {
-                    style: { color: '#d32f2f', weight: 2, opacity: 0.6, fillColor: '#d32f2f', fillOpacity: 0.05 }
+                    style: {
+                        color: '#d32f2f',
+                        weight: 2,
+                        opacity: 0.6,
+                        fillColor: '#d32f2f',
+                        fillOpacity: 0.05
+                    }
                 }).addTo(mapa);
-            });
+            })
+            .catch(erro => console.error('Erro ao carregar malha:', erro));
 
-        // 4. Carregar Dados Globais (Rodapé)
-        fetch('/api/estatisticas-gerais')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('stat-total').innerText = data.total;
-                document.getElementById('stat-idade').innerText = data.media_idade + ' anos';
-                document.getElementById('stat-prontidao').innerText = data.prontidao;
-            });
-
-        // 5. Carregar Markers e aplicar ao Cluster
+        // Dados do efetivo
         fetch('/api/mapa-dados')
             .then(response => response.json())
             .then(dados => {
@@ -418,20 +324,20 @@
                         className: 'custom-text-icon',
                         html: `
                             <div class="pin-container">
-                                <img class="pin-logo" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
+                                <img class="pin-logo" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="CBMAM">
                                 <div class="pin-text">${dado.obm}</div>
                             </div>
                         `,
                         iconSize: [0, 0]
                     });
 
-                    const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel });
+                    const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel }).addTo(mapa);
 
                     const conteudoTooltip = `
                         <div class="popup-title">${dado.obm}</div>
                         <p class="popup-info"><strong>Base:</strong> ${dado.cidade}</p>
                         <p class="popup-info"><strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
-                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para análise da unidade</p>
+                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para listar militares</p>
                     `;
 
                     marcador.bindTooltip(conteudoTooltip, {
@@ -441,99 +347,43 @@
                         opacity: 0.95
                     });
 
-                    marcador.on('click', () => { abrirModalMilitares(dado.obm_id, dado.obm); });
-
-                    // Adiciona ao grupo de cluster invés de direto no mapa
-                    markerCluster.addLayer(marcador);
+                    marcador.on('click', () => {
+                        abrirModalMilitares(dado.obm_id, dado.obm);
+                    });
                 });
-
-                // Adiciona todo o cluster no mapa final
-                mapa.addLayer(markerCluster);
-            });
-
-        // Variável global para destruir o gráfico anterior ao clicar em outro OBM
-        let chartInstance = null;
+            })
+            .catch(erro => console.error('Erro ao carregar dados do mapa:', erro));
 
         function abrirModalMilitares(obmId, obmSigla) {
             const modal = document.getElementById('modal-efetivo');
             const titulo = document.getElementById('modal-titulo');
             const lista = document.getElementById('lista-militares');
-            const loader = document.getElementById('loading-modal');
-            const containerGrafico = document.getElementById('container-grafico');
 
             modal.classList.add('aberta');
             titulo.innerText = obmSigla;
-
-            // Estado de Carregamento
-            lista.innerHTML = '';
-            containerGrafico.style.display = 'none';
-            loader.style.display = 'block';
+            lista.innerHTML = '<div class="loading">Buscando dados no servidor...</div>';
 
             fetch(`/api/militares-obm/${obmId}`)
                 .then(res => res.json())
-                .then(data => {
-                    loader.style.display = 'none';
-                    const militares = data.militares;
-                    const stats = data.stats;
-
-                    if (!militares || militares.length === 0) {
+                .then(militares => {
+                    if (militares.length === 0) {
                         lista.innerHTML = '<div class="loading">Nenhum militar registrado.</div>';
                         return;
                     }
 
-                    // 1. Renderiza a Lista
                     let html = '';
                     militares.forEach(m => {
-                        html += `<div class="card-militar"><strong>${m.posto}</strong> ${m.nome}</div>`;
+                        html += `
+                            <div class="card-militar">
+                                <strong>${m.posto}</strong> ${m.nome}
+                            </div>
+                        `;
                     });
                     lista.innerHTML = html;
-
-                    // 2. Renderiza o Gráfico de Pizza
-                    containerGrafico.style.display = 'block';
-                    renderizarGrafico(stats);
                 })
                 .catch(erro => {
-                    loader.style.display = 'none';
                     lista.innerHTML = '<div class="loading" style="color: #d32f2f;">Erro ao buscar dados.</div>';
                 });
-        }
-
-        function renderizarGrafico(statsData) {
-            const ctx = document.getElementById('graficoEfetivo').getContext('2d');
-
-            // Destroi o gráfico antigo para não sobrepor
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
-            const labels = Object.keys(statsData);
-            const dados = Object.values(statsData);
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: dados,
-                        backgroundColor: [
-                            '#d32f2f', '#ff5252', '#f44336', '#e57373',
-                            '#b71c1c', '#c62828', '#ffffff', '#aaaaaa'
-                        ],
-                        borderWidth: 1,
-                        borderColor: '#1a1a1a'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: '#ffffff', font: { size: 11 } }
-                        }
-                    }
-                }
-            });
         }
 
         function fecharModal() {

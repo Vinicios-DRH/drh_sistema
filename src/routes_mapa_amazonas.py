@@ -41,28 +41,6 @@ def renderizar_mapa():
     return render_template('mapa_amazonas.html')
 
 
-@mapa_bp.route('/api/estatisticas-gerais')
-def api_estatisticas_gerais():
-    """Retorna os dados globais para o rodapé do Dashboard."""
-    total_efetivo = database.session.query(
-        database.func.count(database.func.distinct(Militar.id))
-    ).join(
-        MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
-    ).filter(
-        MilitarObmFuncao.data_fim.is_(None),
-        Militar.posto_grad_id != 15
-    ).scalar()
-
-    # Como não temos os campos exatos de nascimento e afastamentos no snippet,
-    # deixamos valores calculados aproximados/mockados para a interface.
-    # Você pode plugar as queries reais aqui depois.
-    return jsonify({
-        "total": total_efetivo or 0,
-        "media_idade": 34,
-        "prontidao": "92%"
-    })
-
-
 @mapa_bp.route('/api/mapa-dados')
 def api_dados_mapa():
     query = database.session.query(
@@ -114,19 +92,33 @@ def api_dados_mapa():
 
 @mapa_bp.route('/api/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
-    """Retorna os militares e as estatísticas da OBM para o Chart.js."""
+    """Retorna os militares da OBM ordenados por hierarquia e antiguidade."""
+
     ordem_hierarquica = case(
         {
-            'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
-            '1 TEN': 5, '2 TEN': 6, 'ASP': 7, 'AL OF': 8,
-            'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1 SGT': 11,
-            '2 SGT': 12, '3 SGT': 13, 'AL SGT': 14,
-            'CB': 15, 'AL SD': 16, 'SD': 17
+            'CEL': 1,
+            'TC': 2,
+            'MAJ': 3,
+            'CAP': 4,
+            '1 TEN': 5,
+            '2 TEN': 6,
+            'ASP': 7,
+            'AL OF': 8,
+            'ALUNO OFICIAL': 9,
+            'SUBTENENTE': 10,
+            '1 SGT': 11,
+            '2 SGT': 12,
+            '3 SGT': 13,
+            'AL SGT': 14,
+            'CB': 15,
+            'AL SD': 16,
+            'SD': 17
         },
         value=database.func.upper(PostoGrad.sigla),
         else_=99
     )
 
+    # Removido o .distinct() para evitar conflito com o CASE no ORDER BY
     query = database.session.query(
         Militar, PostoGrad
     ).join(
@@ -142,25 +134,16 @@ def api_militares_obm(obm_id):
         Militar.antiguidade.asc()
     ).all()
 
-    resultado_militares = []
-    estatisticas_posto = {}
-    militares_vistos = set()
+    resultado = []
+    militares_vistos = set()  # Set para rastrear quem já foi adicionado
 
     for militar, posto in query:
+        # Só adiciona na lista se o ID do militar ainda não estiver no Set
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
-            sigla_posto = posto.sigla if posto else "S/P"
-
-            resultado_militares.append({
+            resultado.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
-                "posto": sigla_posto
+                "posto": posto.sigla if posto else "S/P"
             })
 
-            # Contagem para o gráfico de pizza
-            estatisticas_posto[sigla_posto] = estatisticas_posto.get(
-                sigla_posto, 0) + 1
-
-    return jsonify({
-        "militares": resultado_militares,
-        "stats": estatisticas_posto
-    })
+    return jsonify(resultado)
