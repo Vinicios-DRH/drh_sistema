@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Geográfico - Efetivo</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        #header {
+            padding: 20px 30px;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1000;
+        }
+
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        #header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        #mapa {
+            width: 100vw;
+            height: calc(100vh - 80px);
+        }
+
+        /* Popups */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background-color: #1e1e1e;
+            color: #fff;
+            border-radius: 8px;
+            border: 1px solid #4CAF50;
+        }
+
+        .custom-popup .leaflet-popup-tip {
+            background-color: #1e1e1e;
+            border: 1px solid #4CAF50;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .popup-info {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .efetivo-badge {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: #121212;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* Estilo da nova etiqueta de texto no mapa */
+        .leaflet-div-icon.custom-text-icon {
+            background: transparent;
+            border: none;
+        }
+
+        .label-mapa {
+            background-color: rgba(30, 30, 30, 0.85);
+            color: #ffffff;
+            border: 1px solid #4CAF50;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            /* Centraliza a div exatamente na coordenada */
+            transform: translate(-50%, -50%);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .label-mapa:hover {
+            background-color: #4CAF50;
+            color: #121212;
+            z-index: 1000 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="header">
+        <h1>Visão Geral de Efetivo</h1>
+        <p>Distribuição operacional no Estado do Amazonas</p>
+    </div>
+
+    <div id="mapa"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const mapa = L.map('mapa').setView([-3.1190, -60.0217], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(mapa);
+
+        // Contorno do Amazonas
+        fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/13?formato=application/vnd.geo+json')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: {
+                        color: '#4CAF50',
+                        weight: 2,
+                        opacity: 0.6,
+                        fillColor: '#4CAF50',
+                        fillOpacity: 0.04
+                    }
+                }).addTo(mapa);
+            })
+            .catch(erro => console.error('Erro ao carregar o contorno do Amazonas:', erro));
+
+        // Dados do efetivo
+        fetch('/api/mapa-dados')
+            .then(response => response.json())
+            .then(dados => {
+                dados.forEach(dado => {
+                    // O ícone agora é dinâmico e criado para cada item
+                    // Usamos dado.obm (ou dado.cidade, se preferir)
+                    const textLabel = L.divIcon({
+                        className: 'custom-text-icon',
+                        html: `<div class="label-mapa">${dado.obm}</div>`,
+                        iconSize: [0, 0] // Define como zero para que a div defina o próprio tamanho (com o white-space: nowrap)
+                    });
+
+                    const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel }).addTo(mapa);
+
+                    const conteudoPopup = `
+                        <div class="popup-title">${dado.obm}</div>
+                        <p class="popup-info"><strong>Localidade:</strong> ${dado.cidade}</p>
+                        <p class="popup-info"><strong>Militares:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
+                    `;
+
+                    marcador.bindPopup(conteudoPopup, { className: 'custom-popup' });
+                });
+            })
+            .catch(erro => console.error('Erro ao carregar dados do mapa:', erro));
+    </script>
+</body>
+
+</html>
