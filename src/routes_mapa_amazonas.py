@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from sqlalchemy.orm import aliased
-from src import database  # Ajuste a importação do banco conforme seu projeto
+from sqlalchemy import case
+from src import database
 from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad
 
 mapa_bp = Blueprint('mapa_amazonas', __name__)
@@ -42,7 +43,6 @@ def renderizar_mapa():
 
 @mapa_bp.route('/api/mapa-dados')
 def api_dados_mapa():
-    # Incluímos o Obm.id na pesquisa
     query = database.session.query(
         Obm.id,
         Obm.sigla,
@@ -91,7 +91,33 @@ def api_dados_mapa():
 
 @mapa_bp.route('/api/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
-    """Nova rota para listar os militares de uma OBM específica."""
+    """Retorna os militares da OBM ordenados por hierarquia e antiguidade."""
+
+    # Mapeamento do peso hierárquico com as nomenclaturas exatas do banco
+    ordem_hierarquica = case(
+        {
+            'CEL': 1,
+            'TC': 2,
+            'MAJ': 3,
+            'CAP': 4,
+            '1 TEN': 5,
+            '2 TEN': 6,
+            'ASP': 7,
+            'AL OF': 8,
+            'ALUNO OFICIAL': 9,
+            'SUBTENENTE': 10,
+            '1 SGT': 11,
+            '2 SGT': 12,
+            '3 SGT': 13,
+            'AL SGT': 14,
+            'CB': 15,
+            'AL SD': 16,
+            'SD': 17
+        },
+        value=database.func.upper(PostoGrad.sigla),
+        else_=99  # Civis ou patentes não mapeadas vão pro final da fila
+    )
+
     query = database.session.query(
         Militar, PostoGrad
     ).join(
@@ -102,7 +128,10 @@ def api_militares_obm(obm_id):
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
         Militar.posto_grad_id != 15
-    ).order_by(PostoGrad.id).all()  # Ordena por patente (dependendo de como os IDs estão no seu banco)
+    ).order_by(
+        ordem_hierarquica,          # Ordena primeiro pelo peso da patente
+        Militar.antiguidade.asc()   # Em caso de empate na patente, ordena pela antiguidade
+    ).all()
 
     resultado = []
     for militar, posto in query:
