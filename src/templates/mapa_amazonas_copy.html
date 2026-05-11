@@ -405,7 +405,7 @@
             });
 
         // 4. Carregar Dados Globais Reais (Rodapé)
-        fetch('/api/estatisticas-gerais')
+        fetch('/api/estatisticas-gerais-teste')
             .then(res => res.json())
             .then(data => {
                 document.getElementById('stat-total').innerText = data.total;
@@ -415,7 +415,7 @@
             });
 
         // 5. Carregar Markers e aplicar ao Cluster
-        fetch('/api/mapa-dados')
+        fetch('/api/mapa-dados-teste')
             .then(response => response.json())
             .then(dados => {
                 dados.forEach(dado => {
@@ -472,7 +472,7 @@
             containerGrafico.style.display = 'none';
             loader.style.display = 'block';
 
-            fetch(`/api/militares-obm/${obmId}`)
+            fetch(`/api-teste/militares-obm/${obmId}`)
                 .then(res => res.json())
                 .then(data => {
                     loader.style.display = 'none';

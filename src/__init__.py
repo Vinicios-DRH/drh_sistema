@@ -213,8 +213,8 @@ from src import routes_mapa_funcional
 
 from src.routes_conferencia_pagadoria import bp_conferencia_pagadoria
 from src.routes_mapa_amazonas import mapa_bp
-# from src.routes_mapa_amazonas_copy import mapa_bp as mapa_copy_bp
-# app.register_blueprint(mapa_copy_bp)
+from src.routes_mapa_amazonas_copy import mapa_bp as mapa_copy_bp
+app.register_blueprint(mapa_copy_bp)
 app.register_blueprint(mapa_bp)
 app.register_blueprint(bp_conferencia_pagadoria)
 app.register_blueprint(remove_bg_bp)

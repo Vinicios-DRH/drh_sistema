@@ -43,7 +43,7 @@ def renderizar_mapa():
     return render_template('mapa_amazonas_copy.html')
 
 
-@mapa_bp.route('/api/estatisticas-gerais')
+@mapa_bp.route('/api/estatisticas-gerais-teste')
 def api_estatisticas_gerais():
     """Retorna os dados globais para o rodapé do Dashboard."""
     # 1. Pega os dados já validados do seu arquivo querys.py
@@ -80,7 +80,7 @@ def api_estatisticas_gerais():
     })
 
 
-@mapa_bp.route('/api/mapa-dados')
+@mapa_bp.route('/api/mapa-dados-teste')
 def api_dados_mapa():
     query = database.session.query(
         Obm.id,
@@ -129,7 +129,7 @@ def api_dados_mapa():
     return jsonify(resultado)
 
 
-@mapa_bp.route('/api/militares-obm/<int:obm_id>')
+@mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
     """Retorna os militares e as estatísticas da OBM para o Chart.js."""
     ordem_hierarquica = case(
