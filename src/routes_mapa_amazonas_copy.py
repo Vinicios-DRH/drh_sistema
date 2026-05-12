@@ -197,13 +197,30 @@ def api_militares_obm(obm_id):
 
     FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
 
+    # Mapeamento de prioridade para as funções (menor = aparece mais em cima)
+    PESO_FUNCAO = {
+        4: 1,   # COMANDANTE GERAL
+        5: 2,   # CHEFE DO ESTADO MAIOR
+        2: 3,   # DIRETOR
+        3: 4,   # COMANDANTE
+        1: 5,   # CHEFE
+        11: 6,  # CMT PELOTÃO DE GUARDA-VIDAS
+        12: 7,  # CMT PELOTÃO FLUVIAL
+        10: 8,  # SUB DIRETOR
+        9: 9,   # SUBCOMANDANTE
+        24: 10  # SUB CHEFE
+    }
+
     for militar, posto, m_funcao, funcao, contato_emergencia in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
 
-            is_comandante = m_funcao.funcao_id in FUNCOES_COMANDO
+            funcao_id = m_funcao.funcao_id if m_funcao else None
+            is_comandante = funcao_id in FUNCOES_COMANDO
             nome_funcao = funcao.ocupacao if funcao else ""
+            # Pega o peso, se não for comando, joga pro final (99)
+            peso = PESO_FUNCAO.get(funcao_id, 99)
 
             # Extração dos dados de contato com tratamento caso sejam nulos
             celular = militar.celular if militar.celular else "Não informado"
@@ -217,13 +234,17 @@ def api_militares_obm(obm_id):
                 "funcao": nome_funcao,
                 "celular": celular,
                 "contato_emergencia_nome": contato_nome,
-                "contato_emergencia_tel": contato_tel
+                "contato_emergencia_tel": contato_tel,
+                "peso_funcao": peso
             })
 
             estatisticas_posto[sigla_posto] = estatisticas_posto.get(
                 sigla_posto, 0) + 1
 
-    resultado_militares.sort(key=lambda x: (not x["is_comandante"]))
+    # Ordena garantindo: 1º É comando?, 2º Qual o peso da Função?, 3º Rank do Banco (Estável)
+    # O .sort() do Python é estável, então o resto da tropa vai manter a ordem hierárquica do BD certinha.
+    resultado_militares.sort(key=lambda x: (
+        not x["is_comandante"], x["peso_funcao"]))
 
     return jsonify({
         "militares": resultado_militares,
