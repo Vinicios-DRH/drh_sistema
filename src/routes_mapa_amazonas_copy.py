@@ -3,7 +3,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case
 from datetime import date
 from src import database
-from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia
 from src.querys import obter_estatisticas_militares
 
 mapa_bp = Blueprint('mapa_amazonas_teste', __name__)
@@ -82,6 +82,7 @@ def api_estatisticas_gerais():
 
 @mapa_bp.route('/api/mapa-dados-teste')
 def api_dados_mapa():
+    # 1. Query principal que você já tem (OBM + Total Efetivo)
     query = database.session.query(
         Obm.id,
         Obm.sigla,
@@ -95,6 +96,31 @@ def api_dados_mapa():
         Militar.posto_grad_id != 15,
         MilitarObmFuncao.data_fim.is_(None)
     ).group_by(Obm.id, Obm.sigla).all()
+
+    # 2. Nova Query para buscar quem está nos cargos de comando em cada OBM
+    FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11,
+                       12, 24]  # IDs dos cargos de liderança
+    comandantes_query = database.session.query(
+        MilitarObmFuncao.obm_id,
+        Militar.nome_guerra,
+        Militar.nome_completo,
+        PostoGrad.sigla
+    ).join(
+        Militar, Militar.id == MilitarObmFuncao.militar_id
+    ).outerjoin(
+        PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).filter(
+        MilitarObmFuncao.data_fim.is_(None),
+        MilitarObmFuncao.funcao_id.in_(FUNCOES_COMANDO)
+    ).all()
+
+    # 3. Monta um dicionário para acessar o nome do comandante rapidamente pelo obm_id
+    comandantes_dict = {}
+    for obm_id, nome_guerra, nome_completo, posto_sigla in comandantes_query:
+        if obm_id not in comandantes_dict:  # Pega o primeiro líder encontrado
+            nome = nome_guerra if nome_guerra else nome_completo
+            posto = posto_sigla if posto_sigla else ""
+            comandantes_dict[obm_id] = f"{posto} {nome}".strip()
 
     resultado = []
 
@@ -123,7 +149,9 @@ def api_dados_mapa():
             "efetivo": efetivo,
             "cidade": cidade_destino,
             "lat": lat,
-            "lng": lng
+            "lng": lng,
+            # Insere o nome do comandante (ou uma mensagem caso a unidade esteja sem)
+            "comandante": comandantes_dict.get(obm_id, "Não atribuído")
         })
 
     return jsonify(resultado)
@@ -143,15 +171,17 @@ def api_militares_obm(obm_id):
         else_=99
     )
 
-    # Adicionamos MilitarObmFuncao e Funcao na query
+    # Adicionamos MilitarContatoEmergencia na query e nos outerjoins
     query = database.session.query(
-        Militar, PostoGrad, MilitarObmFuncao, Funcao
+        Militar, PostoGrad, MilitarObmFuncao, Funcao, MilitarContatoEmergencia
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
     ).outerjoin(
         PostoGrad, PostoGrad.id == Militar.posto_grad_id
     ).outerjoin(
         Funcao, Funcao.id == MilitarObmFuncao.funcao_id
+    ).outerjoin(
+        MilitarContatoEmergencia, MilitarContatoEmergencia.militar_id == Militar.id
     ).filter(
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
@@ -165,10 +195,9 @@ def api_militares_obm(obm_id):
     estatisticas_posto = {}
     militares_vistos = set()
 
-    # IDs de comando baseados na sua planilha funcao_rows.xlsx
     FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
 
-    for militar, posto, m_funcao, funcao in query:
+    for militar, posto, m_funcao, funcao, contato_emergencia in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
@@ -176,17 +205,24 @@ def api_militares_obm(obm_id):
             is_comandante = m_funcao.funcao_id in FUNCOES_COMANDO
             nome_funcao = funcao.ocupacao if funcao else ""
 
+            # Extração dos dados de contato com tratamento caso sejam nulos
+            celular = militar.celular if militar.celular else "Não informado"
+            contato_nome = contato_emergencia.nome if contato_emergencia else "Nenhum cadastrado"
+            contato_tel = contato_emergencia.telefone if contato_emergencia else "---"
+
             resultado_militares.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
                 "posto": sigla_posto,
                 "is_comandante": is_comandante,
-                "funcao": nome_funcao
+                "funcao": nome_funcao,
+                "celular": celular,
+                "contato_emergencia_nome": contato_nome,
+                "contato_emergencia_tel": contato_tel
             })
 
             estatisticas_posto[sigla_posto] = estatisticas_posto.get(
                 sigla_posto, 0) + 1
 
-    # Ordena a lista garantindo que os comandantes fiquem no topo
     resultado_militares.sort(key=lambda x: (not x["is_comandante"]))
 
     return jsonify({

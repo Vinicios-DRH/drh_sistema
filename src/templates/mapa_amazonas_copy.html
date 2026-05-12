@@ -321,6 +321,73 @@
             text-transform: uppercase;
         }
 
+        /* --- TOOLTIP DOS MILITARES --- */
+        .tooltip-container {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            background-color: #1a1a1a;
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 2500;
+            bottom: 110%;
+            /* Posiciona acima do card */
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+            width: 220px;
+            border: 1px solid #d32f2f;
+            font-size: 13px;
+            pointer-events: none;
+            /* Evita bugar o hover */
+        }
+
+        /* Setinha do balão apontando para baixo */
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #d32f2f transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .tooltip-header {
+            color: #aaa;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .tooltip-value {
+            color: #ffb300;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-divider {
+            border: 0;
+            border-top: 1px dashed #444;
+            margin: 8px 0;
+        }
+
         /* Responsividade Básica */
         @media (max-width: 600px) {
             #header {
@@ -457,8 +524,9 @@
                     const conteudoTooltip = `
                         <div class="popup-title">${dado.obm}</div>
                         <p class="popup-info"><strong>Base:</strong> ${dado.cidade}</p>
+                        <p class="popup-info" style="color: #ffb300; margin-top: 6px;"><strong>Comando:</strong> ${dado.comandante}</p>
                         <p class="popup-info"><strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
-                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para análise da unidade</p>
+                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para ficha completa</p>
                     `;
 
                     marcador.bindTooltip(conteudoTooltip, {
@@ -509,17 +577,36 @@
                     // 1. Renderiza a Lista
                     let html = '';
                     militares.forEach(m => {
+                        // Monta o balão de contato
+                        const tooltipHTML = `
+                            <div class="tooltip-content">
+                                <div class="tooltip-header">📞 Contato Pessoal</div>
+                                <div class="tooltip-value">${m.celular}</div>
+                                
+                                <hr class="tooltip-divider">
+                                
+                                <div class="tooltip-header">🚨 Emergência: ${m.contato_emergencia_nome}</div>
+                                <div class="tooltip-value">${m.contato_emergencia_tel}</div>
+                            </div>
+                        `;
+
                         if (m.is_comandante) {
-                            // Card em destaque para o comandante/chefe
+                            // Card em destaque para o comandante/chefe com Tooltip
                             html += `
-                                <div class="card-militar card-comandante">
+                                <div class="card-militar card-comandante tooltip-container">
                                     <strong>${m.posto}</strong> ${m.nome}
                                     <span class="badge-funcao">${m.funcao}</span>
+                                    ${tooltipHTML}
                                 </div>
                             `;
                         } else {
-                            // Card normal para o restante do efetivo
-                            html += `<div class="card-militar"><strong>${m.posto}</strong> ${m.nome}</div>`;
+                            // Card normal para o restante do efetivo com Tooltip
+                            html += `
+                                <div class="card-militar tooltip-container">
+                                    <strong>${m.posto}</strong> ${m.nome}
+                                    ${tooltipHTML}
+                                </div>
+                            `;
                         }
                     });
                     lista.innerHTML = html;
