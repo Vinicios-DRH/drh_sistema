@@ -3,8 +3,8 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case
 from datetime import date
 from src import database
-from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad
-from src.querys import obter_estatisticas_militares  # Importando suas estatísticas
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao
+from src.querys import obter_estatisticas_militares
 
 mapa_bp = Blueprint('mapa_amazonas_teste', __name__)
 
@@ -46,7 +46,7 @@ def renderizar_mapa():
 @mapa_bp.route('/api/estatisticas-gerais-teste')
 def api_estatisticas_gerais():
     """Retorna os dados globais para o rodapé do Dashboard."""
-    # 1. Pega os dados já validados do seu arquivo querys.py
+    # 1. Pega os dados já validados de querys.py
     stats = obter_estatisticas_militares()
 
     # 2. Calcula a média de idade de todos os ativos via Python (livre de erros de dialeto SQL)
@@ -131,7 +131,6 @@ def api_dados_mapa():
 
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
-    """Retorna os militares e as estatísticas da OBM para o Chart.js."""
     ordem_hierarquica = case(
         {
             'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
@@ -144,12 +143,15 @@ def api_militares_obm(obm_id):
         else_=99
     )
 
+    # Adicionamos MilitarObmFuncao e Funcao na query
     query = database.session.query(
-        Militar, PostoGrad
+        Militar, PostoGrad, MilitarObmFuncao, Funcao
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
     ).outerjoin(
         PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).outerjoin(
+        Funcao, Funcao.id == MilitarObmFuncao.funcao_id
     ).filter(
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
@@ -163,18 +165,29 @@ def api_militares_obm(obm_id):
     estatisticas_posto = {}
     militares_vistos = set()
 
-    for militar, posto in query:
+    # IDs de comando baseados na sua planilha funcao_rows.xlsx
+    FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
+
+    for militar, posto, m_funcao, funcao in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
 
+            is_comandante = m_funcao.funcao_id in FUNCOES_COMANDO
+            nome_funcao = funcao.ocupacao if funcao else ""
+
             resultado_militares.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
-                "posto": sigla_posto
+                "posto": sigla_posto,
+                "is_comandante": is_comandante,
+                "funcao": nome_funcao
             })
 
             estatisticas_posto[sigla_posto] = estatisticas_posto.get(
                 sigla_posto, 0) + 1
+
+    # Ordena a lista garantindo que os comandantes fiquem no topo
+    resultado_militares.sort(key=lambda x: (not x["is_comandante"]))
 
     return jsonify({
         "militares": resultado_militares,

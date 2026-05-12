@@ -299,6 +299,28 @@
             margin-top: 20px;
         }
 
+        .card-comandante {
+            background: linear-gradient(145deg, #2a2a2a 0%, #3a1c1c 100%);
+            border-left: 4px solid #ffb300;
+            /* Um dourado para destacar a autoridade */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .badge-funcao {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #ffb300;
+            color: #121212;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
         /* Responsividade Básica */
         @media (max-width: 600px) {
             #header {
@@ -487,7 +509,18 @@
                     // 1. Renderiza a Lista
                     let html = '';
                     militares.forEach(m => {
-                        html += `<div class="card-militar"><strong>${m.posto}</strong> ${m.nome}</div>`;
+                        if (m.is_comandante) {
+                            // Card em destaque para o comandante/chefe
+                            html += `
+                                <div class="card-militar card-comandante">
+                                    <strong>${m.posto}</strong> ${m.nome}
+                                    <span class="badge-funcao">${m.funcao}</span>
+                                </div>
+                            `;
+                        } else {
+                            // Card normal para o restante do efetivo
+                            html += `<div class="card-militar"><strong>${m.posto}</strong> ${m.nome}</div>`;
+                        }
                     });
                     lista.innerHTML = html;
 
