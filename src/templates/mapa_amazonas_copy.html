@@ -388,6 +388,19 @@
             margin: 8px 0;
         }
 
+        #card-media-idade {
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            border-radius: 8px;
+            padding: 5px 15px;
+        }
+
+        #card-media-idade:hover {
+            transform: translateY(-4px);
+            background-color: #2a2a2a;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
         /* Responsividade Básica */
         @media (max-width: 600px) {
             #header {
@@ -445,10 +458,11 @@
 
     <div id="footer-stats">
         <div class="stat-card">
-            <span class="stat-title">Efetivo Ativo (Sem Civis)</span>
+            <span class="stat-title">Efetivo Ativo</span>
             <span class="stat-value" id="stat-total">--</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="card-media-idade" onclick="abrirModalIdades()"
+            title="Clique para ver detalhes por posto">
             <span class="stat-title">Média de Idade</span>
             <span class="stat-value" id="stat-idade">-- anos</span>
         </div>
@@ -459,6 +473,22 @@
         <div class="stat-card">
             <span class="stat-title">Quadro de Saúde</span>
             <span class="stat-value" id="stat-saude">--</span>
+        </div>
+    </div>
+
+    <div id="modal-idades"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(3px);">
+        <div
+            style="background: #1a1a1a; border-top: 4px solid #d32f2f; border-radius: 8px; width: 800px; max-width: 90%; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 20px; color: #fff; text-transform: uppercase;">Média de Idade por
+                    Posto/Graduação</h2>
+                <button onclick="document.getElementById('modal-idades').style.display='none'"
+                    style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: color 0.2s;">&times;</button>
+            </div>
+            <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; position: relative;">
+                <canvas id="graficoIdadesPosto" style="max-height: 400px; width: 100%;"></canvas>
+            </div>
         </div>
     </div>
 
@@ -660,6 +690,69 @@
 
         function fecharModal() {
             document.getElementById('modal-efetivo').classList.remove('aberta');
+        }
+
+        let chartIdades = null;
+
+        function abrirModalIdades() {
+            const modal = document.getElementById('modal-idades');
+            modal.style.display = 'flex';
+
+            fetch('/api/media-idade-posto')
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(d => d.posto);
+                    const valores = data.map(d => d.media);
+
+                    const ctx = document.getElementById('graficoIdadesPosto').getContext('2d');
+
+                    if (chartIdades) {
+                        chartIdades.destroy();
+                    }
+
+                    // Define global defaults to dark mode
+                    Chart.defaults.color = '#ccc';
+
+                    chartIdades = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Idade Média',
+                                data: valores,
+                                backgroundColor: '#d32f2f',
+                                borderColor: '#ff5252',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#444' },
+                                    title: { display: true, text: 'Anos' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            return ` ${context.parsed.y} anos`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(erro => console.error("Erro ao buscar idades:", erro));
         }
     </script>
 </body>

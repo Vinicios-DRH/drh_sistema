@@ -157,6 +157,61 @@ def api_dados_mapa():
     return jsonify(resultado)
 
 
+@mapa_bp.route('/api/media-idade-posto')
+def api_media_idade_posto():
+    # 1. Busca militares ativos, excluindo posto 15 (se for a regra) e com data de nascimento válida
+    query = database.session.query(
+        PostoGrad.sigla,
+        Militar.data_nascimento
+    ).join(
+        PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).filter(
+        Militar.inativo.is_(False),
+        Militar.posto_grad_id != 15,
+        Militar.data_nascimento.isnot(None)
+    ).all()
+
+    hoje = date.today()
+    dados_idade = {}
+
+    # 2. Agrupa as idades calculadas por sigla do posto
+    for sigla, nascimento in query:
+        idade = hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+        
+        if sigla not in dados_idade:
+            dados_idade[sigla] = []
+        dados_idade[sigla].append(idade)
+
+    # 3. Define a ordem hierárquica para o gráfico ficar organizado
+    ordem_hierarquica = [
+        'CEL', 'TC', 'MAJ', 'CAP', '1 TEN', '2 TEN', 'ASP', 'AL OF', 
+        'ALUNO OFICIAL', 'SUBTENENTE', '1 SGT', '2 SGT', '3 SGT', 
+        'AL SGT', 'CB', 'AL SD', 'SD'
+    ]
+
+    resultado = []
+    
+    # 4. Monta o resultado respeitando a ordem
+    for sigla in ordem_hierarquica:
+        if sigla in dados_idade and len(dados_idade[sigla]) > 0:
+            media = sum(dados_idade[sigla]) / len(dados_idade[sigla])
+            resultado.append({
+                "posto": sigla,
+                "media": round(media, 1)
+            })
+            
+    # Caso exista algum posto fora da lista, adiciona no final
+    for sigla, idades in dados_idade.items():
+        if sigla not in ordem_hierarquica and len(idades) > 0:
+            media = sum(idades) / len(idades)
+            resultado.append({
+                "posto": sigla,
+                "media": round(media, 1)
+            })
+
+    return jsonify(resultado)
+
+
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
     ordem_hierarquica = case(
