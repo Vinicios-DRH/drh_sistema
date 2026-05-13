@@ -3,7 +3,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case
 from datetime import date
 from src import database
-from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia, Quadro
 from src.querys import obter_estatisticas_militares
 
 mapa_bp = Blueprint('mapa_amazonas_teste', __name__)
@@ -82,7 +82,7 @@ def api_estatisticas_gerais():
 
 @mapa_bp.route('/api/mapa-dados-teste')
 def api_dados_mapa():
-    # 1. Query principal que você já tem (OBM + Total Efetivo)
+    # 1. Query principal
     query = database.session.query(
         Obm.id,
         Obm.sigla,
@@ -176,21 +176,22 @@ def api_media_idade_posto():
 
     # 2. Agrupa as idades calculadas por sigla do posto
     for sigla, nascimento in query:
-        idade = hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
-        
+        idade = hoje.year - nascimento.year - \
+            ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+
         if sigla not in dados_idade:
             dados_idade[sigla] = []
         dados_idade[sigla].append(idade)
 
     # 3. Define a ordem hierárquica para o gráfico ficar organizado
     ordem_hierarquica = [
-        'CEL', 'TC', 'MAJ', 'CAP', '1 TEN', '2 TEN', 'ASP', 'AL OF', 
-        'ALUNO OFICIAL', 'SUBTENENTE', '1 SGT', '2 SGT', '3 SGT', 
+        'CEL', 'TC', 'MAJ', 'CAP', '1º TEN', '2º TEN', 'ASP', 'AL OF',
+        'ALUNO OFICIAL', 'SUBTENENTE', '1º SGT', '2º SGT', '3º SGT',
         'AL SGT', 'CB', 'AL SD', 'SD'
     ]
 
     resultado = []
-    
+
     # 4. Monta o resultado respeitando a ordem
     for sigla in ordem_hierarquica:
         if sigla in dados_idade and len(dados_idade[sigla]) > 0:
@@ -199,7 +200,7 @@ def api_media_idade_posto():
                 "posto": sigla,
                 "media": round(media, 1)
             })
-            
+
     # Caso exista algum posto fora da lista, adiciona no final
     for sigla, idades in dados_idade.items():
         if sigla not in ordem_hierarquica and len(idades) > 0:
@@ -217,18 +218,18 @@ def api_militares_obm(obm_id):
     ordem_hierarquica = case(
         {
             'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
-            '1 TEN': 5, '2 TEN': 6, 'ASP': 7, 'AL OF': 8,
-            'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1 SGT': 11,
-            '2 SGT': 12, '3 SGT': 13, 'AL SGT': 14,
+            '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
+            'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1º SGT': 11,
+            '2º SGT': 12, '3º SGT': 13, 'AL SGT': 14,
             'CB': 15, 'AL SD': 16, 'SD': 17
         },
         value=database.func.upper(PostoGrad.sigla),
         else_=99
     )
 
-    # Adicionamos MilitarContatoEmergencia na query e nos outerjoins
+    # 1. Adicionamos o Quadro no SELECT e no outerjoin
     query = database.session.query(
-        Militar, PostoGrad, MilitarObmFuncao, Funcao, MilitarContatoEmergencia
+        Militar, PostoGrad, MilitarObmFuncao, Funcao, MilitarContatoEmergencia, Quadro
     ).join(
         MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
     ).outerjoin(
@@ -237,6 +238,8 @@ def api_militares_obm(obm_id):
         Funcao, Funcao.id == MilitarObmFuncao.funcao_id
     ).outerjoin(
         MilitarContatoEmergencia, MilitarContatoEmergencia.militar_id == Militar.id
+    ).outerjoin(
+        Quadro, Quadro.id == Militar.quadro_id  # <-- NOVO OUTERJOIN AQUI
     ).filter(
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
@@ -252,39 +255,36 @@ def api_militares_obm(obm_id):
 
     FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
 
-    # Mapeamento de prioridade para as funções (menor = aparece mais em cima)
     PESO_FUNCAO = {
-        4: 1,   # COMANDANTE GERAL
-        5: 2,   # CHEFE DO ESTADO MAIOR
-        2: 3,   # DIRETOR
-        3: 4,   # COMANDANTE
-        1: 5,   # CHEFE
-        11: 6,  # CMT PELOTÃO DE GUARDA-VIDAS
-        12: 7,  # CMT PELOTÃO FLUVIAL
-        10: 8,  # SUB DIRETOR
-        9: 9,   # SUBCOMANDANTE
-        24: 10  # SUB CHEFE
+        4: 1, 5: 2, 2: 3, 3: 4, 1: 5,
+        11: 6, 12: 7, 10: 8, 9: 9, 24: 10
     }
 
-    for militar, posto, m_funcao, funcao, contato_emergencia in query:
+    # 2. Desempacotamos o quadro no loop
+    for militar, posto, m_funcao, funcao, contato_emergencia, quadro in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
 
+            # Tratamento para o Quadro e RG
+            sigla_quadro = quadro.quadro if quadro else ""
+            rg_militar = militar.rg if militar.rg else "S/RG"
+
             funcao_id = m_funcao.funcao_id if m_funcao else None
             is_comandante = funcao_id in FUNCOES_COMANDO
             nome_funcao = funcao.ocupacao if funcao else ""
-            # Pega o peso, se não for comando, joga pro final (99)
             peso = PESO_FUNCAO.get(funcao_id, 99)
 
-            # Extração dos dados de contato com tratamento caso sejam nulos
             celular = militar.celular if militar.celular else "Não informado"
             contato_nome = contato_emergencia.nome if contato_emergencia else "Nenhum cadastrado"
             contato_tel = contato_emergencia.telefone if contato_emergencia else "---"
 
+            # 3. Inserimos o quadro e o rg no dicionário
             resultado_militares.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
                 "posto": sigla_posto,
+                "quadro": sigla_quadro,
+                "rg": rg_militar,
                 "is_comandante": is_comandante,
                 "funcao": nome_funcao,
                 "celular": celular,
@@ -296,8 +296,6 @@ def api_militares_obm(obm_id):
             estatisticas_posto[sigla_posto] = estatisticas_posto.get(
                 sigla_posto, 0) + 1
 
-    # Ordena garantindo: 1º É comando?, 2º Qual o peso da Função?, 3º Rank do Banco (Estável)
-    # O .sort() do Python é estável, então o resto da tropa vai manter a ordem hierárquica do BD certinha.
     resultado_militares.sort(key=lambda x: (
         not x["is_comandante"], x["peso_funcao"]))
 

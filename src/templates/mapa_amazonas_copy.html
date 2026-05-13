@@ -824,11 +824,14 @@
                             </div>
                         `;
 
+                        const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
+                        const rgFormatado = `<span style="color: #888; font-size: 12px; margin-left: 4px;">| RG: ${m.rg}</span>`;
+
                         if (m.is_comandante) {
                             // Card em destaque para o comandante/chefe com Tooltip
                             html += `
                                 <div class="card-militar card-comandante tooltip-container">
-                                    <strong>${m.posto}</strong> ${m.nome}
+                                    <strong>${m.posto}${quadroFormatado}</strong> ${m.nome}
                                     <span class="badge-funcao">${m.funcao}</span>
                                     ${tooltipHTML}
                                 </div>
@@ -837,7 +840,7 @@
                             // Card normal para o restante do efetivo com Tooltip
                             html += `
                                 <div class="card-militar tooltip-container">
-                                    <strong>${m.posto}</strong> ${m.nome}
+                                    <strong>${m.posto}${quadroFormatado}</strong> ${m.nome}
                                     ${tooltipHTML}
                                 </div>
                             `;
