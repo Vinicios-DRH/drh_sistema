@@ -401,6 +401,104 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
         }
 
+        /* --- MODAL DE PESQUISA (BOTTOM SHEET) --- */
+        #overlay-pesquisa {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 3500;
+            backdrop-filter: blur(2px);
+        }
+
+        #modal-pesquisa {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 600px;
+            height: 60vh;
+            background: #1a1a1a;
+            border-top: 4px solid #d32f2f;
+            border-radius: 16px 16px 0 0;
+            z-index: 4000;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .pesquisa-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #input-pesquisa {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #input-pesquisa:focus {
+            border-color: #d32f2f;
+        }
+
+        .lista-pesquisa-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px 20px;
+        }
+
+        .pesquisa-item {
+            padding: 15px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            transition: background-color 0.2s, padding-left 0.2s;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pesquisa-item:hover {
+            background-color: #2a2a2a;
+            padding-left: 25px;
+            border-left: 3px solid #d32f2f;
+        }
+
+        .btn-abrir-pesquisa {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-abrir-pesquisa:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+
         /* Responsividade Básica */
         @media (max-width: 600px) {
             #header {
@@ -434,6 +532,14 @@
             <h1>Painel Estratégico</h1>
             <p>Distribuição Operacional - Amazonas</p>
         </div>
+
+        <!-- Espaçador para jogar o botão para a direita -->
+        <div style="flex-grow: 1;"></div>
+
+        <!-- Botão de Pesquisa -->
+        <button class="btn-abrir-pesquisa" onclick="abrirPesquisa()">
+            🔍 Buscar OBM
+        </button>
     </div>
 
     <div id="container-principal">
@@ -492,6 +598,19 @@
         </div>
     </div>
 
+    <!-- Overlay e Modal de Pesquisa -->
+    <div id="overlay-pesquisa" onclick="fecharPesquisa()"></div>
+    <div id="modal-pesquisa">
+        <div class="pesquisa-header">
+            <input type="text" id="input-pesquisa" placeholder="Digite a OBM ou cidade..." onkeyup="filtrarOBMs()">
+            <button onclick="fecharPesquisa()"
+                style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="lista-pesquisa-container" id="lista-pesquisa">
+            <!-- A lista será gerada dinamicamente via JS -->
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
@@ -533,10 +652,16 @@
                 document.getElementById('stat-saude').innerText = data.saude;
             });
 
+        // Variáveis globais para armazenar os dados e os marcadores
+        let dadosOBMGlobal = [];
+        let marcadoresLeaflet = {};
+
         // 5. Carregar Markers e aplicar ao Cluster
         fetch('/api/mapa-dados-teste')
             .then(response => response.json())
             .then(dados => {
+                dadosOBMGlobal = dados; // Salva os dados para a pesquisa
+
                 dados.forEach(dado => {
                     const textLabel = L.divIcon({
                         className: 'custom-text-icon',
@@ -568,11 +693,90 @@
 
                     marcador.on('click', () => { abrirModalMilitares(dado.obm_id, dado.obm); });
 
+                    // Salva a referência do marcador associado ao ID da OBM
+                    marcadoresLeaflet[dado.obm_id] = marcador;
+
                     markerCluster.addLayer(marcador);
                 });
 
                 mapa.addLayer(markerCluster);
             });
+
+        // ==========================================
+        // LÓGICA DE PESQUISA (BOTTOM SHEET)
+        // ==========================================
+
+        function abrirPesquisa() {
+            document.getElementById('overlay-pesquisa').style.display = 'block';
+            const modal = document.getElementById('modal-pesquisa');
+            modal.style.transform = 'translateX(-50%) translateY(0)'; // Animação de subir
+
+            const input = document.getElementById('input-pesquisa');
+            input.value = ''; // Limpa pesquisa anterior
+            setTimeout(() => input.focus(), 300); // Foca o input após animação
+
+            renderizarListaPesquisa(dadosOBMGlobal); // Mostra todas as OBMs inicialmente
+        }
+
+        function fecharPesquisa() {
+            document.getElementById('overlay-pesquisa').style.display = 'none';
+            document.getElementById('modal-pesquisa').style.transform = 'translateX(-50%) translateY(100%)'; // Animação de descer
+        }
+
+        function renderizarListaPesquisa(lista) {
+            const container = document.getElementById('lista-pesquisa');
+            container.innerHTML = '';
+
+            if (lista.length === 0) {
+                container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Nenhuma OBM ou cidade encontrada.</div>';
+                return;
+            }
+
+            lista.forEach(obm => {
+                const div = document.createElement('div');
+                div.className = 'pesquisa-item';
+                div.innerHTML = `
+                    <div>
+                        <strong style="color: #fff; font-size: 16px;">${obm.obm}</strong>
+                        <div style="color: #aaa; font-size: 12px; margin-top: 4px;">📍 ${obm.cidade} | 👮 Comando: ${obm.comandante}</div>
+                    </div>
+                    <span class="efetivo-badge">${obm.efetivo}</span>
+                `;
+                // Quando clicar na OBM da lista:
+                div.onclick = () => voarParaOBM(obm);
+                container.appendChild(div);
+            });
+        }
+
+        function filtrarOBMs() {
+            const termo = document.getElementById('input-pesquisa').value.toLowerCase();
+            const filtrados = dadosOBMGlobal.filter(o =>
+                o.obm.toLowerCase().includes(termo) ||
+                o.cidade.toLowerCase().includes(termo)
+            );
+            renderizarListaPesquisa(filtrados);
+        }
+
+        function voarParaOBM(obm) {
+            fecharPesquisa(); // Fecha a pesquisa
+
+            // Centraliza o mapa com uma animação fluida (flyTo) com zoom 14
+            mapa.flyTo([obm.lat, obm.lng], 14, { duration: 1.5 });
+
+            // Espera a animação do mapa terminar e abre automaticamente a lista de militares daquela OBM!
+            setTimeout(() => {
+                // Opcional: abre também o balãozinho no mapa
+                const marcador = marcadoresLeaflet[obm.obm_id];
+                if (marcador) {
+                    markerCluster.zoomToShowLayer(marcador, function () {
+                        marcador.openTooltip();
+                    });
+                }
+
+                // Já abre a aba lateral com os militares prontas
+                abrirModalMilitares(obm.obm_id, obm.obm);
+            }, 1600);
+        }
 
         // Variável global para destruir o gráfico anterior ao clicar em outro OBM
         let chartInstance = null;
