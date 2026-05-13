@@ -285,7 +285,10 @@
             padding: 10px 15px;
             border-radius: 6px;
             border-left: 4px solid #d32f2f;
-            font-size: 14px;
+            font-size: 13px;
+            /* Reduzimos de 14px para 13px */
+            line-height: 1.4;
+            /* Dá um respiro melhor se o texto quebrar de linha */
         }
 
         .card-militar strong {
@@ -302,9 +305,10 @@
         .card-comandante {
             background: linear-gradient(145deg, #2a2a2a 0%, #3a1c1c 100%);
             border-left: 4px solid #ffb300;
-            /* Um dourado para destacar a autoridade */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
             position: relative;
+            padding-right: 110px;
+            /* <--- ESSENCIAL: Cria uma barreira invisível para o texto não entrar debaixo do badge */
         }
 
         .badge-funcao {
@@ -823,9 +827,9 @@
                                 <div class="tooltip-value">${m.contato_emergencia_tel}</div>
                             </div>
                         `;
-                        
+
                         const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
-                        const rgFormatado = `<span style="color: #888; font-size: 12px; margin-left: 4px;">| RG: ${m.rg}</span>`;
+                        const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
 
                         if (m.is_comandante) {
                             // Card em destaque para o comandante/chefe com Tooltip

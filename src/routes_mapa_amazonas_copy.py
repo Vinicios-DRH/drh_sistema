@@ -215,19 +215,21 @@ def api_media_idade_posto():
 
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
+    # Centralizamos a hierarquia para usar tanto no banco quanto no sort do Python
+    pesos_postos = {
+        'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
+        '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
+        'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1º SGT': 11,
+        '2º SGT': 12, '3º SGT': 13, 'AL SGT': 14,
+        'CB': 15, 'AL SD': 16, 'SD': 17
+    }
+
     ordem_hierarquica = case(
-        {
-            'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
-            '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
-            'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1º SGT': 11,
-            '2º SGT': 12, '3º SGT': 13, 'AL SGT': 14,
-            'CB': 15, 'AL SD': 16, 'SD': 17
-        },
+        pesos_postos,
         value=database.func.upper(PostoGrad.sigla),
         else_=99
     )
 
-    # 1. Adicionamos o Quadro no SELECT e no outerjoin
     query = database.session.query(
         Militar, PostoGrad, MilitarObmFuncao, Funcao, MilitarContatoEmergencia, Quadro
     ).join(
@@ -239,14 +241,14 @@ def api_militares_obm(obm_id):
     ).outerjoin(
         MilitarContatoEmergencia, MilitarContatoEmergencia.militar_id == Militar.id
     ).outerjoin(
-        Quadro, Quadro.id == Militar.quadro_id  # <-- NOVO OUTERJOIN AQUI
+        Quadro, Quadro.id == Militar.quadro_id
     ).filter(
         MilitarObmFuncao.obm_id == obm_id,
         MilitarObmFuncao.data_fim.is_(None),
         Militar.posto_grad_id != 15
     ).order_by(
         ordem_hierarquica,
-        Militar.antiguidade.asc()
+        Militar.rg.asc()  # <-- Agora o banco já busca ordenando por RG
     ).all()
 
     resultado_militares = []
@@ -260,13 +262,11 @@ def api_militares_obm(obm_id):
         11: 6, 12: 7, 10: 8, 9: 9, 24: 10
     }
 
-    # 2. Desempacotamos o quadro no loop
     for militar, posto, m_funcao, funcao, contato_emergencia, quadro in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
 
-            # Tratamento para o Quadro e RG
             sigla_quadro = quadro.quadro if quadro else ""
             rg_militar = militar.rg if militar.rg else "S/RG"
 
@@ -275,11 +275,18 @@ def api_militares_obm(obm_id):
             nome_funcao = funcao.ocupacao if funcao else ""
             peso = PESO_FUNCAO.get(funcao_id, 99)
 
+            # Lógica extra para garantir ordenação numérica perfeita do RG
+            # Extrai somente os dígitos (ex: "07123-X" vira 7123)
+            rg_num = 999999999
+            if militar.rg:
+                numeros_rg = ''.join(filter(str.isdigit, militar.rg))
+                if numeros_rg:
+                    rg_num = int(numeros_rg)
+
             celular = militar.celular if militar.celular else "Não informado"
             contato_nome = contato_emergencia.nome if contato_emergencia else "Nenhum cadastrado"
             contato_tel = contato_emergencia.telefone if contato_emergencia else "---"
 
-            # 3. Inserimos o quadro e o rg no dicionário
             resultado_militares.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
                 "posto": sigla_posto,
@@ -290,14 +297,26 @@ def api_militares_obm(obm_id):
                 "celular": celular,
                 "contato_emergencia_nome": contato_nome,
                 "contato_emergencia_tel": contato_tel,
-                "peso_funcao": peso
+                "peso_funcao": peso,
+                # Peso do posto para a fila
+                "posto_ordem": pesos_postos.get(sigla_posto.upper(), 99),
+                "rg_num": rg_num  # RG em formato de número inteiro para alinhar perfeitamente
             })
 
             estatisticas_posto[sigla_posto] = estatisticas_posto.get(
                 sigla_posto, 0) + 1
 
+    # SORT FINAL DE MESTRE:
+    # 1º Comandantes (False vem primeiro no 'not')
+    # 2º Peso da Função (organiza os comandantes entre si)
+    # 3º Posto/Graduação (mantém a hierarquia pro resto do efetivo)
+    # 4º RG (ordena numericamente dentro de cada Posto/Graduação)
     resultado_militares.sort(key=lambda x: (
-        not x["is_comandante"], x["peso_funcao"]))
+        not x["is_comandante"],
+        x["peso_funcao"],
+        x["posto_ordem"],
+        x["rg_num"]
+    ))
 
     return jsonify({
         "militares": resultado_militares,
