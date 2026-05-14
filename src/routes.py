@@ -37,7 +37,7 @@ from src.decorators.business_logic import processar_militares_a_disposicao, proc
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from sqlalchemy.orm import joinedload, selectinload, load_only, aliased
-from sqlalchemy import case, distinct, func, or_, cast, String, and_
+from sqlalchemy import case, distinct, extract, func, not_, or_, cast, String, and_
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Border, Font, Side
@@ -7841,3 +7841,89 @@ def limpar_logs_acesso():
         flash("Erro ao tentar limpar os logs.", "error")
 
     return redirect(url_for('auditoria_acessos'))
+
+
+@app.route('/aniversariantes', methods=['GET'])
+def exportar_aniversariantes_excel():
+    try:
+        # 1. Consulta ignorando inativos, nulos e civis (posto 15 e quadro 8)
+        resultado = database.session.query(
+            extract('month', Militar.data_nascimento).label('mes'),
+            func.count(Militar.id).label('total')
+        ).filter(
+            Militar.data_nascimento != None,
+            Militar.inativo == False,
+            not_(and_(Militar.posto_grad_id == 15, Militar.quadro_id == 8))
+        ).group_by('mes').all()
+
+        # 2. Transforma o resultado em um dicionário {mes: total}
+        dados_meses = {int(linha.mes): linha.total for linha in resultado}
+
+        # 3. Agrupa os meses de Janeiro a Maio
+        jan_a_mai = sum(dados_meses.get(m, 0) for m in range(1, 6))
+
+        # 4. Estrutura os dados
+        dados_finais = {
+            'Janeiro a Maio': [jan_a_mai],
+            'Junho': [dados_meses.get(6, 0)],
+            'Julho': [dados_meses.get(7, 0)],
+            'Agosto': [dados_meses.get(8, 0)],
+            'Setembro': [dados_meses.get(9, 0)],
+            'Outubro': [dados_meses.get(10, 0)],
+            'Novembro': [dados_meses.get(11, 0)],
+            'Dezembro': [dados_meses.get(12, 0)]
+        }
+
+        # 5. Gera o DataFrame
+        df = pd.DataFrame(dados_finais)
+
+        # 6. Cria o Excel em memória com o visual bonito e profissional
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Aniversariantes')
+
+            workbook = writer.book
+            worksheet = writer.sheets['Aniversariantes']
+
+            # Definição de estilos
+            header_fill = PatternFill(
+                start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            header_font = Font(color="FFFFFF", bold=True, size=12)
+            center_alignment = Alignment(
+                horizontal="center", vertical="center", wrap_text=True)
+            thin_border = Border(
+                left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'),
+                top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9')
+            )
+
+            worksheet.row_dimensions[1].height = 25
+            worksheet.row_dimensions[2].height = 20
+
+            # Aplicação dos estilos
+            for col_num in range(1, len(dados_finais) + 1):
+                col_letter = worksheet.cell(
+                    row=1, column=col_num).column_letter
+                worksheet.column_dimensions[col_letter].width = 18
+
+                h_cell = worksheet.cell(row=1, column=col_num)
+                h_cell.fill = header_fill
+                h_cell.font = header_font
+                h_cell.alignment = center_alignment
+                h_cell.border = thin_border
+
+                d_cell = worksheet.cell(row=2, column=col_num)
+                d_cell.alignment = center_alignment
+                d_cell.border = thin_border
+
+        output.seek(0)
+
+        # 7. Retorna o arquivo
+        return send_file(
+            output,
+            download_name='quantitativo_aniversariantes.xlsx',
+            as_attachment=True,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+    except Exception as e:
+        return {"erro": "Ocorreu um erro ao gerar o arquivo Excel.", "detalhes": str(e)}, 500
