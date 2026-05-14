@@ -1,111 +1,291 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 m-0">OBM: {{ obm.sigla }} (ID {{ obm.id }})</h1>
-        <a class="btn btn-outline-secondary" href="{{ url_for('escolher_obm') }}">Trocar OBM</a>
+<style>
+    /* Tema Dark - Bombeiros Amazonas */
+    :root {
+        --cbmam-red: #d32f2f;
+        --cbmam-red-hover: #b71c1c;
+        --cbmam-gold: #ffb300;
+        --cbmam-bg: #121212;
+        --cbmam-card: #2a2a2a;
+        --cbmam-border: #444444;
+        --cbmam-text: #ffffff;
+        --cbmam-muted: #aaaaaa;
+    }
+
+    body {
+        background-color: var(--cbmam-bg);
+        color: var(--cbmam-text);
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    /* Caixas de Seleção Dupla */
+    .dual-list-select {
+        height: 220px;
+        border-radius: 0.5rem;
+        background-color: #1a1a1a !important;
+        color: var(--cbmam-text) !important;
+        border: 1px solid var(--cbmam-border) !important;
+    }
+
+    .dual-list-select option {
+        border-bottom: 1px solid #222;
+    }
+
+    .dual-list-select option:checked {
+        background-color: rgba(211, 47, 47, 0.3) !important;
+        color: var(--cbmam-gold) !important;
+    }
+
+    /* Scroll dos Motoristas */
+    .motoristas-scroll {
+        height: 180px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        border-radius: 0.375rem;
+        background-color: #1a1a1a !important;
+        border: 1px solid var(--cbmam-border) !important;
+    }
+
+    /* Cards das Viaturas */
+    .card-viatura {
+        transition: transform 0.2s ease-in-out;
+        border: 1px solid var(--cbmam-border);
+        border-radius: 0.75rem;
+        background-color: var(--cbmam-card);
+    }
+
+    .card-viatura:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6) !important;
+        border-color: var(--cbmam-red);
+    }
+
+    /* Itens da lista de motoristas */
+    .motorista-item {
+        transition: background-color 0.2s;
+        border: none;
+        border-bottom: 1px solid #333;
+        color: var(--cbmam-text);
+    }
+
+    .motorista-item:last-child {
+        border-bottom: none;
+    }
+
+    .motorista-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Checkbox estilo Bombeiro (Dourado quando selecionado) */
+    .form-check-input:checked {
+        background-color: var(--cbmam-gold);
+        border-color: var(--cbmam-gold);
+    }
+
+    .form-check-input:checked+.form-check-label {
+        font-weight: 600;
+        color: var(--cbmam-gold);
+    }
+
+    /* Botões Customizados */
+    .btn-cbmam-red {
+        background-color: var(--cbmam-red);
+        color: white;
+        border: none;
+    }
+
+    .btn-cbmam-red:hover {
+        background-color: var(--cbmam-red-hover);
+        color: white;
+    }
+
+    /* Sobrescrevendo classes do Bootstrap para encaixar no Dark Theme */
+    .card {
+        background-color: var(--cbmam-card);
+        color: var(--cbmam-text);
+    }
+
+    .card-header {
+        background-color: var(--cbmam-card);
+        border-bottom: 2px solid var(--cbmam-red) !important;
+    }
+
+    .text-muted {
+        color: var(--cbmam-muted) !important;
+    }
+
+    .border-bottom {
+        border-color: var(--cbmam-border) !important;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
+    <!-- Header Profissional -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 mb-1 fw-bold text-light">
+                <i class="bi bi-building" style="color: var(--cbmam-red);"></i> OBM: <span
+                    style="color: var(--cbmam-gold);">{{ obm.sigla }}</span>
+            </h1>
+            <p class="text-muted small mb-0">Gerenciamento Operacional da Frota</p>
+        </div>
+        <a class="btn btn-outline-light shadow-sm rounded-pill px-4" href="{{ url_for('escolher_obm') }}">
+            &larr; Trocar OBM
+        </a>
     </div>
 
-    <!-- Atribuir viaturas à OBM (dual list) -->
-    <div class="card mb-4">
-        <div class="card-header">Atribuir viaturas a esta OBM</div>
+    <!-- Atribuir viaturas à OBM (Dual Listbox) -->
+    <div class="card shadow-lg mb-5 border-0">
+        <div class="card-header border-bottom-0 pt-3 pb-0">
+            <h5 class="card-title fw-semibold m-0 text-light">Alocação de Viaturas</h5>
+        </div>
         <div class="card-body">
             <form method="post" action="{{ url_for('atribuir_viaturas_obm', obm_id=obm.id) }}">
-                <div class="row g-3">
+                <div class="row g-3 align-items-center">
+                    <!-- Viaturas Sem OBM -->
                     <div class="col-md-5">
-                        <label class="form-label">Viaturas disponíveis (sem OBM)</label>
-                        <select id="list-left" class="form-select" size="12" multiple>
+                        <label class="form-label text-muted small fw-bold text-uppercase">Disponíveis (Sem OBM)</label>
+                        <select id="list-left" class="form-select dual-list-select p-2" multiple>
                             {% for v in viaturas_sem_obm %}
-                            <option value="{{ v.id }}">{{ v.prefixo or 'sem prefixo' }} — {{ v.marca_modelo or '' }} ({{
-                                v.placa or '' }})</option>
+                            <option value="{{ v.id }}" class="p-2">
+                                {{ v.prefixo or 'S/P' }} — {{ v.marca_modelo or '' }} ({{ v.placa or '' }})
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-2">
-                        <button type="button" class="btn btn-primary w-100"
-                            onclick="moveSelected('list-left','list-right')"> &raquo; </button>
-                        <button type="button" class="btn btn-secondary w-100"
-                            onclick="moveSelected('list-right','list-left')"> &laquo; </button>
+
+                    <!-- Controles Centrais -->
+                    <div class="col-md-2 d-flex flex-column justify-content-center gap-3 px-4">
+                        <button type="button" class="btn btn-cbmam-red shadow-sm rounded-pill"
+                            onclick="moveSelected('list-left','list-right')">
+                            Mover &raquo;
+                        </button>
+                        <button type="button" class="btn btn-outline-light shadow-sm rounded-pill"
+                            onclick="moveSelected('list-right','list-left')">
+                            &laquo; Voltar
+                        </button>
                     </div>
+
+                    <!-- Viaturas Desta OBM -->
                     <div class="col-md-5">
-                        <label class="form-label">Viaturas desta OBM</label>
-                        <select id="list-right" class="form-select" size="12" multiple>
+                        <label class="form-label text-muted small fw-bold text-uppercase">Pertencem a esta OBM</label>
+                        <select id="list-right" class="form-select dual-list-select p-2"
+                            style="border-color: var(--cbmam-red) !important;" multiple>
                             {% for v in viaturas_da_obm %}
-                            <option value="{{ v.id }}">{{ v.prefixo or 'sem prefixo' }} — {{ v.marca_modelo or '' }} ({{
-                                v.placa or '' }})</option>
+                            <option value="{{ v.id }}" class="p-2">
+                                {{ v.prefixo or 'S/P' }} — {{ v.marca_modelo or '' }} ({{ v.placa or '' }})
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
 
-                <!-- campo hidden que receberá as opções da direita -->
                 <input type="hidden" name="assigned_ids[]" id="assigned_ids">
 
-                <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-success" onclick="prepareAssigned()">Salvar
-                        atribuições</button>
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-success px-5 rounded-pill shadow-sm fw-bold"
+                        onclick="prepareAssigned()">
+                        Salvar Alocação
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Atribuir motoristas por viatura (máx 5) -->
-    <div class="card mb-4">
-        <div class="card-header">Motoristas por viatura (máximo 5)</div>
-        <div class="card-body">
-            {% if viaturas_da_obm|length == 0 %}
-            <div class="alert alert-info">Nenhuma viatura atribuída a esta OBM ainda.</div>
-            {% else %}
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width: 28%">Viatura</th>
-                            <th>Motoristas (Ctrl/Cmd + clique para múltiplos)</th>
-                            <th style="width: 12%"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for v in viaturas_da_obm %}
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">{{ v.prefixo or 'sem prefixo' }}</div>
-                                <div class="text-muted small">{{ v.marca_modelo or '' }} — {{ v.placa or '' }}</div>
-                            </td>
-                            <td>
-                                <form method="post" action="{{ url_for('salvar_motoristas_viatura', viatura_id=v.id) }}"
-                                    class="d-flex gap-2">
-                                    <select name="motoristas[]" class="form-select" size="5" multiple
-                                        onchange="limitFive(this)">
-                                        {% set selecionados = motoristas_por_viatura.get(v.id, []) %}
-                                        {% for m in motoristas %}
-                                        {% set selected = 'selected' if m.militar_id in selecionados else '' %}
-                                        <option value="{{ m.militar_id }}" {{ selected }}>
-                                            {{ m.militar.nome_completo if m.militar else ('Motorista '+m.id|string) }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="submit" class="btn btn-outline-primary">Salvar</button>
-                                </form>
-                            </td>
-                            <td class="text-muted small">
-                                Máx 5 por viatura
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
+    <!-- Atribuir motoristas por viatura (Grid de Cards) -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
+        <h5 class="fw-semibold m-0 text-light">Vínculo de Motoristas</h5>
+        <span class="badge rounded-pill" style="background-color: var(--cbmam-red);">Máximo de 5 por viatura</span>
+    </div>
+
+    {% if viaturas_da_obm|length == 0 %}
+    <div class="alert shadow-sm border d-flex align-items-center gap-3"
+        style="background-color: #2a2a2a; border-color: var(--cbmam-gold); color: #fff;">
+        <i class="bi bi-info-circle fs-4" style="color: var(--cbmam-gold);"></i>
+        <div>
+            <strong>Aviso:</strong> Nenhuma viatura foi atribuída a esta OBM ainda. Utilize o painel acima para alocar
+            viaturas primeiro.
         </div>
     </div>
+    {% else %}
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for v in viaturas_da_obm %}
+        <div class="col">
+            <div class="card h-100 shadow-sm card-viatura">
+                <!-- Cabeçalho do Card Viatura -->
+                <div class="card-header d-flex justify-content-between align-items-center rounded-top"
+                    style="background-color: #1a1a1a; border-bottom: 1px solid #333 !important;">
+                    <span class="fw-bold" style="color: var(--cbmam-gold); font-size: 1.1rem;">{{ v.prefixo or
+                        'S/PREFIXO' }}</span>
+                </div>
+                <div class="card-body d-flex flex-column pb-3 pt-3">
+                    <div class="mb-3 text-center">
+                        <div class="fw-semibold text-light">{{ v.marca_modelo or 'Modelo não informado' }}</div>
+                        <div class="text-muted small pb-2">Placa: {{ v.placa or '---' }}</div>
+                    </div>
+
+                    <form method="post" action="{{ url_for('salvar_motoristas_viatura', viatura_id=v.id) }}"
+                        class="flex-grow-1 d-flex flex-column">
+
+                        <!-- Lista de Checkboxes -->
+                        <div class="motoristas-scroll mb-3 p-1 shadow-inner">
+                            {% set selecionados = motoristas_por_viatura.get(v.id, []) %}
+
+                            {% for m in motoristas %}
+                            <label
+                                class="list-group-item motorista-item d-flex align-items-center gap-3 p-2 cursor-pointer m-0"
+                                for="mot_{{ v.id }}_{{ m.militar_id }}">
+                                <input class="form-check-input flex-shrink-0 chk-motorista-{{ v.id }}" type="checkbox"
+                                    name="motoristas[]" value="{{ m.militar_id }}"
+                                    id="mot_{{ v.id }}_{{ m.militar_id }}"
+                                    onchange="limitFiveCheckboxes(this, '{{ v.id }}')" {% if m.militar_id in
+                                    selecionados %}checked{% endif %}>
+                                <span class="form-check-label small text-truncate"
+                                    style="flex-grow: 1; user-select: none;">
+                                    {{ m.militar.nome_completo if m.militar else ('Motorista '+m.id|string) }}
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Rodapé do Card com Contador e Botão -->
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="badge border" id="counter-{{ v.id }}"
+                                style="background-color: #1a1a1a; color: var(--cbmam-muted); border-color: #444 !important;">
+                                0/5 marcados
+                            </span>
+                            <button type="submit" class="btn btn-sm px-4 shadow-sm rounded-pill fw-medium"
+                                style="background-color: var(--cbmam-red); color: white; border: none;">
+                                Salvar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
 </div>
 
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        {% for v in viaturas_da_obm %}
+        updateCounter('{{ v.id }}');
+        {% endfor %}
+    });
+
     function moveSelected(fromId, toId) {
         const from = document.getElementById(fromId);
         const to = document.getElementById(toId);
         Array.from(from.selectedOptions).forEach(opt => {
+            opt.selected = false;
             to.add(opt);
         });
     }
@@ -114,12 +294,12 @@
         const right = document.getElementById('list-right');
         const hidden = document.getElementById('assigned_ids');
         const values = Array.from(right.options).map(o => o.value);
+
         hidden.value = values.join(',');
-        // como é field [] no backend, vamos clonar inputs:
-        // substitui por vários inputs (assigned_ids[])
+
         const form = hidden.closest('form');
-        // remove o hidden atual para evitar confusão
         hidden.remove();
+
         values.forEach(v => {
             const i = document.createElement('input');
             i.type = 'hidden';
@@ -129,12 +309,33 @@
         });
     }
 
-    function limitFive(selectEl) {
-        const selected = Array.from(selectEl.selectedOptions);
-        if (selected.length > 5) {
-            // desmarca o último que a pessoa acabou de selecionar
-            selected[selected.length - 1].selected = false;
-            alert('Selecione no máximo 5 motoristas.');
+    function updateCounter(viaturaId) {
+        const marcados = document.querySelectorAll(`.chk-motorista-${viaturaId}:checked`).length;
+        const badge = document.getElementById(`counter-${viaturaId}`);
+
+        if (badge) {
+            badge.innerText = `${marcados}/5 marcados`;
+            if (marcados === 5) {
+                badge.style.color = 'var(--cbmam-gold)';
+                badge.style.borderColor = 'var(--cbmam-gold)';
+            } else if (marcados > 0) {
+                badge.style.color = '#fff';
+                badge.style.borderColor = '#888';
+            } else {
+                badge.style.color = 'var(--cbmam-muted)';
+                badge.style.borderColor = '#444';
+            }
+        }
+    }
+
+    function limitFiveCheckboxes(checkbox, viaturaId) {
+        const marcados = document.querySelectorAll(`.chk-motorista-${viaturaId}:checked`);
+
+        if (marcados.length > 5) {
+            checkbox.checked = false;
+            alert('Você já atingiu o limite de 5 motoristas para esta viatura.');
+        } else {
+            updateCounter(viaturaId);
         }
     }
 </script>

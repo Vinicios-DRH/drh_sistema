@@ -503,6 +503,63 @@
             transform: scale(1.05);
         }
 
+        /* --- ESTILOS DA FROTA DE VIATURAS --- */
+        .viaturas-container {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            margin-bottom: 10px;
+            border-top: 4px solid #ffb300;
+        }
+
+        .viatura-titulo {
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .viatura-card {
+            background-color: #1a1a1a;
+            border-left: 3px solid #ffb300;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .viatura-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .viatura-info {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffb300;
+            margin-bottom: 2px;
+        }
+
+        .viatura-detalhes {
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .badge-motorista {
+            display: inline-block;
+            background-color: #333;
+            color: #ddd;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            border: 1px solid #555;
+            font-size: 10px;
+        }
+
         /* Responsividade Básica */
         @media (max-width: 600px) {
             #header {
@@ -557,8 +614,8 @@
             <div class="modal-body" id="corpo-modal">
                 <div id="loading-modal" class="loading" style="display: none;">Buscando dados no servidor...</div>
 
-                <div class="chart-container" id="container-grafico" style="display: none;">
-                    <canvas id="graficoEfetivo" style="max-height: 220px;"></canvas>
+                <div id="container-viaturas" class="viaturas-container" style="display: none;">
+                    <!-- Renderizado via JS -->
                 </div>
 
                 <div id="lista-militares"></div>
@@ -782,22 +839,20 @@
             }, 1600);
         }
 
-        // Variável global para destruir o gráfico anterior ao clicar em outro OBM
-        let chartInstance = null;
 
         function abrirModalMilitares(obmId, obmSigla) {
             const modal = document.getElementById('modal-efetivo');
             const titulo = document.getElementById('modal-titulo');
             const lista = document.getElementById('lista-militares');
             const loader = document.getElementById('loading-modal');
-            const containerGrafico = document.getElementById('container-grafico');
+            const containerViaturas = document.getElementById('container-viaturas');
 
             modal.classList.add('aberta');
             titulo.innerText = obmSigla;
 
             // Estado de Carregamento
             lista.innerHTML = '';
-            containerGrafico.style.display = 'none';
+            containerViaturas.style.display = 'none';
             loader.style.display = 'block';
 
             fetch(`/api-teste/militares-obm/${obmId}`)
@@ -805,24 +860,52 @@
                 .then(data => {
                     loader.style.display = 'none';
                     const militares = data.militares;
-                    const stats = data.stats;
+                    const viaturas = data.viaturas;
 
+                    // 1. Renderiza a Frota (Viaturas)
+                    containerViaturas.style.display = 'block';
+                    if (viaturas && viaturas.length > 0) {
+                        let viaturasHtml = `<div class="viatura-titulo">🚒 Frota Operacional (${viaturas.length})</div>`;
+
+                        viaturas.forEach(v => {
+                            let motoristasHtml = '';
+                            if (v.motoristas.length > 0) {
+                                motoristasHtml = v.motoristas.map(mot => `<span class="badge-motorista">👨‍🚒 ${mot}</span>`).join('');
+                            } else {
+                                motoristasHtml = `<span style="color: #ff5252; font-size: 10px; font-style: italic;">Nenhum motorista vinculado</span>`;
+                            }
+
+                            viaturasHtml += `
+                                <div class="viatura-card">
+                                    <div class="viatura-info">${v.prefixo}</div>
+                                    <div class="viatura-detalhes">${v.marca_modelo} | Placa: ${v.placa}</div>
+                                    <div>${motoristasHtml}</div>
+                                </div>
+                            `;
+                        });
+                        containerViaturas.innerHTML = viaturasHtml;
+                    } else {
+                        containerViaturas.innerHTML = `
+                            <div class="viatura-titulo">🚒 Frota Operacional</div>
+                            <div style="font-size: 12px; color: #aaa; text-align: center; padding: 10px 0;">
+                                Nenhuma viatura cadastrada.
+                            </div>
+                        `;
+                    }
+
+                    // 2. Renderiza a Lista de Militares
                     if (!militares || militares.length === 0) {
                         lista.innerHTML = '<div class="loading">Nenhum militar registrado.</div>';
                         return;
                     }
 
-                    // 1. Renderiza a Lista
                     let html = '';
                     militares.forEach(m => {
-                        // Monta o balão de contato
                         const tooltipHTML = `
                             <div class="tooltip-content">
                                 <div class="tooltip-header">📞 Contato Pessoal</div>
                                 <div class="tooltip-value">${m.celular}</div>
-                                
                                 <hr class="tooltip-divider">
-                                
                                 <div class="tooltip-header">🚨 Emergência: ${m.contato_emergencia_nome}</div>
                                 <div class="tooltip-value">${m.contato_emergencia_tel}</div>
                             </div>
@@ -832,7 +915,6 @@
                         const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
 
                         if (m.is_comandante) {
-                            // Card em destaque para o comandante/chefe com Tooltip
                             html += `
                                 <div class="card-militar card-comandante tooltip-container">
                                     <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
@@ -841,7 +923,6 @@
                                 </div>
                             `;
                         } else {
-                            // Card normal para o restante do efetivo com Tooltip
                             html += `
                                 <div class="card-militar tooltip-container">
                                     <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
@@ -851,10 +932,6 @@
                         }
                     });
                     lista.innerHTML = html;
-
-                    // 2. Renderiza o Gráfico de Pizza
-                    containerGrafico.style.display = 'block';
-                    renderizarGrafico(stats);
                 })
                 .catch(erro => {
                     loader.style.display = 'none';

@@ -3,7 +3,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case
 from datetime import date
 from src import database
-from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia, Quadro
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia, Quadro, Viaturas
 from src.querys import obter_estatisticas_militares
 
 mapa_bp = Blueprint('mapa_amazonas_teste', __name__)
@@ -230,7 +230,7 @@ def api_media_idade_posto():
 
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
-    # Centralizamos a hierarquia para usar tanto no banco quanto no sort do Python
+    # --- 1. LÓGICA DO EFETIVO ---
     pesos_postos = {
         'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
         '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
@@ -263,35 +263,27 @@ def api_militares_obm(obm_id):
         Militar.posto_grad_id != 15
     ).order_by(
         ordem_hierarquica,
-        Militar.rg.asc()  # <-- Agora o banco já busca ordenando por RG
+        Militar.rg.asc()
     ).all()
 
     resultado_militares = []
-    estatisticas_posto = {}
     militares_vistos = set()
 
     FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
-
-    PESO_FUNCAO = {
-        4: 1, 5: 2, 2: 3, 3: 4, 1: 5,
-        11: 6, 12: 7, 10: 8, 9: 9, 24: 10
-    }
+    PESO_FUNCAO = {4: 1, 5: 2, 2: 3, 3: 4,
+                   1: 5, 11: 6, 12: 7, 10: 8, 9: 9, 24: 10}
 
     for militar, posto, m_funcao, funcao, contato_emergencia, quadro in query:
         if militar.id not in militares_vistos:
             militares_vistos.add(militar.id)
             sigla_posto = posto.sigla if posto else "S/P"
-
             sigla_quadro = quadro.quadro if quadro else ""
             rg_militar = militar.rg if militar.rg else "S/RG"
-
             funcao_id = m_funcao.funcao_id if m_funcao else None
             is_comandante = funcao_id in FUNCOES_COMANDO
             nome_funcao = funcao.ocupacao if funcao else ""
             peso = PESO_FUNCAO.get(funcao_id, 99)
 
-            # Lógica extra para garantir ordenação numérica perfeita do RG
-            # Extrai somente os dígitos (ex: "07123-X" vira 7123)
             rg_num = 999999999
             if militar.rg:
                 numeros_rg = ''.join(filter(str.isdigit, militar.rg))
@@ -313,19 +305,10 @@ def api_militares_obm(obm_id):
                 "contato_emergencia_nome": contato_nome,
                 "contato_emergencia_tel": contato_tel,
                 "peso_funcao": peso,
-                # Peso do posto para a fila
                 "posto_ordem": pesos_postos.get(sigla_posto.upper(), 99),
-                "rg_num": rg_num  # RG em formato de número inteiro para alinhar perfeitamente
+                "rg_num": rg_num
             })
 
-            estatisticas_posto[sigla_posto] = estatisticas_posto.get(
-                sigla_posto, 0) + 1
-
-    # SORT FINAL DE MESTRE:
-    # 1º Comandantes (False vem primeiro no 'not')
-    # 2º Peso da Função (organiza os comandantes entre si)
-    # 3º Posto/Graduação (mantém a hierarquia pro resto do efetivo)
-    # 4º RG (ordena numericamente dentro de cada Posto/Graduação)
     resultado_militares.sort(key=lambda x: (
         not x["is_comandante"],
         x["peso_funcao"],
@@ -333,7 +316,32 @@ def api_militares_obm(obm_id):
         x["rg_num"]
     ))
 
+    # --- 2. LÓGICA DAS VIATURAS ---
+    viaturas_query = database.session.query(
+        Viaturas).filter(Viaturas.obm_id == obm_id).all()
+    resultado_viaturas = []
+
+    for v in viaturas_query:
+        motoristas = []
+        # Acessando os militares vinculados à viatura através da tabela associativa ViaturaMilitar
+        for vm in v.militares:
+            m = vm.militar
+            if m:
+                posto_mot = m.posto_grad.sigla if m.posto_grad else ""
+                nome_mot = m.nome_guerra if m.nome_guerra else m.nome_completo
+                motoristas.append(f"{posto_mot} {nome_mot}".strip())
+
+        resultado_viaturas.append({
+            "prefixo": v.prefixo if v.prefixo else "S/ Prefixo",
+            "marca_modelo": v.marca_modelo if v.marca_modelo else "Modelo não inf.",
+            "placa": v.placa if v.placa else "---",
+            "motoristas": motoristas
+        })
+
+    # Ordenar as viaturas pelo prefixo para ficar organizado
+    resultado_viaturas.sort(key=lambda x: x["prefixo"])
+
     return jsonify({
         "militares": resultado_militares,
-        "stats": estatisticas_posto
+        "viaturas": resultado_viaturas
     })

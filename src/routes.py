@@ -5426,7 +5426,7 @@ def salvar_motoristas_viatura(viatura_id):
         database.session.rollback()
         flash("Não foi possível salvar: limite atingido ou motorista duplicado.", "danger")
 
-    return redirect(url_for("viaturas_admin.gerenciar_viaturas", obm_id=v.obm_id or 0))
+    return redirect(url_for("gerenciar_viaturas", obm_id=v.obm_id or 0))
 
 
 @app.route("/motoristas/exportar-excel", methods=["GET"])
