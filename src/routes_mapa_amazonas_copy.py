@@ -100,11 +100,14 @@ def api_dados_mapa():
     # 2. Nova Query para buscar quem está nos cargos de comando em cada OBM
     FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11,
                        12, 24]  # IDs dos cargos de liderança
+
+    # Adicionamos MilitarObmFuncao.funcao_id no SELECT para sabermos o peso do cargo
     comandantes_query = database.session.query(
         MilitarObmFuncao.obm_id,
         Militar.nome_guerra,
         Militar.nome_completo,
-        PostoGrad.sigla
+        PostoGrad.sigla,
+        MilitarObmFuncao.funcao_id
     ).join(
         Militar, Militar.id == MilitarObmFuncao.militar_id
     ).outerjoin(
@@ -114,13 +117,25 @@ def api_dados_mapa():
         MilitarObmFuncao.funcao_id.in_(FUNCOES_COMANDO)
     ).all()
 
-    # 3. Monta um dicionário para acessar o nome do comandante rapidamente pelo obm_id
+    # Tabela de pesos para garantir que o Comandante sobreponha o Subcomandante
+    PESO_FUNCAO = {
+        4: 1, 5: 2, 2: 3, 3: 4, 1: 5,
+        11: 6, 12: 7, 10: 8, 9: 9, 24: 10
+    }
+
+    # 3. Monta um dicionário selecionando sempre a função de MAIOR prioridade (Menor Peso)
     comandantes_dict = {}
-    for obm_id, nome_guerra, nome_completo, posto_sigla in comandantes_query:
-        if obm_id not in comandantes_dict:  # Pega o primeiro líder encontrado
-            nome = nome_guerra if nome_guerra else nome_completo
-            posto = posto_sigla if posto_sigla else ""
+    melhor_peso_obm = {}  # Dicionário de apoio para rastrear o peso atual gravado
+
+    for obm_id, nome_guerra, nome_completo, posto_sigla, funcao_id in comandantes_query:
+        nome = nome_guerra if nome_guerra else nome_completo
+        posto = posto_sigla if posto_sigla else ""
+        peso_atual = PESO_FUNCAO.get(funcao_id, 99)
+
+        # Atualiza o comandante se a OBM estiver vazia ou se o peso da nova função for MENOR (mais importante)
+        if obm_id not in comandantes_dict or peso_atual < melhor_peso_obm.get(obm_id, 99):
             comandantes_dict[obm_id] = f"{posto} {nome}".strip()
+            melhor_peso_obm[obm_id] = peso_atual
 
     resultado = []
 
@@ -150,7 +165,7 @@ def api_dados_mapa():
             "cidade": cidade_destino,
             "lat": lat,
             "lng": lng,
-            # Insere o nome do comandante (ou uma mensagem caso a unidade esteja sem)
+            # Insere o nome do comandante devidamente filtrado por prioridade
             "comandante": comandantes_dict.get(obm_id, "Não atribuído")
         })
 
