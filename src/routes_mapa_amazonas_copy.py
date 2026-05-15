@@ -236,7 +236,7 @@ def api_militares_obm(obm_id):
         '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
         'ALUNO OFICIAL': 9, 'SUBTENENTE': 10, '1º SGT': 11,
         '2º SGT': 12, '3º SGT': 13, 'AL SGT': 14,
-        'CB': 15, 'AL SD': 16, 'SD': 17
+        'CB': 15, 'SD': 16, 'AL SD': 17
     }
 
     ordem_hierarquica = case(
