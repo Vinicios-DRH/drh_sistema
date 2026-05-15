@@ -5326,16 +5326,25 @@ def gerenciar_viaturas(obm_id):
                         .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
                         .all())
 
-    # Motoristas preferencialmente desta OBM (se houver vínculo Militar↔OBM via MilitarObmFuncao)
-    # Se não houver essa tabela/ligação, troque por Motoristas.query.all()
+    # Motoristas preferencialmente desta OBM (apenas lotação ATUAL e registro ATIVO)
     motoristas = (database.session.query(Motoristas)
                   .join(Militar, Motoristas.militar_id == Militar.id)
                   .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-                  .filter(MilitarObmFuncao.obm_id == obm_id)
-                  .order_by(Militar.nome_completo.asc())
-                  .all())
+                  .filter(
+                      MilitarObmFuncao.obm_id == obm_id,
+                      # <-- Garante que é a OBM atual do militar
+                      MilitarObmFuncao.data_fim.is_(None),
+                      # <-- Garante que não é um registro antigo de motorista
+                      Motoristas.modified.is_(None),
+                      or_(                                 # <-- Garante que o motorista não está desclassificado
+                          Motoristas.desclassificar.is_(None),
+                          Motoristas.desclassificar != 'SIM'
+                      )
+    )
+        .order_by(Militar.nome_completo.asc())
+        .all())
 
-    # Mapa de motoristas atuais por viatura (para preencher selects)
+    # Mapa de motoristas atuais por viatura (para preencher selects/checkboxes)
     motoristas_por_viatura = {}
     for v in viaturas_da_obm:
         vms = (ViaturaMilitar.query
