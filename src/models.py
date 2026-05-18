@@ -627,6 +627,12 @@ class Militar(database.Model):
         back_populates="militares_motivo2"
     )
 
+    cursos_especializacao = database.relationship(
+        "MilitarCurso",
+        back_populates="militar",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
 
 class MilitarObmFuncao(database.Model):
     __tablename__ = 'militar_obm_funcao'
@@ -1964,4 +1970,48 @@ class ConferenciaPagadoria(database.Model):
     conferido_por = database.relationship(
         "User",
         foreign_keys=[conferido_por_id]
+    )
+
+
+class Curso(database.Model):
+    __tablename__ = "curso"
+
+    id = database.Column(database.Integer, primary_key=True)
+    # Ex: Mergulho, Incêndio Florestal
+    nome = database.Column(database.String(100), unique=True, nullable=False)
+    descricao = database.Column(database.String(255))
+
+    criado_em = database.Column(database.DateTime, default=now_manaus_naive)
+
+    # Relacionamento com a tabela associativa
+    militares = database.relationship(
+        "MilitarCurso",
+        back_populates="curso",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+
+class MilitarCurso(database.Model):
+    __tablename__ = "militar_curso"
+
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey(
+        'militar.id', ondelete="CASCADE"), nullable=False, index=True)
+    curso_id = database.Column(database.Integer, database.ForeignKey(
+        'curso.id', ondelete="CASCADE"), nullable=False, index=True)
+
+    # Opcional: posso guardar quando ele se formou e quem registrou
+    data_conclusao = database.Column(database.Date)
+    criado_em = database.Column(database.DateTime, default=now_manaus_naive)
+
+    # Relacionamentos
+    militar = database.relationship(
+        "Militar", back_populates="cursos_especializacao")
+    curso = database.relationship("Curso", back_populates="militares")
+
+    # Garante que o mesmo militar não seja cadastrado duas vezes no mesmo curso acidentalmente
+    __table_args__ = (
+        database.UniqueConstraint(
+            'militar_id', 'curso_id', name='uq_militar_curso'),
     )

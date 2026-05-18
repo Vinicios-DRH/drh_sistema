@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (FieldList, FloatField, FormField, HiddenField, StringField, PasswordField, SubmitField, BooleanField, SelectField, DateField, IntegerField,
-                     MultipleFileField, FileField, DecimalField, TextAreaField, TimeField, SelectMultipleField)
+                     MultipleFileField, FileField, DecimalField, TextAreaField, TimeField, SelectMultipleField, widgets)
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, Email, Optional, InputRequired, Regexp
 from src.models import Militar, User, SituacaoConvocacao
 
@@ -24,6 +24,11 @@ def coerce_int_or_none(value):
         return int(value)
     except ValueError:
         return None
+
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 
 class FormMilitar(FlaskForm):
@@ -133,6 +138,12 @@ class FormMilitar(FlaskForm):
     cbo = StringField("CBO")
     cao = StringField("CAO")
     csbm = StringField("CSBM")
+    cursos_ids = MultiCheckboxField(
+        "Cursos de Especialização", 
+        coerce=int, 
+        choices=[], 
+        validators=[Optional()]
+    )
     cursos_civis = StringField("Cursos Civis")
     endereco = StringField('Endereço', render_kw={
                            "placeholder": "Rua, Avenida, Nº"})

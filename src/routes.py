@@ -29,7 +29,7 @@ from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, Import
                         EstadoCivil, Especialidade, Destino, Motivo, Modalidade, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, LogExportacaoExcel)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, LogExportacaoExcel, Curso, MilitarCurso)
 from src.querys import dados_para_mapa, obter_estatisticas_militares, login_usuario
 from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -2384,6 +2384,9 @@ def exibir_militar(militar_id):
     form_militar.comportamento_id.choices = [("", "-- Selecione uma opção --")] + [
         (comp.id, comp.conduta) for comp in Comportamento.query.all()]
 
+    form_militar.cursos_ids.choices = [
+        (curso.id, curso.nome) for curso in Curso.query.order_by(Curso.nome.asc()).all()
+    ]
     campos_bg = [
         "transferencia", "situacao_militar", "cfsd", "cfc", "cfs", "cas",
         "choa", "cfo", "cbo", "cao", "csbm", "soldado_tres",
@@ -2424,6 +2427,7 @@ def exibir_militar(militar_id):
 
         form_militar.sexo.data = militar.sexo if militar.sexo else None
         form_militar.raca.data = militar.raca if militar.raca else None
+        form_militar.cursos_ids.data = [mc.curso_id for mc in militar.cursos_especializacao]
 
         hoje = date.today()
         dn = militar.data_nascimento.date() if isinstance(
@@ -2549,6 +2553,7 @@ def exibir_militar(militar_id):
         militar.fim_situacao2 = parse_date_flex(
             request.form.get("fim_situacao2"))
 
+                
         # Capturando a publicação da Situação 2 manualmente também
         bg_sit2_input = request.form.get("situacao_militar_2")
         if bg_sit2_input is not None:
@@ -2631,6 +2636,23 @@ def exibir_militar(militar_id):
         graduacoes_instituicao = request.form.getlist(
             "graduacoes_instituicao[]")
         graduacoes_ano = request.form.getlist("graduacoes_ano[]")
+        
+        # --- LÓGICA DE SALVAMENTO DOS CURSOS (MANY-TO-MANY) ---
+        cursos_selecionados = form_militar.cursos_ids.data or []
+
+        # Mapeia os cursos que o militar JÁ possui no banco
+        cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
+
+        # 1. Adiciona os cursos novos que foram marcados
+        for curso_id in cursos_selecionados:
+            if curso_id not in cursos_atuais:
+                novo_curso = MilitarCurso(militar_id=militar.id, curso_id=curso_id, criado_em=now_manaus_naive())
+                database.session.add(novo_curso)
+
+        # 2. Remove os cursos que foram desmarcados pelo operador
+        for curso_id, mc in cursos_atuais.items():
+            if curso_id not in cursos_selecionados:
+                database.session.delete(mc)
 
         MilitarGraduacao.query.filter_by(militar_id=militar.id).delete()
 

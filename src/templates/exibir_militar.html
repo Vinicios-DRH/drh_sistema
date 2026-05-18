@@ -425,6 +425,56 @@
     padding: 1.15rem;
   }
 
+
+  /* Estilo profissional para os checkboxes de curso virarem Pílulas clicáveis */
+  .cursos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .btn-outline-curso {
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-outline-curso::before {
+    content: '\F28A';
+    /* Ícone de círculo vazio do Bootstrap Icons */
+    font-family: 'bootstrap-icons';
+    font-size: 1.1rem;
+    color: var(--line-strong);
+  }
+
+  /* Quando o checkbox invisível estiver marcado, altera o visual do label */
+  .btn-check:checked+.btn-outline-curso {
+    background: rgba(181, 18, 27, 0.15);
+    /* Fundo vermelho suave baseado no seu brand-red */
+    border-color: var(--brand-red);
+    color: #fff;
+  }
+
+  .btn-check:checked+.btn-outline-curso::before {
+    content: '\F28E';
+    /* Ícone de checkmark preenchido */
+    color: var(--brand-red);
+  }
+
+  .btn-outline-curso:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
   .field-label {
     color: var(--soft);
     font-weight: 700;
@@ -956,8 +1006,8 @@
                       <option value="">-- Selecione --</option>
                       <option value="PRONTO" {{ 'selected' if (form_militar.situacao.data or militar.situacao)=='PRONTO'
                         else '' }}>PRONTO</option>
-                      <option value="AGREGADO" {{ 'selected' if (form_militar.situacao.data or militar.situacao)=='AGREGADO'
-                        else '' }}>AGREGADO</option>
+                      <option value="AGREGADO" {{ 'selected' if (form_militar.situacao.data or
+                        militar.situacao)=='AGREGADO' else '' }}>AGREGADO</option>
                       <option value="À DISPOSIÇÃO" {{ 'selected' if (form_militar.situacao.data or
                         militar.situacao)=='À DISPOSIÇÃO' else '' }}>À DISPOSIÇÃO</option>
                     </select>
@@ -1179,6 +1229,38 @@
                   {{ render_field(form_militar.csbm, 'col-md-3') }}
                   {{ render_field(form_militar.cursos_civis, 'col-md-3') }}
                 </div>
+              </div>
+            </div>
+
+            <div class="cluster">
+              <div class="cluster-head">
+                <div class="cluster-title">
+                  <div class="icon"><i class="bi bi-award"></i></div>
+                  <div>
+                    <h3>Especialidades Operacionais</h3>
+                    <p>Selecione os cursos de especialização concluídos pelo militar.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="cluster-body">
+                <div class="cursos-grid">
+                  <!-- O WTForms gera uma lista ul/li, mas com um pouco de estilo ou extraindo os campos, fica perfeito -->
+                  {% for subfield in form_militar.cursos_ids %}
+                  <div>
+                    <!-- A classe btn-check oculta o checkbox padrão do navegador -->
+                    {{ subfield(class="btn-check", id=subfield.id) }}
+                    <!-- O label assume o visual do botão -->
+                    <label class="btn-outline-curso w-100 text-start" for="{{ subfield.id }}">
+                      {{ subfield.label.text }}
+                    </label>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% if form_militar.cursos_ids.errors %}
+                <div class="invalid-feedback d-block mt-2">
+                  {% for error in form_militar.cursos_ids.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
               </div>
             </div>
 
