@@ -241,6 +241,36 @@
             right: 0;
         }
 
+        /* Estilos para o Select de Cursos */
+        #select-curso {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        #select-curso:focus {
+            border-color: #ffb300;
+        }
+
+        .badge-curso-mapa {
+            display: inline-block;
+            background: #ffb300;
+            color: #121212;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin: 2px 2px 2px 0;
+            white-space: nowrap;
+        }
+
         .modal-header {
             padding: 20px;
             background-color: #d32f2f;
@@ -287,9 +317,7 @@
             border-radius: 6px;
             border-left: 4px solid #d32f2f;
             font-size: 13px;
-            /* Reduzimos de 14px para 13px */
             line-height: 1.4;
-            /* Dá um respiro melhor se o texto quebrar de linha */
         }
 
         .card-militar strong {
@@ -309,7 +337,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
             position: relative;
             padding-right: 110px;
-            /* <--- ESSENCIAL: Cria uma barreira invisível para o texto não entrar debaixo do badge */
         }
 
         .badge-funcao {
@@ -342,7 +369,6 @@
             position: absolute;
             z-index: 2500;
             bottom: 110%;
-            /* Posiciona acima do card */
             left: 50%;
             transform: translateX(-50%) translateY(10px);
             opacity: 0;
@@ -352,7 +378,6 @@
             border: 1px solid #d32f2f;
             font-size: 13px;
             pointer-events: none;
-            /* Evita bugar o hover */
         }
 
         /* Setinha do balão apontando para baixo */
@@ -598,10 +623,16 @@
         <!-- Espaçador para jogar o botão para a direita -->
         <div style="flex-grow: 1;"></div>
 
-        <!-- Botão de Pesquisa -->
-        <button class="btn-abrir-pesquisa" onclick="abrirPesquisa()">
-            🔍 Buscar OBM
-        </button>
+        <!-- Botões de Pesquisa -->
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-abrir-pesquisa" style="background: #ffb300; color: #121212;"
+                onclick="abrirPesquisaEspecialidade()">
+                🎓 Especialidades
+            </button>
+            <button class="btn-abrir-pesquisa" onclick="abrirPesquisa()">
+                🔍 Buscar OBM
+            </button>
+        </div>
     </div>
 
     <div id="container-principal">
@@ -620,6 +651,26 @@
                 </div>
 
                 <div id="lista-militares"></div>
+            </div>
+        </div>
+
+        <div id="overlay-especialidade" onclick="fecharPesquisaEspecialidade()"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); z-index: 3500; backdrop-filter: blur(2px);">
+        </div>
+
+        <div id="modal-especialidade"
+            style="position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 600px; height: 60vh; background: #1a1a1a; border-top: 4px solid #ffb300; border-radius: 16px 16px 0 0; z-index: 4000; transition: transform 0.3s ease; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);">
+            <div class="pesquisa-header">
+                <select id="select-curso" onchange="buscarMilitaresPorCurso()">
+                    <option value="">Selecione uma especialidade...</option>
+                    <!-- Preenchido via JS -->
+                </select>
+                <button onclick="fecharPesquisaEspecialidade()"
+                    style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
+            </div>
+            <div class="lista-pesquisa-container" id="lista-especialidade">
+                <div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o
+                    efetivo.</div>
             </div>
         </div>
     </div>
@@ -840,7 +891,6 @@
             }, 1600);
         }
 
-
         function abrirModalMilitares(obmId, obmSigla) {
             const modal = document.getElementById('modal-efetivo');
             const titulo = document.getElementById('modal-titulo');
@@ -902,6 +952,15 @@
 
                     let html = '';
                     militares.forEach(m => {
+
+                        // --- NOVA LÓGICA DE CURSOS AQUI ---
+                        let cursosHTML = '';
+                        if (m.cursos && m.cursos.length > 0) {
+                            cursosHTML = m.cursos.map(c => `<span class="badge-curso-mapa">${c}</span>`).join('');
+                        } else {
+                            cursosHTML = '<span style="color: #666; font-size: 11px; font-style: italic;">Nenhum registro</span>';
+                        }
+
                         const tooltipHTML = `
                             <div class="tooltip-content">
                                 <div class="tooltip-header">📞 Contato Pessoal</div>
@@ -909,8 +968,12 @@
                                 <hr class="tooltip-divider">
                                 <div class="tooltip-header">🚨 Emergência: ${m.contato_emergencia_nome}</div>
                                 <div class="tooltip-value">${m.contato_emergencia_tel}</div>
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">🎓 Especialidades</div>
+                                <div style="display: flex; flex-wrap: wrap; margin-top: 4px;">${cursosHTML}</div>
                             </div>
                         `;
+                        // ------------------------------------
 
                         const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
                         const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
@@ -1043,6 +1106,85 @@
                 })
                 .catch(erro => console.error("Erro ao buscar idades:", erro));
         }
+
+        // ==========================================
+        // LÓGICA DE PESQUISA POR ESPECIALIDADE
+        // ==========================================
+
+        function abrirPesquisaEspecialidade() {
+            document.getElementById('overlay-especialidade').style.display = 'block';
+            document.getElementById('modal-especialidade').style.transform = 'translateX(-50%) translateY(0)';
+
+            // Carrega os cursos no Select se ainda estiver vazio
+            const select = document.getElementById('select-curso');
+            if (select.options.length <= 1) {
+                fetch('/api-teste/cursos')
+                    .then(res => res.json())
+                    .then(cursos => {
+                        cursos.forEach(c => {
+                            const option = document.createElement('option');
+                            option.value = c.id;
+                            option.text = c.nome;
+                            select.appendChild(option);
+                        });
+                    });
+            }
+        }
+
+        function fecharPesquisaEspecialidade() {
+            document.getElementById('overlay-especialidade').style.display = 'none';
+            document.getElementById('modal-especialidade').style.transform = 'translateX(-50%) translateY(100%)';
+        }
+
+        function buscarMilitaresPorCurso() {
+            const cursoId = document.getElementById('select-curso').value;
+            const container = document.getElementById('lista-especialidade');
+
+            if (!cursoId) {
+                container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o efetivo.</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Buscando especialistas...</div>';
+
+            fetch(`/api-teste/militares-por-especialidade/${cursoId}`)
+                .then(res => res.json())
+                .then(dados => {
+                    if (dados.length === 0) {
+                        container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#ff5252;">Nenhum militar com esta formação encontrado.</div>';
+                        return;
+                    }
+
+                    container.innerHTML = `<div style="color: #aaa; font-size: 12px; margin-bottom: 10px; text-transform: uppercase;">${dados.length} militares encontrados</div>`;
+
+                    dados.forEach(militar => {
+                        const div = document.createElement('div');
+                        div.className = 'pesquisa-item';
+                        div.innerHTML = `
+                            <div>
+                                <strong style="color: #fff; font-size: 14px;">${militar.nome_completo}</strong>
+                                <div style="color: #aaa; font-size: 12px; margin-top: 4px;">📍 Lotado em: <strong>${militar.obm}</strong> (${militar.cidade})</div>
+                            </div>
+                            <span class="efetivo-badge" style="background:#444; border:1px solid #666; cursor:pointer;" onclick="irParaOBMDaEspecialidade(${militar.obm_id})">Ver OBM ➔</span>
+                        `;
+                        container.appendChild(div);
+                    });
+                });
+        }
+
+        // Função para quando clicar em "Ver OBM" na lista de especialistas
+        function irParaOBMDaEspecialidade(obmId) {
+            fecharPesquisaEspecialidade();
+
+            const obmMapData = dadosOBMGlobal.find(o => o.obm_id === obmId);
+
+            if (obmMapData) {
+                voarParaOBM(obmMapData);
+            } else {
+                alert("Coordenadas da OBM não encontradas no mapa.");
+            }
+        }
+
     </script>
 </body>
 

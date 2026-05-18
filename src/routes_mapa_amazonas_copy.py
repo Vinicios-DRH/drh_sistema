@@ -3,7 +3,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case
 from datetime import date
 from src import database
-from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia, Quadro, Viaturas
+from src.models import Militar, Obm, MilitarObmFuncao, PostoGrad, Funcao, MilitarContatoEmergencia, Quadro, Viaturas, Curso, MilitarCurso
 from src.querys import obter_estatisticas_militares
 
 mapa_bp = Blueprint('mapa_amazonas_teste', __name__)
@@ -230,7 +230,6 @@ def api_media_idade_posto():
 
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 def api_militares_obm(obm_id):
-    # --- 1. LÓGICA DO EFETIVO ---
     pesos_postos = {
         'CEL': 1, 'TC': 2, 'MAJ': 3, 'CAP': 4,
         '1º TEN': 5, '2º TEN': 6, 'ASP': 7, 'AL OF': 8,
@@ -266,6 +265,20 @@ def api_militares_obm(obm_id):
         Militar.rg.asc()
     ).all()
 
+    # --- NOVIDADE: BUSCAR OS CURSOS DE TODOS OS MILITARES DA OBM DE UMA VEZ ---
+    militar_ids = [m.id for m, _, _, _, _, _ in query]
+    cursos_db = database.session.query(MilitarCurso.militar_id, Curso.nome)\
+        .join(Curso, Curso.id == MilitarCurso.curso_id)\
+        .filter(MilitarCurso.militar_id.in_(militar_ids)).all()
+
+    # Organiza os cursos num dicionário { militar_id: ['Mergulho', 'BREC'] }
+    cursos_por_militar = {}
+    for mid, cnome in cursos_db:
+        if mid not in cursos_por_militar:
+            cursos_por_militar[mid] = []
+        cursos_por_militar[mid].append(cnome)
+    # --------------------------------------------------------------------------
+
     resultado_militares = []
     militares_vistos = set()
 
@@ -294,6 +307,9 @@ def api_militares_obm(obm_id):
             contato_nome = contato_emergencia.nome if contato_emergencia else "Nenhum cadastrado"
             contato_tel = contato_emergencia.telefone if contato_emergencia else "---"
 
+            # Adiciona os cursos ao resultado do militar
+            cursos_do_militar = cursos_por_militar.get(militar.id, [])
+
             resultado_militares.append({
                 "nome": militar.nome_guerra if militar.nome_guerra else militar.nome_completo,
                 "posto": sigla_posto,
@@ -304,6 +320,7 @@ def api_militares_obm(obm_id):
                 "celular": celular,
                 "contato_emergencia_nome": contato_nome,
                 "contato_emergencia_tel": contato_tel,
+                "cursos": cursos_do_militar,  # <-- Enviando os cursos para o JS
                 "peso_funcao": peso,
                 "posto_ordem": pesos_postos.get(sigla_posto.upper(), 99),
                 "rg_num": rg_num
@@ -316,14 +333,13 @@ def api_militares_obm(obm_id):
         x["rg_num"]
     ))
 
-    # --- 2. LÓGICA DAS VIATURAS ---
+    # --- 2. LÓGICA DAS VIATURAS (Mantida igual a sua) ---
     viaturas_query = database.session.query(
         Viaturas).filter(Viaturas.obm_id == obm_id).all()
     resultado_viaturas = []
 
     for v in viaturas_query:
         motoristas = []
-        # Acessando os militares vinculados à viatura através da tabela associativa ViaturaMilitar
         for vm in v.militares:
             m = vm.militar
             if m:
@@ -338,10 +354,61 @@ def api_militares_obm(obm_id):
             "motoristas": motoristas
         })
 
-    # Ordenar as viaturas pelo prefixo para ficar organizado
     resultado_viaturas.sort(key=lambda x: x["prefixo"])
 
     return jsonify({
         "militares": resultado_militares,
         "viaturas": resultado_viaturas
     })
+
+
+# ====================================================================
+# NOVAS ROTAS PARA O PAINEL DE ESPECIALIDADES
+# ====================================================================
+
+@mapa_bp.route('/api-teste/cursos')
+def api_cursos_lista():
+    """Retorna todos os cursos para preencher o Select de busca"""
+    cursos = database.session.query(
+        Curso.id, Curso.nome).order_by(Curso.nome.asc()).all()
+    return jsonify([{"id": c.id, "nome": c.nome} for c in cursos])
+
+
+@mapa_bp.route('/api-teste/militares-por-especialidade/<int:curso_id>')
+def api_pesquisa_especialidade(curso_id):
+    """Busca todos os militares ativos que possuem um curso específico e onde estão lotados"""
+    query = database.session.query(
+        Militar.nome_guerra, Militar.nome_completo, PostoGrad.sigla,
+        Obm.sigla.label('obm_sigla'), Obm.id.label('obm_id'),
+        database.func.upper(Obm.sigla)
+    ).join(
+        MilitarCurso, MilitarCurso.militar_id == Militar.id
+    ).join(
+        PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).join(
+        MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
+    ).join(
+        Obm, Obm.id == MilitarObmFuncao.obm_id
+    ).filter(
+        MilitarCurso.curso_id == curso_id,
+        Militar.inativo.is_(False),
+        MilitarObmFuncao.data_fim.is_(None)
+    ).order_by(PostoGrad.id.asc()).all()
+
+    resultados = []
+    for nome_guerra, nome_completo, posto, obm_sigla, obm_id, obm_upper in query:
+        cidade_destino = "MANAUS"
+        for cidade in COORDENADAS_CIDADES.keys():
+            if cidade != "MANAUS" and cidade in obm_upper:
+                cidade_destino = cidade
+                break
+
+        nome = nome_guerra if nome_guerra else nome_completo
+        resultados.append({
+            "nome_completo": f"{posto} {nome}",
+            "obm": obm_sigla,
+            "obm_id": obm_id,
+            "cidade": cidade_destino
+        })
+
+    return jsonify(resultados)
