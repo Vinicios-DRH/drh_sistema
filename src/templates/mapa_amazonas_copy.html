@@ -183,6 +183,65 @@
             color: #ffffff;
         }
 
+        /* --- ANIMAÇÃO DE DESTAQUE (PISCAR) PARA OS PINS --- */
+        @keyframes piscarDestaque {
+            0% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+                border-color: #d32f2f;
+            }
+
+            50% {
+                box-shadow: 0 0 25px #ffb300, 0 0 40px #ffb300;
+                transform: scale(1.3);
+                border-color: #ffb300;
+            }
+
+            100% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+                border-color: #d32f2f;
+            }
+        }
+
+        .pin-logo.piscar {
+            animation: piscarDestaque 1s infinite alternate;
+            border-color: #ffb300;
+            z-index: 10;
+        }
+
+        .pin-text.piscar {
+            background-color: #ffb300;
+            color: #121212;
+            border-color: #ffb300;
+            box-shadow: 0 0 15px rgba(255, 179, 0, 0.6);
+        }
+
+        /* --- ANIMAÇÃO DE DESTAQUE (PISCAR) PARA OS CLUSTERS --- */
+        @keyframes piscarCluster {
+            0% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 20px #ffb300;
+                transform: scale(1.15);
+            }
+
+            100% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+            }
+        }
+
+        .cluster-piscar div {
+            animation: piscarCluster 1s infinite alternate !important;
+            background-color: rgba(255, 179, 0, 0.9) !important;
+            color: #121212 !important;
+            border: 2px solid #ffffff !important;
+        }
+
         /* --- TOOLTIP --- */
         .leaflet-tooltip.custom-tooltip {
             background-color: #1a1a1a;
@@ -620,10 +679,8 @@
             <p>Distribuição Operacional - Amazonas</p>
         </div>
 
-        <!-- Espaçador para jogar o botão para a direita -->
         <div style="flex-grow: 1;"></div>
 
-        <!-- Botões de Pesquisa -->
         <div style="display: flex; gap: 10px;">
             <button class="btn-abrir-pesquisa" style="background: #ffb300; color: #121212;"
                 onclick="abrirPesquisaEspecialidade()">
@@ -647,7 +704,6 @@
                 <div id="loading-modal" class="loading" style="display: none;">Buscando dados no servidor...</div>
 
                 <div id="container-viaturas" class="viaturas-container" style="display: none;">
-                    <!-- Renderizado via JS -->
                 </div>
 
                 <div id="lista-militares"></div>
@@ -663,7 +719,6 @@
             <div class="pesquisa-header">
                 <select id="select-curso" onchange="buscarMilitaresPorCurso()">
                     <option value="">Selecione uma especialidade...</option>
-                    <!-- Preenchido via JS -->
                 </select>
                 <button onclick="fecharPesquisaEspecialidade()"
                     style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
@@ -711,7 +766,6 @@
         </div>
     </div>
 
-    <!-- Overlay e Modal de Pesquisa -->
     <div id="overlay-pesquisa" onclick="fecharPesquisa()"></div>
     <div id="modal-pesquisa">
         <div class="pesquisa-header">
@@ -720,7 +774,6 @@
                 style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
         </div>
         <div class="lista-pesquisa-container" id="lista-pesquisa">
-            <!-- A lista será gerada dinamicamente via JS -->
         </div>
     </div>
 
@@ -738,12 +791,48 @@
             maxZoom: 20
         }).addTo(mapa);
 
-        // 2. Grupo de Clusterização
+        // Variáveis globais
+        let dadosOBMGlobal = [];
+        let marcadoresLeaflet = {};
+        let obmsDestacadasEspecialidade = new Set(); // Guarda quem vai piscar no mapa
+
+        // 2. Grupo de Clusterização com Lógica Dinâmica
         const markerCluster = L.markerClusterGroup({
             maxClusterRadius: 40,
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
-            zoomToBoundsOnClick: true
+            zoomToBoundsOnClick: true,
+            // ESSA É A MÁGICA PARA O CLUSTER PISCAR
+            iconCreateFunction: function (cluster) {
+                const childCount = cluster.getChildCount();
+                const children = cluster.getAllChildMarkers();
+                let temDestaque = false;
+
+                // Verifica se algum pino dentro do cluster está na nossa lista de destacados
+                for (let i = 0; i < children.length; i++) {
+                    if (obmsDestacadasEspecialidade.has(children[i].obm_id)) {
+                        temDestaque = true;
+                        break; // Se achou um, já é o suficiente pra piscar
+                    }
+                }
+
+                let c = ' marker-cluster-';
+                if (childCount < 10) {
+                    c += 'small';
+                } else if (childCount < 100) {
+                    c += 'medium';
+                } else {
+                    c += 'large';
+                }
+
+                const extraClass = temDestaque ? ' cluster-piscar' : '';
+
+                return new L.DivIcon({
+                    html: '<div><span>' + childCount + '</span></div>',
+                    className: 'marker-cluster' + c + extraClass,
+                    iconSize: new L.Point(40, 40)
+                });
+            }
         });
 
         // 3. Contorno do Estado
@@ -765,9 +854,35 @@
                 document.getElementById('stat-saude').innerText = data.saude;
             });
 
-        // Variáveis globais para armazenar os dados e os marcadores
-        let dadosOBMGlobal = [];
-        let marcadoresLeaflet = {};
+        // Função para gerar o HTML do Ícone com a possibilidade de piscar
+        function criarHtmlIconeMap(obmNome, destacar) {
+            const classePiscar = destacar ? 'piscar' : '';
+            return `
+                <div class="pin-container">
+                    <img class="pin-logo ${classePiscar}" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
+                    <div class="pin-text ${classePiscar}">${obmNome}</div>
+                </div>
+            `;
+        }
+
+        // Função para atualizar visualmente os ícones do mapa sem precisar recarregar
+        function atualizarDestaquesMapa() {
+            dadosOBMGlobal.forEach(dado => {
+                const marcador = marcadoresLeaflet[dado.obm_id];
+                if (marcador) {
+                    const devePiscar = obmsDestacadasEspecialidade.has(dado.obm_id);
+                    const novoIcone = L.divIcon({
+                        className: 'custom-text-icon',
+                        html: criarHtmlIconeMap(dado.obm, devePiscar),
+                        iconSize: [0, 0]
+                    });
+                    marcador.setIcon(novoIcone);
+                }
+            });
+
+            // ATUALIZA OS CLUSTERS TAMBÉM PRA REFLETIR A BUSCA
+            markerCluster.refreshClusters();
+        }
 
         // 5. Carregar Markers e aplicar ao Cluster
         fetch('/api/mapa-dados-teste')
@@ -778,16 +893,14 @@
                 dados.forEach(dado => {
                     const textLabel = L.divIcon({
                         className: 'custom-text-icon',
-                        html: `
-                            <div class="pin-container">
-                                <img class="pin-logo" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
-                                <div class="pin-text">${dado.obm}</div>
-                            </div>
-                        `,
+                        html: criarHtmlIconeMap(dado.obm, false), // Começa sem piscar
                         iconSize: [0, 0]
                     });
 
                     const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel });
+
+                    // SALVAMOS O ID DENTRO DO MARCADOR PRO CLUSTER CONSEGUIR LER DEPOIS
+                    marcador.obm_id = dado.obm_id;
 
                     const conteudoTooltip = `
                         <div class="popup-title">${dado.obm}</div>
@@ -816,7 +929,7 @@
             });
 
         // ==========================================
-        // LÓGICA DE PESQUISA (BOTTOM SHEET)
+        // LÓGICA DE PESQUISA POR OBM (BOTTOM SHEET)
         // ==========================================
 
         function abrirPesquisa() {
@@ -953,7 +1066,7 @@
                     let html = '';
                     militares.forEach(m => {
 
-                        // --- NOVA LÓGICA DE CURSOS AQUI ---
+                        // --- LÓGICA DE CURSOS AQUI ---
                         let cursosHTML = '';
                         if (m.cursos && m.cursos.length > 0) {
                             cursosHTML = m.cursos.map(c => `<span class="badge-curso-mapa">${c}</span>`).join('');
@@ -973,7 +1086,6 @@
                                 <div style="display: flex; flex-wrap: wrap; margin-top: 4px;">${cursosHTML}</div>
                             </div>
                         `;
-                        // ------------------------------------
 
                         const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
                         const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
@@ -1003,43 +1115,6 @@
                 });
         }
 
-        function renderizarGrafico(statsData) {
-            const ctx = document.getElementById('graficoEfetivo').getContext('2d');
-
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
-            const labels = Object.keys(statsData);
-            const dados = Object.values(statsData);
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: dados,
-                        backgroundColor: [
-                            '#d32f2f', '#ff5252', '#f44336', '#e57373',
-                            '#b71c1c', '#c62828', '#ffffff', '#aaaaaa'
-                        ],
-                        borderWidth: 1,
-                        borderColor: '#1a1a1a'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: '#ffffff', font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-        }
-
         function fecharModal() {
             document.getElementById('modal-efetivo').classList.remove('aberta');
         }
@@ -1062,7 +1137,6 @@
                         chartIdades.destroy();
                     }
 
-                    // Define global defaults to dark mode
                     Chart.defaults.color = '#ccc';
 
                     chartIdades = new Chart(ctx, {
@@ -1140,8 +1214,12 @@
             const cursoId = document.getElementById('select-curso').value;
             const container = document.getElementById('lista-especialidade');
 
+            // Limpa o Set dos destaques
+            obmsDestacadasEspecialidade.clear();
+
             if (!cursoId) {
                 container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o efetivo.</div>';
+                atualizarDestaquesMapa(); // Limpa os blinks do mapa
                 return;
             }
 
@@ -1152,8 +1230,17 @@
                 .then(dados => {
                     if (dados.length === 0) {
                         container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#ff5252;">Nenhum militar com esta formação encontrado.</div>';
+                        atualizarDestaquesMapa(); // Limpa os blinks
                         return;
                     }
+
+                    // Preenche o Set com os OBM IDs que tem esse especialista
+                    dados.forEach(militar => {
+                        obmsDestacadasEspecialidade.add(militar.obm_id);
+                    });
+
+                    // Dispara a atualização visual no mapa (Pinos + Clusters)
+                    atualizarDestaquesMapa();
 
                     container.innerHTML = `<div style="color: #aaa; font-size: 12px; margin-bottom: 10px; text-transform: uppercase;">${dados.length} militares encontrados</div>`;
 
