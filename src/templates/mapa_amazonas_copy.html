@@ -26,6 +26,11 @@
             height: 100vh;
         }
 
+        /* --- CLASSES UTILITÁRIAS --- */
+        .oculto {
+            display: none !important;
+        }
+
         /* --- HEADER --- */
         #header {
             padding: 15px 30px;
@@ -75,6 +80,31 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+        }
+
+        /* --- BOTÃO MODO FOCO --- */
+        .btn-toggle-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1500;
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 2px solid #d32f2f;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-toggle-ui:hover {
+            background-color: #d32f2f;
+            transform: scale(1.05);
         }
 
         /* --- FOOTER DE ESTATÍSTICAS --- */
@@ -693,6 +723,11 @@
     </div>
 
     <div id="container-principal">
+
+        <button id="btn-toggle-ui" class="btn-toggle-ui" onclick="toggleModoFoco()" title="Ocultar Painéis">
+            ⛶ Modo Foco
+        </button>
+
         <div id="mapa"></div>
 
         <div id="modal-efetivo">
@@ -781,6 +816,29 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
+        // --- NOVA FUNÇÃO PARA ALTERNAR O MODO FOCO ---
+        function toggleModoFoco() {
+            const header = document.getElementById('header');
+            const footer = document.getElementById('footer-stats');
+            const btn = document.getElementById('btn-toggle-ui');
+
+            header.classList.toggle('oculto');
+            footer.classList.toggle('oculto');
+
+            if (header.classList.contains('oculto')) {
+                btn.innerHTML = '🗗 Restaurar Painéis';
+                btn.title = 'Mostrar Cabeçalho e Rodapé';
+            } else {
+                btn.innerHTML = '⛶ Modo Foco';
+                btn.title = 'Ocultar Painéis';
+            }
+
+            // O Leaflet precisa ser avisado que o container dele mudou de tamanho
+            setTimeout(() => {
+                mapa.invalidateSize();
+            }, 300);
+        }
+
         // 1. Inicializa Mapa
         const mapa = L.map('mapa', { zoomControl: false }).setView([-3.1190, -60.0217], 5);
         L.control.zoom({ position: 'bottomleft' }).addTo(mapa);
@@ -802,17 +860,15 @@
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
             zoomToBoundsOnClick: true,
-            // ESSA É A MÁGICA PARA O CLUSTER PISCAR
             iconCreateFunction: function (cluster) {
                 const childCount = cluster.getChildCount();
                 const children = cluster.getAllChildMarkers();
                 let temDestaque = false;
 
-                // Verifica se algum pino dentro do cluster está na nossa lista de destacados
                 for (let i = 0; i < children.length; i++) {
                     if (obmsDestacadasEspecialidade.has(children[i].obm_id)) {
                         temDestaque = true;
-                        break; // Se achou um, já é o suficiente pra piscar
+                        break;
                     }
                 }
 
@@ -880,7 +936,6 @@
                 }
             });
 
-            // ATUALIZA OS CLUSTERS TAMBÉM PRA REFLETIR A BUSCA
             markerCluster.refreshClusters();
         }
 
@@ -888,18 +943,17 @@
         fetch('/api/mapa-dados-teste')
             .then(response => response.json())
             .then(dados => {
-                dadosOBMGlobal = dados; // Salva os dados para a pesquisa
+                dadosOBMGlobal = dados;
 
                 dados.forEach(dado => {
                     const textLabel = L.divIcon({
                         className: 'custom-text-icon',
-                        html: criarHtmlIconeMap(dado.obm, false), // Começa sem piscar
+                        html: criarHtmlIconeMap(dado.obm, false),
                         iconSize: [0, 0]
                     });
 
                     const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel });
 
-                    // SALVAMOS O ID DENTRO DO MARCADOR PRO CLUSTER CONSEGUIR LER DEPOIS
                     marcador.obm_id = dado.obm_id;
 
                     const conteudoTooltip = `
@@ -919,7 +973,6 @@
 
                     marcador.on('click', () => { abrirModalMilitares(dado.obm_id, dado.obm); });
 
-                    // Salva a referência do marcador associado ao ID da OBM
                     marcadoresLeaflet[dado.obm_id] = marcador;
 
                     markerCluster.addLayer(marcador);
@@ -935,18 +988,18 @@
         function abrirPesquisa() {
             document.getElementById('overlay-pesquisa').style.display = 'block';
             const modal = document.getElementById('modal-pesquisa');
-            modal.style.transform = 'translateX(-50%) translateY(0)'; // Animação de subir
+            modal.style.transform = 'translateX(-50%) translateY(0)';
 
             const input = document.getElementById('input-pesquisa');
-            input.value = ''; // Limpa pesquisa anterior
-            setTimeout(() => input.focus(), 300); // Foca o input após animação
+            input.value = '';
+            setTimeout(() => input.focus(), 300);
 
-            renderizarListaPesquisa(dadosOBMGlobal); // Mostra todas as OBMs inicialmente
+            renderizarListaPesquisa(dadosOBMGlobal);
         }
 
         function fecharPesquisa() {
             document.getElementById('overlay-pesquisa').style.display = 'none';
-            document.getElementById('modal-pesquisa').style.transform = 'translateX(-50%) translateY(100%)'; // Animação de descer
+            document.getElementById('modal-pesquisa').style.transform = 'translateX(-50%) translateY(100%)';
         }
 
         function renderizarListaPesquisa(lista) {
@@ -968,7 +1021,7 @@
                     </div>
                     <span class="efetivo-badge">${obm.efetivo}</span>
                 `;
-                // Quando clicar na OBM da lista:
+
                 div.onclick = () => voarParaOBM(obm);
                 container.appendChild(div);
             });
@@ -984,14 +1037,11 @@
         }
 
         function voarParaOBM(obm) {
-            fecharPesquisa(); // Fecha a pesquisa
+            fecharPesquisa();
 
-            // Centraliza o mapa com uma animação fluida (flyTo) com zoom 14
             mapa.flyTo([obm.lat, obm.lng], 14, { duration: 1.5 });
 
-            // Espera a animação do mapa terminar e abre automaticamente a lista de militares daquela OBM!
             setTimeout(() => {
-                // Opcional: abre também o balãozinho no mapa
                 const marcador = marcadoresLeaflet[obm.obm_id];
                 if (marcador) {
                     markerCluster.zoomToShowLayer(marcador, function () {
@@ -999,7 +1049,6 @@
                     });
                 }
 
-                // Já abre a aba lateral com os militares prontas
                 abrirModalMilitares(obm.obm_id, obm.obm);
             }, 1600);
         }
@@ -1014,7 +1063,6 @@
             modal.classList.add('aberta');
             titulo.innerText = obmSigla;
 
-            // Estado de Carregamento
             lista.innerHTML = '';
             containerViaturas.style.display = 'none';
             loader.style.display = 'block';
@@ -1026,7 +1074,6 @@
                     const militares = data.militares;
                     const viaturas = data.viaturas;
 
-                    // 1. Renderiza a Frota (Viaturas)
                     containerViaturas.style.display = 'block';
                     if (viaturas && viaturas.length > 0) {
                         let viaturasHtml = `<div class="viatura-titulo">🚒 Frota Operacional (${viaturas.length})</div>`;
@@ -1057,7 +1104,6 @@
                         `;
                     }
 
-                    // 2. Renderiza a Lista de Militares
                     if (!militares || militares.length === 0) {
                         lista.innerHTML = '<div class="loading">Nenhum militar registrado.</div>';
                         return;
@@ -1066,7 +1112,6 @@
                     let html = '';
                     militares.forEach(m => {
 
-                        // --- LÓGICA DE CURSOS AQUI ---
                         let cursosHTML = '';
                         if (m.cursos && m.cursos.length > 0) {
                             cursosHTML = m.cursos.map(c => `<span class="badge-curso-mapa">${c}</span>`).join('');
@@ -1189,7 +1234,6 @@
             document.getElementById('overlay-especialidade').style.display = 'block';
             document.getElementById('modal-especialidade').style.transform = 'translateX(-50%) translateY(0)';
 
-            // Carrega os cursos no Select se ainda estiver vazio
             const select = document.getElementById('select-curso');
             if (select.options.length <= 1) {
                 fetch('/api-teste/cursos')
@@ -1214,12 +1258,11 @@
             const cursoId = document.getElementById('select-curso').value;
             const container = document.getElementById('lista-especialidade');
 
-            // Limpa o Set dos destaques
             obmsDestacadasEspecialidade.clear();
 
             if (!cursoId) {
                 container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o efetivo.</div>';
-                atualizarDestaquesMapa(); // Limpa os blinks do mapa
+                atualizarDestaquesMapa();
                 return;
             }
 
@@ -1230,16 +1273,14 @@
                 .then(dados => {
                     if (dados.length === 0) {
                         container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#ff5252;">Nenhum militar com esta formação encontrado.</div>';
-                        atualizarDestaquesMapa(); // Limpa os blinks
+                        atualizarDestaquesMapa();
                         return;
                     }
 
-                    // Preenche o Set com os OBM IDs que tem esse especialista
                     dados.forEach(militar => {
                         obmsDestacadasEspecialidade.add(militar.obm_id);
                     });
 
-                    // Dispara a atualização visual no mapa (Pinos + Clusters)
                     atualizarDestaquesMapa();
 
                     container.innerHTML = `<div style="color: #aaa; font-size: 12px; margin-bottom: 10px; text-transform: uppercase;">${dados.length} militares encontrados</div>`;
@@ -1259,7 +1300,6 @@
                 });
         }
 
-        // Função para quando clicar em "Ver OBM" na lista de especialistas
         function irParaOBMDaEspecialidade(obmId) {
             fecharPesquisaEspecialidade();
 
