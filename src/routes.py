@@ -2844,7 +2844,8 @@ def exibir_militar(militar_id):
     # =========================================================================
 
     # --- DEBUG: Verifique o que tem na tabela ---
-    todas_auditorias = AuditoriaAtualizacaoCadastral.query.filter_by(militar_id=militar.id).all()
+    todas_auditorias = AuditoriaAtualizacaoCadastral.query.filter_by(
+        militar_id=militar.id).all()
     for a in todas_auditorias:
         print(f"DEBUG: ID={a.id}, ACAO='{a.acao}', MILITAR_ID={a.militar_id}")
 
@@ -2852,7 +2853,7 @@ def exibir_militar(militar_id):
         militar_id=militar.id,
         acao="ATUALIZACAO_SITUACAO_CHEFIA"
     ).order_by(AuditoriaAtualizacaoCadastral.id.desc()).first()
-    
+
     ultima_auditoria = AuditoriaAtualizacaoCadastral.query.filter_by(
         militar_id=militar.id,
         acao="ATUALIZACAO_SITUACAO_CHEFIA"
@@ -2860,13 +2861,17 @@ def exibir_militar(militar_id):
 
     auditoria_info = None
     if ultima_auditoria:
-        data_aud = getattr(ultima_auditoria, 'criado_em', None) or getattr(ultima_auditoria, 'data_hora', None) or getattr(ultima_auditoria, 'data_criacao', None)
-        data_str = data_aud.strftime('%d/%m/%Y às %H:%M') if data_aud else "Data desconhecida"
+        data_aud = getattr(ultima_auditoria, 'criado_em', None) or getattr(
+            ultima_auditoria, 'data_hora', None) or getattr(ultima_auditoria, 'data_criacao', None)
+        data_str = data_aud.strftime(
+            '%d/%m/%Y às %H:%M') if data_aud else "Data desconhecida"
 
-        user_rel = getattr(ultima_auditoria, 'usuario', None) or getattr(ultima_auditoria, 'user', None)
+        user_rel = getattr(ultima_auditoria, 'usuario', None) or getattr(
+            ultima_auditoria, 'user', None)
         nome_str = "Usuário não identificado"
         if user_rel:
-            nome_str = getattr(user_rel, 'nome_guerra', None) or getattr(user_rel, 'username', None) or getattr(user_rel, 'nome', "Usuário")
+            nome_str = getattr(user_rel, 'nome_guerra', None) or getattr(
+                user_rel, 'username', None) or getattr(user_rel, 'nome', "Usuário")
 
         auditoria_info = f"Modificado por {nome_str} em {data_str}"
 
@@ -2879,7 +2884,8 @@ def exibir_militar(militar_id):
         conjuge=conjuge,
         can_edit=can_edit,
         can_delete=can_delete,
-        bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get("situacao_militar_2", ""),
+        bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get(
+            "situacao_militar_2", ""),
         auditoria_info=auditoria_info  # <--- NOVA LINHA AQUI
     )
 
@@ -8026,7 +8032,10 @@ def tabela_gestao_chefia(obm_id):
         .all()
     )
 
-    modalidades = Modalidade.query.order_by(Modalidade.descricao.asc()).all()
+    ids_permitidos = [4, 5, 6, 8]
+    modalidades = Modalidade.query.filter(
+        Modalidade.id.in_(ids_permitidos)
+    ).order_by(Modalidade.descricao.asc()).all()
     cursos = Curso.query.order_by(Curso.nome.asc()).all()
 
     return render_template(
@@ -8050,6 +8059,10 @@ def update_gestao_chefia():
 
     if not militar_id:
         return jsonify({"status": "error", "message": "ID do militar não informado."}), 400
+
+    ids_permitidos = [4, 5, 6, 8]
+    if modalidade_id and modalidade_id not in ids_permitidos:
+        return jsonify({"status": "error", "message": "Operação negada: Modalidade selecionada não é permitida para este perfil."}), 403
 
     militar = Militar.query.get_or_404(militar_id)
 
