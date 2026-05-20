@@ -999,6 +999,21 @@
                 <span class="cluster-tag">Crítico</span>
               </div>
               <div class="cluster-body">
+
+                {% if auditoria_info %}
+                <div class="d-flex align-items-center gap-3 mb-4 p-3"
+                  style="background: rgba(255, 183, 3, 0.08); border: 1px solid rgba(255, 183, 3, 0.15); border-radius: 16px;">
+                  <div
+                    style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 183, 3, 0.15); display: flex; align-items: center; justify-content: center; color: var(--brand-gold); flex-shrink: 0;">
+                    <i class="bi bi-clock-history fs-5"></i>
+                  </div>
+                  <div style="font-size: 0.86rem; color: var(--soft);">
+                    <strong class="text-white d-block mb-1" style="font-size: 0.95rem;">Atualização via Gestão de
+                      Chefia</strong>
+                    {{ auditoria_info }}
+                  </div>
+                </div>
+                {% endif %}
                 <div class="row g-3">
                   <div class="col-md-2">
                     <label for="situacao" class="field-label">Situação</label>

@@ -1,0 +1,121 @@
+<style>
+    .cursos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .modal-header-custom {
+        background: linear-gradient(90deg, #0d2036 0%, #0c3761 100%);
+        color: white;
+    }
+</style>
+
+<table id="militaresTable" class="table table-hover table-striped table-bordered align-middle w-100"
+    style="width: 100%;">
+    <thead class="table-light">
+        <tr>
+            <th class="text-nowrap">Posto/Grad</th>
+            <th>Nome</th>
+            <th class="text-nowrap">Matrícula</th>
+            <th>Situação Atual</th>
+            <th>Período</th>
+            <th class="text-end">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for militar in militares %}
+        <tr>
+            <td class="text-nowrap">{{ militar.posto_grad.sigla }}</td>
+            <td class="fw-semibold">{{ militar.nome_completo }}</td>
+            <td class="text-nowrap">{{ militar.matricula }}</td>
+            <td>
+                <span class="badge bg-secondary">
+                    {{ militar.modalidade.descricao if militar.modalidade else 'Não definida' }}
+                </span>
+            </td>
+            <td class="text-nowrap text-muted small">
+                {% if militar.inicio_periodo %}
+                {{ militar.inicio_periodo.strftime('%d/%m/%Y') }} a
+                {{ militar.fim_periodo.strftime('%d/%m/%Y') if militar.fim_periodo else 'Indefinido' }}
+                {% else %}
+                —
+                {% endif %}
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-primary btn-editar" data-id="{{ militar.id }}"
+                    data-nome="{{ militar.posto_grad.sigla }} {{ militar.nome_guerra or militar.nome_completo }}"
+                    data-modalidade="{{ militar.modalidade_id or '' }}"
+                    data-inicio="{{ militar.inicio_periodo.strftime('%Y-%m-%d') if militar.inicio_periodo else '' }}"
+                    data-fim="{{ militar.fim_periodo.strftime('%Y-%m-%d') if militar.fim_periodo else '' }}"
+                    data-cursos="{{ militar.cursos_especializacao | map(attribute='curso_id') | list | tojson }}">
+                    <i class="bi bi-pencil-square"></i> Atualizar
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="modal fade" id="modalEdicaoChefia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-custom">
+                <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Atualizar Militar: <span
+                        id="modalNomeMilitar" class="fw-bold"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Fechar"></button>
+            </div>
+
+            <div class="modal-body bg-light">
+                <form id="formAtualizacaoChefia">
+                    <input type="hidden" id="edit_militar_id" name="militar_id">
+
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Situação Atual</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-muted">Modalidade (LTS, LE, Maternidade,
+                                etc)</label>
+                            <select class="form-select border-secondary" id="edit_modalidade_id" name="modalidade_id">
+                                <option value="">-- Selecione a Situação --</option>
+                                {% for mod in modalidades %}
+                                <option value="{{ mod.id }}">{{ mod.descricao }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Data de Início</label>
+                            <input type="date" class="form-control border-secondary" id="edit_inicio_periodo"
+                                name="inicio_periodo">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Data de Término</label>
+                            <input type="date" class="form-control border-secondary" id="edit_fim_periodo"
+                                name="fim_periodo">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Especialidades Operacionais</h6>
+                    <div class="cursos-grid">
+                        {% for curso in cursos %}
+                        <div class="form-check">
+                            <input class="form-check-input check-curso" type="checkbox" name="cursos_ids[]"
+                                value="{{ curso.id }}" id="curso_{{ curso.id }}">
+                            <label class="form-check-label small" for="curso_{{ curso.id }}">
+                                {{ curso.nome }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnSalvarChefia">
+                    <i class="bi bi-save me-1"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

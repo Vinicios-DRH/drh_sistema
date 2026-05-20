@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+<style>
+    :root {
+        --brand-blue-700: #0d2036;
+        --brand-blue-600: #0c3761;
+    }
+
+    body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+        min-height: 100vh;
+    }
+
+    .page-wrap {
+        padding: 18px 10px;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, .96);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+        overflow: hidden;
+    }
+
+    .brand-top {
+        background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
+        color: #fff;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+
+    .brand-top h4 {
+        margin: 0;
+        font-weight: 900;
+    }
+
+    .muted {
+        opacity: .85;
+    }
+
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+        background: rgba(255, 255, 255, .55);
+    }
+
+    .toolbar .grow {
+        flex: 1 1 320px;
+        min-width: 260px;
+    }
+
+    .table-wrap {
+        padding: 12px 12px 18px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid page-wrap">
+    <div class="glass-card">
+        <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
+            <div>
+                <h4><i class="bi bi-person-lines-fill"></i> Gestão do Efetivo</h4>
+                <div class="muted small">Selecione a OBM para atualizar as situações (LTS, LE, etc) e especialidades.
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="grow">
+                <label class="form-label small mb-1 fw-bold text-dark">Selecione a sua OBM</label>
+                <select id="obmSelect" class="form-select border-secondary">
+                    <option value="">— Selecione —</option>
+                    {% for obm in lista_obms %}
+                    <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <div id="tabelaContainer">
+                <div class="text-muted text-center py-5">
+                    <i class="bi bi-arrow-up-circle fs-1"></i>
+                    <p class="mt-2">Selecione uma OBM acima para carregar o efetivo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('obmSelect').addEventListener('change', function () {
+        const obmId = this.value;
+        const alvo = document.getElementById('tabelaContainer');
+
+        if (!obmId) {
+            alvo.innerHTML = '<div class="text-muted text-center py-5"><i class="bi bi-arrow-up-circle fs-1"></i><p class="mt-2">Selecione uma OBM acima para carregar o efetivo.</p></div>';
+            return;
+        }
+
+        alvo.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando militares...</p></div>';
+
+        fetch(`/gestao-chefia/tabela/${obmId}`)
+            .then(r => r.text())
+            .then(html => {
+                alvo.innerHTML = html;
+
+                // 1. Inicializa o DataTable (autoWidth corrige o desalinhamento)
+                if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
+                    const t = $('#militaresTable');
+                    if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
+                    t.DataTable({
+                        scrollX: true,
+                        autoWidth: false,
+                        language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' }
+                    });
+                }
+
+                // 2. Registra o Modal (Agora que o HTML existe na tela)
+                const modalEl = document.getElementById('modalEdicaoChefia');
+                const modalChefia = new bootstrap.Modal(modalEl);
+
+                // 3. Captura cliques no botão (Usando jQuery "on" para garantir que pegue cliques nas páginas 2, 3 do DataTable)
+                $('#militaresTable tbody').on('click', '.btn-editar', function () {
+                    const btn = this;
+                    document.getElementById('edit_militar_id').value = btn.dataset.id;
+                    document.getElementById('modalNomeMilitar').textContent = btn.dataset.nome;
+                    document.getElementById('edit_modalidade_id').value = btn.dataset.modalidade;
+                    document.getElementById('edit_inicio_periodo').value = btn.dataset.inicio;
+                    document.getElementById('edit_fim_periodo').value = btn.dataset.fim;
+
+                    const cursosAtuais = JSON.parse(btn.dataset.cursos || "[]");
+                    document.querySelectorAll('.check-curso').forEach(checkbox => {
+                        checkbox.checked = cursosAtuais.includes(parseInt(checkbox.value));
+                    });
+
+                    modalChefia.show();
+                });
+
+                // 4. Lógica de Salvar
+                document.getElementById('btnSalvarChefia').addEventListener('click', function () {
+                    const btnSalvar = this;
+                    const form = document.getElementById('formAtualizacaoChefia');
+                    const formData = new FormData(form);
+
+                    btnSalvar.disabled = true;
+                    btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+
+                    fetch('/gestao-chefia/update', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            btnSalvar.disabled = false;
+                            btnSalvar.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Alterações';
+
+                            if (data.status === 'success') {
+                                // Espera o modal terminar de sumir para não bugar o fundo cinza antes de recarregar
+                                modalEl.addEventListener('hidden.bs.modal', function onHidden() {
+                                    modalEl.removeEventListener('hidden.bs.modal', onHidden);
+                                    document.getElementById('obmSelect').dispatchEvent(new Event('change'));
+                                });
+
+                                modalChefia.hide();
+                                // Timeout pequeno pra dar tempo do evento de fechar rodar limpo
+                                setTimeout(() => alert(data.message), 200);
+                            } else {
+                                alert("Erro: " + data.message);
+                            }
+                        })
+                        .catch(err => {
+                            btnSalvar.disabled = false;
+                            btnSalvar.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Alterações';
+                            alert("Erro de comunicação com o servidor.");
+                        });
+                });
+
+            })
+            .catch(() => alvo.innerHTML = "<div class='alert alert-danger mt-3'>Erro ao buscar dados.</div>");
+    });
+</script>
+{% endblock %}

@@ -22,14 +22,14 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from werkzeug.utils import secure_filename
 from src import app, database, bcrypt
-from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, DistribuirAtualizacaoForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
+from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, TarefaAtualizacaoCadete, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Motivo, Modalidade, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
-                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, LogExportacaoExcel, Curso, MilitarCurso)
+                        Meses, Motoristas, Categoria, TabelaVencimento, ValorDetalhadoPostoGrad, FichaAlunos, AlunoInativo, Viaturas, ViaturaMilitar, MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, LogExportacaoExcel, Curso, MilitarCurso, AuditoriaAtualizacaoCadastral, now_manaus_naive)
 from src.querys import dados_para_mapa, obter_estatisticas_militares, login_usuario
 from src.decorators.control import checar_ocupacao, militar_esta_no_escopo, obms_permitidas_para_usuario, sync_user_admin_obms_from_militar
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
@@ -102,9 +102,9 @@ def parse_date(date_string):
         return None
 
 
-def now_manaus_naive() -> datetime:
-    # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
-    return datetime.now(MANAUS_TZ).replace(tzinfo=None)
+# def now_manaus_naive() -> datetime:
+#     # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
+#     return datetime.now(MANAUS_TZ).replace(tzinfo=None)
 
 
 def _agora_manaus():
@@ -1135,7 +1135,7 @@ def home():
 
 OBMS_OPERACIONAIS_CAPITAL = [2, 5, 7, 15, 26, 35, 59, 60, 61, 62, 63, 65, 86]
 LOCALIDADE_CAPITAL_ID = 1
-USER_ID_CHEFE_CBMC = [1, 8, 13]
+USER_ID_CHEFE_CBMC = [13]
 
 
 def _parse_int(value):
@@ -1538,7 +1538,7 @@ def _opcoes_filtros_cbmc():
 @app.route("/painel-cbmc-operacional")
 @login_required
 def painel_cbmc_operacional():
-    if current_user.id != USER_ID_CHEFE_CBMC:
+    if current_user.id != 13:
         abort(403)
 
     try:
@@ -1571,7 +1571,7 @@ def painel_cbmc_operacional():
 @app.route("/painel-cbmc-operacional/exportar-excel")
 @login_required
 def exportar_excel_painel_cbmc_operacional():
-    if current_user.id != USER_ID_CHEFE_CBMC:
+    if current_user.id != 13:
         abort(403)
 
     try:
@@ -2427,7 +2427,8 @@ def exibir_militar(militar_id):
 
         form_militar.sexo.data = militar.sexo if militar.sexo else None
         form_militar.raca.data = militar.raca if militar.raca else None
-        form_militar.cursos_ids.data = [mc.curso_id for mc in militar.cursos_especializacao]
+        form_militar.cursos_ids.data = [
+            mc.curso_id for mc in militar.cursos_especializacao]
 
         hoje = date.today()
         dn = militar.data_nascimento.date() if isinstance(
@@ -2553,7 +2554,6 @@ def exibir_militar(militar_id):
         militar.fim_situacao2 = parse_date_flex(
             request.form.get("fim_situacao2"))
 
-                
         # Capturando a publicação da Situação 2 manualmente também
         bg_sit2_input = request.form.get("situacao_militar_2")
         if bg_sit2_input is not None:
@@ -2636,17 +2636,19 @@ def exibir_militar(militar_id):
         graduacoes_instituicao = request.form.getlist(
             "graduacoes_instituicao[]")
         graduacoes_ano = request.form.getlist("graduacoes_ano[]")
-        
+
         # --- LÓGICA DE SALVAMENTO DOS CURSOS (MANY-TO-MANY) ---
         cursos_selecionados = form_militar.cursos_ids.data or []
 
         # Mapeia os cursos que o militar JÁ possui no banco
-        cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
+        cursos_atuais = {
+            mc.curso_id: mc for mc in militar.cursos_especializacao}
 
         # 1. Adiciona os cursos novos que foram marcados
         for curso_id in cursos_selecionados:
             if curso_id not in cursos_atuais:
-                novo_curso = MilitarCurso(militar_id=militar.id, curso_id=curso_id, criado_em=now_manaus_naive())
+                novo_curso = MilitarCurso(
+                    militar_id=militar.id, curso_id=curso_id, criado_em=now_manaus_naive())
                 database.session.add(novo_curso)
 
         # 2. Remove os cursos que foram desmarcados pelo operador
@@ -2837,6 +2839,40 @@ def exibir_militar(militar_id):
                     getattr(form_militar, field), 'label') else field
                 flash(f"Erro no campo {label}: {error}", "danger")
 
+    # =========================================================================
+    # 5. AUDITORIA DA CHEFIA (Busca quem alterou a Situação pela última vez)
+    # =========================================================================
+
+    # --- DEBUG: Verifique o que tem na tabela ---
+    todas_auditorias = AuditoriaAtualizacaoCadastral.query.filter_by(militar_id=militar.id).all()
+    for a in todas_auditorias:
+        print(f"DEBUG: ID={a.id}, ACAO='{a.acao}', MILITAR_ID={a.militar_id}")
+
+    ultima_auditoria = AuditoriaAtualizacaoCadastral.query.filter_by(
+        militar_id=militar.id,
+        acao="ATUALIZACAO_SITUACAO_CHEFIA"
+    ).order_by(AuditoriaAtualizacaoCadastral.id.desc()).first()
+    
+    ultima_auditoria = AuditoriaAtualizacaoCadastral.query.filter_by(
+        militar_id=militar.id,
+        acao="ATUALIZACAO_SITUACAO_CHEFIA"
+    ).order_by(AuditoriaAtualizacaoCadastral.id.desc()).first()
+
+    auditoria_info = None
+    if ultima_auditoria:
+        # Pega a data (verifica as nomenclaturas comuns do seu banco)
+        data_aud = getattr(ultima_auditoria, 'criado_em', None) or getattr(ultima_auditoria, 'data_hora', None) or getattr(ultima_auditoria, 'data_criacao', None)
+        data_str = data_aud.strftime('%d/%m/%Y às %H:%M') if data_aud else "Data desconhecida"
+
+        # Pega o nome do usuário responsável
+        user_rel = getattr(ultima_auditoria, 'usuario', None) or getattr(ultima_auditoria, 'user', None)
+        nome_str = "Usuário não identificado"
+        if user_rel:
+            nome_str = getattr(user_rel, 'nome_guerra', None) or getattr(user_rel, 'username', None) or getattr(user_rel, 'nome', "Usuário")
+
+        auditoria_info = f"Modificado por {nome_str} em {data_str}"
+
+    # Agora adicione 'auditoria_info' no retorno do render_template
     return render_template(
         "exibir_militar.html",
         form_militar=form_militar,
@@ -2846,8 +2882,8 @@ def exibir_militar(militar_id):
         conjuge=conjuge,
         can_edit=can_edit,
         can_delete=can_delete,
-        bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get(
-            "situacao_militar_2", "")
+        bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get("situacao_militar_2", ""),
+        auditoria_info=auditoria_info  # <--- NOVA LINHA AQUI
     )
 
 
@@ -7958,3 +7994,122 @@ def exportar_aniversariantes_excel():
 
     except Exception as e:
         return {"erro": "Ocorreu um erro ao gerar o arquivo Excel.", "detalhes": str(e)}, 500
+
+
+@app.route('/gestao-chefia', methods=['GET'])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def gestao_chefia():
+    permitidas = obms_permitidas_para_usuario(current_user)
+    lista_obms = Obm.query.filter(Obm.id.in_(
+        sorted(permitidas))).order_by(Obm.sigla.asc()).all()
+
+    return render_template(
+        'gestao_chefia.html',
+        lista_obms=lista_obms
+    )
+
+
+@app.route('/gestao-chefia/tabela/<int:obm_id>', methods=['GET'])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def tabela_gestao_chefia(obm_id):
+    # Bloqueia acesso a OBM fora do escopo
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if obm_id not in permitidas:
+            return "<div class='alert alert-danger'>Sem permissão para esta OBM.</div>", 403
+
+    obm = Obm.query.get_or_404(obm_id)
+
+    militares = (
+        Militar.query
+        .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+        .filter(MilitarObmFuncao.obm_id == obm_id, MilitarObmFuncao.data_fim.is_(None))
+        .all()
+    )
+
+    modalidades = Modalidade.query.order_by(Modalidade.descricao.asc()).all()
+    cursos = Curso.query.order_by(Curso.nome.asc()).all()
+
+    return render_template(
+        'partial_tabela_gestao_chefia.html',
+        obm=obm,
+        militares=militares,
+        modalidades=modalidades,
+        cursos=cursos
+    )
+
+
+@app.route('/gestao-chefia/update', methods=['POST'])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def update_gestao_chefia():
+    militar_id = request.form.get('militar_id', type=int)
+    modalidade_id = request.form.get('modalidade_id', type=int)
+    inicio_periodo = request.form.get('inicio_periodo')
+    fim_periodo = request.form.get('fim_periodo')
+    cursos_ids = request.form.getlist('cursos_ids[]')
+
+    if not militar_id:
+        return jsonify({"status": "error", "message": "ID do militar não informado."}), 400
+
+    militar = Militar.query.get_or_404(militar_id)
+
+    # Checagem de segurança (garante que o chefe só atualiza o próprio efetivo)
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if not militar_esta_no_escopo(militar.id, permitidas):
+            return jsonify({"status": "error", "message": "Permissão negada. Militar fora do escopo."}), 403
+
+    try:
+        # 1. Atualizar Situação (LTS, LE, etc) e Datas
+        militar.modalidade_id = modalidade_id if modalidade_id else None
+
+        if inicio_periodo:
+            militar.inicio_periodo = datetime.strptime(
+                inicio_periodo, '%Y-%m-%d').date()
+        else:
+            militar.inicio_periodo = None
+
+        if fim_periodo:
+            militar.fim_periodo = datetime.strptime(
+                fim_periodo, '%Y-%m-%d').date()
+        else:
+            militar.fim_periodo = None
+
+        # 2. Atualizar Especialidades Operacionais (MilitarCurso)
+        cursos_selecionados = [int(c) for c in cursos_ids if c.isdigit()]
+        cursos_atuais = {
+            mc.curso_id: mc for mc in militar.cursos_especializacao}
+
+        # Adicionar as novas especialidades marcadas
+        for cid in cursos_selecionados:
+            if cid not in cursos_atuais:
+                database.session.add(MilitarCurso(
+                    militar_id=militar.id,
+                    curso_id=cid,
+                    criado_em=now_manaus_naive()
+                ))
+
+        # Remover especialidades desmarcadas
+        for cid, mc in cursos_atuais.items():
+            if cid not in cursos_selecionados:
+                database.session.delete(mc)
+
+        # 3. Registrar a Auditoria (Guarda Quem e Quando)
+        auditoria = AuditoriaAtualizacaoCadastral(
+            militar_id=militar.id,
+            user_id=current_user.id,
+            acao="ATUALIZACAO_SITUACAO_CHEFIA",
+            ip_address=request.remote_addr,
+            observacao="Atualização de Situação e/ou Especialidades realizada pela Chefia/Diretoria."
+        )
+        database.session.add(auditoria)
+
+        database.session.commit()
+        return jsonify({"status": "success", "message": "Dados do militar atualizados com sucesso!"})
+
+    except Exception as e:
+        database.session.rollback()
+        return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500

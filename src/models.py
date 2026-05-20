@@ -644,7 +644,7 @@ class MilitarObmFuncao(database.Model):
     funcao_id = database.Column(
         database.Integer, database.ForeignKey('funcao.id'))
     tipo = database.Column(database.Integer)
-    data_criacao = database.Column(database.DateTime, default=datetime.utcnow)
+    data_criacao = database.Column(database.DateTime, default=now_manaus_naive)
     data_fim = database.Column(database.DateTime)
 
     militar = database.relationship('Militar', back_populates='obm_funcoes')
@@ -755,7 +755,7 @@ class ViaturaMilitar(database.Model):
         'viaturas.id', ondelete="CASCADE"), nullable=False)
     militar_id = database.Column(database.Integer, database.ForeignKey(
         'militar.id', ondelete="CASCADE"), nullable=False)
-    created_at = database.Column(database.DateTime, default=datetime.utcnow)
+    created_at = database.Column(database.DateTime, default=now_manaus_naive)
 
     viatura = database.relationship("Viaturas", back_populates="militares")
     militar = database.relationship("Militar", back_populates="viaturas")
