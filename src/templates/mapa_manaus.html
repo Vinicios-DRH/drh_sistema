@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Geográfico - Efetivo</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="icon" type="image/png" href="{{ url_for('static',  filename='img/favicon_cbmam.png') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* --- CLASSES UTILITÁRIAS --- */
+        .oculto {
+            display: none !important;
+        }
+
+        /* --- HEADER --- */
+        #header {
+            padding: 15px 30px;
+            background-color: #1a1a1a;
+            border-bottom: 2px solid #d32f2f;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        .header-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        /* --- CONTAINER PRINCIPAL (MAPA + MODAL) --- */
+        #container-principal {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+            width: 100vw;
+        }
+
+        #mapa {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* --- BOTÃO MODO FOCO --- */
+        .btn-toggle-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1500;
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 2px solid #d32f2f;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-toggle-ui:hover {
+            background-color: #d32f2f;
+            transform: scale(1.05);
+        }
+
+        /* --- FOOTER DE ESTATÍSTICAS --- */
+        #footer-stats {
+            background-color: #1a1a1a;
+            border-top: 2px solid #d32f2f;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .stat-card {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-title {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #d32f2f;
+        }
+
+        /* --- CLUSTERIZAÇÃO E MARKERS --- */
+        .marker-cluster-small,
+        .marker-cluster-medium,
+        .marker-cluster-large {
+            background-color: rgba(211, 47, 47, 0.6);
+        }
+
+        .marker-cluster-small div,
+        .marker-cluster-medium div,
+        .marker-cluster-large div {
+            background-color: rgba(211, 47, 47, 0.9);
+            color: white;
+            font-weight: bold;
+            border: 2px solid #121212;
+        }
+
+        .leaflet-div-icon.custom-text-icon {
+            background: transparent;
+            border: none;
+            overflow: visible;
+        }
+
+        .pin-container {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .pin-logo {
+            width: 32px;
+            height: 32px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            border: 2px solid #d32f2f;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+            object-fit: contain;
+            padding: 2px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            z-index: 2;
+        }
+
+        .pin-text {
+            background-color: rgba(26, 26, 26, 0.85);
+            color: #ffffff;
+            border: 1px solid #d32f2f;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-top: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.2s ease;
+            z-index: 1;
+        }
+
+        .pin-container:hover {
+            z-index: 1000 !important;
+        }
+
+        .pin-container:hover .pin-logo {
+            transform: scale(1.15);
+            border-color: #ff5252;
+        }
+
+        .pin-container:hover .pin-text {
+            background-color: #d32f2f;
+            color: #ffffff;
+        }
+
+        /* --- ANIMAÇÃO DE DESTAQUE (PISCAR) PARA OS PINS --- */
+        @keyframes piscarDestaque {
+            0% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+                border-color: #d32f2f;
+            }
+
+            50% {
+                box-shadow: 0 0 25px #ffb300, 0 0 40px #ffb300;
+                transform: scale(1.3);
+                border-color: #ffb300;
+            }
+
+            100% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+                border-color: #d32f2f;
+            }
+        }
+
+        .pin-logo.piscar {
+            animation: piscarDestaque 1s infinite alternate;
+            border-color: #ffb300;
+            z-index: 10;
+        }
+
+        .pin-text.piscar {
+            background-color: #ffb300;
+            color: #121212;
+            border-color: #ffb300;
+            box-shadow: 0 0 15px rgba(255, 179, 0, 0.6);
+        }
+
+        /* --- ANIMAÇÃO DE DESTAQUE (PISCAR) PARA OS CLUSTERS --- */
+        @keyframes piscarCluster {
+            0% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 20px #ffb300;
+                transform: scale(1.15);
+            }
+
+            100% {
+                box-shadow: 0 0 0px #ffb300;
+                transform: scale(1);
+            }
+        }
+
+        .cluster-piscar div {
+            animation: piscarCluster 1s infinite alternate !important;
+            background-color: rgba(255, 179, 0, 0.9) !important;
+            color: #121212 !important;
+            border: 2px solid #ffffff !important;
+        }
+
+        /* --- TOOLTIP --- */
+        .leaflet-tooltip.custom-tooltip {
+            background-color: #1a1a1a;
+            color: #fff;
+            border-radius: 8px;
+            border: 1px solid #d32f2f;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            padding: 12px;
+        }
+
+        .leaflet-tooltip-top.custom-tooltip:before {
+            border-top-color: #d32f2f;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #e53935;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .popup-info {
+            font-size: 14px;
+            margin: 0 0 5px 0;
+        }
+
+        .efetivo-badge {
+            display: inline-block;
+            background-color: #d32f2f;
+            color: #ffffff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        /* --- MODAL LATERAL --- */
+        #modal-efetivo {
+            position: absolute;
+            top: 0;
+            right: -450px;
+            width: 400px;
+            max-width: 100vw;
+            height: 100%;
+            background-color: #1a1a1a;
+            border-left: 2px solid #d32f2f;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #modal-efetivo.aberta {
+            right: 0;
+        }
+
+        /* Estilos para o Select de Cursos */
+        #select-curso {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        #select-curso:focus {
+            border-color: #ffb300;
+        }
+
+        .badge-curso-mapa {
+            display: inline-block;
+            background: #ffb300;
+            color: #121212;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin: 2px 2px 2px 0;
+            white-space: nowrap;
+        }
+
+        .modal-header {
+            padding: 20px;
+            background-color: #d32f2f;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chart-container {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .card-militar {
+            background-color: #2a2a2a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border-left: 4px solid #d32f2f;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .card-militar strong {
+            color: #aaa;
+            margin-right: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #aaa;
+            margin-top: 20px;
+        }
+
+        .card-comandante {
+            background: linear-gradient(145deg, #2a2a2a 0%, #3a1c1c 100%);
+            border-left: 4px solid #ffb300;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            position: relative;
+            padding-right: 110px;
+        }
+
+        .badge-funcao {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #ffb300;
+            color: #121212;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        /* --- TOOLTIP DOS MILITARES --- */
+        .tooltip-container {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            background-color: #1a1a1a;
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 2500;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+            width: 220px;
+            border: 1px solid #d32f2f;
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        /* Setinha do balão apontando para baixo */
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #d32f2f transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .tooltip-header {
+            color: #aaa;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .tooltip-value {
+            color: #ffb300;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-divider {
+            border: 0;
+            border-top: 1px dashed #444;
+            margin: 8px 0;
+        }
+
+        #card-media-idade {
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            border-radius: 8px;
+            padding: 5px 15px;
+        }
+
+        #card-media-idade:hover {
+            transform: translateY(-4px);
+            background-color: #2a2a2a;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* --- MODAL DE PESQUISA (BOTTOM SHEET) --- */
+        #overlay-pesquisa {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 3500;
+            backdrop-filter: blur(2px);
+        }
+
+        #modal-pesquisa {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 600px;
+            height: 60vh;
+            background: #1a1a1a;
+            border-top: 4px solid #d32f2f;
+            border-radius: 16px 16px 0 0;
+            z-index: 4000;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .pesquisa-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #input-pesquisa {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #input-pesquisa:focus {
+            border-color: #d32f2f;
+        }
+
+        .lista-pesquisa-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px 20px;
+        }
+
+        .pesquisa-item {
+            padding: 15px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            transition: background-color 0.2s, padding-left 0.2s;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pesquisa-item:hover {
+            background-color: #2a2a2a;
+            padding-left: 25px;
+            border-left: 3px solid #d32f2f;
+        }
+
+        .btn-abrir-pesquisa {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-abrir-pesquisa:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+
+        /* --- ESTILOS DA FROTA DE VIATURAS --- */
+        .viaturas-container {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            margin-bottom: 10px;
+            border-top: 4px solid #ffb300;
+        }
+
+        .viatura-titulo {
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .viatura-card {
+            background-color: #1a1a1a;
+            border-left: 3px solid #ffb300;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .viatura-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .viatura-info {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffb300;
+            margin-bottom: 2px;
+        }
+
+        .viatura-detalhes {
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .badge-motorista {
+            display: inline-block;
+            background-color: #333;
+            color: #ddd;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            border: 1px solid #555;
+            font-size: 10px;
+        }
+
+        /* Responsividade Básica */
+        @media (max-width: 600px) {
+            #header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+                gap: 10px;
+            }
+
+            .header-logo {
+                width: 60px;
+                height: 60px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .stat-title {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="header">
+        <img src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo" class="header-logo">
+        <div>
+            <h1>Painel Estratégico - CAPITAL</h1>
+            <p>Distribuição Operacional - Manaus</p>
+        </div>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-abrir-pesquisa" style="background: #ffb300; color: #121212;"
+                onclick="abrirPesquisaEspecialidade()">
+                🎓 Especialidades
+            </button>
+            <button class="btn-abrir-pesquisa" onclick="abrirPesquisa()">
+                🔍 Buscar OBM
+            </button>
+        </div>
+    </div>
+
+    <div id="container-principal">
+
+        <button id="btn-toggle-ui" class="btn-toggle-ui" onclick="toggleModoFoco()" title="Ocultar Painéis">
+            ⛶ Modo Foco
+        </button>
+
+        <div id="mapa"></div>
+
+        <div id="modal-efetivo">
+            <div class="modal-header">
+                <h2 id="modal-titulo">Efetivo da OBM</h2>
+                <button class="close-btn" onclick="fecharModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="corpo-modal">
+                <div id="loading-modal" class="loading" style="display: none;">Buscando dados no servidor...</div>
+
+                <div id="container-viaturas" class="viaturas-container" style="display: none;">
+                </div>
+
+                <div id="lista-militares"></div>
+            </div>
+        </div>
+
+        <div id="overlay-especialidade" onclick="fecharPesquisaEspecialidade()"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); z-index: 3500; backdrop-filter: blur(2px);">
+        </div>
+
+        <div id="modal-especialidade"
+            style="position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 600px; height: 60vh; background: #1a1a1a; border-top: 4px solid #ffb300; border-radius: 16px 16px 0 0; z-index: 4000; transition: transform 0.3s ease; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);">
+            <div class="pesquisa-header">
+                <select id="select-curso" onchange="buscarMilitaresPorCurso()">
+                    <option value="">Selecione uma especialidade...</option>
+                </select>
+                <button onclick="fecharPesquisaEspecialidade()"
+                    style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
+            </div>
+            <div class="lista-pesquisa-container" id="lista-especialidade">
+                <div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o
+                    efetivo.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-stats">
+        <div class="stat-card">
+            <span class="stat-title">Efetivo Ativo</span>
+            <span class="stat-value" id="stat-total">--</span>
+        </div>
+        <div class="stat-card" id="card-media-idade" onclick="abrirModalIdades()"
+            title="Clique para ver detalhes por posto">
+            <span class="stat-title">Média de Idade</span>
+            <span class="stat-value" id="stat-idade">-- anos</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-title">Combatentes</span>
+            <span class="stat-value" id="stat-combatentes">--</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-title">Quadro de Saúde</span>
+            <span class="stat-value" id="stat-saude">--</span>
+        </div>
+    </div>
+
+    <div id="modal-idades"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(3px);">
+        <div
+            style="background: #1a1a1a; border-top: 4px solid #d32f2f; border-radius: 8px; width: 800px; max-width: 90%; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 20px; color: #fff; text-transform: uppercase;">Média de Idade por
+                    Posto/Graduação</h2>
+                <button onclick="document.getElementById('modal-idades').style.display='none'"
+                    style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer; transition: color 0.2s;">&times;</button>
+            </div>
+            <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; position: relative;">
+                <canvas id="graficoIdadesPosto" style="max-height: 400px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay-pesquisa" onclick="fecharPesquisa()"></div>
+    <div id="modal-pesquisa">
+        <div class="pesquisa-header">
+            <input type="text" id="input-pesquisa" placeholder="Digite a OBM ou cidade..." onkeyup="filtrarOBMs()">
+            <button onclick="fecharPesquisa()"
+                style="background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="lista-pesquisa-container" id="lista-pesquisa">
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // --- NOVA FUNÇÃO PARA ALTERNAR O MODO FOCO ---
+        function toggleModoFoco() {
+            const header = document.getElementById('header');
+            const footer = document.getElementById('footer-stats');
+            const btn = document.getElementById('btn-toggle-ui');
+
+            header.classList.toggle('oculto');
+            footer.classList.toggle('oculto');
+
+            if (header.classList.contains('oculto')) {
+                btn.innerHTML = '🗗 Restaurar Painéis';
+                btn.title = 'Mostrar Cabeçalho e Rodapé';
+            } else {
+                btn.innerHTML = '⛶ Modo Foco';
+                btn.title = 'Ocultar Painéis';
+            }
+
+            // O Leaflet precisa ser avisado que o container dele mudou de tamanho
+            setTimeout(() => {
+                mapa.invalidateSize();
+            }, 300);
+        }
+
+        // 1. Inicializa Mapa
+        const mapa = L.map('mapa', { zoomControl: false }).setView([-3.1190, -60.0217], 12);
+        L.control.zoom({ position: 'bottomleft' }).addTo(mapa);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(mapa);
+
+        // Variáveis globais
+        let dadosOBMGlobal = [];
+        let marcadoresLeaflet = {};
+        let obmsDestacadasEspecialidade = new Set(); // Guarda quem vai piscar no mapa
+
+        // 2. Grupo de Clusterização com Lógica Dinâmica
+        const markerCluster = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            iconCreateFunction: function (cluster) {
+                const childCount = cluster.getChildCount();
+                const children = cluster.getAllChildMarkers();
+                let temDestaque = false;
+
+                for (let i = 0; i < children.length; i++) {
+                    if (obmsDestacadasEspecialidade.has(children[i].obm_id)) {
+                        temDestaque = true;
+                        break;
+                    }
+                }
+
+                let c = ' marker-cluster-';
+                if (childCount < 10) {
+                    c += 'small';
+                } else if (childCount < 100) {
+                    c += 'medium';
+                } else {
+                    c += 'large';
+                }
+
+                const extraClass = temDestaque ? ' cluster-piscar' : '';
+
+                return new L.DivIcon({
+                    html: '<div><span>' + childCount + '</span></div>',
+                    className: 'marker-cluster' + c + extraClass,
+                    iconSize: new L.Point(40, 40)
+                });
+            }
+        });
+
+        // 3. Contorno do Estado
+        fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/13?formato=application/vnd.geo+json')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: { color: '#d32f2f', weight: 2, opacity: 0.6, fillColor: '#d32f2f', fillOpacity: 0.05 }
+                }).addTo(mapa);
+            });
+
+        // 4. Carregar Dados Globais Reais (Rodapé - MANAUS)
+        fetch('/api/estatisticas-gerais-manaus')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('stat-total').innerText = data.total;
+                document.getElementById('stat-idade').innerText = data.media_idade + ' anos';
+                document.getElementById('stat-combatentes').innerText = data.combatentes;
+                document.getElementById('stat-saude').innerText = data.saude;
+            });
+
+        // Função para gerar o HTML do Ícone com a possibilidade de piscar
+        function criarHtmlIconeMap(obmNome, destacar) {
+            const classePiscar = destacar ? 'piscar' : '';
+            return `
+                <div class="pin-container">
+                    <img class="pin-logo ${classePiscar}" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
+                    <div class="pin-text ${classePiscar}">${obmNome}</div>
+                </div>
+            `;
+        }
+
+        // Função para atualizar visualmente os ícones do mapa sem precisar recarregar
+        function atualizarDestaquesMapa() {
+            dadosOBMGlobal.forEach(dado => {
+                const marcador = marcadoresLeaflet[dado.obm_id];
+                if (marcador) {
+                    const devePiscar = obmsDestacadasEspecialidade.has(dado.obm_id);
+                    const novoIcone = L.divIcon({
+                        className: 'custom-text-icon',
+                        html: criarHtmlIconeMap(dado.obm, devePiscar),
+                        iconSize: [0, 0]
+                    });
+                    marcador.setIcon(novoIcone);
+                }
+            });
+
+            markerCluster.refreshClusters();
+        }
+
+        // 5. Carregar Markers e aplicar ao Cluster
+        fetch('/api/mapa-dados-manaus')
+            .then(response => response.json())
+            .then(dados => {
+                dadosOBMGlobal = dados;
+
+                dados.forEach(dado => {
+                    const textLabel = L.divIcon({
+                        className: 'custom-text-icon',
+                        html: criarHtmlIconeMap(dado.obm, false),
+                        iconSize: [0, 0]
+                    });
+
+                    const marcador = L.marker([dado.lat, dado.lng], { icon: textLabel });
+
+                    marcador.obm_id = dado.obm_id;
+
+                    const conteudoTooltip = `
+                        <div class="popup-title">${dado.obm}</div>
+                        <p class="popup-info"><strong>Base:</strong> ${dado.cidade}</p>
+                        <p class="popup-info" style="color: #ffb300; margin-top: 6px;"><strong>Comando:</strong> ${dado.comandante}</p>
+                        <p class="popup-info"><strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
+                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para ficha completa</p>
+                    `;
+
+                    marcador.bindTooltip(conteudoTooltip, {
+                        className: 'custom-tooltip',
+                        direction: 'top',
+                        offset: [0, -30],
+                        opacity: 0.95
+                    });
+
+                    marcador.on('click', () => { abrirModalMilitares(dado.obm_id, dado.obm); });
+
+                    marcadoresLeaflet[dado.obm_id] = marcador;
+
+                    markerCluster.addLayer(marcador);
+                });
+
+                mapa.addLayer(markerCluster);
+            });
+
+        // ==========================================
+        // LÓGICA DE PESQUISA POR OBM (BOTTOM SHEET)
+        // ==========================================
+
+        function abrirPesquisa() {
+            document.getElementById('overlay-pesquisa').style.display = 'block';
+            const modal = document.getElementById('modal-pesquisa');
+            modal.style.transform = 'translateX(-50%) translateY(0)';
+
+            const input = document.getElementById('input-pesquisa');
+            input.value = '';
+            setTimeout(() => input.focus(), 300);
+
+            renderizarListaPesquisa(dadosOBMGlobal);
+        }
+
+        function fecharPesquisa() {
+            document.getElementById('overlay-pesquisa').style.display = 'none';
+            document.getElementById('modal-pesquisa').style.transform = 'translateX(-50%) translateY(100%)';
+        }
+
+        function renderizarListaPesquisa(lista) {
+            const container = document.getElementById('lista-pesquisa');
+            container.innerHTML = '';
+
+            if (lista.length === 0) {
+                container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Nenhuma OBM ou cidade encontrada.</div>';
+                return;
+            }
+
+            lista.forEach(obm => {
+                const div = document.createElement('div');
+                div.className = 'pesquisa-item';
+                div.innerHTML = `
+                    <div>
+                        <strong style="color: #fff; font-size: 16px;">${obm.obm}</strong>
+                        <div style="color: #aaa; font-size: 12px; margin-top: 4px;">📍 ${obm.cidade} | 👮 Comando: ${obm.comandante}</div>
+                    </div>
+                    <span class="efetivo-badge">${obm.efetivo}</span>
+                `;
+
+                div.onclick = () => voarParaOBM(obm);
+                container.appendChild(div);
+            });
+        }
+
+        function filtrarOBMs() {
+            const termo = document.getElementById('input-pesquisa').value.toLowerCase();
+            const filtrados = dadosOBMGlobal.filter(o =>
+                o.obm.toLowerCase().includes(termo) ||
+                o.cidade.toLowerCase().includes(termo)
+            );
+            renderizarListaPesquisa(filtrados);
+        }
+
+        function voarParaOBM(obm) {
+            fecharPesquisa();
+
+            mapa.flyTo([obm.lat, obm.lng], 14, { duration: 1.5 });
+
+            setTimeout(() => {
+                const marcador = marcadoresLeaflet[obm.obm_id];
+                if (marcador) {
+                    markerCluster.zoomToShowLayer(marcador, function () {
+                        marcador.openTooltip();
+                    });
+                }
+
+                abrirModalMilitares(obm.obm_id, obm.obm);
+            }, 1600);
+        }
+
+        function abrirModalMilitares(obmId, obmSigla) {
+            const modal = document.getElementById('modal-efetivo');
+            const titulo = document.getElementById('modal-titulo');
+            const lista = document.getElementById('lista-militares');
+            const loader = document.getElementById('loading-modal');
+            const containerViaturas = document.getElementById('container-viaturas');
+
+            modal.classList.add('aberta');
+            titulo.innerText = obmSigla;
+
+            lista.innerHTML = '';
+            containerViaturas.style.display = 'none';
+            loader.style.display = 'block';
+
+            fetch(`/api-teste/militares-obm/${obmId}`)
+                .then(res => res.json())
+                .then(data => {
+                    loader.style.display = 'none';
+                    const militares = data.militares;
+                    const viaturas = data.viaturas;
+
+                    containerViaturas.style.display = 'block';
+                    if (viaturas && viaturas.length > 0) {
+                        let viaturasHtml = `<div class="viatura-titulo">🚒 Frota Operacional (${viaturas.length})</div>`;
+
+                        viaturas.forEach(v => {
+                            let motoristasHtml = '';
+                            if (v.motoristas.length > 0) {
+                                motoristasHtml = v.motoristas.map(mot => `<span class="badge-motorista">👨‍🚒 ${mot}</span>`).join('');
+                            } else {
+                                motoristasHtml = `<span style="color: #ff5252; font-size: 10px; font-style: italic;">Nenhum motorista vinculado</span>`;
+                            }
+
+                            viaturasHtml += `
+                                <div class="viatura-card">
+                                    <div class="viatura-info">${v.prefixo}</div>
+                                    <div class="viatura-detalhes">${v.marca_modelo} | Placa: ${v.placa}</div>
+                                    <div>${motoristasHtml}</div>
+                                </div>
+                            `;
+                        });
+                        containerViaturas.innerHTML = viaturasHtml;
+                    } else {
+                        containerViaturas.innerHTML = `
+                            <div class="viatura-titulo">🚒 Frota Operacional</div>
+                            <div style="font-size: 12px; color: #aaa; text-align: center; padding: 10px 0;">
+                                Nenhuma viatura cadastrada.
+                            </div>
+                        `;
+                    }
+
+                    if (!militares || militares.length === 0) {
+                        lista.innerHTML = '<div class="loading">Nenhum militar registrado.</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    militares.forEach(m => {
+
+                        let cursosHTML = '';
+                        if (m.cursos && m.cursos.length > 0) {
+                            cursosHTML = m.cursos.map(c => `<span class="badge-curso-mapa">${c}</span>`).join('');
+                        } else {
+                            cursosHTML = '<span style="color: #666; font-size: 11px; font-style: italic;">Nenhum registro</span>';
+                        }
+
+                        const tooltipHTML = `
+                            <div class="tooltip-content">
+                                <div class="tooltip-header">📞 Contato Pessoal</div>
+                                <div class="tooltip-value">${m.celular}</div>
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">🚨 Emergência: ${m.contato_emergencia_nome}</div>
+                                <div class="tooltip-value">${m.contato_emergencia_tel}</div>
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">🎓 Especialidades</div>
+                                <div style="display: flex; flex-wrap: wrap; margin-top: 4px;">${cursosHTML}</div>
+                            </div>
+                        `;
+
+                        const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
+                        const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
+
+                        if (m.is_comandante) {
+                            html += `
+                                <div class="card-militar card-comandante tooltip-container">
+                                    <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
+                                    <span class="badge-funcao">${m.funcao}</span>
+                                    ${tooltipHTML}
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="card-militar tooltip-container">
+                                    <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
+                                    ${tooltipHTML}
+                                </div>
+                            `;
+                        }
+                    });
+                    lista.innerHTML = html;
+                })
+                .catch(erro => {
+                    loader.style.display = 'none';
+                    lista.innerHTML = '<div class="loading" style="color: #d32f2f;">Erro ao buscar dados.</div>';
+                });
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-efetivo').classList.remove('aberta');
+        }
+
+        let chartIdades = null;
+
+        function abrirModalIdades() {
+            const modal = document.getElementById('modal-idades');
+            modal.style.display = 'flex';
+
+            fetch('/api/media-idade-posto-manaus')
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(d => d.posto);
+                    const valores = data.map(d => d.media);
+
+                    const ctx = document.getElementById('graficoIdadesPosto').getContext('2d');
+
+                    if (chartIdades) {
+                        chartIdades.destroy();
+                    }
+
+                    Chart.defaults.color = '#ccc';
+
+                    chartIdades = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Idade Média',
+                                data: valores,
+                                backgroundColor: '#d32f2f',
+                                borderColor: '#ff5252',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#444' },
+                                    title: { display: true, text: 'Anos' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            return ` ${context.parsed.y} anos`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(erro => console.error("Erro ao buscar idades:", erro));
+        }
+
+        // ==========================================
+        // LÓGICA DE PESQUISA POR ESPECIALIDADE
+        // ==========================================
+
+        function abrirPesquisaEspecialidade() {
+            document.getElementById('overlay-especialidade').style.display = 'block';
+            document.getElementById('modal-especialidade').style.transform = 'translateX(-50%) translateY(0)';
+
+            const select = document.getElementById('select-curso');
+            if (select.options.length <= 1) {
+                fetch('/api-teste/cursos')
+                    .then(res => res.json())
+                    .then(cursos => {
+                        cursos.forEach(c => {
+                            const option = document.createElement('option');
+                            option.value = c.id;
+                            option.text = c.nome;
+                            select.appendChild(option);
+                        });
+                    });
+            }
+        }
+
+        function fecharPesquisaEspecialidade() {
+            document.getElementById('overlay-especialidade').style.display = 'none';
+            document.getElementById('modal-especialidade').style.transform = 'translateX(-50%) translateY(100%)';
+        }
+
+        function buscarMilitaresPorCurso() {
+            const cursoId = document.getElementById('select-curso').value;
+            const container = document.getElementById('lista-especialidade');
+
+            obmsDestacadasEspecialidade.clear();
+
+            if (!cursoId) {
+                container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#aaa;">Selecione um curso acima para ver o efetivo.</div>';
+                atualizarDestaquesMapa();
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Buscando especialistas...</div>';
+
+            fetch(`/api-teste/militares-por-especialidade/${cursoId}`)
+                .then(res => res.json())
+                .then(dados => {
+                    if (dados.length === 0) {
+                        container.innerHTML = '<div style="text-align:center; margin-top: 30px; color:#ff5252;">Nenhum militar com esta formação encontrado.</div>';
+                        atualizarDestaquesMapa();
+                        return;
+                    }
+
+                    dados.forEach(militar => {
+                        obmsDestacadasEspecialidade.add(militar.obm_id);
+                    });
+
+                    atualizarDestaquesMapa();
+
+                    container.innerHTML = `<div style="color: #aaa; font-size: 12px; margin-bottom: 10px; text-transform: uppercase;">${dados.length} militares encontrados</div>`;
+
+                    dados.forEach(militar => {
+                        const div = document.createElement('div');
+                        div.className = 'pesquisa-item';
+                        div.innerHTML = `
+                            <div>
+                                <strong style="color: #fff; font-size: 14px;">${militar.nome_completo}</strong>
+                                <div style="color: #aaa; font-size: 12px; margin-top: 4px;">📍 Lotado em: <strong>${militar.obm}</strong> (${militar.cidade})</div>
+                            </div>
+                            <span class="efetivo-badge" style="background:#444; border:1px solid #666; cursor:pointer;" onclick="irParaOBMDaEspecialidade(${militar.obm_id})">Ver OBM ➔</span>
+                        `;
+                        container.appendChild(div);
+                    });
+                });
+        }
+
+        function irParaOBMDaEspecialidade(obmId) {
+            fecharPesquisaEspecialidade();
+
+            const obmMapData = dadosOBMGlobal.find(o => o.obm_id === obmId);
+
+            if (obmMapData) {
+                voarParaOBM(obmMapData);
+            } else {
+                alert("Coordenadas da OBM não encontradas no mapa.");
+            }
+        }
+
+    </script>
+</body>
+
+</html>

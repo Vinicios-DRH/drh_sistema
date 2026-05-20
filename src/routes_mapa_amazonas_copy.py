@@ -412,3 +412,221 @@ def api_pesquisa_especialidade(curso_id):
         })
 
     return jsonify(resultados)
+
+
+# Manaus
+# Rota para renderizar a página HTML exclusiva de Manaus
+@mapa_bp.route('/mapa-efetivo-manaus')
+def renderizar_mapa_manaus():
+    return render_template('mapa_manaus.html')
+
+# API que retorna os dados do mapa filtrados apenas para a Capital
+
+
+@mapa_bp.route('/api/mapa-dados-manaus')
+def api_dados_mapa_manaus():
+    # 1. Query principal (Igual a original)
+    query = database.session.query(
+        Obm.id,
+        Obm.sigla,
+        database.func.count(database.func.distinct(
+            Militar.id)).label('total_efetivo')
+    ).join(
+        MilitarObmFuncao, MilitarObmFuncao.obm_id == Obm.id
+    ).join(
+        Militar, Militar.id == MilitarObmFuncao.militar_id
+    ).filter(
+        Militar.posto_grad_id != 15,
+        MilitarObmFuncao.data_fim.is_(None)
+    ).group_by(Obm.id, Obm.sigla).all()
+
+    # 2. Query dos comandantes (Igual a original)
+    FUNCOES_COMANDO = [1, 2, 3, 4, 5, 9, 10, 11, 12, 24]
+    comandantes_query = database.session.query(
+        MilitarObmFuncao.obm_id, Militar.nome_guerra, Militar.nome_completo,
+        PostoGrad.sigla, MilitarObmFuncao.funcao_id
+    ).join(Militar, Militar.id == MilitarObmFuncao.militar_id)\
+     .outerjoin(PostoGrad, PostoGrad.id == Militar.posto_grad_id)\
+     .filter(MilitarObmFuncao.data_fim.is_(None), MilitarObmFuncao.funcao_id.in_(FUNCOES_COMANDO)).all()
+
+    PESO_FUNCAO = {4: 1, 5: 2, 2: 3, 3: 4,
+                   1: 5, 11: 6, 12: 7, 10: 8, 9: 9, 24: 10}
+
+    comandantes_dict = {}
+    melhor_peso_obm = {}
+
+    for obm_id, nome_guerra, nome_completo, posto_sigla, funcao_id in comandantes_query:
+        nome = nome_guerra if nome_guerra else nome_completo
+        posto = posto_sigla if posto_sigla else ""
+        peso_atual = PESO_FUNCAO.get(funcao_id, 99)
+
+        if obm_id not in comandantes_dict or peso_atual < melhor_peso_obm.get(obm_id, 99):
+            comandantes_dict[obm_id] = f"{posto} {nome}".strip()
+            melhor_peso_obm[obm_id] = peso_atual
+
+    resultado = []
+
+    # 3. Montagem do JSON (COM FILTRO PARA MANAUS)
+    for obm_id, sigla, efetivo in query:
+        sigla_upper = sigla.upper()
+        cidade_destino = "MANAUS"
+
+        for cidade in COORDENADAS_CIDADES.keys():
+            if cidade != "MANAUS" and cidade in sigla_upper:
+                cidade_destino = cidade
+                break
+
+        # A MÁGICA ACONTECE AQUI: Só adiciona na lista se a cidade for MANAUS
+        if cidade_destino == "MANAUS":
+            import random
+            lat_base, lng_base = COORDENADAS_CIDADES["MANAUS"]
+
+            # Espalha os pins um pouco mais, já que o zoom vai ser maior na capital
+            lat = lat_base + random.uniform(-0.025, 0.025)
+            lng = lng_base + random.uniform(-0.025, 0.025)
+
+            resultado.append({
+                "obm_id": obm_id,
+                "obm": sigla,
+                "efetivo": efetivo,
+                "cidade": cidade_destino,
+                "lat": lat,
+                "lng": lng,
+                "comandante": comandantes_dict.get(obm_id, "Não atribuído")
+            })
+
+    return jsonify(resultado)
+
+
+@mapa_bp.route('/api/estatisticas-gerais-manaus')
+def api_estatisticas_gerais_manaus():
+    """Retorna os dados globais APENAS para Manaus."""
+    # Busca militares ativos, suas OBMs e seus quadros
+    query = database.session.query(
+        Militar.id,
+        Militar.data_nascimento,
+        Quadro.quadro,
+        Obm.sigla
+    ).join(
+        MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
+    ).join(
+        Obm, Obm.id == MilitarObmFuncao.obm_id
+    ).outerjoin(
+        Quadro, Quadro.id == Militar.quadro_id
+    ).filter(
+        Militar.inativo.is_(False),
+        Militar.posto_grad_id != 15,
+        MilitarObmFuncao.data_fim.is_(None)
+    ).all()
+
+    hoje = date.today()
+    total = 0
+    combatentes = 0
+    saude = 0
+    soma_idades = 0
+    total_idades = 0
+    vistos = set()
+
+    for m_id, nascimento, quadro_nome, obm_sigla in query:
+        # Evita contar o mesmo militar duas vezes caso ele tenha duas funções na mesma OBM
+        if m_id in vistos:
+            continue
+
+        sigla_upper = obm_sigla.upper() if obm_sigla else ""
+        is_manaus = True
+
+        # Lógica de filtro: se tiver nome de município do interior na OBM, não é Manaus
+        for cidade in COORDENADAS_CIDADES.keys():
+            if cidade != "MANAUS" and cidade in sigla_upper:
+                is_manaus = False
+                break
+
+        if is_manaus:
+            vistos.add(m_id)
+            total += 1
+
+            # Verifica se é do Quadro de Saúde (ajuste a string se o banco for diferente)
+            q_str = quadro_nome.upper() if quadro_nome else ""
+            if "SAÚDE" in q_str or "SAUDE" in q_str or "MÉDICO" in q_str:
+                saude += 1
+            else:
+                combatentes += 1
+
+            # Calcula a idade exata
+            if nascimento:
+                idade = hoje.year - nascimento.year - \
+                    ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+                soma_idades += idade
+                total_idades += 1
+
+    media_idade = round(soma_idades / total_idades,
+                        1) if total_idades > 0 else 0
+
+    return jsonify({
+        "total": total,
+        "media_idade": media_idade,
+        "combatentes": combatentes,
+        "saude": saude
+    })
+
+
+@mapa_bp.route('/api/media-idade-posto-manaus')
+def api_media_idade_posto_manaus():
+    """Retorna a média de idades por posto APENAS para Manaus."""
+    query = database.session.query(
+        PostoGrad.sigla,
+        Militar.data_nascimento,
+        Obm.sigla.label('obm_sigla')
+    ).join(
+        PostoGrad, PostoGrad.id == Militar.posto_grad_id
+    ).join(
+        MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id
+    ).join(
+        Obm, Obm.id == MilitarObmFuncao.obm_id
+    ).filter(
+        Militar.inativo.is_(False),
+        Militar.posto_grad_id != 15,
+        Militar.data_nascimento.isnot(None),
+        MilitarObmFuncao.data_fim.is_(None)
+    ).all()
+
+    hoje = date.today()
+    dados_idade = {}
+
+    for posto_sigla, nascimento, obm_sigla in query:
+        sigla_upper = obm_sigla.upper() if obm_sigla else ""
+        is_manaus = True
+
+        for cidade in COORDENADAS_CIDADES.keys():
+            if cidade != "MANAUS" and cidade in sigla_upper:
+                is_manaus = False
+                break
+
+        if is_manaus:
+            idade = hoje.year - nascimento.year - \
+                ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+            if posto_sigla not in dados_idade:
+                dados_idade[posto_sigla] = []
+            dados_idade[posto_sigla].append(idade)
+
+    ordem_hierarquica = [
+        'CEL', 'TC', 'MAJ', 'CAP', '1º TEN', '2º TEN', 'ASP', 'AL OF',
+        'ALUNO OFICIAL', 'SUBTENENTE', '1º SGT', '2º SGT', '3º SGT',
+        'AL SGT', 'CB', 'AL SD', 'SD'
+    ]
+
+    resultado = []
+
+    # Respeita a ordem hierárquica no gráfico
+    for sigla in ordem_hierarquica:
+        if sigla in dados_idade and len(dados_idade[sigla]) > 0:
+            media = sum(dados_idade[sigla]) / len(dados_idade[sigla])
+            resultado.append({"posto": sigla, "media": round(media, 1)})
+
+    # Adiciona eventuais postos que não estejam na lista
+    for sigla, idades in dados_idade.items():
+        if sigla not in ordem_hierarquica and len(idades) > 0:
+            media = sum(idades) / len(idades)
+            resultado.append({"posto": sigla, "media": round(media, 1)})
+
+    return jsonify(resultado)

@@ -7998,6 +7998,8 @@ def exportar_aniversariantes_excel():
     except Exception as e:
         return {"erro": "Ocorreu um erro ao gerar o arquivo Excel.", "detalhes": str(e)}, 500
 
+# Rotas de Gestão de Chefia (DIRETOR DRH, DIRETOR, CHEFE, SUPER USER)
+
 
 @app.route('/gestao-chefia', methods=['GET'])
 @login_required
@@ -8123,3 +8125,104 @@ def update_gestao_chefia():
     except Exception as e:
         database.session.rollback()
         return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500
+
+# Rota para gerenciar a frota de viaturas da OBM, acessível apenas para chefia/diretoria
+
+
+@app.route('/gestao-chefia/frota/<int:obm_id>', methods=['GET'])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def gerenciar_frota_chefia(obm_id):
+    # 1. Bloqueia acesso a OBM fora do escopo do chefe
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if obm_id not in permitidas:
+            flash("Sem permissão para acessar a frota desta OBM.", "danger")
+            # Ou a rota principal da chefia
+            return redirect(url_for('gestao_chefia'))
+
+    obm = Obm.query.get_or_404(obm_id)
+
+    # 2. Busca APENAS as viaturas da OBM selecionada
+    viaturas = (Viaturas.query
+                .filter_by(obm_id=obm_id)
+                .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
+                .all())
+
+    # 3. Busca APENAS os motoristas ativos lotados nesta OBM
+    motoristas = (
+        database.session.query(Motoristas)
+        .join(Militar, Motoristas.militar_id == Militar.id)
+        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+        .filter(
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None),
+            Motoristas.modified.is_(None),
+            or_(
+                Motoristas.desclassificar.is_(None),
+                Motoristas.desclassificar != 'SIM'
+            )
+        )
+        .order_by(Militar.nome_completo.asc())
+        .all()
+    )
+
+    # 4. Mapeia quem está em qual viatura para marcar os checkboxes
+    motoristas_por_viatura = {}
+    for v in viaturas:
+        vms = ViaturaMilitar.query.filter_by(viatura_id=v.id).all()
+        motoristas_por_viatura[v.id] = [vm.militar_id for vm in vms]
+
+    return render_template(
+        'frota_chefia_gerenciar.html',
+        obm=obm,
+        viaturas=viaturas,
+        motoristas=motoristas,
+        motoristas_por_viatura=motoristas_por_viatura
+    )
+
+
+@app.route("/gestao-chefia/frota/viatura/<int:viatura_id>/motoristas", methods=["POST"])
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+def salvar_motoristas_frota_chefia(viatura_id):
+    v = Viaturas.query.get_or_404(viatura_id)
+
+    # Segurança: Garante que o chefe não edite viatura de outra OBM
+    if getattr(current_user, "funcao_user_id", None) != 6:
+        permitidas = obms_permitidas_para_usuario(current_user)
+        if v.obm_id not in permitidas:
+            flash("Operação negada. Viatura fora do seu escopo.", "danger")
+            return redirect(url_for('gestao_chefia'))
+
+    selecionados = request.form.getlist("motoristas[]")
+    selecionados = [int(x) for x in selecionados if x]
+
+    if len(selecionados) > 5:
+        flash("Selecione no máximo 5 motoristas para a viatura.", "warning")
+        return redirect(url_for("gerenciar_frota_chefia", obm_id=v.obm_id))
+
+    # Atualiza as relações
+    atuais = ViaturaMilitar.query.filter_by(viatura_id=viatura_id).all()
+    ids_atuais = {vm.militar_id for vm in atuais}
+    novos = set(selecionados) - ids_atuais
+    remover = ids_atuais - set(selecionados)
+
+    if remover:
+        (ViaturaMilitar.query
+            .filter(ViaturaMilitar.viatura_id == viatura_id, ViaturaMilitar.militar_id.in_(remover))
+            .delete(synchronize_session=False))
+
+    for mid in novos:
+        database.session.add(ViaturaMilitar(
+            viatura_id=viatura_id, militar_id=mid))
+
+    try:
+        database.session.commit()
+        flash(
+            f"Efetivo da viatura {v.prefixo or v.placa} atualizado!", "success")
+    except IntegrityError:
+        database.session.rollback()
+        flash("Erro ao salvar: verifique se há duplicidade.", "danger")
+
+    return redirect(url_for("gerenciar_frota_chefia", obm_id=v.obm_id))

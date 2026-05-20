@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block body %}
+<style>
+    :root {
+        --brand-red: #d32f2f;
+        --brand-red-hover: #b71c1c;
+        --brand-gold: #ffb300;
+        --brand-bg: #121212;
+        --brand-card: #2a2a2a;
+        --brand-border: #444444;
+        --brand-text: #ffffff;
+        --brand-muted: #aaaaaa;
+    }
+
+    body {
+        background-color: var(--brand-bg);
+        color: var(--brand-text);
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .motoristas-scroll {
+        height: 180px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        border-radius: 0.375rem;
+        background-color: #1a1a1a !important;
+        border: 1px solid var(--brand-border) !important;
+    }
+
+    .card-viatura {
+        transition: transform 0.2s ease-in-out;
+        border: 1px solid var(--brand-border);
+        border-radius: 0.75rem;
+        background-color: var(--brand-card);
+    }
+
+    .card-viatura:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6) !important;
+        border-color: var(--brand-red);
+    }
+
+    .motorista-item {
+        transition: background-color 0.2s;
+        border: none;
+        border-bottom: 1px solid #333;
+        color: var(--brand-text);
+    }
+
+    .motorista-item:last-child {
+        border-bottom: none;
+    }
+
+    .motorista-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--brand-gold);
+        border-color: var(--brand-gold);
+    }
+
+    .form-check-input:checked+.form-check-label {
+        font-weight: 600;
+        color: var(--brand-gold);
+    }
+
+    .card {
+        background-color: var(--brand-card);
+        color: var(--brand-text);
+    }
+
+    .text-muted {
+        color: var(--brand-muted) !important;
+    }
+
+    .border-bottom {
+        border-color: var(--brand-border) !important;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 mb-1 fw-bold text-light">
+                <i class="bi bi-truck" style="color: var(--brand-red);"></i> Frota: <span
+                    style="color: var(--brand-gold);">{{ obm.sigla }}</span>
+            </h1>
+            <p class="text-muted small mb-0">Atribuição do efetivo nas viaturas da unidade</p>
+        </div>
+        <a class="btn btn-outline-light shadow-sm rounded-pill px-4" href="{{ url_for('gestao_chefia') }}">
+            &larr; Voltar
+        </a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+        <h5 class="fw-semibold m-0 text-light">Vínculo de Motoristas</h5>
+        <span class="badge rounded-pill" style="background-color: var(--brand-red);">Máximo de 5 por viatura</span>
+    </div>
+
+    {% if viaturas|length == 0 %}
+    <div class="alert shadow-sm border d-flex align-items-center gap-3"
+        style="background-color: #2a2a2a; border-color: var(--brand-gold); color: #fff;">
+        <i class="bi bi-info-circle fs-4" style="color: var(--brand-gold);"></i>
+        <div>
+            <strong>Aviso:</strong> Nenhuma viatura está alocada para esta unidade.
+        </div>
+    </div>
+    {% else %}
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for v in viaturas %}
+        <div class="col">
+            <div class="card h-100 shadow-sm card-viatura">
+                <div class="card-header d-flex justify-content-between align-items-center rounded-top"
+                    style="background-color: #1a1a1a; border-bottom: 1px solid #333 !important;">
+                    <span class="fw-bold" style="color: var(--brand-gold); font-size: 1.1rem;">{{ v.prefixo or
+                        'S/PREFIXO' }}</span>
+                </div>
+                <div class="card-body d-flex flex-column pb-3 pt-3">
+                    <div class="mb-3 text-center">
+                        <div class="fw-semibold text-light">{{ v.marca_modelo or 'Modelo não informado' }}</div>
+                        <div class="text-muted small pb-2">Placa: {{ v.placa or '---' }}</div>
+                    </div>
+
+                    <form method="post" action="{{ url_for('salvar_motoristas_frota_chefia', viatura_id=v.id) }}"
+                        class="flex-grow-1 d-flex flex-column">
+
+                        <div class="motoristas-scroll mb-3 p-1 shadow-inner">
+                            {% set selecionados = motoristas_por_viatura.get(v.id, []) %}
+
+                            {% if motoristas|length == 0 %}
+                            <div class="text-center text-muted p-3 small">Nenhum motorista classificado na unidade.
+                            </div>
+                            {% endif %}
+
+                            {% for m in motoristas %}
+                            <label
+                                class="list-group-item motorista-item d-flex align-items-center gap-3 p-2 cursor-pointer m-0"
+                                for="mot_{{ v.id }}_{{ m.militar_id }}">
+                                <input class="form-check-input flex-shrink-0 chk-motorista-{{ v.id }}" type="checkbox"
+                                    name="motoristas[]" value="{{ m.militar_id }}"
+                                    id="mot_{{ v.id }}_{{ m.militar_id }}"
+                                    onchange="limitFiveCheckboxes(this, '{{ v.id }}')" {% if m.militar_id in
+                                    selecionados %}checked{% endif %}>
+                                <span class="form-check-label small text-truncate"
+                                    style="flex-grow: 1; user-select: none;">
+                                    {{ m.militar.nome_completo if m.militar else ('Motorista '+m.id|string) }}
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="badge border" id="counter-{{ v.id }}"
+                                style="background-color: #1a1a1a; color: var(--brand-muted); border-color: #444 !important;">
+                                0/5 marcados
+                            </span>
+                            <button type="submit" class="btn btn-sm px-4 shadow-sm rounded-pill fw-medium"
+                                style="background-color: var(--brand-red); color: white; border: none;">
+                                Salvar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        {% for v in viaturas %}
+        updateCounter('{{ v.id }}');
+        {% endfor %}
+    });
+
+    function updateCounter(viaturaId) {
+        const marcados = document.querySelectorAll(`.chk-motorista-${viaturaId}:checked`).length;
+        const badge = document.getElementById(`counter-${viaturaId}`);
+
+        if (badge) {
+            badge.innerText = `${marcados}/5 marcados`;
+            if (marcados === 5) {
+                badge.style.color = 'var(--brand-gold)';
+                badge.style.borderColor = 'var(--brand-gold)';
+            } else if (marcados > 0) {
+                badge.style.color = '#fff';
+                badge.style.borderColor = '#888';
+            } else {
+                badge.style.color = 'var(--brand-muted)';
+                badge.style.borderColor = '#444';
+            }
+        }
+    }
+
+    function limitFiveCheckboxes(checkbox, viaturaId) {
+        const marcados = document.querySelectorAll(`.chk-motorista-${viaturaId}:checked`);
+        if (marcados.length > 5) {
+            checkbox.checked = false;
+            alert('Você já atingiu o limite de 5 motoristas para esta viatura.');
+        } else {
+            updateCounter(viaturaId);
+        }
+    }
+</script>
+{% endblock %}
