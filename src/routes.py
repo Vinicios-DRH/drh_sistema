@@ -2860,11 +2860,9 @@ def exibir_militar(militar_id):
 
     auditoria_info = None
     if ultima_auditoria:
-        # Pega a data (verifica as nomenclaturas comuns do seu banco)
         data_aud = getattr(ultima_auditoria, 'criado_em', None) or getattr(ultima_auditoria, 'data_hora', None) or getattr(ultima_auditoria, 'data_criacao', None)
         data_str = data_aud.strftime('%d/%m/%Y às %H:%M') if data_aud else "Data desconhecida"
 
-        # Pega o nome do usuário responsável
         user_rel = getattr(ultima_auditoria, 'usuario', None) or getattr(ultima_auditoria, 'user', None)
         nome_str = "Usuário não identificado"
         if user_rel:
@@ -2872,7 +2870,6 @@ def exibir_militar(militar_id):
 
         auditoria_info = f"Modificado por {nome_str} em {data_str}"
 
-    # Agora adicione 'auditoria_info' no retorno do render_template
     return render_template(
         "exibir_militar.html",
         form_militar=form_militar,
