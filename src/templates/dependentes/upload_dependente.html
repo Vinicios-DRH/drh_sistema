@@ -151,7 +151,7 @@
       <div>
         <h4>Upload – Inclusão de Dependentes</h4>
         <div class="muted small">
-          Anexe o <b>DOCX assinado</b> e os demais anexos citados (certidão, RG/CPF, espelho IR, etc.).
+          Anexe o <b>PDF assinado</b> e os demais anexos citados (certidão, RG/CPF, espelho IR, etc.).
         </div>
       </div>
       <span class="badge bg-primary">CBMAM</span>
@@ -240,17 +240,18 @@
 
         <input type="hidden" name="token" value="{{ token }}">
 
-        <label class="form-label fw-semibold" for="arquivos">Arquivos</label>
+        <label class="form-label fw-semibold" for="arquivos">Arquivos (Somente PDF)</label>
         <div id="drop" class="dropzone mb-2" aria-describedby="hintMulti">
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span>📎</span>
             <div>
               <div class="fw-semibold">Clique para escolher ou arraste e solte aqui</div>
-              <div id="hintMulti" class="small text-muted">Você pode selecionar vários arquivos (PDF assinado +
-                anexos).</div>
+              <div id="hintMulti" class="small text-muted">Você pode selecionar vários arquivos (Apenas formato PDF).
+              </div>
             </div>
           </div>
-          <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple>
+          <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple
+            accept=".pdf,application/pdf">
         </div>
 
         <div class="d-flex gap-2 flex-wrap mb-2">
@@ -398,12 +399,18 @@
       statusEl.textContent = 'Arquivos limpos.';
     });
 
-    // Adiciona arquivos, evitando duplicados (mesmo nome + tamanho)
+    // Adiciona arquivos, evitando duplicados (mesmo nome + tamanho) e filtrando por PDF
     function addFiles(fileList) {
       const incoming = Array.from(fileList || []);
       const existing = Array.from(dt.files || []);
 
       for (const f of incoming) {
+        // Validação estrita: Aceitar apenas PDF
+        if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+          alert(`O arquivo "${f.name}" não é um PDF válido e foi ignorado. Por favor, anexe apenas arquivos em formato PDF.`);
+          continue;
+        }
+
         const dup = existing.some(x => x.name === f.name && x.size === f.size);
         if (!dup) dt.items.add(f);
       }
@@ -474,7 +481,7 @@
       const hasFiles = input.files && input.files.length > 0;
       if (!hasFiles) {
         e.preventDefault();
-        alert('Selecione ao menos um arquivo (DOCX/PDF assinado + anexos).');
+        alert('Selecione ao menos um arquivo em formato PDF para enviar.');
         return;
       }
 
