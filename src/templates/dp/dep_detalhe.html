@@ -290,139 +290,124 @@
         <div class="muted small">Links temporários (expiram). Abra e confira antes de finalizar.</div>
       </div>
       <div class="btns">
+        {% if arquivos|length > 0 %}
+        <a href="{{ url_for('dep.drh_download_zip', processo_id=p.id) }}" class="btn btn-sm btn-primary">
+          📦 Baixar anexos (.zip)
+        </a>
+        {% endif %}
+
         <button class="btn btn-outline-secondary btn-sm" type="button" onclick="expandKeys()">Mostrar/ocultar
           keys</button>
       </div>
     </div>
 
-    {% if arquivos|length == 0 %}
-    <div class="p-4 text-center muted">Nenhum arquivo registrado neste protocolo.</div>
-    {% else %}
-    {% for a in arquivos %}
-    <div class="file-row">
-      <div style="min-width:0;">
-        <div class="file-name truncate">{{ a.nome or "Arquivo" }}</div>
-        <div class="file-key d-none fileKey">{{ a.key }}</div>
-      </div>
-      <div class="btns">
-        <a class="btn btn-sm btn-primary" href="{{ a.url }}" target="_blank" rel="noopener">Abrir/baixar</a>
-        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyText('{{ a.key|e }}')">Copiar
-          key</button>
-        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyText('{{ a.url|e }}')">Copiar
-          URL</button>
-      </div>
-    </div>
-    {% endfor %}
-    {% endif %}
   </div>
 
-</div>
-
-<!-- MODAL INDEFERIR -->
-<div class="modal fade" id="modalIndeferir" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" method="POST" action="{{ url_for('dep.drh_indeferir_processo', processo_id=p.id) }}"
-      onsubmit="return confirmIndeferir()">
-      <div class="modal-header">
-        <h5 class="modal-title">Indeferir protocolo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-warning small mb-3">
-          Use quando <b>faltarem documentos</b> ou houver inconsistência. Informe o motivo para ficar registrado.
+  <!-- MODAL INDEFERIR -->
+  <div class="modal fade" id="modalIndeferir" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" method="POST" action="{{ url_for('dep.drh_indeferir_processo', processo_id=p.id) }}"
+        onsubmit="return confirmIndeferir()">
+        <div class="modal-header">
+          <h5 class="modal-title">Indeferir protocolo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
+        <div class="modal-body">
+          <div class="alert alert-warning small mb-3">
+            Use quando <b>faltarem documentos</b> ou houver inconsistência. Informe o motivo para ficar registrado.
+          </div>
 
-        <label class="form-label">Motivo do indeferimento</label>
-        <textarea id="motivoIndeferir" name="motivo" class="form-control" rows="4"
-          placeholder="Ex.: Faltou certidão de nascimento do dependente + documento X..." required></textarea>
+          <label class="form-label">Motivo do indeferimento</label>
+          <textarea id="motivoIndeferir" name="motivo" class="form-control" rows="4"
+            placeholder="Ex.: Faltou certidão de nascimento do dependente + documento X..." required></textarea>
 
-        <div class="form-text">Isso será registrado no log com data/hora (Manaus), usuário e IP.</div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button id="btnIndeferir" type="submit" class="btn btn-danger">Confirmar indeferimento</button>
-      </div>
-    </form>
+          <div class="form-text">Isso será registrado no log com data/hora (Manaus), usuário e IP.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="btnIndeferir" type="submit" class="btn btn-danger">Confirmar indeferimento</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
-  // ---- confirmações e prevenção de duplo clique ----
-  function lockBtn(btn) {
-    try { btn.disabled = true; btn.dataset.originalText = btn.textContent; btn.textContent = 'Processando...'; } catch (e) { }
-    setTimeout(() => { try { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Enviar'; } catch (e) { } }, 4000);
-  }
+  <script>
+    // ---- confirmações e prevenção de duplo clique ----
+    function lockBtn(btn) {
+      try { btn.disabled = true; btn.dataset.originalText = btn.textContent; btn.textContent = 'Processando...'; } catch (e) { }
+      setTimeout(() => { try { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Enviar'; } catch (e) { } }, 4000);
+    }
 
-  function confirmConferir() {
-    const st = "{{ (p.status or 'ENVIADO')|upper }}";
-    const btn = document.getElementById('btnCheck');
-    if (st === "DEFERIDO" || st === "INDEFERIDO") {
-      const ok = confirm("Este processo já parece finalizado. Deseja marcar como conferido novamente?");
+    function confirmConferir() {
+      const st = "{{ (p.status or 'ENVIADO')|upper }}";
+      const btn = document.getElementById('btnCheck');
+      if (st === "DEFERIDO" || st === "INDEFERIDO") {
+        const ok = confirm("Este processo já parece finalizado. Deseja marcar como conferido novamente?");
+        if (ok) lockBtn(btn);
+        return ok;
+      }
+      const ok = confirm("Confirma que conferiu os anexos e deseja dar CHECK?");
       if (ok) lockBtn(btn);
       return ok;
     }
-    const ok = confirm("Confirma que conferiu os anexos e deseja dar CHECK?");
-    if (ok) lockBtn(btn);
-    return ok;
-  }
 
-  function confirmDeferir() {
-    const btn = document.getElementById('btnDeferir');
-    const ok = confirm("Confirma o DEFERIMENTO deste protocolo?");
-    if (ok) lockBtn(btn);
-    return ok;
-  }
-
-  function confirmIndeferir() {
-    const motivo = (document.getElementById("motivoIndeferir")?.value || "").trim();
-    const btn = document.getElementById('btnIndeferir');
-    if (!motivo) { alert("Informe o motivo do indeferimento."); return false; }
-    const ok = confirm("Confirma INDEFERIR este protocolo? Essa ação ficará registrada.");
-    if (ok) lockBtn(btn);
-    return ok;
-  }
-
-  // ---- utilidades UI ----
-  function expandKeys() {
-    document.querySelectorAll(".fileKey").forEach(el => el.classList.toggle("d-none"));
-  }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("Copiado!");
-    } catch (e) {
-      const t = document.createElement("textarea");
-      t.value = text; document.body.appendChild(t); t.select();
-      document.execCommand("copy"); t.remove();
-      toast("Copiado!");
+    function confirmDeferir() {
+      const btn = document.getElementById('btnDeferir');
+      const ok = confirm("Confirma o DEFERIMENTO deste protocolo?");
+      if (ok) lockBtn(btn);
+      return ok;
     }
-  }
 
-  function toast(msg) {
-    const el = document.createElement("div");
-    el.textContent = msg;
-    el.style.position = "fixed"; el.style.bottom = "18px"; el.style.left = "50%";
-    el.style.transform = "translateX(-50%)";
-    el.style.background = "rgba(0,0,0,.85)"; el.style.color = "#fff";
-    el.style.padding = "10px 14px"; el.style.borderRadius = "999px";
-    el.style.zIndex = 9999; el.style.fontSize = ".95rem";
-    document.body.appendChild(el); setTimeout(() => el.remove(), 1400);
-  }
+    function confirmIndeferir() {
+      const motivo = (document.getElementById("motivoIndeferir")?.value || "").trim();
+      const btn = document.getElementById('btnIndeferir');
+      if (!motivo) { alert("Informe o motivo do indeferimento."); return false; }
+      const ok = confirm("Confirma INDEFERIR este protocolo? Essa ação ficará registrada.");
+      if (ok) lockBtn(btn);
+      return ok;
+    }
 
-  // ---- formatação visual do CPF exibido ----
-  (function () {
-    const fmt = v => {
-      const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
-      if (d.length <= 3) return d;
-      if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, "$1.$2");
-      if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
-      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
-    };
-    document.querySelectorAll(".cpf[data-cpf]").forEach(el => {
-      const raw = el.getAttribute("data-cpf") || "";
-      if (raw) el.textContent = fmt(raw);
-    });
-  })();
-</script>
-{% endblock %}
+    // ---- utilidades UI ----
+    function expandKeys() {
+      document.querySelectorAll(".fileKey").forEach(el => el.classList.toggle("d-none"));
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copiado!");
+      } catch (e) {
+        const t = document.createElement("textarea");
+        t.value = text; document.body.appendChild(t); t.select();
+        document.execCommand("copy"); t.remove();
+        toast("Copiado!");
+      }
+    }
+
+    function toast(msg) {
+      const el = document.createElement("div");
+      el.textContent = msg;
+      el.style.position = "fixed"; el.style.bottom = "18px"; el.style.left = "50%";
+      el.style.transform = "translateX(-50%)";
+      el.style.background = "rgba(0,0,0,.85)"; el.style.color = "#fff";
+      el.style.padding = "10px 14px"; el.style.borderRadius = "999px";
+      el.style.zIndex = 9999; el.style.fontSize = ".95rem";
+      document.body.appendChild(el); setTimeout(() => el.remove(), 1400);
+    }
+
+    // ---- formatação visual do CPF exibido ----
+    (function () {
+      const fmt = v => {
+        const d = String(v || "").replace(/\D+/g, "").slice(0, 11);
+        if (d.length <= 3) return d;
+        if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, "$1.$2");
+        if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+        return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
+      };
+      document.querySelectorAll(".cpf[data-cpf]").forEach(el => {
+        const raw = el.getAttribute("data-cpf") || "";
+        if (raw) el.textContent = fmt(raw);
+      });
+    })();
+  </script>
+  {% endblock %}

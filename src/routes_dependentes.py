@@ -18,6 +18,9 @@ from src import database
 from src.models import Militar, MilitarObmFuncao, DepProcesso, DepArquivo, DepAcaoLog
 from datetime import datetime
 
+import zipfile
+import urllib.request
+
 
 bp_dep = Blueprint("dep", __name__, template_folder="templates")
 
@@ -554,6 +557,52 @@ def drh_detalhe_processo(processo_id):
                         "url": url, "key": a.object_key})
 
     return render_template("dp/dep_detalhe.html", p=p, arquivos=arquivos)
+
+
+@bp_dep.get("/drh/dependentes/<int:processo_id>/download-zip")
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
+def drh_download_zip(processo_id):
+    p = DepProcesso.query.get_or_404(processo_id)
+
+    if not p.arquivos:
+        flash("Nenhum arquivo anexado a este processo.", "warning")
+        return redirect(url_for("dep.drh_detalhe_processo", processo_id=p.id))
+
+    # Cria o arquivo ZIP em memória para não poluir o disco do servidor
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for a in p.arquivos:
+            # Gera URL temporária do arquivo no S3/Backblaze
+            url = b2_presigned_get(a.object_key, expires_seconds=120)
+
+            try:
+                # Faz o download do conteúdo do arquivo
+                with urllib.request.urlopen(url) as response:
+                    data = response.read()
+
+                    # Nome seguro (coloca o ID na frente para evitar que
+                    # 2 arquivos com o mesmo nome se sobrescrevam no ZIP)
+                    safe_name = f"{a.id}-{a.nome_original or 'arquivo'}"
+
+                    # Escreve o conteúdo dentro do ZIP
+                    zf.writestr(safe_name, data)
+            except Exception as e:
+                current_app.logger.error(
+                    "Erro ao baixar arquivo para ZIP: %s", e)
+                # Opcional: registrar um arquivo txt dentro do zip informando o erro
+                zf.writestr(
+                    f"ERRO_{a.id}.txt", f"Nao foi possivel baixar: {a.nome_original}\nErro: {e}".encode('utf-8'))
+
+    memory_file.seek(0)
+
+    # Envia o ZIP pronto para o usuário
+    return send_file(
+        memory_file,
+        as_attachment=True,
+        download_name=f"Anexos_Protocolo_{p.protocolo}.zip",
+        mimetype="application/zip"
+    )
 
 
 @bp_dep.post("/drh/dependentes/<int:processo_id>/conferir")
