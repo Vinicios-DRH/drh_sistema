@@ -4494,7 +4494,7 @@ def debug_militar_full(militar_id):
 
 @app.route('/ferias-chefe', methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER', 'ATUALIZACAO CADASTRAL')
 def exibir_ferias_chefe():
     dia_atual = datetime.now().day
 
