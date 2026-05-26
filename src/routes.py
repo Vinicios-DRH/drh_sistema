@@ -4520,7 +4520,7 @@ def first_day_next_month(d: date) -> date:
 
 @app.route('/pafs/tabela/<int:obm_id>', methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER', 'ATUALIZACAO CADASTRAL')
 def carregar_tabela_obm(obm_id):
     # ✅ BLOQUEIA acesso a OBM fora do escopo (exceto SUPER)
     if getattr(current_user, "funcao_user_id", None) != 6:
@@ -4597,7 +4597,7 @@ def carregar_tabela_obm(obm_id):
 
 @app.route("/exportar-pafs-obm/<int:obm_id>")
 @login_required
-@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
+@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER', 'ATUALIZACAO CADASTRAL')
 def exportar_pafs_obm(obm_id):
     # ✅ permissão por OBM (SUPER USER = id 6 no teu sistema)
     if getattr(current_user, "funcao_user_id", None) != 6:
