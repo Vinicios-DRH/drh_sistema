@@ -465,7 +465,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
             "Férias",
             icon="fas fa-tools",
             perm="NAV_FERIAS",
-            rule=(lambda: is_super or _rule_funcao_in([1, 2, 7])),
+            rule=(lambda: is_super or _rule_funcao_in([1, 2, 7, 12])),
             children=[_mk_item("Férias", "exibir_ferias_chefe",
                                perm="NAV_FERIAS_CHEFIA")],
         )
