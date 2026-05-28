@@ -4518,11 +4518,11 @@ def first_day_next_month(d: date) -> date:
     return date(d.year, d.month + 1, 1)
 
 
+# 1. ATUALIZE SUA ROTA carregar_tabela_obm PARA ESTA:
 @app.route('/pafs/tabela/<int:obm_id>', methods=['GET'])
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER', 'ATUALIZACAO CADASTRAL')
 def carregar_tabela_obm(obm_id):
-    # ✅ BLOQUEIA acesso a OBM fora do escopo (exceto SUPER)
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
         if obm_id not in permitidas:
@@ -4535,10 +4535,8 @@ def carregar_tabela_obm(obm_id):
         "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
     }
     current_date = datetime.now().date()
-
     is_super = (getattr(current_user, "funcao_user_id", None) == 6)
 
-    # ✅ data mínima global (para CHEFE): 1º dia do mês seguinte
     min_global = first_day_next_month(current_date)
 
     if is_super:
@@ -4552,12 +4550,10 @@ def carregar_tabela_obm(obm_id):
         bloqueio_mes_atual = True
 
         if ano < min_year:
-            # ano antigo => tudo bloqueado de fato
             min_iso = f"{ano}-12-31"
         elif ano == min_year:
             min_iso = min_global.isoformat()
         else:
-            # ano futuro além do min_year => ok começar 01/01 desse ano
             min_iso = f"{ano}-01-01"
 
     current_month = datetime.now().month
@@ -4592,7 +4588,41 @@ def carregar_tabela_obm(obm_id):
         min_year=min_year,
         min_month=min_month,
         bloqueio_mes_atual=bloqueio_mes_atual,
+        is_super=is_super  # 👇 Injetando quem é Super User para a tabela
     )
+
+
+# 2. ADICIONE ESTA NOVA ROTA NO SEU ARQUIVO DE ROTAS:
+@app.route('/pafs/toggle_excecao', methods=['POST'])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER')
+def toggle_excecao():
+    militar_id = request.form.get('militar_id', type=int)
+    ano = request.form.get('ano', type=int)
+    excecao = request.form.get('excecao') == 'true'
+
+    paf = Paf.query.filter_by(militar_id=militar_id,
+                              ano_referencia=ano).first()
+
+    # Se o PAF não existir ainda, cria um "vazio" só para registrar a flag da exceção
+    if not paf:
+        paf = Paf(militar_id=militar_id, ano_referencia=ano,
+                  usuario_id=current_user.id)
+        database.session.add(paf)
+
+    paf.excecao_virada_ano = excecao
+    paf.usuario_id = current_user.id
+
+    try:
+        from datetime import datetime
+        # Assumindo que você tem now_manaus_naive() na sua aplicação
+        # paf.data_alteracao = now_manaus_naive()
+    except:
+        paf.data_alteracao = datetime.now()
+
+    database.session.commit()
+
+    return jsonify({"status": "success", "message": "Status de exceção atualizado."})
 
 
 @app.route("/exportar-pafs-obm/<int:obm_id>")

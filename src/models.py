@@ -634,6 +634,7 @@ class Militar(database.Model):
         lazy="selectin"
     )
 
+
 class MilitarObmFuncao(database.Model):
     __tablename__ = 'militar_obm_funcao'
 
@@ -664,8 +665,8 @@ class Paf(database.Model):
     __tablename__ = 'paf'
 
     id = database.Column(database.Integer, primary_key=True)
-    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'),
-                                 nullable=True)  # Relaciona com Militar
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=True)
     ano_referencia = database.Column(
         database.Integer, nullable=False, default=lambda: datetime.now().year)
     mes_usufruto = database.Column(database.String(50))
@@ -681,12 +682,13 @@ class Paf(database.Model):
     usuario_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
 
+    # NOVA COLUNA AQUI 👇
+    excecao_virada_ano = database.Column(database.Boolean, default=False)
+
     data_alteracao = database.Column(
         database.DateTime, default=now_manaus_naive, onupdate=now_manaus_naive
     )
 
-    # Relacionamentos
-    # militar = database.relationship('Militar', backref='ferias', lazy=True)
     usuario = database.relationship('User', foreign_keys=[usuario_id])
 
 
