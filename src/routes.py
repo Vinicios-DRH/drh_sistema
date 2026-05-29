@@ -2295,7 +2295,7 @@ MODALIDADES_VALIDAS = {
 
 @app.route("/exibir-militar/<int:militar_id>", methods=["GET", "POST"])
 @login_required
-@checar_ocupacao("DRH", "MAPA DA FORÇA", "SUPER USER", "DIRETOR DRH")
+@checar_ocupacao("DRH", "MAPA DA FORÇA", "SUPER USER", "DIRETOR DRH", "ATUALIZACAO CADASTRAL")
 def exibir_militar(militar_id):
     if not is_super_or_perm("MILITAR_READ"):
         abort(403)
@@ -3243,7 +3243,7 @@ def get_status_sets(base_query, today):
 
 @app.route("/militares", methods=['GET'])
 @login_required
-@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH', 'ATUALIZACAO CADASTRAL')
 def militares():
     f = FormFiltroMilitar()
 
