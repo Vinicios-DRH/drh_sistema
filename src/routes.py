@@ -4616,7 +4616,7 @@ def toggle_excecao():
     try:
         from datetime import datetime
         # Assumindo que você tem now_manaus_naive() na sua aplicação
-        # paf.data_alteracao = now_manaus_naive()
+        paf.data_alteracao = now_manaus_naive()
     except:
         paf.data_alteracao = datetime.now()
 
