@@ -297,7 +297,7 @@
     if (!di || !n) { f.value = ''; return; }
 
     const out = new Date(di.getFullYear(), di.getMonth(), di.getDate() + n - 1);
-    f.value = fmtISO(out); // Injeta a data, NÃO APAGA SE ESTOURAR (ValidarRegras cuida do bloqueio)
+    f.value = fmtISO(out);
   }
 
   function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
@@ -387,7 +387,7 @@
     }
   }
 
-  // === VALIDAÇÕES INSTANTÂNEAS (Enquanto o usuário digita) ===
+  // === VALIDAÇÕES INSTANTÂNEAS (Corrigida a lógica dos meses passados) ===
   function validarRegrasInstantaneas(row, mid, teto) {
     const temExcecaoAno = (row.dataset.excecao === 'true');
 
@@ -403,10 +403,10 @@
     const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value);
     const d1 = getNum(row, `qtd_dias_1_${mid}`);
 
-    // Checagem se ele tentou digitar uma data retroativa nos inputs abertos
-    if (i1 && i1Input?.min && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita. Escolha a partir de ${i1Input.min.split('-').reverse().join('/')}.`;
-    if (i2 && i2Input?.min && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita. Escolha a partir de ${i2Input.min.split('-').reverse().join('/')}.`;
-    if (i3 && i3Input?.min && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita. Escolha a partir de ${i3Input.min.split('-').reverse().join('/')}.`;
+    // Checagem se ele tentou digitar uma data retroativa nos inputs ABERTOS (ignoramos se o input estiver desabilitado)
+    if (i1 && i1Input?.min && !i1Input.disabled && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita. Escolha a partir de ${i1Input.min.split('-').reverse().join('/')}.`;
+    if (i2 && i2Input?.min && !i2Input.disabled && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita. Escolha a partir de ${i2Input.min.split('-').reverse().join('/')}.`;
+    if (i3 && i3Input?.min && !i3Input.disabled && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita. Escolha a partir de ${i3Input.min.split('-').reverse().join('/')}.`;
 
     // Limite Máximo do Ano
     const limiteAno = getLimiteAno(row);
@@ -434,7 +434,6 @@
 
   function dispararModalInconsistencia(mensagem) {
     document.getElementById('textoErroFerias').innerText = mensagem;
-    // O Bootstrap 5 instanciado corretamente para não duplicar backdrops escuros
     if (typeof bootstrap !== 'undefined') {
       const modalEl = document.getElementById('modalRegrasFerias');
       let modal = bootstrap.Modal.getInstance(modalEl);
@@ -449,7 +448,6 @@
     const mid = row.dataset.militarId;
     const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
 
-    // Toggle Exceção via AJAX instantâneo
     const toggleExc = row.querySelector('.toggle-excecao');
     if (toggleExc) {
       toggleExc.addEventListener('change', function () {
@@ -471,7 +469,6 @@
       });
     }
 
-    // Monitoramento Tempo Real de Alterações (Dispara modal se errar, mas NÃO APAGA DADOS)
     ['1', '2', '3'].forEach(p => {
       const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
       const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
@@ -489,7 +486,7 @@
       }
       if (s) {
         s.addEventListener('change', () => {
-          if (!s.value) clearPeriodo(row, mid, p); // Zera se o usuário voltar para '---'
+          if (!s.value) clearPeriodo(row, mid, p);
           else calcularFim(row, mid, p);
           refreshRow(row);
 
@@ -503,7 +500,6 @@
 
     row.querySelectorAll('.botao-salvar').forEach(btn => {
       btn.addEventListener('click', () => {
-        // No momento de salvar, checamos os erros instantâneos + o saldo total obrigatório
         let erroBloqueante = validarRegrasInstantaneas(row, mid, teto);
         if (!erroBloqueante) {
           const { total123 } = totals(row, mid);
@@ -544,7 +540,6 @@
     const mid = row.dataset.militarId;
     const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
 
-    // Verifica todas as restrições para manter a linha vermelha até que seja corrigido
     let erro = validarRegrasInstantaneas(row, mid, teto);
     if (!erro) {
       const { total123 } = totals(row, mid);
