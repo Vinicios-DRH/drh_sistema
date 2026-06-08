@@ -883,7 +883,8 @@ def api_login():
                 "cpf": user.cpf,
                 "email": user.email,
                 "obm1": user.obm1.sigla if user.obm1 else None,
-                "obm2": user.obm2.sigla if user.obm2 else None
+                "obm2": user.obm2.sigla if user.obm2 else None,
+                "funcao_user_id": user.funcao_user_id,
             }
         }), 200
     else:
