@@ -119,7 +119,21 @@ def requerimento_form():
     except ValueError as e:
         return str(e), 400
 
-    # se não tem processo ou o último está DEFERIDO, deixa criar novo
+    # --- TRAVA DE SEGURANÇA ---
+    # Busca o último processo cadastrado por esse militar (ordena pelo ID de forma decrescente)
+    ultimo_processo = DepProcesso.query.filter_by(
+        militar_id=militar.id).order_by(DepProcesso.id.desc()).first()
+
+    # Se existir um processo e ele não estiver concluído (deferido/indeferido)
+    if ultimo_processo:
+        status_atual = (ultimo_processo.status or "").upper()
+
+        # Ajuste a lista de status liberados conforme a sua regra de negócio
+        if status_atual not in ["DEFERIDO", "INDEFERIDO"]:
+            flash("Você já possui um requerimento em andamento. Aguarde a análise do DP/RH antes de tentar abrir um novo.", "warning")
+            return redirect(url_for("dep.militar_acompanhar"))
+    # ---------------------------
+
     from datetime import datetime
     ano_default = datetime.now().year
     obm_sigla = get_obm_sigla_from_militar(militar)
