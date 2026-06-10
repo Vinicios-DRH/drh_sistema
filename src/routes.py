@@ -6360,45 +6360,72 @@ def importar_convocados():
 def gerar_qrcodes():
     if request.method == 'POST':
         arquivo = request.files.get('arquivo')
-        if not arquivo or not arquivo.filename.endswith('.xlsx'):
-            flash('Envie um arquivo .xlsx válido', 'danger')
+
+        if not arquivo:
+            flash('Selecione um arquivo válido.', 'danger')
             return redirect(request.url)
 
-        # lê planilha em memória
-        df = pd.read_excel(arquivo)
+        extensao = arquivo.filename.lower().split('.')[-1]
 
-        if not {'nome_completo', 'qrcode_link'} <= set(df.columns.str.lower()):
-            flash('Planilha deve conter colunas nome_completo e qrcode_link', 'danger')
+        if extensao not in ['xlsx', 'csv']:
+            flash('Envie um arquivo .xlsx ou .csv válido.', 'danger')
             return redirect(request.url)
 
-        # cria zip em memória
-        buffer_zip = BytesIO()
-        with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for _, row in df.iterrows():
-                nome = str(row['nome_completo']).strip()
-                link = str(row['qrcode_link']).strip()
-                if not nome or not link:
-                    continue
+        try:
+            # Lê o arquivo conforme a extensão
+            if extensao == 'xlsx':
+                df = pd.read_excel(arquivo)
+            else:
+                # Tenta UTF-8 primeiro
+                try:
+                    df = pd.read_csv(arquivo, encoding='utf-8')
+                except UnicodeDecodeError:
+                    arquivo.seek(0)
+                    df = pd.read_csv(arquivo, encoding='latin1')
 
-                # gera QR
-                qr_img = qrcode.make(link)
-                img_bytes = BytesIO()
-                qr_img.save(img_bytes, format='PNG')
-                img_bytes.seek(0)
+            # Normaliza os nomes das colunas
+            df.columns = df.columns.str.strip().str.lower()
 
-                # filename seguro (sem espaços / acentos)
-                fname = secure_filename(f'{nome}.png')
-                zf.writestr(fname, img_bytes.read())
+            if not {'nome_completo', 'qrcode_link'}.issubset(df.columns):
+                flash(
+                    'O arquivo deve conter as colunas nome_completo e qrcode_link.',
+                    'danger'
+                )
+                return redirect(request.url)
 
-        buffer_zip.seek(0)
-        return send_file(
-            buffer_zip,
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name='qrcodes.zip'
-        )
+            # Cria ZIP em memória
+            buffer_zip = BytesIO()
 
-    # GET → mostra formulário
+            with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for _, row in df.iterrows():
+                    nome = str(row['nome_completo']).strip()
+                    link = str(row['qrcode_link']).strip()
+
+                    if not nome or not link:
+                        continue
+
+                    qr_img = qrcode.make(link)
+
+                    img_bytes = BytesIO()
+                    qr_img.save(img_bytes, format='PNG')
+                    img_bytes.seek(0)
+
+                    fname = secure_filename(f'{nome}.png')
+                    zf.writestr(fname, img_bytes.read())
+
+            buffer_zip.seek(0)
+
+            return send_file(
+                buffer_zip,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name='qrcodes.zip'
+            )
+
+        except Exception as e:
+            flash(f'Erro ao processar arquivo: {str(e)}', 'danger')
+            return redirect(request.url)
+
     return render_template('gerar_qrcodes.html')
 
 

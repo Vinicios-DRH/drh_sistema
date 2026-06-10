@@ -1,22 +1,324 @@
 {% extends 'base.html' %}
+
 {% block body %}
-<div class="container mt-5">
-    <div class="card shadow-lg rounded-4">
-        <div class="card-header bg-primary text-white text-center rounded-top-4">
-            <h3><i class="bi bi-file-earmark-arrow-up-fill"></i> Gerar QR Codes</h3>
-        </div>
-        <div class="card-body p-4">
-            <form method="POST" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="arquivo" class="form-label">Selecione um arquivo Excel (.xlsx) com as colunas
-                        <strong>nome_completo</strong> e <strong>qrcode_link</strong>:</label>
-                    <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".xlsx" required>
+
+<div class="qr-page">
+
+    ```
+    <div class="container py-5">
+
+        <div class="row justify-content-center">
+
+            <div class="col-xl-7 col-lg-8">
+
+                <div class="main-card">
+
+                    <div class="hero-section">
+
+                        <div class="hero-icon">
+                            <i class="bi bi-qr-code-scan"></i>
+                        </div>
+
+                        <h1>Gerador de QR Codes</h1>
+
+                        <p>
+                            Faça upload de uma planilha e gere centenas de QR Codes automaticamente em um único arquivo
+                            ZIP.
+                        </p>
+
+                    </div>
+
+                    <div class="content-area">
+
+                        <div class="requirements-card">
+
+                            <div class="req-icon">
+                                <i class="bi bi-info-circle-fill"></i>
+                            </div>
+
+                            <div>
+
+                                <h5>Estrutura obrigatória</h5>
+
+                                <p>
+                                    Seu arquivo deve conter as seguintes colunas:
+                                </p>
+
+                                <div class="d-flex gap-2 flex-wrap">
+
+                                    <span class="badge bg-primary">
+                                        nome_completo
+                                    </span>
+
+                                    <span class="badge bg-success">
+                                        qrcode_link
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="example-card">
+
+                            <h6>
+                                <i class="bi bi-table"></i>
+                                Exemplo de planilha
+                            </h6>
+
+                            <table class="table align-middle mb-0">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>nome_completo</th>
+                                        <th>qrcode_link</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <td>João da Silva</td>
+                                        <td>https://site.com/1</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Maria Souza</td>
+                                        <td>https://site.com/2</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <form method="POST" enctype="multipart/form-data">
+
+                            <label class="upload-box" for="arquivo">
+
+                                <div class="upload-content">
+
+                                    <i class="bi bi-cloud-arrow-up-fill upload-icon"></i>
+
+                                    <h4>
+                                        Selecione seu arquivo
+                                    </h4>
+
+                                    <p>
+                                        Arraste ou clique para enviar
+                                    </p>
+
+                                    <div class="formats">
+
+                                        <span>
+                                            <i class="bi bi-file-earmark-excel"></i>
+                                            XLSX
+                                        </span>
+
+                                        <span>
+                                            <i class="bi bi-filetype-csv"></i>
+                                            CSV
+                                        </span>
+
+                                    </div>
+
+                                    <div id="nomeArquivo" class="arquivo-info">
+                                        Nenhum arquivo selecionado
+                                    </div>
+
+                                </div>
+
+                                <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.csv" class="d-none"
+                                    required>
+
+                            </label>
+
+                            <button type="submit" class="btn-download">
+
+                                <i class="bi bi-download"></i>
+
+                                Gerar ZIP com QR Codes
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
                 </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-download"></i> Gerar e Baixar ZIP
-                </button>
-            </form>
+
+            </div>
+
         </div>
+
     </div>
+    ```
+
 </div>
+
+<style>
+    .qr-page {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top left, #4f8cff 0%, transparent 35%),
+            radial-gradient(circle at bottom right, #67e8f9 0%, transparent 35%),
+            linear-gradient(135deg, #eef5ff, #f7fbff);
+        padding: 20px 0;
+    }
+
+    .main-card {
+        background: rgba(255, 255, 255, .85);
+        backdrop-filter: blur(15px);
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow:
+            0 15px 40px rgba(0, 0, 0, .08);
+    }
+
+    .hero-section {
+        padding: 50px 40px;
+        text-align: center;
+        background:
+            linear-gradient(135deg,
+                #0d6efd,
+                #2563eb);
+        color: white;
+    }
+
+    .hero-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+    }
+
+    .hero-section h1 {
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .hero-section p {
+        opacity: .85;
+        margin: 0;
+    }
+
+    .content-area {
+        padding: 35px;
+    }
+
+    .requirements-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: #f8fbff;
+        border: 1px solid #dbeafe;
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    .req-icon {
+        font-size: 2rem;
+        color: #2563eb;
+    }
+
+    .example-card {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 25px;
+    }
+
+    .example-card h6 {
+        padding: 15px 20px;
+        margin: 0;
+        background: #f8fafc;
+        font-weight: 600;
+    }
+
+    .upload-box {
+        width: 100%;
+        display: block;
+        cursor: pointer;
+    }
+
+    .upload-content {
+        border: 3px dashed #bfdbfe;
+        background: white;
+        border-radius: 22px;
+        padding: 45px;
+        text-align: center;
+        transition: .3s;
+    }
+
+    .upload-content:hover {
+        transform: translateY(-3px);
+        border-color: #2563eb;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, .10);
+    }
+
+    .upload-icon {
+        font-size: 4.5rem;
+        color: #2563eb;
+    }
+
+    .formats {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .formats span {
+        background: #eef4ff;
+        padding: 8px 15px;
+        border-radius: 999px;
+        font-weight: 600;
+        color: #2563eb;
+    }
+
+    .arquivo-info {
+        margin-top: 15px;
+        font-weight: 600;
+        color: #2563eb;
+    }
+
+    .btn-download {
+        width: 100%;
+        margin-top: 20px;
+        border: none;
+        border-radius: 18px;
+        padding: 18px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        background: linear-gradient(135deg,
+                #16a34a,
+                #22c55e);
+        color: white;
+        transition: .3s;
+    }
+
+    .btn-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 25px rgba(34, 197, 94, .25);
+    }
+</style>
+
+<script>
+
+    document.getElementById('arquivo').addEventListener('change', function () {
+
+        const nome = this.files.length
+            ? this.files[0].name
+            : 'Nenhum arquivo selecionado';
+
+        document.getElementById('nomeArquivo').innerHTML =
+            '<i class="bi bi-check-circle-fill text-success me-2"></i>' + nome;
+
+    });
+
+</script>
+
 {% endblock %}
