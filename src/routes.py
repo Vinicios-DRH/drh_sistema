@@ -4572,7 +4572,8 @@ def carregar_tabela_obm(obm_id):
         .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
         .filter(
             MilitarObmFuncao.obm_id == obm_id,
-            MilitarObmFuncao.data_fim.is_(None)
+            MilitarObmFuncao.data_fim.is_(None),
+            Militar.inativo.is_(False)  # <-- NOVO FILTRO
         )
         .all()
     )
