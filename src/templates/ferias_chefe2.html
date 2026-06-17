@@ -403,10 +403,10 @@
     const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value);
     const d1 = getNum(row, `qtd_dias_1_${mid}`);
 
-    // Checagem se ele tentou digitar uma data retroativa nos inputs ABERTOS (ignoramos se o input estiver desabilitado)
-    if (i1 && i1Input?.min && !i1Input.disabled && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita. Escolha a partir de ${i1Input.min.split('-').reverse().join('/')}.`;
-    if (i2 && i2Input?.min && !i2Input.disabled && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita. Escolha a partir de ${i2Input.min.split('-').reverse().join('/')}.`;
-    if (i3 && i3Input?.min && !i3Input.disabled && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita. Escolha a partir de ${i3Input.min.split('-').reverse().join('/')}.`;
+    // Checagem retroativa estrita: Só grita se o input ESTIVER ABERTO (editável) e violar a data mínima
+    if (i1 && i1Input?.min && (i1Input.disabled === false) && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita.`;
+    if (i2 && i2Input?.min && (i2Input.disabled === false) && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita.`;
+    if (i3 && i3Input?.min && (i3Input.disabled === false) && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita.`;
 
     // Limite Máximo do Ano
     const limiteAno = getLimiteAno(row);
@@ -422,7 +422,7 @@
 
     // Conflitos de Cronologia (Sobreposição de datas)
     if (i2 && (f1 || i1) && i2 <= (f1 || i1)) {
-      return `CONFLITO DE DATAS: O 2º período NÃO PODE iniciar antes do término do 1º período. A ordem cronológica é estrita!`;
+      return `CONFLITO DE DATAS: O 2º período NÃO PODE iniciar antes do término do 1º período.`;
     }
     const base3 = f2 || i2 || f1 || i1;
     if (i3 && base3 && i3 <= base3) {
@@ -541,16 +541,23 @@
     const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
 
     let erro = validarRegrasInstantaneas(row, mid, teto);
+    
+    // Se não bateu em nenhuma regra de data, checa a regra matemática do Saldo Obrigatório
     if (!erro) {
       const { total123 } = totals(row, mid);
-      if (total123 > 0 && total123 < teto) erro = true;
+      if (total123 > 0 && total123 < teto) {
+        erro = `SALDO INCOMPLETO: O sistema entende que este militar tem direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
+      }
     }
 
     if (erro) {
       row.classList.add('table-danger');
+      // Injeta o motivo exato no title para o usuário ver ao passar o mouse
+      row.title = erro; 
       return true;
     } else {
       row.classList.remove('table-danger');
+      row.title = "";
       return false;
     }
   }
