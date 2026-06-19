@@ -15,6 +15,7 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_PAF_NOVO", "nome": "Menu: PAF > Solicitação"},
     {"codigo": "NAV_PAF_MINHAS", "nome": "Menu: PAF > Minhas Solicitações"},
 
+    # Dependentes (solicitante)
     {"codigo": "NAV_DEP_SOLICITANTE",
         "nome": "Menu: Inclusão de Dependentes (solicitante)"},
     {"codigo": "NAV_DEP_REQUERER", "nome": "Menu: Dependentes > Solicitar Inclusão"},
