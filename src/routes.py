@@ -25,7 +25,7 @@ from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, EfetivoDiarioOBM, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Motivo, Modalidade, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -8173,7 +8173,6 @@ def gestao_chefia():
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def tabela_gestao_chefia(obm_id):
-    # Bloqueia acesso a OBM fora do escopo
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
         if obm_id not in permitidas:
@@ -8181,6 +8180,7 @@ def tabela_gestao_chefia(obm_id):
 
     obm = Obm.query.get_or_404(obm_id)
 
+    # 1. Efetivo da OBM
     militares = (
         Militar.query
         .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
@@ -8188,16 +8188,31 @@ def tabela_gestao_chefia(obm_id):
         .all()
     )
 
+    # 2. Mapa Diário Atual
+    registros_diarios = EfetivoDiarioOBM.query.filter_by(obm_id=obm_id).all()
+    mapa_diario = {registro.militar_id: registro for registro in registros_diarios}
+
+    # 3. NOVO: Identificar quem é Motorista Classificado
+    motoristas_ativos = Motoristas.query.filter(
+        Motoristas.modified.is_(None),
+        or_(Motoristas.desclassificar.is_(None), Motoristas.desclassificar != 'SIM')
+    ).all()
+    ids_motoristas = {m.militar_id for m in motoristas_ativos}
+
+    # 4. NOVO: Viaturas disponíveis nesta OBM
+    viaturas_obm = Viaturas.query.filter_by(obm_id=obm_id).order_by(Viaturas.prefixo.asc()).all()
+
     ids_permitidos = [4, 5, 6, 8]
-    modalidades = Modalidade.query.filter(
-        Modalidade.id.in_(ids_permitidos)
-    ).order_by(Modalidade.descricao.asc()).all()
+    modalidades = Modalidade.query.filter(Modalidade.id.in_(ids_permitidos)).order_by(Modalidade.descricao.asc()).all()
     cursos = Curso.query.order_by(Curso.nome.asc()).all()
 
     return render_template(
         'partial_tabela_gestao_chefia.html',
         obm=obm,
         militares=militares,
+        mapa_diario=mapa_diario,
+        ids_motoristas=ids_motoristas, # Mandando pro HTML
+        viaturas_obm=viaturas_obm,     # Mandando pro HTML
         modalidades=modalidades,
         cursos=cursos
     )
@@ -8207,78 +8222,114 @@ def tabela_gestao_chefia(obm_id):
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def update_gestao_chefia():
+    # 1. Pega os dados básicos e de situação
     militar_id = request.form.get('militar_id', type=int)
+    obm_id = request.form.get('obm_id', type=int) 
     modalidade_id = request.form.get('modalidade_id', type=int)
     inicio_periodo = request.form.get('inicio_periodo')
     fim_periodo = request.form.get('fim_periodo')
+    
+    # 2. Pega os novos campos do Mapa da Força (Presença e Viatura)
+    presente_na_obm = request.form.get('presente_na_obm') == 'on' # O checkbox switch do HTML manda 'on' se marcado
+    local_disposicao = request.form.get('local_disposicao')
+    viatura_diaria_id = request.form.get('viatura_diaria_id', type=int)
+
+    # 3. Pega os cursos (Especialidades)
     cursos_ids = request.form.getlist('cursos_ids[]')
 
-    if not militar_id:
-        return jsonify({"status": "error", "message": "ID do militar não informado."}), 400
+    # Validações Iniciais
+    if not militar_id or not obm_id:
+        return jsonify({"status": "error", "message": "Dados incompletos. Faltando ID do Militar ou OBM."}), 400
 
     ids_permitidos = [4, 5, 6, 8]
     if modalidade_id and modalidade_id not in ids_permitidos:
-        return jsonify({"status": "error", "message": "Operação negada: Modalidade selecionada não é permitida para este perfil."}), 403
+        return jsonify({"status": "error", "message": "Operação negada: Modalidade não permitida para o seu perfil."}), 403
 
     militar = Militar.query.get_or_404(militar_id)
 
-    # Checagem de segurança (garante que o chefe só atualiza o próprio efetivo)
+    # Segurança: Garante que o chefe só atualiza o militar se ele estiver no escopo da OBM dele
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
         if not militar_esta_no_escopo(militar.id, permitidas):
-            return jsonify({"status": "error", "message": "Permissão negada. Militar fora do escopo."}), 403
+            return jsonify({"status": "error", "message": "Permissão negada. Militar fora do escopo da sua OBM."}), 403
 
     try:
-        # 1. Atualizar Situação (LTS, LE, etc) e Datas
-        militar.modalidade_id = modalidade_id if modalidade_id else None
-
+        # ---------------------------------------------------------
+        # PASSO A: ATUALIZAR O EFETIVO DIÁRIO DA OBM
+        # (Tudo salvo na nova tabela, sem tocar na tabela Militar)
+        # ---------------------------------------------------------
+        efetivo = EfetivoDiarioOBM.query.filter_by(militar_id=militar.id, obm_id=obm_id).first()
+        
+        # Se o militar ainda não tem um registro nessa nova tabela, a gente cria na hora
+        if not efetivo:
+            efetivo = EfetivoDiarioOBM(militar_id=militar.id, obm_id=obm_id)
+            database.session.add(efetivo)
+            
+        # Situação
+        efetivo.modalidade_id = modalidade_id if modalidade_id else None
+        
         if inicio_periodo:
-            militar.inicio_periodo = datetime.strptime(
-                inicio_periodo, '%Y-%m-%d').date()
+            efetivo.inicio_periodo = datetime.strptime(inicio_periodo, '%Y-%m-%d').date()
         else:
-            militar.inicio_periodo = None
-
+            efetivo.inicio_periodo = None
+            
         if fim_periodo:
-            militar.fim_periodo = datetime.strptime(
-                fim_periodo, '%Y-%m-%d').date()
+            efetivo.fim_periodo = datetime.strptime(fim_periodo, '%Y-%m-%d').date()
         else:
-            militar.fim_periodo = None
+            efetivo.fim_periodo = None
+        
+        # Presença e Lotação Física
+        efetivo.presente_na_obm = presente_na_obm
+        # Se ele estiver presente, limpamos o local_disposicao para não ficar lixo no banco
+        efetivo.local_disposicao = local_disposicao if not presente_na_obm else None
+        
+        # Viatura Diária (se não selecionou nenhuma, salva None)
+        efetivo.viatura_diaria_id = viatura_diaria_id if viatura_diaria_id else None
 
-        # 2. Atualizar Especialidades Operacionais (MilitarCurso)
+        # Dados internos de quem mexeu
+        efetivo.atualizado_em = datetime.utcnow() # Aqui vc pode trocar para a sua função now_manaus_naive() se quiser
+        efetivo.atualizado_por = current_user.id
+
+        # ---------------------------------------------------------
+        # PASSO B: ATUALIZAR ESPECIALIDADES OPERACIONAIS
+        # (Isso continua igual, gravando na tabela oficial MilitarCurso)
+        # ---------------------------------------------------------
         cursos_selecionados = [int(c) for c in cursos_ids if c.isdigit()]
-        cursos_atuais = {
-            mc.curso_id: mc for mc in militar.cursos_especializacao}
+        cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
 
-        # Adicionar as novas especialidades marcadas
+        # Adicionar as novas marcadas
         for cid in cursos_selecionados:
             if cid not in cursos_atuais:
                 database.session.add(MilitarCurso(
-                    militar_id=militar.id,
-                    curso_id=cid,
-                    criado_em=now_manaus_naive()
+                    militar_id=militar.id, 
+                    curso_id=cid, 
+                    criado_em=datetime.utcnow()
                 ))
 
-        # Remover especialidades desmarcadas
+        # Remover as desmarcadas
         for cid, mc in cursos_atuais.items():
             if cid not in cursos_selecionados:
                 database.session.delete(mc)
 
-        # 3. Registrar a Auditoria (Guarda Quem e Quando)
+        # ---------------------------------------------------------
+        # PASSO C: REGISTRAR A AUDITORIA (LOG)
+        # ---------------------------------------------------------
         auditoria = AuditoriaAtualizacaoCadastral(
             militar_id=militar.id,
             user_id=current_user.id,
-            acao="ATUALIZACAO_SITUACAO_CHEFIA",
+            acao="ATUALIZACAO_MAPA_FORCA_OBM",
             ip_address=request.remote_addr,
-            observacao="Atualização de Situação e/ou Especialidades realizada pela Chefia/Diretoria."
+            observacao="Chefia atualizou situação diária, presença física e/ou viatura atribuída."
         )
         database.session.add(auditoria)
 
+        # Envia tudo para o banco!
         database.session.commit()
-        return jsonify({"status": "success", "message": "Dados do militar atualizados com sucesso!"})
+        return jsonify({"status": "success", "message": "Mapa da força do militar atualizado com sucesso!"})
 
     except Exception as e:
         database.session.rollback()
-        return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": f"Erro interno do servidor: {str(e)}"}), 500
 
 # Rota para gerenciar a frota de viaturas da OBM, acessível apenas para chefia/diretoria
 

@@ -106,90 +106,85 @@
         const alvo = document.getElementById('tabelaContainer');
 
         if (!obmId) {
-            alvo.innerHTML = '<div class="text-muted text-center py-5"><i class="bi bi-arrow-up-circle fs-1"></i><p class="mt-2">Selecione uma OBM acima para carregar o efetivo.</p></div>';
+            alvo.innerHTML = '<div class="text-muted text-center py-5">Selecione uma OBM.</div>';
             return;
         }
 
-        alvo.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando militares...</p></div>';
+        alvo.innerHTML = '<div class="text-center py-3">Carregando...</div>';
 
         fetch(`/gestao-chefia/tabela/${obmId}`)
             .then(r => r.text())
             .then(html => {
                 alvo.innerHTML = html;
 
-                // 1. Inicializa o DataTable (autoWidth corrige o desalinhamento)
-                if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
-                    const t = $('#militaresTable');
-                    if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
-                    t.DataTable({
-                        scrollX: true,
-                        autoWidth: false,
-                        language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' }
-                    });
-                }
+                // 1. Inicializa DataTable
+                if ($.fn.dataTable.isDataTable('#militaresTable')) $('#militaresTable').DataTable().destroy();
+                $('#militaresTable').DataTable({ scrollX: true, language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' } });
 
-                // 2. Registra o Modal (Agora que o HTML existe na tela)
+                // 2. Registrar o Modal
                 const modalEl = document.getElementById('modalEdicaoChefia');
                 const modalChefia = new bootstrap.Modal(modalEl);
 
-                // 3. Captura cliques no botão (Usando jQuery "on" para garantir que pegue cliques nas páginas 2, 3 do DataTable)
+                // 3. Captura cliques
                 $('#militaresTable tbody').on('click', '.btn-editar', function () {
                     const btn = this;
+                    
+                    // Elementos do Modal
+                    const switchPresente = document.getElementById('edit_presente_na_obm');
+                    const divLocal = document.getElementById('div_local_disposicao');
+                    const inputLocal = document.getElementById('edit_local_disposicao');
+                    const blocoViatura = document.getElementById('bloco_viatura_diaria');
+                    const selectViatura = document.getElementById('edit_viatura_diaria_id');
+
+                    // Preenche campos
                     document.getElementById('edit_militar_id').value = btn.dataset.id;
+                    document.getElementById('edit_obm_id').value = btn.dataset.obmId;
                     document.getElementById('modalNomeMilitar').textContent = btn.dataset.nome;
                     document.getElementById('edit_modalidade_id').value = btn.dataset.modalidade;
                     document.getElementById('edit_inicio_periodo').value = btn.dataset.inicio;
                     document.getElementById('edit_fim_periodo').value = btn.dataset.fim;
 
+                    // Lógica Presença
+                    switchPresente.checked = (btn.dataset.presente === 'true');
+                    inputLocal.value = btn.dataset.local;
+                    
+                    // Exibir ou ocultar campo de local (força o estado inicial)
+                    divLocal.style.display = switchPresente.checked ? 'none' : 'block';
+
+                    // Lógica Viatura (Só aparece se for motorista)
+                    const isMotorista = (btn.dataset.motorista === 'true');
+                    blocoViatura.style.display = isMotorista ? 'block' : 'none';
+                    selectViatura.value = btn.dataset.viaturaDiaria || "";
+
+                    // Especialidades
                     const cursosAtuais = JSON.parse(btn.dataset.cursos || "[]");
-                    document.querySelectorAll('.check-curso').forEach(checkbox => {
-                        checkbox.checked = cursosAtuais.includes(parseInt(checkbox.value));
+                    document.querySelectorAll('.check-curso').forEach(c => {
+                        c.checked = cursosAtuais.includes(parseInt(c.value));
                     });
 
                     modalChefia.show();
                 });
 
-                // 4. Lógica de Salvar
-                document.getElementById('btnSalvarChefia').addEventListener('click', function () {
-                    const btnSalvar = this;
-                    const form = document.getElementById('formAtualizacaoChefia');
-                    const formData = new FormData(form);
-
-                    btnSalvar.disabled = true;
-                    btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
-
-                    fetch('/gestao-chefia/update', {
-                        method: 'POST',
-                        body: formData
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            btnSalvar.disabled = false;
-                            btnSalvar.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Alterações';
-
-                            if (data.status === 'success') {
-                                // Espera o modal terminar de sumir para não bugar o fundo cinza antes de recarregar
-                                modalEl.addEventListener('hidden.bs.modal', function onHidden() {
-                                    modalEl.removeEventListener('hidden.bs.modal', onHidden);
-                                    document.getElementById('obmSelect').dispatchEvent(new Event('change'));
-                                });
-
-                                modalChefia.hide();
-                                // Timeout pequeno pra dar tempo do evento de fechar rodar limpo
-                                setTimeout(() => alert(data.message), 200);
-                            } else {
-                                alert("Erro: " + data.message);
-                            }
-                        })
-                        .catch(err => {
-                            btnSalvar.disabled = false;
-                            btnSalvar.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Alterações';
-                            alert("Erro de comunicação com o servidor.");
-                        });
+                // Lógica de Lógica do Switch (Precisa ser re-atribuída após injetar o HTML)
+                document.getElementById('edit_presente_na_obm').addEventListener('change', function() {
+                    document.getElementById('div_local_disposicao').style.display = this.checked ? 'none' : 'block';
                 });
 
-            })
-            .catch(() => alvo.innerHTML = "<div class='alert alert-danger mt-3'>Erro ao buscar dados.</div>");
+                // 4. Salvar
+                document.getElementById('btnSalvarChefia').onclick = function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    fetch('/gestao-chefia/update', { method: 'POST', body: new FormData(document.getElementById('formAtualizacaoChefia')) })
+                    .then(r => r.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        if (data.status === 'success') {
+                            bootstrap.Modal.getInstance(document.getElementById('modalEdicaoChefia')).hide();
+                            document.getElementById('obmSelect').dispatchEvent(new Event('change'));
+                        } else { alert(data.message); }
+                    });
+                };
+            });
     });
 </script>
 {% endblock %}

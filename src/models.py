@@ -2017,3 +2017,32 @@ class MilitarCurso(database.Model):
         database.UniqueConstraint(
             'militar_id', 'curso_id', name='uq_militar_curso'),
     )
+
+
+class EfetivoDiarioOBM(database.Model):
+    __tablename__ = 'efetivo_diario_obm'
+    
+    id = database.Column(database.Integer, primary_key=True)
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'), nullable=False)
+    
+    # Situação Gerencial (LTS, Férias, etc - Exclusivo da OBM)
+    modalidade_id = database.Column(database.Integer, database.ForeignKey('modalidade.id'), nullable=True)
+    inicio_periodo = database.Column(database.Date, nullable=True)
+    fim_periodo = database.Column(database.Date, nullable=True)
+    
+    # Controle de Presença / Lotação / Empréstimo
+    presente_na_obm = database.Column(database.Boolean, default=True) # True = Presente, False = Fora
+    local_disposicao = database.Column(database.String(255), nullable=True) # Ex: "Curso no RJ", "Cedeu para OBM X"
+    
+    # NOVO: Viatura Diária (Não altera o registro oficial da DP)
+    viatura_diaria_id = database.Column(database.Integer, database.ForeignKey('viaturas.id'), nullable=True)
+
+    # Auditoria interna
+    atualizado_em = database.Column(database.DateTime, default=datetime.utcnow)
+    atualizado_por = database.Column(database.Integer, database.ForeignKey('user.id'))
+
+    # Relacionamentos
+    militar = database.relationship('Militar', backref='situacao_diaria')
+    modalidade = database.relationship('Modalidade')
+    viatura_diaria = database.relationship('Viaturas')
