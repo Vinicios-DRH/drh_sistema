@@ -182,4 +182,7 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_CONFERENCIA_PAGADORIA_PAINEL", "nome": "Menu: Conferência de Pagadoria > Painel"},
     {"codigo": "CONFERENCIA_PAGADORIA_CHECK", "nome": "Conferência de Pagadoria: Marcar check"},
     {"codigo": "CONFERENCIA_PAGADORIA_TOGGLE", "nome": "Conferência de Pagadoria: Marcar/desmarcar check"},
+
+    # ===== Gestão de Chefia (Mapa da Força das OBMs) =====
+    {"codigo": "NAV_GESTAO_CHEFIA", "nome": "Menu: Gestão da Chefia (Mapa da Força)"},
 ]
