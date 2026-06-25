@@ -152,8 +152,8 @@
                     divLocal.style.display = switchPresente.checked ? 'none' : 'block';
 
                     // Lógica Viatura (Só aparece se for motorista)
-                    const isMotorista = (btn.dataset.motorista === 'true');
-                    blocoViatura.style.display = isMotorista ? 'block' : 'none';
+                    // Lógica Viatura (Agora aparece para TODOS)
+                    blocoViatura.style.display = 'block';
                     selectViatura.value = btn.dataset.viaturaDiaria || "";
 
                     // Especialidades

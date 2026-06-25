@@ -53,18 +53,19 @@
 
             <td>
                 {% if is_motorista %}
-                    <span class="badge bg-primary mb-1">Classificado</span><br>
-                    <small class="text-muted fw-bold">
-                        <i class="bi bi-truck"></i> 
-                        {% if registro and registro.viatura_diaria %}
-                            {{ registro.viatura_diaria.prefixo or 'S/P' }} ({{ registro.viatura_diaria.placa }})
-                        {% else %}
-                            Nenhuma Viatura
-                        {% endif %}
-                    </small>
+                    <span class="badge bg-primary mb-1">Classificado</span>
                 {% else %}
-                    <span class="badge bg-light text-secondary border">Não Classificado</span>
+                    <span class="badge bg-danger mb-1">Não Classificado</span>
                 {% endif %}
+                <br>
+                <small class="text-muted fw-bold">
+                    <i class="bi bi-truck"></i> 
+                    {% if registro and registro.viatura_diaria %}
+                        <span class="text-success">{{ registro.viatura_diaria.prefixo or 'S/P' }} ({{ registro.viatura_diaria.placa }})</span>
+                    {% else %}
+                        Nenhuma Viatura
+                    {% endif %}
+                </small>
             </td>
             
             <td class="text-end">
@@ -115,7 +116,7 @@
                         </div>
                     </div>
 
-                    <div id="bloco_viatura_diaria" style="display: none;">
+                    <div id="bloco_viatura_diaria">
                         <h6 class="fw-bold text-success border-bottom pb-2 mb-3"><i class="bi bi-steering-wheel"></i> Atribuição de Viatura</h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-12">
