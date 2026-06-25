@@ -2046,3 +2046,33 @@ class EfetivoDiarioOBM(database.Model):
     militar = database.relationship('Militar', backref='situacao_diaria')
     modalidade = database.relationship('Modalidade')
     viatura_diaria = database.relationship('Viaturas')
+
+
+class HistoricoEfetivoDiario(database.Model):
+    __tablename__ = 'historico_efetivo_diario'
+    
+    # ID único do registro histórico
+    id = database.Column(database.Integer, primary_key=True)
+    
+    # Dados de quem e onde
+    militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
+    obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'), nullable=False)
+    
+    # A cópia exata da situação no momento em que o chefe salvou
+    modalidade_id = database.Column(database.Integer, database.ForeignKey('modalidade.id'), nullable=True)
+    inicio_periodo = database.Column(database.Date, nullable=True)
+    fim_periodo = database.Column(database.Date, nullable=True)
+    presente_na_obm = database.Column(database.Boolean, nullable=False)
+    local_disposicao = database.Column(database.String(255), nullable=True)
+    viatura_diaria_id = database.Column(database.Integer, database.ForeignKey('viaturas.id'), nullable=True)
+
+    # Carimbo de Tempo e Autoria (Essencial para relatórios de "quantas vezes")
+    data_registro = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
+    registrado_por = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
+
+    # Relacionamentos (Opcional, mas ajuda nas queries futuras)
+    militar = database.relationship('Militar')
+    obm = database.relationship('Obm')
+    modalidade = database.relationship('Modalidade')
+    viatura_diaria = database.relationship('Viaturas')
+    usuario = database.relationship('User')

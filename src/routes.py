@@ -25,7 +25,7 @@ from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, ControleConvocacaoForm, CriarSenhaForm, FichaAlunosForm, FormEsqueciSenha, FormFiltroMilitar, FormMilitarInativo, FormResetarSenhaPublica, FormViatura,
                        IdentificacaoForm, ImpactoForm, FormLogin, FormMilitar, FormCriarUsuario, FormMotoristas, FormFiltroMotorista, LtsAlunoForm, RecompensaAlunoForm,
                        RestricaoAlunoForm, SancaoAlunoForm, TabelaVencimentoForm, InativarAlunoForm, MatriculaConfirmForm)
-from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, EfetivoDiarioOBM, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
+from src.models import (ControleConvocacao, Convocacao, DocumentoMilitar, EfetivoDiarioOBM, HistoricoEfetivoDiario, ImportacaoMilitarHistorico, LogAcesso, LtsAlunos, Militar, MilitaresInativos, NomeConvocado, PostoGrad, Quadro, Obm, Localidade, Funcao, RecompensaAluno, RestricaoAluno, SancaoAluno, SegundoVinculo, SituacaoConvocacao, User, FuncaoUser, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Motivo, Modalidade, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude, Paf,
@@ -8287,8 +8287,25 @@ def update_gestao_chefia():
         efetivo.viatura_diaria_id = viatura_diaria_id if viatura_diaria_id else None
 
         # Dados internos de quem mexeu
-        efetivo.atualizado_em = datetime.utcnow() # Aqui vc pode trocar para a sua função now_manaus_naive() se quiser
+        efetivo.atualizado_em = now_manaus_naive() # Aqui vc pode trocar para a sua função now_manaus_naive() se quiser
         efetivo.atualizado_por = current_user.id
+
+        # ---------------------------------------------------------
+        # PASSO A.2: INSERIR O "FILME" (HISTÓRICO IMUTÁVEL)
+        # ---------------------------------------------------------
+        historico = HistoricoEfetivoDiario(
+            militar_id=militar.id,
+            obm_id=obm_id,
+            modalidade_id=modalidade_id if modalidade_id else None,
+            inicio_periodo=efetivo.inicio_periodo,
+            fim_periodo=efetivo.fim_periodo,
+            presente_na_obm=presente_na_obm,
+            local_disposicao=efetivo.local_disposicao,
+            viatura_diaria_id=efetivo.viatura_diaria_id,
+            data_registro=now_manaus_naive(),
+            registrado_por=current_user.id
+        )
+        database.session.add(historico)
 
         # ---------------------------------------------------------
         # PASSO B: ATUALIZAR ESPECIALIDADES OPERACIONAIS
@@ -8303,7 +8320,7 @@ def update_gestao_chefia():
                 database.session.add(MilitarCurso(
                     militar_id=militar.id, 
                     curso_id=cid, 
-                    criado_em=datetime.utcnow()
+                    criado_em=now_manaus_naive()
                 ))
 
         # Remover as desmarcadas
