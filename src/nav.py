@@ -318,7 +318,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
             "gestao_chefia",
             icon="fas fa-clipboard-list",
             perm="NAV_GESTAO_CHEFIA",
-            rule=rule_drh_like, # Usando a mesma regra {5, 6, 7, 12}
+            rule=(lambda: getattr(current_user, "is_authenticated", False)),
         )
     )
 
