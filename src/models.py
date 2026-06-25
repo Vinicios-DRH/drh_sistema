@@ -2039,7 +2039,7 @@ class EfetivoDiarioOBM(database.Model):
     viatura_diaria_id = database.Column(database.Integer, database.ForeignKey('viaturas.id'), nullable=True)
 
     # Auditoria interna
-    atualizado_em = database.Column(database.DateTime, default=datetime.utcnow)
+    atualizado_em = database.Column(database.DateTime, default=now_manaus_naive)
     atualizado_por = database.Column(database.Integer, database.ForeignKey('user.id'))
 
     # Relacionamentos
@@ -2067,7 +2067,7 @@ class HistoricoEfetivoDiario(database.Model):
     viatura_diaria_id = database.Column(database.Integer, database.ForeignKey('viaturas.id'), nullable=True)
 
     # Carimbo de Tempo e Autoria (Essencial para relatórios de "quantas vezes")
-    data_registro = database.Column(database.DateTime, default=datetime.utcnow, nullable=False)
+    data_registro = database.Column(database.DateTime, default=now_manaus_naive, nullable=False)
     registrado_por = database.Column(database.Integer, database.ForeignKey('user.id'), nullable=False)
 
     # Relacionamentos (Opcional, mas ajuda nas queries futuras)
