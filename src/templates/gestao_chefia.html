@@ -110,78 +110,146 @@
             return;
         }
 
-        alvo.innerHTML = '<div class="text-center py-3">Carregando...</div>';
+        alvo.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando...</p></div>';
 
         fetch(`/gestao-chefia/tabela/${obmId}`)
             .then(r => r.text())
             .then(html => {
                 alvo.innerHTML = html;
 
-                // 1. Inicializa DataTable
                 if ($.fn.dataTable.isDataTable('#militaresTable')) $('#militaresTable').DataTable().destroy();
                 $('#militaresTable').DataTable({ scrollX: true, language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' } });
 
-                // 2. Registrar o Modal
                 const modalEl = document.getElementById('modalEdicaoChefia');
                 const modalChefia = new bootstrap.Modal(modalEl);
 
-                // 3. Captura cliques
+                // --- GATILHOS INTELIGENTES DE UPLOAD E VIEW ---
+                const selectModalidade = document.getElementById('edit_modalidade_id');
+                const divArquivoModalidade = document.getElementById('div_arquivo_modalidade');
+                
+                if (selectModalidade && divArquivoModalidade) {
+                    selectModalidade.addEventListener('change', function() {
+                        divArquivoModalidade.style.display = this.value ? 'block' : 'none';
+                        
+                        // Lógica de Trava: Se voltar para a licença original que já tinha arquivo, mostra o arquivo antigo. 
+                        // Se mudar para uma licença nova, obriga a fazer upload novamente.
+                        const hiddenInput = document.getElementById('edit_militar_id');
+                        const origMod = hiddenInput.dataset.originalModalidade;
+                        const origUrl = hiddenInput.dataset.originalUrl;
+                        
+                        if (this.value === origMod && origUrl && origUrl !== "None" && origUrl !== "") {
+                            document.getElementById('bloco_upload_modalidade').style.display = 'none';
+                            document.getElementById('bloco_view_modalidade').style.display = 'flex';
+                            document.getElementById('link_view_modalidade').href = origUrl;
+                        } else {
+                            document.getElementById('bloco_upload_modalidade').style.display = 'block';
+                            document.getElementById('bloco_view_modalidade').style.display = 'none';
+                        }
+                    });
+                }
+
+                document.querySelectorAll('.check-curso').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const container = document.getElementById('container_arquivo_' + this.value);
+                        if (container) {
+                            container.style.display = this.checked ? 'block' : 'none';
+                        }
+                    });
+                });
+
+                // --- ABERTURA DO MODAL ---
                 $('#militaresTable tbody').on('click', '.btn-editar', function () {
                     const btn = this;
-                    
-                    // Elementos do Modal
-                    const switchPresente = document.getElementById('edit_presente_na_obm');
-                    const divLocal = document.getElementById('div_local_disposicao');
-                    const inputLocal = document.getElementById('edit_local_disposicao');
-                    const blocoViatura = document.getElementById('bloco_viatura_diaria');
-                    const selectViatura = document.getElementById('edit_viatura_diaria_id');
 
-                    // Preenche campos
-                    document.getElementById('edit_militar_id').value = btn.dataset.id;
+                    // 1. Limpa rastros do militar anterior
+                    document.querySelectorAll('input[type="file"]').forEach(fileInput => fileInput.value = '');
+                    document.querySelectorAll('.check-curso').forEach(c => {
+                        c.checked = false;
+                        c.readOnly = false;
+                        c.classList.remove('locked-checkbox');
+                        const upBox = document.getElementById('bloco_upload_curso_' + c.value);
+                        const viewBox = document.getElementById('bloco_view_curso_' + c.value);
+                        if (upBox) upBox.style.display = 'block';
+                        if (viewBox) viewBox.style.display = 'none';
+                    });
+                    
+                    // 2. Preenchimento Base
+                    const hiddenId = document.getElementById('edit_militar_id');
+                    hiddenId.value = btn.dataset.id;
+                    hiddenId.dataset.originalModalidade = btn.dataset.modalidade; // Armazena a licença original
+                    hiddenId.dataset.originalUrl = btn.dataset.comprovanteModalidade; // Armazena a URL original da licença
+
                     document.getElementById('edit_obm_id').value = btn.dataset.obmId;
                     document.getElementById('modalNomeMilitar').textContent = btn.dataset.nome;
-                    document.getElementById('edit_modalidade_id').value = btn.dataset.modalidade;
                     document.getElementById('edit_inicio_periodo').value = btn.dataset.inicio;
                     document.getElementById('edit_fim_periodo').value = btn.dataset.fim;
 
-                    // Lógica Presença
+                    // 3. Gatilho de Situação (O change vai verificar a originalidade automaticamente)
+                    selectModalidade.value = btn.dataset.modalidade;
+                    selectModalidade.dispatchEvent(new Event('change'));
+
+                    // 4. Lógica de Lotação
+                    const switchPresente = document.getElementById('edit_presente_na_obm');
+                    const divLocal = document.getElementById('div_local_disposicao');
+                    const inputLocal = document.getElementById('edit_local_disposicao');
                     switchPresente.checked = (btn.dataset.presente === 'true');
                     inputLocal.value = btn.dataset.local;
-                    
-                    // Exibir ou ocultar campo de local (força o estado inicial)
                     divLocal.style.display = switchPresente.checked ? 'none' : 'block';
 
-                    // Lógica Viatura (Só aparece se for motorista)
-                    // Lógica Viatura (Agora aparece para TODOS)
-                    blocoViatura.style.display = 'block';
-                    selectViatura.value = btn.dataset.viaturaDiaria || "";
+                    // 5. Lógica Viatura
+                    document.getElementById('bloco_viatura_diaria').style.display = 'block';
+                    document.getElementById('edit_viatura_diaria_id').value = btn.dataset.viaturaDiaria || "";
 
-                    // Especialidades
-                    const cursosAtuais = JSON.parse(btn.dataset.cursos || "[]");
-                    document.querySelectorAll('.check-curso').forEach(c => {
-                        c.checked = cursosAtuais.includes(parseInt(c.value));
+                    // 6. Lógica de Especialidades e Trava de Arquivos (JSON Parsing)
+                    const cursosInfo = JSON.parse(btn.dataset.cursosInfo || "[]");
+                    cursosInfo.forEach(curso => {
+                        const checkbox = document.getElementById('curso_' + curso.id);
+                        if(checkbox) {
+                            checkbox.checked = true;
+                            // Se já tem URL salva, esconde o campo de upload e trava a edição
+                            if(curso.url && curso.url !== "None" && curso.url !== "") {
+                                checkbox.readOnly = true;
+                                checkbox.classList.add('locked-checkbox'); // Trava visual (impede clique)
+                                
+                                document.getElementById('bloco_upload_curso_' + curso.id).style.display = 'none';
+                                document.getElementById('bloco_view_curso_' + curso.id).style.display = 'block';
+                                document.getElementById('link_view_curso_' + curso.id).href = curso.url;
+                            }
+                            checkbox.dispatchEvent(new Event('change'));
+                        }
                     });
 
                     modalChefia.show();
                 });
 
-                // Lógica de Lógica do Switch (Precisa ser re-atribuída após injetar o HTML)
                 document.getElementById('edit_presente_na_obm').addEventListener('change', function() {
                     document.getElementById('div_local_disposicao').style.display = this.checked ? 'none' : 'block';
                 });
 
-                // 4. Salvar
                 document.getElementById('btnSalvarChefia').onclick = function() {
                     const btn = this;
                     btn.disabled = true;
-                    fetch('/gestao-chefia/update', { method: 'POST', body: new FormData(document.getElementById('formAtualizacaoChefia')) })
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
+                    
+                    fetch('/gestao-chefia/update', { 
+                        method: 'POST', 
+                        body: new FormData(document.getElementById('formAtualizacaoChefia')) 
+                    })
                     .then(r => r.json())
                     .then(data => {
                         btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
                         if (data.status === 'success') {
                             bootstrap.Modal.getInstance(document.getElementById('modalEdicaoChefia')).hide();
                             document.getElementById('obmSelect').dispatchEvent(new Event('change'));
-                        } else { alert(data.message); }
+                        } else { 
+                            alert(data.message); 
+                        }
+                    })
+                    .catch(err => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
+                        alert("Erro de comunicação com o servidor.");
                     });
                 };
             });

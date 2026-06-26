@@ -2007,6 +2007,8 @@ class MilitarCurso(database.Model):
     data_conclusao = database.Column(database.Date)
     criado_em = database.Column(database.DateTime, default=now_manaus_naive)
 
+    comprovante_url = database.Column(database.String(500), nullable=True)
+
     # Relacionamentos
     militar = database.relationship(
         "Militar", back_populates="cursos_especializacao")
@@ -2031,6 +2033,8 @@ class EfetivoDiarioOBM(database.Model):
     inicio_periodo = database.Column(database.Date, nullable=True)
     fim_periodo = database.Column(database.Date, nullable=True)
     
+    comprovante_modalidade_url = database.Column(database.String(500), nullable=True)
+
     # Controle de Presença / Lotação / Empréstimo
     presente_na_obm = database.Column(database.Boolean, default=True) # True = Presente, False = Fora
     local_disposicao = database.Column(database.String(255), nullable=True) # Ex: "Curso no RJ", "Cedeu para OBM X"
@@ -2058,6 +2062,8 @@ class HistoricoEfetivoDiario(database.Model):
     militar_id = database.Column(database.Integer, database.ForeignKey('militar.id'), nullable=False)
     obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'), nullable=False)
     
+    comprovante_modalidade_url = database.Column(database.String(500), nullable=True)
+
     # A cópia exata da situação no momento em que o chefe salvou
     modalidade_id = database.Column(database.Integer, database.ForeignKey('modalidade.id'), nullable=True)
     inicio_periodo = database.Column(database.Date, nullable=True)

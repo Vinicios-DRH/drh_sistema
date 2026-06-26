@@ -1,8 +1,8 @@
 <style>
     .cursos-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 0.8rem;
     }
     .modal-header-custom {
         background: linear-gradient(90deg, #0d2036 0%, #0c3761 100%);
@@ -14,6 +14,11 @@
     }
     .cursor-pointer {
         cursor: pointer;
+    }
+    /* Estilo para travar a caixinha visualmente */
+    .locked-checkbox {
+        pointer-events: none;
+        opacity: 0.7;
     }
 </style>
 
@@ -74,13 +79,14 @@
                     data-obm-id="{{ obm.id }}"
                     data-nome="{{ militar.posto_grad.sigla }} {{ militar.nome_guerra or militar.nome_completo }}"
                     data-modalidade="{{ registro.modalidade_id if registro and registro.modalidade_id else '' }}"
+                    data-comprovante-modalidade="{{ registro.comprovante_modalidade_url if registro and registro.comprovante_modalidade_url else '' }}"
                     data-inicio="{{ registro.inicio_periodo.strftime('%Y-%m-%d') if registro and registro.inicio_periodo else '' }}"
                     data-fim="{{ registro.fim_periodo.strftime('%Y-%m-%d') if registro and registro.fim_periodo else '' }}"
                     data-presente="{{ 'true' if not registro or registro.presente_na_obm else 'false' }}"
                     data-local="{{ registro.local_disposicao if registro and registro.local_disposicao else '' }}"
                     data-motorista="{{ 'true' if is_motorista else 'false' }}"
                     data-viatura-diaria="{{ registro.viatura_diaria_id if registro and registro.viatura_diaria_id else '' }}"
-                    data-cursos="{{ militar.cursos_especializacao | map(attribute='curso_id') | list | tojson }}">
+                    data-cursos-info='[{% for mc in militar.cursos_especializacao %}{"id": {{ mc.curso_id }}, "url": "{{ mc.comprovante_url or '' }}"}{{ "," if not loop.last }}{% endfor %}]'>
                     <i class="bi bi-pencil-square"></i> Atualizar
                 </button>
             </td>
@@ -98,7 +104,7 @@
             </div>
 
             <div class="modal-body bg-light">
-                <form id="formAtualizacaoChefia">
+                <form id="formAtualizacaoChefia" enctype="multipart/form-data">
                     <input type="hidden" id="edit_militar_id" name="militar_id">
                     <input type="hidden" id="edit_obm_id" name="obm_id">
 
@@ -127,7 +133,6 @@
                                     <option value="{{ v.id }}">{{ v.prefixo or 'S/P' }} - {{ v.marca_modelo }} ({{ v.placa }})</option>
                                     {% endfor %}
                                 </select>
-                                <div class="form-text">Apenas as viaturas da sua OBM aparecem aqui.</div>
                             </div>
                         </div>
                     </div>
@@ -151,14 +156,45 @@
                             <label class="form-label fw-bold small text-muted">Data de Término</label>
                             <input type="date" class="form-control border-secondary" id="edit_fim_periodo" name="fim_periodo">
                         </div>
+                        
+                        <div class="col-md-12 mt-3" id="div_arquivo_modalidade" style="display: none;">
+                            <label class="form-label fw-bold small text-muted"><i class="bi bi-file-earmark-pdf text-danger"></i> Comprovante da Situação</label>
+                            
+                            <div id="bloco_upload_modalidade">
+                                <input type="file" class="form-control border-secondary" id="arquivo_modalidade" name="arquivo_modalidade" accept=".pdf">
+                                <div class="form-text">Anexe o documento em PDF que comprova esta licença/situação.</div>
+                            </div>
+
+                            <div id="bloco_view_modalidade" style="display: none;" class="alert alert-success p-2 mb-0 d-flex align-items-center">
+                                <i class="bi bi-shield-check fs-5 me-2"></i> 
+                                <span class="small me-auto fw-bold">Licença já comprovada no sistema.</span>
+                                <a href="#" target="_blank" id="link_view_modalidade" class="btn btn-sm btn-success fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir Documento</a>
+                            </div>
+                        </div>
                     </div>
 
                     <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Especialidades Operacionais</h6>
                     <div class="cursos-grid">
                         {% for curso in cursos %}
-                        <div class="form-check">
-                            <input class="form-check-input check-curso" type="checkbox" name="cursos_ids[]" value="{{ curso.id }}" id="curso_{{ curso.id }}">
-                            <label class="form-check-label small" for="curso_{{ curso.id }}">{{ curso.nome }}</label>
+                        <div class="border rounded p-2 bg-white shadow-sm border-secondary">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input check-curso cursor-pointer" type="checkbox" name="cursos_ids[]" value="{{ curso.id }}" id="curso_{{ curso.id }}" onclick="if(this.readOnly) return false;">
+                                <label class="form-check-label small fw-bold cursor-pointer" for="curso_{{ curso.id }}">{{ curso.nome }}</label>
+                            </div>
+                            
+                            <div id="container_arquivo_{{ curso.id }}" style="display: none;" class="mt-2 pt-2 border-top">
+                                <label class="small text-muted d-block mb-1"><i class="bi bi-file-earmark-pdf text-danger"></i> Comprovante (PDF)</label>
+                                
+                                <div id="bloco_upload_curso_{{ curso.id }}">
+                                    <input type="file" class="form-control form-control-sm border-secondary" name="arquivo_curso_{{ curso.id }}" accept=".pdf">
+                                </div>
+
+                                <div id="bloco_view_curso_{{ curso.id }}" style="display: none;" class="p-1 bg-success bg-opacity-10 border border-success rounded text-center mt-1">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span class="small fw-bold text-success me-1">Validado</span>
+                                    <a href="#" target="_blank" id="link_view_curso_{{ curso.id }}" class="badge bg-success text-decoration-none">Visualizar</a>
+                                </div>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>

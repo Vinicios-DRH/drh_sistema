@@ -13,6 +13,8 @@ import pytz
 import pandas as pd
 import base64
 import matplotlib.pyplot as plt
+import requests
+import urllib
 from src.decorators.utils_acumulo import b2_bucket_name, b2_client, b2_delete_all_versions, b2_upload_fileobj
 from src.identificacao import buscar_pessoa_por_cpf, normaliza_matricula
 from src.formatar_cpf import cadete_restantes, formatar_cpf, get_militar_por_user, is_cadete
@@ -8066,94 +8068,70 @@ def limpar_logs_acesso():
 
     return redirect(url_for('auditoria_acessos'))
 
-
-@app.route('/aniversariantes', methods=['GET'])
-def exportar_aniversariantes_excel():
-    try:
-        # 1. Consulta ignorando inativos, nulos e civis (posto 15 e quadro 8)
-        resultado = database.session.query(
-            extract('month', Militar.data_nascimento).label('mes'),
-            func.count(Militar.id).label('total')
-        ).filter(
-            Militar.data_nascimento != None,
-            Militar.inativo == False,
-            not_(and_(Militar.posto_grad_id == 15, Militar.quadro_id == 8))
-        ).group_by('mes').all()
-
-        # 2. Transforma o resultado em um dicionário {mes: total}
-        dados_meses = {int(linha.mes): linha.total for linha in resultado}
-
-        # 3. Agrupa os meses de Janeiro a Maio
-        jan_a_mai = sum(dados_meses.get(m, 0) for m in range(1, 6))
-
-        # 4. Estrutura os dados
-        dados_finais = {
-            'Janeiro a Maio': [jan_a_mai],
-            'Junho': [dados_meses.get(6, 0)],
-            'Julho': [dados_meses.get(7, 0)],
-            'Agosto': [dados_meses.get(8, 0)],
-            'Setembro': [dados_meses.get(9, 0)],
-            'Outubro': [dados_meses.get(10, 0)],
-            'Novembro': [dados_meses.get(11, 0)],
-            'Dezembro': [dados_meses.get(12, 0)]
-        }
-
-        # 5. Gera o DataFrame
-        df = pd.DataFrame(dados_finais)
-
-        # 6. Cria o Excel em memória com o visual bonito e profissional
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Aniversariantes')
-
-            workbook = writer.book
-            worksheet = writer.sheets['Aniversariantes']
-
-            # Definição de estilos
-            header_fill = PatternFill(
-                start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-            header_font = Font(color="FFFFFF", bold=True, size=12)
-            center_alignment = Alignment(
-                horizontal="center", vertical="center", wrap_text=True)
-            thin_border = Border(
-                left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'),
-                top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9')
-            )
-
-            worksheet.row_dimensions[1].height = 25
-            worksheet.row_dimensions[2].height = 20
-
-            # Aplicação dos estilos
-            for col_num in range(1, len(dados_finais) + 1):
-                col_letter = worksheet.cell(
-                    row=1, column=col_num).column_letter
-                worksheet.column_dimensions[col_letter].width = 18
-
-                h_cell = worksheet.cell(row=1, column=col_num)
-                h_cell.fill = header_fill
-                h_cell.font = header_font
-                h_cell.alignment = center_alignment
-                h_cell.border = thin_border
-
-                d_cell = worksheet.cell(row=2, column=col_num)
-                d_cell.alignment = center_alignment
-                d_cell.border = thin_border
-
-        output.seek(0)
-
-        # 7. Retorna o arquivo
-        return send_file(
-            output,
-            download_name='quantitativo_aniversariantes.xlsx',
-            as_attachment=True,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-
-    except Exception as e:
-        return {"erro": "Ocorreu um erro ao gerar o arquivo Excel.", "detalhes": str(e)}, 500
-
 # Rotas de Gestão de Chefia (DIRETOR DRH, DIRETOR, CHEFE, SUPER USER)
 
+API_BUCKET_URL = "https://www.cbm.am.gov.br/api"
+API_BUCKET_KEY = "cbmam_pdf_upload_token_2026_secured"
+
+def upload_pdf_para_servidor(file_obj, subfolder):
+    """
+    Tenta criar a pasta e fazer o upload do PDF.
+    Retorna (True, URL) em caso de sucesso.
+    Retorna (False, Mensagem de Erro) em caso de falha.
+    """
+    headers = {"X-API-Key": API_BUCKET_KEY}
+    
+    try:
+        # 1. Criar pasta
+        requests.post(
+            f"{API_BUCKET_URL}/bucket.php?action=mkdir",
+            headers={**headers, "Content-Type": "application/json"},
+            json={"folder": subfolder},
+            timeout=10
+        )
+        
+        # 2. Ler e enviar
+        conteudo_arquivo = file_obj.read()
+        files = {'file': (file_obj.filename, conteudo_arquivo, file_obj.mimetype)}
+        
+        print(f"🚀 [UPLOAD INICIADO] Enviando '{file_obj.filename}' para a pasta '{subfolder}'...")
+        
+        resposta = requests.post(
+            f"{API_BUCKET_URL}/upload_pdf.php?folder={subfolder}",
+            headers=headers, 
+            files=files,
+            timeout=30
+        )
+        
+        # LOG DO QUE A API DEVOLVEU
+        print(f"📥 [API RESPONDEU] Status: {resposta.status_code} | Corpo: {resposta.text}")
+        
+        if resposta.status_code == 200:
+            dados = resposta.json()
+            if dados.get("success"):
+                url_final = dados.get("url")
+                
+                # PLANO B: Monta a URL manualmente se a API não mandar a chave 'url'
+                if not url_final:
+                    nome_arquivo = dados.get("filename")
+                    folder_encoded = urllib.parse.quote(subfolder, safe='')
+                    url_final = f"{API_BUCKET_URL}/download_pdf.php?folder={folder_encoded}&file={nome_arquivo}"
+                    
+                print(f"✅ [UPLOAD SUCESSO] URL Gerada: {url_final}")
+                return True, url_final
+            else:
+                return False, dados.get("message", "API retornou 200, mas success=False.")
+        else:
+            return False, f"Erro HTTP {resposta.status_code}: {resposta.text}"
+            
+    except Exception as e:
+        print(f"❌ [ERRO DE CONEXÃO] {str(e)}")
+        return False, f"Falha de conexão: {str(e)}"
+
+
+# ==============================================================================
+# ROTA DE UPDATE (AGORA COM LOGS E FORÇANDO O UPDATE DO BANCO)
+# ==============================================================================
 
 @app.route('/gestao-chefia', methods=['GET'])
 @login_required
@@ -8222,22 +8200,17 @@ def tabela_gestao_chefia(obm_id):
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def update_gestao_chefia():
-    # 1. Pega os dados básicos e de situação
     militar_id = request.form.get('militar_id', type=int)
     obm_id = request.form.get('obm_id', type=int) 
     modalidade_id = request.form.get('modalidade_id', type=int)
     inicio_periodo = request.form.get('inicio_periodo')
     fim_periodo = request.form.get('fim_periodo')
     
-    # 2. Pega os novos campos do Mapa da Força (Presença e Viatura)
-    presente_na_obm = request.form.get('presente_na_obm') == 'on' # O checkbox switch do HTML manda 'on' se marcado
+    presente_na_obm = request.form.get('presente_na_obm') == 'on'
     local_disposicao = request.form.get('local_disposicao')
     viatura_diaria_id = request.form.get('viatura_diaria_id', type=int)
-
-    # 3. Pega os cursos (Especialidades)
     cursos_ids = request.form.getlist('cursos_ids[]')
 
-    # Validações Iniciais
     if not militar_id or not obm_id:
         return jsonify({"status": "error", "message": "Dados incompletos. Faltando ID do Militar ou OBM."}), 400
 
@@ -8247,59 +8220,68 @@ def update_gestao_chefia():
 
     militar = Militar.query.get_or_404(militar_id)
 
-    # Segurança: Garante que o chefe só atualiza o militar se ele estiver no escopo da OBM dele
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
         if not militar_esta_no_escopo(militar.id, permitidas):
             return jsonify({"status": "error", "message": "Permissão negada. Militar fora do escopo da sua OBM."}), 403
 
     try:
-        # ---------------------------------------------------------
-        # PASSO A: ATUALIZAR O EFETIVO DIÁRIO DA OBM
-        # (Tudo salvo na nova tabela, sem tocar na tabela Militar)
-        # ---------------------------------------------------------
+        # =========================================================
+        # 1. PROCESSAR UPLOAD DE LICENÇAS (Modalidade)
+        # =========================================================
         efetivo = EfetivoDiarioOBM.query.filter_by(militar_id=militar.id, obm_id=obm_id).first()
+        url_comprovante_licenca = efetivo.comprovante_modalidade_url if efetivo else None
+
+        arquivo_modalidade = request.files.get('arquivo_modalidade')
         
-        # Se o militar ainda não tem um registro nessa nova tabela, a gente cria na hora
+        if modalidade_id:
+            if arquivo_modalidade and arquivo_modalidade.filename:
+                pasta_licencas = f"obm_{obm_id}/licencas/{now_manaus_naive().strftime('%Y')}"
+                sucesso, resultado = upload_pdf_para_servidor(arquivo_modalidade, pasta_licencas)
+                
+                if sucesso:
+                    url_comprovante_licenca = resultado
+                else:
+                    return jsonify({"status": "error", "message": f"Falha no anexo da licença: {resultado}"}), 400
+            else:
+                print("⚠️ [AVISO] Nenhum arquivo novo de licença foi selecionado no formulário.")
+        else:
+            url_comprovante_licenca = None
+
+        # =========================================================
+        # 2. ATUALIZAR O EFETIVO DIÁRIO DA OBM (A FOTO)
+        # =========================================================
         if not efetivo:
             efetivo = EfetivoDiarioOBM(militar_id=militar.id, obm_id=obm_id)
             database.session.add(efetivo)
             
-        # Situação
         efetivo.modalidade_id = modalidade_id if modalidade_id else None
+        efetivo.inicio_periodo = datetime.strptime(inicio_periodo, '%Y-%m-%d').date() if inicio_periodo else None
+        efetivo.fim_periodo = datetime.strptime(fim_periodo, '%Y-%m-%d').date() if fim_periodo else None
         
-        if inicio_periodo:
-            efetivo.inicio_periodo = datetime.strptime(inicio_periodo, '%Y-%m-%d').date()
-        else:
-            efetivo.inicio_periodo = None
-            
-        if fim_periodo:
-            efetivo.fim_periodo = datetime.strptime(fim_periodo, '%Y-%m-%d').date()
-        else:
-            efetivo.fim_periodo = None
-        
-        # Presença e Lotação Física
+        efetivo.comprovante_modalidade_url = url_comprovante_licenca 
+        print(f"🗃️ [BANCO DE DADOS] URL EfetivoDiarioOBM definida como: {efetivo.comprovante_modalidade_url}")
+
         efetivo.presente_na_obm = presente_na_obm
-        # Se ele estiver presente, limpamos o local_disposicao para não ficar lixo no banco
         efetivo.local_disposicao = local_disposicao if not presente_na_obm else None
-        
-        # Viatura Diária (se não selecionou nenhuma, salva None)
         efetivo.viatura_diaria_id = viatura_diaria_id if viatura_diaria_id else None
-
-        # Dados internos de quem mexeu
-        efetivo.atualizado_em = now_manaus_naive() # Aqui vc pode trocar para a sua função now_manaus_naive() se quiser
+        efetivo.atualizado_em = now_manaus_naive()
         efetivo.atualizado_por = current_user.id
+        
+        # Força o SQLAlchemy a rastrear o update
+        database.session.add(efetivo)
 
-        # ---------------------------------------------------------
-        # PASSO A.2: INSERIR O "FILME" (HISTÓRICO IMUTÁVEL)
-        # ---------------------------------------------------------
+        # =========================================================
+        # 3. INSERIR O HISTÓRICO IMUTÁVEL (O FILME)
+        # =========================================================
         historico = HistoricoEfetivoDiario(
             militar_id=militar.id,
             obm_id=obm_id,
-            modalidade_id=modalidade_id if modalidade_id else None,
+            modalidade_id=efetivo.modalidade_id,
             inicio_periodo=efetivo.inicio_periodo,
             fim_periodo=efetivo.fim_periodo,
-            presente_na_obm=presente_na_obm,
+            comprovante_modalidade_url=efetivo.comprovante_modalidade_url,
+            presente_na_obm=efetivo.presente_na_obm,
             local_disposicao=efetivo.local_disposicao,
             viatura_diaria_id=efetivo.viatura_diaria_id,
             data_registro=now_manaus_naive(),
@@ -8307,144 +8289,62 @@ def update_gestao_chefia():
         )
         database.session.add(historico)
 
-        # ---------------------------------------------------------
-        # PASSO B: ATUALIZAR ESPECIALIDADES OPERACIONAIS
-        # (Isso continua igual, gravando na tabela oficial MilitarCurso)
-        # ---------------------------------------------------------
+        # =========================================================
+        # 4. PROCESSAR UPLOAD E SALVAR ESPECIALIDADES
+        # =========================================================
         cursos_selecionados = [int(c) for c in cursos_ids if c.isdigit()]
         cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
+        pasta_especialidades = f"obm_{obm_id}/especialidades"
 
-        # Adicionar as novas marcadas
         for cid in cursos_selecionados:
+            arquivo_curso = request.files.get(f'arquivo_curso_{cid}')
+            nova_url_curso = None
+            
+            if arquivo_curso and arquivo_curso.filename:
+                sucesso, resultado = upload_pdf_para_servidor(arquivo_curso, pasta_especialidades)
+                if sucesso:
+                    nova_url_curso = resultado
+                else:
+                    database.session.rollback()
+                    return jsonify({"status": "error", "message": f"Falha no anexo da especialidade: {resultado}"}), 400
+
             if cid not in cursos_atuais:
-                database.session.add(MilitarCurso(
+                novo_curso = MilitarCurso(
                     militar_id=militar.id, 
                     curso_id=cid, 
+                    comprovante_url=nova_url_curso,
                     criado_em=now_manaus_naive()
-                ))
+                )
+                database.session.add(novo_curso)
+            else:
+                # Se for um curso que já existia e ele enviou um arquivo novo, sobrescreve e FORÇA o rastreamento
+                if nova_url_curso:
+                    cursos_atuais[cid].comprovante_url = nova_url_curso
+                    database.session.add(cursos_atuais[cid]) 
+                    print(f"🗃️ [BANCO DE DADOS] URL do Curso ID {cid} atualizada para: {nova_url_curso}")
 
-        # Remover as desmarcadas
         for cid, mc in cursos_atuais.items():
             if cid not in cursos_selecionados:
                 database.session.delete(mc)
 
-        # ---------------------------------------------------------
-        # PASSO C: REGISTRAR A AUDITORIA (LOG)
-        # ---------------------------------------------------------
+        # =========================================================
+        # 5. AUDITORIA E COMMIT FINAL
+        # =========================================================
         auditoria = AuditoriaAtualizacaoCadastral(
             militar_id=militar.id,
             user_id=current_user.id,
             acao="ATUALIZACAO_MAPA_FORCA_OBM",
             ip_address=request.remote_addr,
-            observacao="Chefia atualizou situação diária, presença física e/ou viatura atribuída."
+            observacao="Chefia atualizou situação diária, anexos e/ou viatura atribuída."
         )
         database.session.add(auditoria)
 
-        # Envia tudo para o banco!
         database.session.commit()
-        return jsonify({"status": "success", "message": "Mapa da força do militar atualizado com sucesso!"})
+        print("💾 [SUCESSO] Commit realizado com sucesso no banco de dados!")
+        return jsonify({"status": "success", "message": "Mapa da força atualizado e arquivos salvos!"})
 
     except Exception as e:
         database.session.rollback()
+        print(f"💥 [ERRO FATAL] {str(e)}")
         return jsonify({"status": "error", "message": f"Erro interno do servidor: {str(e)}"}), 500
 
-# Rota para gerenciar a frota de viaturas da OBM, acessível apenas para chefia/diretoria
-
-
-@app.route('/gestao-chefia/frota/<int:obm_id>', methods=['GET'])
-@login_required
-@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
-def gerenciar_frota_chefia(obm_id):
-    # 1. Bloqueia acesso a OBM fora do escopo do chefe
-    if getattr(current_user, "funcao_user_id", None) != 6:
-        permitidas = obms_permitidas_para_usuario(current_user)
-        if obm_id not in permitidas:
-            flash("Sem permissão para acessar a frota desta OBM.", "danger")
-            # Ou a rota principal da chefia
-            return redirect(url_for('gestao_chefia'))
-
-    obm = Obm.query.get_or_404(obm_id)
-
-    # 2. Busca APENAS as viaturas da OBM selecionada
-    viaturas = (Viaturas.query
-                .filter_by(obm_id=obm_id)
-                .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
-                .all())
-
-    # 3. Busca APENAS os motoristas ativos lotados nesta OBM
-    motoristas = (
-        database.session.query(Motoristas)
-        .join(Militar, Motoristas.militar_id == Militar.id)
-        .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-        .filter(
-            MilitarObmFuncao.obm_id == obm_id,
-            MilitarObmFuncao.data_fim.is_(None),
-            Motoristas.modified.is_(None),
-            or_(
-                Motoristas.desclassificar.is_(None),
-                Motoristas.desclassificar != 'SIM'
-            )
-        )
-        .order_by(Militar.nome_completo.asc())
-        .all()
-    )
-
-    # 4. Mapeia quem está em qual viatura para marcar os checkboxes
-    motoristas_por_viatura = {}
-    for v in viaturas:
-        vms = ViaturaMilitar.query.filter_by(viatura_id=v.id).all()
-        motoristas_por_viatura[v.id] = [vm.militar_id for vm in vms]
-
-    return render_template(
-        'frota_chefia_gerenciar.html',
-        obm=obm,
-        viaturas=viaturas,
-        motoristas=motoristas,
-        motoristas_por_viatura=motoristas_por_viatura
-    )
-
-
-@app.route("/gestao-chefia/frota/viatura/<int:viatura_id>/motoristas", methods=["POST"])
-@login_required
-@checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
-def salvar_motoristas_frota_chefia(viatura_id):
-    v = Viaturas.query.get_or_404(viatura_id)
-
-    # Segurança: Garante que o chefe não edite viatura de outra OBM
-    if getattr(current_user, "funcao_user_id", None) != 6:
-        permitidas = obms_permitidas_para_usuario(current_user)
-        if v.obm_id not in permitidas:
-            flash("Operação negada. Viatura fora do seu escopo.", "danger")
-            return redirect(url_for('gestao_chefia'))
-
-    selecionados = request.form.getlist("motoristas[]")
-    selecionados = [int(x) for x in selecionados if x]
-
-    if len(selecionados) > 5:
-        flash("Selecione no máximo 5 motoristas para a viatura.", "warning")
-        return redirect(url_for("gerenciar_frota_chefia", obm_id=v.obm_id))
-
-    # Atualiza as relações
-    atuais = ViaturaMilitar.query.filter_by(viatura_id=viatura_id).all()
-    ids_atuais = {vm.militar_id for vm in atuais}
-    novos = set(selecionados) - ids_atuais
-    remover = ids_atuais - set(selecionados)
-
-    if remover:
-        (ViaturaMilitar.query
-            .filter(ViaturaMilitar.viatura_id == viatura_id, ViaturaMilitar.militar_id.in_(remover))
-            .delete(synchronize_session=False))
-
-    for mid in novos:
-        database.session.add(ViaturaMilitar(
-            viatura_id=viatura_id, militar_id=mid))
-
-    try:
-        database.session.commit()
-        flash(
-            f"Efetivo da viatura {v.prefixo or v.placa} atualizado!", "success")
-    except IntegrityError:
-        database.session.rollback()
-        flash("Erro ao salvar: verifique se há duplicidade.", "danger")
-
-    return redirect(url_for("gerenciar_frota_chefia", obm_id=v.obm_id))
