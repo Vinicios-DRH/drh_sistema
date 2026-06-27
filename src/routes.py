@@ -8161,8 +8161,15 @@ def tabela_gestao_chefia(obm_id):
 
     obm = Obm.query.get_or_404(obm_id)
 
+    # =========================================================================
+    # NOVA REGRA: Filtra o efetivo da OBM e EXCLUI os civis (funcao_id == 26)
+    # =========================================================================
     militares = (Militar.query.join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                 .filter(MilitarObmFuncao.obm_id == obm_id, MilitarObmFuncao.data_fim.is_(None)).all())
+                 .filter(
+                     MilitarObmFuncao.obm_id == obm_id, 
+                     MilitarObmFuncao.data_fim.is_(None),
+                     Militar.obm_funcoes.any(MilitarObmFuncao.funcao_id != 26)  # <-- Trava para remover civis
+                 ).all())
 
     registros_diarios = EfetivoDiarioOBM.query.filter_by(obm_id=obm_id).all()
     mapa_diario = {registro.militar_id: registro for registro in registros_diarios}
@@ -8209,7 +8216,7 @@ def update_gestao_chefia():
         pasta_base_militar = f"obm_{obm_id}/militar_{militar.id}_{nome_militar_limpo}"
 
         # =========================================================
-        # 1. UPLOAD DE LICENÇAS (COM TRAVA DE OBRIGATORIEDADE)
+        # 1. UPLOAD DE LICENÇAS (COM EXCEÇÃO PARA "PRONTO" ID 8)
         # =========================================================
         efetivo = EfetivoDiarioOBM.query.filter_by(militar_id=militar.id, obm_id=obm_id).first()
         
@@ -8218,7 +8225,8 @@ def update_gestao_chefia():
         
         arquivo_modalidade = request.files.get('arquivo_modalidade')
         
-        if modalidade_id:
+        # Ignora a obrigatoriedade de arquivo se for a modalidade 8 (Pronto)
+        if modalidade_id and modalidade_id != 8:
             if arquivo_modalidade and arquivo_modalidade.filename:
                 pasta_licencas = f"{pasta_base_militar}/licencas"
                 mod_obj = Modalidade.query.get(modalidade_id)
@@ -8288,7 +8296,6 @@ def update_gestao_chefia():
                     database.session.rollback()
                     return jsonify({"status": "error", "message": f"Falha no anexo da especialidade: {resultado}"}), 400
             elif cid not in cursos_atuais:
-                # SE É UM CURSO NOVO MARCADO MAS NÃO VEIO ARQUIVO: BLOQUEIA
                 database.session.rollback()
                 return jsonify({"status": "error", "message": "O envio do comprovante é obrigatório para as novas especialidades selecionadas."}), 400
 
