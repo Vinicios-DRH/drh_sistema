@@ -126,22 +126,28 @@
                 // --- GATILHOS INTELIGENTES DE UPLOAD E VIEW ---
                 const selectModalidade = document.getElementById('edit_modalidade_id');
                 const divArquivoModalidade = document.getElementById('div_arquivo_modalidade');
-                
+
                 if (selectModalidade && divArquivoModalidade) {
-                    selectModalidade.addEventListener('change', function() {
-                        divArquivoModalidade.style.display = this.value ? 'block' : 'none';
-                        
-                        // Lógica de Trava: Se voltar para a licença original que já tinha arquivo, mostra o arquivo antigo. 
-                        // Se mudar para uma licença nova, obriga a fazer upload novamente.
+                    selectModalidade.addEventListener('change', function () {
                         const hiddenInput = document.getElementById('edit_militar_id');
                         const origMod = hiddenInput.dataset.originalModalidade;
                         const origUrl = hiddenInput.dataset.originalUrl;
-                        
+
+                        // Oculta tudo se voltar para "Pronto" (vazio)
+                        if (!this.value) {
+                            divArquivoModalidade.style.display = 'none';
+                            return;
+                        }
+                        divArquivoModalidade.style.display = 'block';
+
+                        // Lógica de Trava: Se for a mesma licença de antes e tiver arquivo, mostra o comprovante
                         if (this.value === origMod && origUrl && origUrl !== "None" && origUrl !== "") {
                             document.getElementById('bloco_upload_modalidade').style.display = 'none';
                             document.getElementById('bloco_view_modalidade').style.display = 'flex';
                             document.getElementById('link_view_modalidade').href = origUrl;
+                            document.getElementById('arquivo_modalidade').value = ''; // Limpa o input escondido
                         } else {
+                            // Se trocou de licença ou não tinha arquivo, exige o upload de novo
                             document.getElementById('bloco_upload_modalidade').style.display = 'block';
                             document.getElementById('bloco_view_modalidade').style.display = 'none';
                         }
@@ -149,7 +155,7 @@
                 }
 
                 document.querySelectorAll('.check-curso').forEach(checkbox => {
-                    checkbox.addEventListener('change', function() {
+                    checkbox.addEventListener('change', function () {
                         const container = document.getElementById('container_arquivo_' + this.value);
                         if (container) {
                             container.style.display = this.checked ? 'block' : 'none';
@@ -172,12 +178,12 @@
                         if (upBox) upBox.style.display = 'block';
                         if (viewBox) viewBox.style.display = 'none';
                     });
-                    
-                    // 2. Preenchimento Base
+
+                    // 2. Preenchimento Base e Armazenamento dos Originais
                     const hiddenId = document.getElementById('edit_militar_id');
                     hiddenId.value = btn.dataset.id;
-                    hiddenId.dataset.originalModalidade = btn.dataset.modalidade; // Armazena a licença original
-                    hiddenId.dataset.originalUrl = btn.dataset.comprovanteModalidade; // Armazena a URL original da licença
+                    hiddenId.dataset.originalModalidade = btn.dataset.modalidade;
+                    hiddenId.dataset.originalUrl = btn.dataset.comprovanteModalidade;
 
                     document.getElementById('edit_obm_id').value = btn.dataset.obmId;
                     document.getElementById('modalNomeMilitar').textContent = btn.dataset.nome;
@@ -200,17 +206,16 @@
                     document.getElementById('bloco_viatura_diaria').style.display = 'block';
                     document.getElementById('edit_viatura_diaria_id').value = btn.dataset.viaturaDiaria || "";
 
-                    // 6. Lógica de Especialidades e Trava de Arquivos (JSON Parsing)
+                    // 6. Lógica de Especialidades e Trava de Arquivos
                     const cursosInfo = JSON.parse(btn.dataset.cursosInfo || "[]");
                     cursosInfo.forEach(curso => {
                         const checkbox = document.getElementById('curso_' + curso.id);
-                        if(checkbox) {
+                        if (checkbox) {
                             checkbox.checked = true;
-                            // Se já tem URL salva, esconde o campo de upload e trava a edição
-                            if(curso.url && curso.url !== "None" && curso.url !== "") {
+                            if (curso.url && curso.url !== "None" && curso.url !== "") {
                                 checkbox.readOnly = true;
-                                checkbox.classList.add('locked-checkbox'); // Trava visual (impede clique)
-                                
+                                checkbox.classList.add('locked-checkbox');
+
                                 document.getElementById('bloco_upload_curso_' + curso.id).style.display = 'none';
                                 document.getElementById('bloco_view_curso_' + curso.id).style.display = 'block';
                                 document.getElementById('link_view_curso_' + curso.id).href = curso.url;
@@ -222,35 +227,35 @@
                     modalChefia.show();
                 });
 
-                document.getElementById('edit_presente_na_obm').addEventListener('change', function() {
+                document.getElementById('edit_presente_na_obm').addEventListener('change', function () {
                     document.getElementById('div_local_disposicao').style.display = this.checked ? 'none' : 'block';
                 });
 
-                document.getElementById('btnSalvarChefia').onclick = function() {
+                document.getElementById('btnSalvarChefia').onclick = function () {
                     const btn = this;
                     btn.disabled = true;
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
-                    
-                    fetch('/gestao-chefia/update', { 
-                        method: 'POST', 
-                        body: new FormData(document.getElementById('formAtualizacaoChefia')) 
+
+                    fetch('/gestao-chefia/update', {
+                        method: 'POST',
+                        body: new FormData(document.getElementById('formAtualizacaoChefia'))
                     })
-                    .then(r => r.json())
-                    .then(data => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
-                        if (data.status === 'success') {
-                            bootstrap.Modal.getInstance(document.getElementById('modalEdicaoChefia')).hide();
-                            document.getElementById('obmSelect').dispatchEvent(new Event('change'));
-                        } else { 
-                            alert(data.message); 
-                        }
-                    })
-                    .catch(err => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
-                        alert("Erro de comunicação com o servidor.");
-                    });
+                        .then(r => r.json())
+                        .then(data => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
+                            if (data.status === 'success') {
+                                bootstrap.Modal.getInstance(document.getElementById('modalEdicaoChefia')).hide();
+                                document.getElementById('obmSelect').dispatchEvent(new Event('change'));
+                            } else {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(err => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
+                            alert("Erro de comunicação com o servidor.");
+                        });
                 };
             });
     });

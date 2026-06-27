@@ -1,3 +1,5 @@
+import unicodedata
+
 from flask import current_app
 import io
 import math
@@ -8073,16 +8075,22 @@ def limpar_logs_acesso():
 API_BUCKET_URL = "https://www.cbm.am.gov.br/api"
 API_BUCKET_KEY = "cbmam_pdf_upload_token_2026_secured"
 
-def upload_pdf_para_servidor(file_obj, subfolder):
+def sanitizar_nome(texto):
+    """Remove acentos, troca espaços por '_' e deixa minúsculo para usar em arquivos/pastas."""
+    if not texto: return "doc"
+    texto = unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('utf-8')
+    texto = re.sub(r'[^a-zA-Z0-9]', '_', texto).lower()
+    return re.sub(r'_+', '_', texto).strip('_')
+
+def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
     """
     Tenta criar a pasta e fazer o upload do PDF.
-    Retorna (True, URL) em caso de sucesso.
-    Retorna (False, Mensagem de Erro) em caso de falha.
+    Se 'novo_nome' for fornecido, renomeia o arquivo antes de enviar.
     """
     headers = {"X-API-Key": API_BUCKET_KEY}
     
     try:
-        # 1. Criar pasta
+        # 1. Criar pasta (Ignora o 409 se já existir)
         requests.post(
             f"{API_BUCKET_URL}/bucket.php?action=mkdir",
             headers={**headers, "Content-Type": "application/json"},
@@ -8090,11 +8098,16 @@ def upload_pdf_para_servidor(file_obj, subfolder):
             timeout=10
         )
         
-        # 2. Ler e enviar
+        # 2. Preparar nome do arquivo
+        nome_arquivo_envio = file_obj.filename
+        if novo_nome:
+            extensao = nome_arquivo_envio.rsplit('.', 1)[-1].lower() if '.' in nome_arquivo_envio else 'pdf'
+            nome_arquivo_envio = f"{novo_nome}.{extensao}"
+            
         conteudo_arquivo = file_obj.read()
-        files = {'file': (file_obj.filename, conteudo_arquivo, file_obj.mimetype)}
+        files = {'file': (nome_arquivo_envio, conteudo_arquivo, file_obj.mimetype)}
         
-        print(f"🚀 [UPLOAD INICIADO] Enviando '{file_obj.filename}' para a pasta '{subfolder}'...")
+        print(f"🚀 [UPLOAD INICIADO] Enviando '{nome_arquivo_envio}' para a pasta '{subfolder}'...")
         
         resposta = requests.post(
             f"{API_BUCKET_URL}/upload_pdf.php?folder={subfolder}",
@@ -8103,21 +8116,16 @@ def upload_pdf_para_servidor(file_obj, subfolder):
             timeout=30
         )
         
-        # LOG DO QUE A API DEVOLVEU
         print(f"📥 [API RESPONDEU] Status: {resposta.status_code} | Corpo: {resposta.text}")
         
         if resposta.status_code == 200:
             dados = resposta.json()
             if dados.get("success"):
                 url_final = dados.get("url")
-                
-                # PLANO B: Monta a URL manualmente se a API não mandar a chave 'url'
                 if not url_final:
-                    nome_arquivo = dados.get("filename")
+                    nome_arquivo_retornado = dados.get("filename")
                     folder_encoded = urllib.parse.quote(subfolder, safe='')
-                    url_final = f"{API_BUCKET_URL}/download_pdf.php?folder={folder_encoded}&file={nome_arquivo}"
-                    
-                print(f"✅ [UPLOAD SUCESSO] URL Gerada: {url_final}")
+                    url_final = f"{API_BUCKET_URL}/download_pdf.php?folder={folder_encoded}&file={nome_arquivo_retornado}"
                 return True, url_final
             else:
                 return False, dados.get("message", "API retornou 200, mas success=False.")
@@ -8130,7 +8138,7 @@ def upload_pdf_para_servidor(file_obj, subfolder):
 
 
 # ==============================================================================
-# ROTA DE UPDATE (AGORA COM LOGS E FORÇANDO O UPDATE DO BANCO)
+# ROTAS
 # ==============================================================================
 
 @app.route('/gestao-chefia', methods=['GET'])
@@ -8138,13 +8146,8 @@ def upload_pdf_para_servidor(file_obj, subfolder):
 @checar_ocupacao('DIRETOR DRH', 'DIRETOR', 'CHEFE', 'SUPER USER')
 def gestao_chefia():
     permitidas = obms_permitidas_para_usuario(current_user)
-    lista_obms = Obm.query.filter(Obm.id.in_(
-        sorted(permitidas))).order_by(Obm.sigla.asc()).all()
-
-    return render_template(
-        'gestao_chefia.html',
-        lista_obms=lista_obms
-    )
+    lista_obms = Obm.query.filter(Obm.id.in_(sorted(permitidas))).order_by(Obm.sigla.asc()).all()
+    return render_template('gestao_chefia.html', lista_obms=lista_obms)
 
 
 @app.route('/gestao-chefia/tabela/<int:obm_id>', methods=['GET'])
@@ -8158,42 +8161,22 @@ def tabela_gestao_chefia(obm_id):
 
     obm = Obm.query.get_or_404(obm_id)
 
-    # 1. Efetivo da OBM
-    militares = (
-        Militar.query
-        .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-        .filter(MilitarObmFuncao.obm_id == obm_id, MilitarObmFuncao.data_fim.is_(None))
-        .all()
-    )
+    militares = (Militar.query.join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
+                 .filter(MilitarObmFuncao.obm_id == obm_id, MilitarObmFuncao.data_fim.is_(None)).all())
 
-    # 2. Mapa Diário Atual
     registros_diarios = EfetivoDiarioOBM.query.filter_by(obm_id=obm_id).all()
     mapa_diario = {registro.militar_id: registro for registro in registros_diarios}
 
-    # 3. NOVO: Identificar quem é Motorista Classificado
-    motoristas_ativos = Motoristas.query.filter(
-        Motoristas.modified.is_(None),
-        or_(Motoristas.desclassificar.is_(None), Motoristas.desclassificar != 'SIM')
-    ).all()
+    motoristas_ativos = Motoristas.query.filter(Motoristas.modified.is_(None), or_(Motoristas.desclassificar.is_(None), Motoristas.desclassificar != 'SIM')).all()
     ids_motoristas = {m.militar_id for m in motoristas_ativos}
 
-    # 4. NOVO: Viaturas disponíveis nesta OBM
     viaturas_obm = Viaturas.query.filter_by(obm_id=obm_id).order_by(Viaturas.prefixo.asc()).all()
-
     ids_permitidos = [4, 5, 6, 8]
     modalidades = Modalidade.query.filter(Modalidade.id.in_(ids_permitidos)).order_by(Modalidade.descricao.asc()).all()
     cursos = Curso.query.order_by(Curso.nome.asc()).all()
 
-    return render_template(
-        'partial_tabela_gestao_chefia.html',
-        obm=obm,
-        militares=militares,
-        mapa_diario=mapa_diario,
-        ids_motoristas=ids_motoristas, # Mandando pro HTML
-        viaturas_obm=viaturas_obm,     # Mandando pro HTML
-        modalidades=modalidades,
-        cursos=cursos
-    )
+    return render_template('partial_tabela_gestao_chefia.html', obm=obm, militares=militares, mapa_diario=mapa_diario,
+                           ids_motoristas=ids_motoristas, viaturas_obm=viaturas_obm, modalidades=modalidades, cursos=cursos)
 
 
 @app.route('/gestao-chefia/update', methods=['POST'])
@@ -8212,44 +8195,52 @@ def update_gestao_chefia():
     cursos_ids = request.form.getlist('cursos_ids[]')
 
     if not militar_id or not obm_id:
-        return jsonify({"status": "error", "message": "Dados incompletos. Faltando ID do Militar ou OBM."}), 400
-
-    ids_permitidos = [4, 5, 6, 8]
-    if modalidade_id and modalidade_id not in ids_permitidos:
-        return jsonify({"status": "error", "message": "Operação negada: Modalidade não permitida para o seu perfil."}), 403
+        return jsonify({"status": "error", "message": "Dados incompletos."}), 400
 
     militar = Militar.query.get_or_404(militar_id)
 
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
         if not militar_esta_no_escopo(militar.id, permitidas):
-            return jsonify({"status": "error", "message": "Permissão negada. Militar fora do escopo da sua OBM."}), 403
+            return jsonify({"status": "error", "message": "Militar fora do escopo da sua OBM."}), 403
 
     try:
+        # NOME BASE DA PASTA DO MILITAR
+        nome_militar_limpo = sanitizar_nome(militar.nome_guerra or militar.nome_completo)
+        pasta_base_militar = f"obm_{obm_id}/militar_{militar.id}_{nome_militar_limpo}"
+
         # =========================================================
-        # 1. PROCESSAR UPLOAD DE LICENÇAS (Modalidade)
+        # 1. UPLOAD DE LICENÇAS (COM TRAVA DE SEGURANÇA)
         # =========================================================
         efetivo = EfetivoDiarioOBM.query.filter_by(militar_id=militar.id, obm_id=obm_id).first()
+        
+        # Guardamos a modalidade antiga e a URL antiga para comparação
+        modalidade_antiga = efetivo.modalidade_id if efetivo else None
         url_comprovante_licenca = efetivo.comprovante_modalidade_url if efetivo else None
-
+        
         arquivo_modalidade = request.files.get('arquivo_modalidade')
         
         if modalidade_id:
             if arquivo_modalidade and arquivo_modalidade.filename:
-                pasta_licencas = f"obm_{obm_id}/licencas/{now_manaus_naive().strftime('%Y')}"
-                sucesso, resultado = upload_pdf_para_servidor(arquivo_modalidade, pasta_licencas)
+                pasta_licencas = f"{pasta_base_militar}/licencas"
+                mod_obj = Modalidade.query.get(modalidade_id)
+                nome_documento_licenca = f"comprovante_{sanitizar_nome(mod_obj.descricao)}"
                 
+                sucesso, resultado = upload_pdf_para_servidor(arquivo_modalidade, pasta_licencas, novo_nome=nome_documento_licenca)
                 if sucesso:
                     url_comprovante_licenca = resultado
                 else:
                     return jsonify({"status": "error", "message": f"Falha no anexo da licença: {resultado}"}), 400
             else:
-                print("⚠️ [AVISO] Nenhum arquivo novo de licença foi selecionado no formulário.")
+                # SE NÃO ENVIAR ARQUIVO NOVO, MAS MUDAR A LICENÇA: Apaga o documento da licença anterior
+                if modalidade_id != modalidade_antiga:
+                    url_comprovante_licenca = None
         else:
+            # Se for "Pronto", não tem licença
             url_comprovante_licenca = None
 
         # =========================================================
-        # 2. ATUALIZAR O EFETIVO DIÁRIO DA OBM (A FOTO)
+        # 2. ATUALIZAR EFETIVO DIÁRIO
         # =========================================================
         if not efetivo:
             efetivo = EfetivoDiarioOBM(militar_id=militar.id, obm_id=obm_id)
@@ -8258,50 +8249,42 @@ def update_gestao_chefia():
         efetivo.modalidade_id = modalidade_id if modalidade_id else None
         efetivo.inicio_periodo = datetime.strptime(inicio_periodo, '%Y-%m-%d').date() if inicio_periodo else None
         efetivo.fim_periodo = datetime.strptime(fim_periodo, '%Y-%m-%d').date() if fim_periodo else None
-        
         efetivo.comprovante_modalidade_url = url_comprovante_licenca 
-        print(f"🗃️ [BANCO DE DADOS] URL EfetivoDiarioOBM definida como: {efetivo.comprovante_modalidade_url}")
-
         efetivo.presente_na_obm = presente_na_obm
         efetivo.local_disposicao = local_disposicao if not presente_na_obm else None
         efetivo.viatura_diaria_id = viatura_diaria_id if viatura_diaria_id else None
         efetivo.atualizado_em = now_manaus_naive()
         efetivo.atualizado_por = current_user.id
-        
-        # Força o SQLAlchemy a rastrear o update
         database.session.add(efetivo)
 
         # =========================================================
-        # 3. INSERIR O HISTÓRICO IMUTÁVEL (O FILME)
+        # 3. HISTÓRICO IMUTÁVEL
         # =========================================================
         historico = HistoricoEfetivoDiario(
-            militar_id=militar.id,
-            obm_id=obm_id,
-            modalidade_id=efetivo.modalidade_id,
-            inicio_periodo=efetivo.inicio_periodo,
-            fim_periodo=efetivo.fim_periodo,
-            comprovante_modalidade_url=efetivo.comprovante_modalidade_url,
-            presente_na_obm=efetivo.presente_na_obm,
-            local_disposicao=efetivo.local_disposicao,
-            viatura_diaria_id=efetivo.viatura_diaria_id,
-            data_registro=now_manaus_naive(),
-            registrado_por=current_user.id
+            militar_id=militar.id, obm_id=obm_id, modalidade_id=efetivo.modalidade_id,
+            inicio_periodo=efetivo.inicio_periodo, fim_periodo=efetivo.fim_periodo,
+            comprovante_modalidade_url=efetivo.comprovante_modalidade_url, presente_na_obm=efetivo.presente_na_obm,
+            local_disposicao=efetivo.local_disposicao, viatura_diaria_id=efetivo.viatura_diaria_id,
+            data_registro=now_manaus_naive(), registrado_por=current_user.id
         )
         database.session.add(historico)
 
         # =========================================================
-        # 4. PROCESSAR UPLOAD E SALVAR ESPECIALIDADES
+        # 4. UPLOAD DE ESPECIALIDADES
         # =========================================================
         cursos_selecionados = [int(c) for c in cursos_ids if c.isdigit()]
         cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
-        pasta_especialidades = f"obm_{obm_id}/especialidades"
+        pasta_especialidades = f"{pasta_base_militar}/especialidades"
 
         for cid in cursos_selecionados:
             arquivo_curso = request.files.get(f'arquivo_curso_{cid}')
             nova_url_curso = None
             
             if arquivo_curso and arquivo_curso.filename:
-                sucesso, resultado = upload_pdf_para_servidor(arquivo_curso, pasta_especialidades)
+                curso_obj = Curso.query.get(cid)
+                nome_documento_curso = f"comprovante_{sanitizar_nome(curso_obj.nome)}"
+                
+                sucesso, resultado = upload_pdf_para_servidor(arquivo_curso, pasta_especialidades, novo_nome=nome_documento_curso)
                 if sucesso:
                     nova_url_curso = resultado
                 else:
@@ -8309,19 +8292,12 @@ def update_gestao_chefia():
                     return jsonify({"status": "error", "message": f"Falha no anexo da especialidade: {resultado}"}), 400
 
             if cid not in cursos_atuais:
-                novo_curso = MilitarCurso(
-                    militar_id=militar.id, 
-                    curso_id=cid, 
-                    comprovante_url=nova_url_curso,
-                    criado_em=now_manaus_naive()
-                )
+                novo_curso = MilitarCurso(militar_id=militar.id, curso_id=cid, comprovante_url=nova_url_curso, criado_em=now_manaus_naive())
                 database.session.add(novo_curso)
             else:
-                # Se for um curso que já existia e ele enviou um arquivo novo, sobrescreve e FORÇA o rastreamento
                 if nova_url_curso:
                     cursos_atuais[cid].comprovante_url = nova_url_curso
                     database.session.add(cursos_atuais[cid]) 
-                    print(f"🗃️ [BANCO DE DADOS] URL do Curso ID {cid} atualizada para: {nova_url_curso}")
 
         for cid, mc in cursos_atuais.items():
             if cid not in cursos_selecionados:
@@ -8331,20 +8307,13 @@ def update_gestao_chefia():
         # 5. AUDITORIA E COMMIT FINAL
         # =========================================================
         auditoria = AuditoriaAtualizacaoCadastral(
-            militar_id=militar.id,
-            user_id=current_user.id,
-            acao="ATUALIZACAO_MAPA_FORCA_OBM",
-            ip_address=request.remote_addr,
-            observacao="Chefia atualizou situação diária, anexos e/ou viatura atribuída."
+            militar_id=militar.id, user_id=current_user.id, acao="ATUALIZACAO_MAPA_FORCA_OBM",
+            ip_address=request.remote_addr, observacao="Chefia atualizou situação diária, anexos e/ou viatura."
         )
         database.session.add(auditoria)
-
         database.session.commit()
-        print("💾 [SUCESSO] Commit realizado com sucesso no banco de dados!")
         return jsonify({"status": "success", "message": "Mapa da força atualizado e arquivos salvos!"})
 
     except Exception as e:
         database.session.rollback()
-        print(f"💥 [ERRO FATAL] {str(e)}")
-        return jsonify({"status": "error", "message": f"Erro interno do servidor: {str(e)}"}), 500
-
+        return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500
