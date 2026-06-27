@@ -8205,16 +8205,14 @@ def update_gestao_chefia():
             return jsonify({"status": "error", "message": "Militar fora do escopo da sua OBM."}), 403
 
     try:
-        # NOME BASE DA PASTA DO MILITAR
         nome_militar_limpo = sanitizar_nome(militar.nome_guerra or militar.nome_completo)
         pasta_base_militar = f"obm_{obm_id}/militar_{militar.id}_{nome_militar_limpo}"
 
         # =========================================================
-        # 1. UPLOAD DE LICENÇAS (COM TRAVA DE SEGURANÇA)
+        # 1. UPLOAD DE LICENÇAS (COM TRAVA DE OBRIGATORIEDADE)
         # =========================================================
         efetivo = EfetivoDiarioOBM.query.filter_by(militar_id=militar.id, obm_id=obm_id).first()
         
-        # Guardamos a modalidade antiga e a URL antiga para comparação
         modalidade_antiga = efetivo.modalidade_id if efetivo else None
         url_comprovante_licenca = efetivo.comprovante_modalidade_url if efetivo else None
         
@@ -8232,11 +8230,10 @@ def update_gestao_chefia():
                 else:
                     return jsonify({"status": "error", "message": f"Falha no anexo da licença: {resultado}"}), 400
             else:
-                # SE NÃO ENVIAR ARQUIVO NOVO, MAS MUDAR A LICENÇA: Apaga o documento da licença anterior
+                # SE NÃO ENVIAR ARQUIVO NOVO, MAS MUDAR A LICENÇA: BLOQUEIA
                 if modalidade_id != modalidade_antiga:
-                    url_comprovante_licenca = None
+                    return jsonify({"status": "error", "message": "O envio do comprovante da nova licença/situação é obrigatório."}), 400
         else:
-            # Se for "Pronto", não tem licença
             url_comprovante_licenca = None
 
         # =========================================================
@@ -8270,7 +8267,7 @@ def update_gestao_chefia():
         database.session.add(historico)
 
         # =========================================================
-        # 4. UPLOAD DE ESPECIALIDADES
+        # 4. UPLOAD DE ESPECIALIDADES (COM TRAVA DE OBRIGATORIEDADE)
         # =========================================================
         cursos_selecionados = [int(c) for c in cursos_ids if c.isdigit()]
         cursos_atuais = {mc.curso_id: mc for mc in militar.cursos_especializacao}
@@ -8290,6 +8287,10 @@ def update_gestao_chefia():
                 else:
                     database.session.rollback()
                     return jsonify({"status": "error", "message": f"Falha no anexo da especialidade: {resultado}"}), 400
+            elif cid not in cursos_atuais:
+                # SE É UM CURSO NOVO MARCADO MAS NÃO VEIO ARQUIVO: BLOQUEIA
+                database.session.rollback()
+                return jsonify({"status": "error", "message": "O envio do comprovante é obrigatório para as novas especialidades selecionadas."}), 400
 
             if cid not in cursos_atuais:
                 novo_curso = MilitarCurso(militar_id=militar.id, curso_id=cid, comprovante_url=nova_url_curso, criado_em=now_manaus_naive())

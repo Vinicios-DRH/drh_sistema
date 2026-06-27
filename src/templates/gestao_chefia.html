@@ -233,6 +233,40 @@
 
                 document.getElementById('btnSalvarChefia').onclick = function () {
                     const btn = this;
+
+                    // --- INÍCIO DA VALIDAÇÃO OBRIGATÓRIA NO FRONTEND ---
+
+                    // 1. Valida Licença (Se selecionou algo e o campo de upload tá visível, o arquivo é obrigatório)
+                    const selectMod = document.getElementById('edit_modalidade_id');
+                    const blocoUploadMod = document.getElementById('bloco_upload_modalidade');
+                    const inputArquivoMod = document.getElementById('arquivo_modalidade');
+
+                    if (selectMod.value && blocoUploadMod.style.display !== 'none') {
+                        if (inputArquivoMod.files.length === 0) {
+                            alert("⚠️ Ação bloqueada: É obrigatório anexar o PDF do comprovante para a Situação/Licença selecionada.");
+                            return; // Para o envio
+                        }
+                    }
+
+                    // 2. Valida Especialidades (Se marcou o checkbox e não tá bloqueado (antigo), o arquivo é obrigatório)
+                    let erroCurso = false;
+                    document.querySelectorAll('.check-curso:checked').forEach(checkbox => {
+                        // A classe 'locked-checkbox' indica que já tem URL salva. Se não tiver essa classe, é inserção nova.
+                        if (!checkbox.classList.contains('locked-checkbox')) {
+                            const inputFile = document.querySelector('input[name="arquivo_curso_' + checkbox.value + '"]');
+                            if (inputFile && inputFile.files.length === 0) {
+                                erroCurso = true;
+                            }
+                        }
+                    });
+
+                    if (erroCurso) {
+                        alert("⚠️ Ação bloqueada: É obrigatório anexar os arquivos em PDF para as novas Especialidades selecionadas.");
+                        return; // Para o envio
+                    }
+
+                    // --- FIM DA VALIDAÇÃO OBRIGATÓRIA ---
+
                     btn.disabled = true;
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
 
