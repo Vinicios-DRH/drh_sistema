@@ -195,7 +195,7 @@
             </form>
         </div>
     </div>
-
+    {% if not is_chefe_csm %}
     <!-- Atribuir motoristas por viatura (Grid de Cards) -->
     <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
         <h5 class="fw-semibold m-0 text-light">Vínculo de Motoristas</h5>
@@ -271,14 +271,17 @@
         {% endfor %}
     </div>
     {% endif %}
+    {% endif %}
 
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        {% if not is_chefe_csm %}
         {% for v in viaturas_da_obm %}
         updateCounter('{{ v.id }}');
         {% endfor %}
+        {% endif %}
     });
 
     function moveSelected(fromId, toId) {

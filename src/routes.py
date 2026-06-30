@@ -5408,6 +5408,8 @@ def escolher_obm():
 
 
 @app.route("/<int:obm_id>/viaturas", methods=["GET"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'SUPER USER', 'DRH', 'CHEFE DRH')
 def gerenciar_viaturas(obm_id):
     obm = Obm.query.get_or_404(obm_id)
 
@@ -5417,37 +5419,40 @@ def gerenciar_viaturas(obm_id):
                        .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
                        .all())
 
-    # Viaturas sem OBM (ou de outra OBM) – mostramos as sem OBM para facilitar atribuição
+    # Viaturas sem OBM (ou de outra OBM)
     viaturas_sem_obm = (Viaturas.query
                         .filter(Viaturas.obm_id.is_(None))
                         .order_by(Viaturas.prefixo.asc(), Viaturas.placa.asc())
                         .all())
 
-    # Motoristas preferencialmente desta OBM (apenas lotação ATUAL e registro ATIVO)
-    motoristas = (database.session.query(Motoristas)
-                  .join(Militar, Motoristas.militar_id == Militar.id)
-                  .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
-                  .filter(
-                      MilitarObmFuncao.obm_id == obm_id,
-                      # <-- Garante que é a OBM atual do militar
-                      MilitarObmFuncao.data_fim.is_(None),
-                      # <-- Garante que não é um registro antigo de motorista
-                      Motoristas.modified.is_(None),
-                      or_(                                 # <-- Garante que o motorista não está desclassificado
-                          Motoristas.desclassificar.is_(None),
-                          Motoristas.desclassificar != 'SIM'
-                      )
-    )
-        .order_by(Militar.nome_completo.asc())
-        .all())
+    # Verifica se é o Chefe do CSM (obm_id_1 == 32)
+    is_chefe_csm = (current_user.obm_id_1 == 32)
 
-    # Mapa de motoristas atuais por viatura (para preencher selects/checkboxes)
+    motoristas = []
     motoristas_por_viatura = {}
-    for v in viaturas_da_obm:
-        vms = (ViaturaMilitar.query
-               .filter_by(viatura_id=v.id)
-               .all())
-        motoristas_por_viatura[v.id] = [vm.militar_id for vm in vms]
+
+    # Só carrega os motoristas se NÃO for o Chefe do CSM
+    if not is_chefe_csm:
+        motoristas = (database.session.query(Motoristas)
+                      .join(Militar, Motoristas.militar_id == Militar.id)
+                      .join(MilitarObmFuncao, MilitarObmFuncao.militar_id == Militar.id)
+                      .filter(
+                          MilitarObmFuncao.obm_id == obm_id,
+                          MilitarObmFuncao.data_fim.is_(None),
+                          Motoristas.modified.is_(None),
+                          or_(
+                              Motoristas.desclassificar.is_(None),
+                              Motoristas.desclassificar != 'SIM'
+                          )
+                      )
+                      .order_by(Militar.nome_completo.asc())
+                      .all())
+
+        for v in viaturas_da_obm:
+            vms = (ViaturaMilitar.query
+                   .filter_by(viatura_id=v.id)
+                   .all())
+            motoristas_por_viatura[v.id] = [vm.militar_id for vm in vms]
 
     return render_template(
         "viaturas_gerenciar.html",
@@ -5456,6 +5461,7 @@ def gerenciar_viaturas(obm_id):
         viaturas_sem_obm=viaturas_sem_obm,
         motoristas=motoristas,
         motoristas_por_viatura=motoristas_por_viatura,
+        is_chefe_csm=is_chefe_csm # Passamos a variável para o template
     )
 
 
