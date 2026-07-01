@@ -39,10 +39,10 @@ Flask==3.0.3
 Flask-Bcrypt==1.0.1
 Flask-Login==0.6.3
 Flask-Migrate==4.0.7
-flask-requests==0.0.14
 Flask-SocketIO==5.4.1
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.1
+flask_requests==0.0.14
 flatbuffers==25.12.19
 fonttools==4.55.3
 fpdf==1.7.2
@@ -96,7 +96,9 @@ postgrest==1.0.1
 prompt_toolkit==3.0.48
 propcache==0.3.1
 protobuf==7.34.1
-psycopg[binary]
+psycopg==3.3.4
+psycopg-binary==3.3.4
+psycopg2-binary==2.9.12
 pycparser==2.22
 pydantic==2.11.3
 pydantic_core==2.33.1
