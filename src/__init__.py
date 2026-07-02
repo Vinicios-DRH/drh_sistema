@@ -26,12 +26,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SECRET_KEY'] = '60cc737479829f9462369024bee383ce'
 app.config["UPLOAD_FOLDER"] = "static/boletim_geral"
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 5,
-    "max_overflow": 10,       # free: evita estourar conexões
+    "pool_size": 3,
+    "max_overflow": 0,
     "pool_pre_ping": True,
-    "pool_recycle": 1800,
+    "pool_recycle": 300,
     "pool_timeout": 30,
-    "pool_use_lifo": True,   # devolve e pega a conexão mais recente -> mais quente
+    "pool_use_lifo": True,
 }
 
 app.config['PAF_ANO_VIGENTE'] = 2026
@@ -113,6 +113,11 @@ login_manager.login_message_category = 'alert-info'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sqlalchemy_timing")
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    database.session.remove()
+    
+
 with app.app_context():
     engine = database.engine
 
@@ -164,10 +169,6 @@ def _prime_pool_once():
             for c in conns:
                 c.close()
         _pool_warmed = True
-
-@app.before_request   # existe no Flask 3.x
-def _warm_pool_if_needed():
-    _prime_pool_once()
 
 
 @app.template_filter("br_currency")
