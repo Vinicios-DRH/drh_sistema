@@ -236,6 +236,7 @@
   window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
   window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
 
+  const BASE_URL = "{{ request.script_root }}";
   const CAN_EDIT = Boolean(window.CAN_EDIT);
   const hoje = new Date();
   const ANO_ATUAL = Number(window.PAF_ANO_VIGENTE || new Date().getFullYear());
@@ -459,7 +460,7 @@
         formData.append('ano', ANO_ATUAL);
         formData.append('excecao', isChecked);
 
-        fetch('/pafs/toggle_excecao', { method: 'POST', body: formData })
+        fetch(`${BASE_URL}/pafs/toggle_excecao`, { method: 'POST', body: formData })
           .then(r => r.json())
           .then(resp => { if (resp.status !== 'success') alert('Erro ao registrar exceção no servidor.'); })
           .catch(() => alert('Erro de conexão ao salvar a exceção.'));
@@ -522,7 +523,7 @@
         const icon = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-        fetch('/pafs/update', { method: 'POST', body: formData })
+        fetch(`${BASE_URL}/pafs/update`, { method: 'POST', body: formData })
           .then(r => r.json())
           .then(resp => {
             alert(resp.message);
@@ -587,7 +588,7 @@
 
     alvo.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted fw-semibold">Carregando dados da unidade...</div></div>';
 
-    fetch(`/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
+    fetch(`${BASE_URL}/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
       .then(r => r.text())
       .then(html => {
         alvo.innerHTML = html;
@@ -618,7 +619,7 @@
     const body = document.getElementById('graficoBody');
     body.innerHTML = `<div class="spinner-border text-primary" role="status"></div><p class="mt-3 fw-medium">Processando relatório visual...</p>`;
 
-    fetch(`/grafico-ferias/${obmId}`)
+    fetch(`${BASE_URL}/grafico-ferias/${obmId}`)
       .then(r => r.text())
       .then(data => {
         const img = document.createElement('img');
