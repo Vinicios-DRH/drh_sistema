@@ -104,6 +104,7 @@
     document.getElementById('obmSelect').addEventListener('change', function () {
         const obmId = this.value;
         const alvo = document.getElementById('tabelaContainer');
+        const BASE_URL = "{{ request.script_root }}";
 
         if (!obmId) {
             alvo.innerHTML = '<div class="text-muted text-center py-5">Selecione uma OBM.</div>';
@@ -112,7 +113,7 @@
 
         alvo.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando...</p></div>';
 
-        fetch(`/gestao-chefia/tabela/${obmId}`)
+        fetch(`${BASE_URL}/gestao-chefia/tabela/${obmId}`)
             .then(r => r.text())
             .then(html => {
                 alvo.innerHTML = html;
@@ -269,7 +270,7 @@
                     btn.disabled = true;
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
 
-                    fetch('/gestao-chefia/update', {
+                    fetch(`${BASE_URL}/gestao-chefia/update`, {
                         method: 'POST',
                         body: new FormData(document.getElementById('formAtualizacaoChefia'))
                     })
