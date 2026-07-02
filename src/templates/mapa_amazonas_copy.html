@@ -1269,7 +1269,7 @@
 
             container.innerHTML = '<div class="loading">Buscando especialistas...</div>';
 
-            fetch(`/api-teste/militares-por-especialidade/${cursoId}`)
+            fetch(`${BASE_URL}/api-teste/militares-por-especialidade/${cursoId}`)
                 .then(res => res.json())
                 .then(dados => {
                     if (dados.length === 0) {
