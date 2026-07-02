@@ -88,6 +88,7 @@ from src.services.militar_situacao_service import (
 )
 import time
 from src.utils.utils import registrar_log_download
+from dateutil.relativedelta import relativedelta
 
 # --- CACHE DO PAINEL ---
 CACHE_PAINEL = {
@@ -2298,6 +2299,48 @@ MODALIDADES_VALIDAS = {
 }
 
 
+def normalizar_date(valor):
+    if not valor:
+        return None
+    if isinstance(valor, datetime):
+        return valor.date()
+    return valor
+
+
+def calcular_datas_servico(efetivo_servico):
+    efetivo = normalizar_date(efetivo_servico)
+
+    if not efetivo:
+        return {
+            "completa_25_anos_sv": None,
+            "completa_30_anos_sv": None,
+            "anos": None,
+            "meses": None,
+            "dias": None,
+            "total_dias": None,
+        }
+
+    hoje = date.today()
+
+    if efetivo > hoje:
+        anos = meses = dias = total_dias = 0
+    else:
+        diff = relativedelta(hoje, efetivo)
+        anos = diff.years
+        meses = diff.months
+        dias = diff.days
+        total_dias = (hoje - efetivo).days
+
+    return {
+        "completa_25_anos_sv": efetivo + relativedelta(years=25),
+        "completa_30_anos_sv": efetivo + relativedelta(years=30),
+        "anos": anos,
+        "meses": meses,
+        "dias": dias,
+        "total_dias": total_dias,
+    }
+
+
 @app.route("/exibir-militar/<int:militar_id>", methods=["GET", "POST"])
 @login_required
 @checar_ocupacao("DRH", "MAPA DA FORÇA", "SUPER USER", "DIRETOR DRH", "ATUALIZACAO CADASTRAL")
@@ -2415,12 +2458,23 @@ def exibir_militar(militar_id):
         if militar.completa_30_inclusao:
             form_militar.completa_30_inclusao.data = militar.completa_30_inclusao.strftime(
                 "%d/%m/%Y")
-        if militar.completa_25_anos_sv:
-            form_militar.completa_25_anos_sv.data = militar.completa_25_anos_sv.strftime(
-                "%d/%m/%Y")
-        if militar.completa_30_anos_sv:
-            form_militar.completa_30_anos_sv.data = militar.completa_30_anos_sv.strftime(
-                "%d/%m/%Y")
+            
+        calculo_servico = calcular_datas_servico(militar.efetivo_servico)
+
+        form_militar.completa_25_anos_sv.data = (
+            calculo_servico["completa_25_anos_sv"].strftime("%d/%m/%Y")
+            if calculo_servico["completa_25_anos_sv"] else ""
+        )
+
+        form_militar.completa_30_anos_sv.data = (
+            calculo_servico["completa_30_anos_sv"].strftime("%d/%m/%Y")
+            if calculo_servico["completa_30_anos_sv"] else ""
+        )
+
+        form_militar.anos.data = calculo_servico["anos"]
+        form_militar.meses.data = calculo_servico["meses"]
+        form_militar.dias.data = calculo_servico["dias"]
+        form_militar.total_dias.data = calculo_servico["total_dias"]
 
         if obm_funcao_tipo_1:
             form_militar.obm_ids_1.data = obm_funcao_tipo_1.obm_id
@@ -2511,24 +2565,20 @@ def exibir_militar(militar_id):
                 str(form_militar.completa_30_inclusao.data), "%d/%m/%Y").date()
             if form_militar.completa_30_inclusao.data else None
         )
-        militar.completa_25_anos_sv = (
-            datetime.strptime(
-                str(form_militar.completa_25_anos_sv.data), "%d/%m/%Y").date()
-            if form_militar.completa_25_anos_sv.data else None
-        )
-        militar.completa_30_anos_sv = (
-            datetime.strptime(
-                str(form_militar.completa_30_anos_sv.data), "%d/%m/%Y").date()
-            if form_militar.completa_30_anos_sv.data else None
-        )
 
         militar.punicao_id = form_militar.punicao_id.data
         militar.comportamento_id = form_militar.comportamento_id.data
         militar.efetivo_servico = form_militar.efetivo_servico.data
-        militar.anos = form_militar.anos.data
-        militar.meses = form_militar.meses.data
-        militar.dias = form_militar.dias.data
-        militar.total_dias = form_militar.total_dias.data
+
+        calculo_servico = calcular_datas_servico(militar.efetivo_servico)
+
+        militar.completa_25_anos_sv = calculo_servico["completa_25_anos_sv"]
+        militar.completa_30_anos_sv = calculo_servico["completa_30_anos_sv"]
+        militar.anos = calculo_servico["anos"]
+        militar.meses = calculo_servico["meses"]
+        militar.dias = calculo_servico["dias"]
+        militar.total_dias = calculo_servico["total_dias"]
+
         militar.idade_reserva_grad = 0
         militar.estado_civil = form_militar.estado_civil.data
         militar.especialidade_id = form_militar.especialidade_id.data
