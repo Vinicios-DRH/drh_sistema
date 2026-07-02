@@ -1,42 +1,84 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
-  :root{
-    --brand-red:#B5121B; --brand-red-600:#9F1119;
-    --ink-200:#e8eef6; --glass-brd:rgba(255,255,255,.12);
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #9F1119;
+    --ink-200: #e8eef6;
+    --glass-brd: rgba(255, 255, 255, .12);
   }
 
-  body{background:linear-gradient(135deg,#0e1726 0%,#0b2e4f 45%,#0b3a63 100%) fixed;}
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
 
   /* Cabeçalho */
-  .brand-header{
-    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
-    border:1px solid var(--glass-brd);
-    border-radius:14px; color:var(--ink-200);
-    box-shadow:0 8px 22px rgba(0,0,0,.35);
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    border: 1px solid var(--glass-brd);
+    border-radius: 14px;
+    color: var(--ink-200);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   /* Cartão claro */
-  .glass-panel{
-    background:#fff; border:1px solid rgba(0,0,0,.05);
-    border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.08);
+  .glass-panel {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .05);
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
   }
 
   /* Títulos/Seções */
-  .section-title{
-    font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
-    color:#64748b; margin:8px 0 4px;
+  .section-title {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #64748b;
+    margin: 8px 0 4px;
   }
-  .section-accent{height:3px;background:var(--brand-red);border-radius:6px;margin-bottom:12px;}
+
+  .section-accent {
+    height: 3px;
+    background: var(--brand-red);
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
 
   /* Inputs / botões */
-  .form-label{font-weight:600}
-  .form-control,.form-select{border-radius:.6rem}
-  .hint{font-size:.85rem;color:#6b7280}
-  .btn-brand{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600}
-  .btn-brand:hover{background:var(--brand-red-600);border-color:var(--brand-red-600)}
-  .req::after{content:" *"; color:var(--brand-red); font-weight:700}
+  .form-label {
+    font-weight: 600
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: .6rem
+  }
+
+  .hint {
+    font-size: .85rem;
+    color: #6b7280
+  }
+
+  .btn-brand {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+    color: #fff;
+    font-weight: 600
+  }
+
+  .btn-brand:hover {
+    background: var(--brand-red-600);
+    border-color: var(--brand-red-600)
+  }
+
+  .req::after {
+    content: " *";
+    color: var(--brand-red);
+    font-weight: 700
+  }
 </style>
 {% endblock %}
 
@@ -61,13 +103,13 @@
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label req" for="nota_bg">Número da Nota para BG</label>
-        <input id="nota_bg" name="nota_bg" type="text" class="form-control"
-               value="{{ request.form.get('nota_bg','') }}" required>
+        <input id="nota_bg" name="nota_bg" type="text" class="form-control" value="{{ request.form.get('nota_bg','') }}"
+          required>
       </div>
       <div class="col-md-6">
         <label class="form-label req" for="data_do_requerimento">Data do Requerimento</label>
         <input id="data_do_requerimento" name="data_do_requerimento" type="date" class="form-control"
-               value="{{ request.form.get('data_do_requerimento','') }}" required>
+          value="{{ request.form.get('data_do_requerimento','') }}" required>
       </div>
     </div>
 
@@ -83,7 +125,7 @@
           {% set pgsel = request.form.get('posto_grad','') %}
           <option value="">Selecione</option>
           {% for op in ['CEL','TC','MAJ','CAP','1º TEN','2º TEN','ST','1º SGT','2º SGT','3º SGT','CB','SD'] %}
-            <option value="{{ op }}" {% if pgsel==op %}selected{% endif %}>{{ op }}</option>
+          <option value="{{ op }}" {% if pgsel==op %}selected{% endif %}>{{ op }}</option>
           {% endfor %}
         </select>
       </div>
@@ -93,20 +135,19 @@
           {% set qsel = request.form.get('quadro','') %}
           <option value="">Selecione</option>
           {% for op in ['QOBM','QOABM','QCOBM','QCPBM','QPBM'] %}
-            <option value="{{ op }}" {% if qsel==op %}selected{% endif %}>{{ op }}</option>
+          <option value="{{ op }}" {% if qsel==op %}selected{% endif %}>{{ op }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-md-4">
         <label class="form-label req" for="nome">Nome do Militar</label>
-        <input id="nome" name="nome" type="text" class="form-control"
-               value="{{ request.form.get('nome','') }}" required>
+        <input id="nome" name="nome" type="text" class="form-control" value="{{ request.form.get('nome','') }}"
+          required>
       </div>
 
       <div class="col-md-6">
         <label class="form-label req" for="obm">OBM do Militar</label>
-        <input id="obm" name="obm" type="text" class="form-control"
-               value="{{ request.form.get('obm','') }}" required>
+        <input id="obm" name="obm" type="text" class="form-control" value="{{ request.form.get('obm','') }}" required>
       </div>
 
       <div class="col-md-6">
@@ -115,7 +156,7 @@
           {% set tsel = request.form.get('tipo_licenca_especial','') %}
           <option value="">Selecione</option>
           <option value="quinquênio" {% if tsel=='quinquênio' %}selected{% endif %}>Quinquênio (3 meses)</option>
-          <option value="decênio"   {% if tsel=='decênio' %}selected{% endif %}>Decênio (6 meses)</option>
+          <option value="decênio" {% if tsel=='decênio' %}selected{% endif %}>Decênio (6 meses)</option>
         </select>
       </div>
     </div>
@@ -127,27 +168,29 @@
     </div>
     <div class="row g-3">
       <div class="col-md-6">
-        <label class="form-label req" for="periodo_licenca">Período da Licença (ex.: 01/01/2026 a 31/03/2026)</label>
+        <label class="form-label req" for="periodo_licenca">Período aquisitivo da Licença Especial (período que gerou o
+          direito do usufruto da LE)</label>
         <input id="periodo_licenca" name="periodo_licenca" type="text" class="form-control"
-               value="{{ request.form.get('periodo_licenca','') }}" required>
-        <div class="hint">Este campo é preenchido automaticamente ao escolher o <strong>tipo</strong> e a <strong>data de início</strong>, mas pode ser editado.</div>
+          value="{{ request.form.get('periodo_licenca','') }}" required readonly>
+        <div class="hint">Este campo é preenchido automaticamente ao escolher o <strong>tipo</strong> e a <strong>data
+            de início</strong>, mas pode ser editado.</div>
       </div>
       <div class="col-md-6">
         <label class="form-label req" for="data_inicio_pedido">Data de Início da Licença</label>
         <input id="data_inicio_pedido" name="data_inicio_pedido" type="date" class="form-control"
-               value="{{ request.form.get('data_inicio_pedido','') }}" required>
+          value="{{ request.form.get('data_inicio_pedido','') }}" required>
       </div>
 
       <div class="col-md-6">
         <label class="form-label req" for="data_apresentacao">Data de Apresentação</label>
         <input id="data_apresentacao" name="data_apresentacao" type="date" class="form-control"
-               value="{{ request.form.get('data_apresentacao','') }}" required>
+          value="{{ request.form.get('data_apresentacao','') }}" required>
         <div class="hint">Preenchida automaticamente como o dia <strong>após</strong> o término do período.</div>
       </div>
       <div class="col-md-6">
         <label class="form-label req" for="numero_siged">Número SIGED</label>
         <input id="numero_siged" name="numero_siged" type="text" class="form-control"
-               value="{{ request.form.get('numero_siged','') }}" required>
+          value="{{ request.form.get('numero_siged','') }}" required>
       </div>
     </div>
 
@@ -193,11 +236,11 @@
 <!-- Scripts -->
 <script>
   // ===== Utilitários de data =====
-  function toBR(d){ return d.toLocaleDateString('pt-BR'); }
-  function toISO(d){ return d.toISOString().split('T')[0]; }
+  function toBR(d) { return d.toLocaleDateString('pt-BR'); }
+  function toISO(d) { return d.toISOString().split('T')[0]; }
 
   // ===== Calcula sequência de períodos (quinquenio/decenio) a partir da data de ingresso =====
-  function calcularPeriodos(){
+  function calcularPeriodos() {
     const dataInput = document.getElementById('data_ingresso').value;
     const tipo = document.getElementById('tipo_licenca').value; // 'quinquenio' | 'decenio'
     const select = document.getElementById('periodos_resultantes');
@@ -205,22 +248,22 @@
 
     select.innerHTML = '<option value="">Selecione...</option>';
 
-    if(!dataInput){
+    if (!dataInput) {
       alert('Informe a data de ingresso!');
       return;
     }
 
-    const [y,m,d] = dataInput.split('-').map(Number);
-    let inicio = new Date(y, m-1, d);
+    const [y, m, d] = dataInput.split('-').map(Number);
+    let inicio = new Date(y, m - 1, d);
 
     const anosLimite = 35; // até 35 anos de carreira
     const salto = (tipo === 'quinquenio') ? 5 : 10;
 
-    for(let i=1; i<=Math.floor(anosLimite/salto); i++){
+    for (let i = 1; i <= Math.floor(anosLimite / salto); i++) {
       const fim = new Date(inicio);
       fim.setFullYear(fim.getFullYear() + salto);
 
-      const label = `${i*salto} anos: ${toBR(inicio)} a ${toBR(fim)}`;
+      const label = `${i * salto} anos: ${toBR(inicio)} a ${toBR(fim)}`;
       const value = `${toBR(inicio)} a ${toBR(fim)}`;
 
       const opt = new Option(label, value);
@@ -233,22 +276,22 @@
     divSelecao.style.display = 'block';
   }
 
-  function preencherPeriodo(){
+  function preencherPeriodo() {
     const sel = document.getElementById('periodos_resultantes');
     const periodo = sel.value;
-    if(periodo){
+    if (periodo) {
       document.getElementById('periodo_licenca').value = periodo;
     }
   }
 
   // ===== Calcula período (3 ou 6 meses) e data de apresentação a partir do tipo e da data de início =====
-  function calcularLicencaAuto(){
+  function calcularLicencaAuto() {
     const tipo = document.getElementById('tipo_licenca_especial').value; // 'quinquênio' | 'decênio'
     const dataInicioStr = document.getElementById('data_inicio_pedido').value;
-    if(!tipo || !dataInicioStr) return;
+    if (!tipo || !dataInicioStr) return;
 
-    const [y,m,d] = dataInicioStr.split('-').map(Number);
-    const inicio = new Date(y, m-1, d);
+    const [y, m, d] = dataInicioStr.split('-').map(Number);
+    const inicio = new Date(y, m - 1, d);
 
     const mesesAdicionar = (tipo === 'quinquênio') ? 3 : (tipo === 'decênio' ? 6 : 0);
     const fim = new Date(inicio);
