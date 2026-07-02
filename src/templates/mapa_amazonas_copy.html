@@ -703,7 +703,7 @@
 <body>
 
     <div id="header">
-        <img src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo" class="header-logo">
+        <img src="{{ url_for('static', filename='img/corpo_de_bombeiros_am_logo_circular.png') }}" alt="Logo" class="header-logo">
         <div>
             <h1>Painel Estratégico - DIRETORIA DE PESSOAL</h1>
             <p>Distribuição Operacional - Amazonas</p>
@@ -816,6 +816,7 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
+        const BASE_URL = "{{ request.script_root }}";
         // --- NOVA FUNÇÃO PARA ALTERNAR O MODO FOCO ---
         function toggleModoFoco() {
             const header = document.getElementById('header');
@@ -901,7 +902,7 @@
             });
 
         // 4. Carregar Dados Globais Reais (Rodapé)
-        fetch('/api/estatisticas-gerais-teste')
+        fetch(`${BASE_URL}/api/estatisticas-gerais-teste`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('stat-total').innerText = data.total;
@@ -915,7 +916,7 @@
             const classePiscar = destacar ? 'piscar' : '';
             return `
                 <div class="pin-container">
-                    <img class="pin-logo ${classePiscar}" src="/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
+                    <img class="pin-logo ${classePiscar}" src="${BASE_URL}/static/img/corpo_de_bombeiros_am_logo_circular.png" alt="Logo">
                     <div class="pin-text ${classePiscar}">${obmNome}</div>
                 </div>
             `;
@@ -940,7 +941,7 @@
         }
 
         // 5. Carregar Markers e aplicar ao Cluster
-        fetch('/api/mapa-dados-teste')
+        fetch(`${BASE_URL}/api/mapa-dados-teste`)
             .then(response => response.json())
             .then(dados => {
                 dadosOBMGlobal = dados;
@@ -1067,7 +1068,7 @@
             containerViaturas.style.display = 'none';
             loader.style.display = 'block';
 
-            fetch(`/api-teste/militares-obm/${obmId}`)
+            fetch(`${BASE_URL}/api-teste/militares-obm/${obmId}`)
                 .then(res => res.json())
                 .then(data => {
                     loader.style.display = 'none';
@@ -1170,7 +1171,7 @@
             const modal = document.getElementById('modal-idades');
             modal.style.display = 'flex';
 
-            fetch('/api/media-idade-posto')
+            fetch(`${BASE_URL}/api/media-idade-posto`)
                 .then(res => res.json())
                 .then(data => {
                     const labels = data.map(d => d.posto);
@@ -1236,7 +1237,7 @@
 
             const select = document.getElementById('select-curso');
             if (select.options.length <= 1) {
-                fetch('/api-teste/cursos')
+                fetch(`${BASE_URL}/api-teste/cursos`)
                     .then(res => res.json())
                     .then(cursos => {
                         cursos.forEach(c => {
