@@ -3634,6 +3634,43 @@ def tabela_militares():
         }), 500
 
 
+@app.route("/militares-a-disposicao")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def militares_a_disposicao():
+    militares_a_disposicao = MilitaresADisposicao.query.all()
+
+    return render_template('militares_a_disposicao.html', militares=militares_a_disposicao)
+
+
+@app.route("/militares-agregados")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def militares_agregados():
+    militares_agregados = MilitaresAgregados.query.all()
+
+    return render_template('militares_agregados.html', militares=militares_agregados)
+
+
+@app.route("/licenca-especial")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def licenca_especial():
+    militares_le = LicencaEspecial.query.all()
+
+    return render_template('licenca_especial.html', militares_le=militares_le)
+
+
+@app.route("/licenca-para-tratamento-de-saude")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def lts():
+    militares_lts = LicencaParaTratamentoDeSaude.query.all()
+
+    return render_template('licenca_para_tratamento_de_saude.html', militares_lts=militares_lts)
+
+
+
 @app.route("/export-excel", methods=["POST"])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'SUPER USER', 'DRH', 'DIRETOR DRH')
@@ -8212,34 +8249,154 @@ def gestao_chefia():
 def tabela_gestao_chefia(obm_id):
     if getattr(current_user, "funcao_user_id", None) != 6:
         permitidas = obms_permitidas_para_usuario(current_user)
+
         if obm_id not in permitidas:
             return "<div class='alert alert-danger'>Sem permissão para esta OBM.</div>", 403
 
     obm = Obm.query.get_or_404(obm_id)
 
     # =========================================================================
-    # NOVA REGRA: Filtra o efetivo da OBM e EXCLUI os civis (funcao_id == 26)
+    # EFETIVO DA OBM
+    # Exclui civis (funcao_id == 26)
     # =========================================================================
-    militares = (Militar.query.join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
-                 .filter(
-                     MilitarObmFuncao.obm_id == obm_id, 
-                     MilitarObmFuncao.data_fim.is_(None),
-                     Militar.obm_funcoes.any(MilitarObmFuncao.funcao_id != 26)  # <-- Trava para remover civis
-                 ).all())
+    militares = (
+        Militar.query
+        .join(
+            MilitarObmFuncao,
+            Militar.id == MilitarObmFuncao.militar_id
+        )
+        .filter(
+            MilitarObmFuncao.obm_id == obm_id,
+            MilitarObmFuncao.data_fim.is_(None),
+            Militar.obm_funcoes.any(
+                MilitarObmFuncao.funcao_id != 26
+            )
+        )
+        .all()
+    )
 
-    registros_diarios = EfetivoDiarioOBM.query.filter_by(obm_id=obm_id).all()
-    mapa_diario = {registro.militar_id: registro for registro in registros_diarios}
+    # =========================================================================
+    # MAPA DA SITUAÇÃO DIÁRIA DA OBM
+    # =========================================================================
+    registros_diarios = EfetivoDiarioOBM.query.filter_by(
+        obm_id=obm_id
+    ).all()
 
-    motoristas_ativos = Motoristas.query.filter(Motoristas.modified.is_(None), or_(Motoristas.desclassificar.is_(None), Motoristas.desclassificar != 'SIM')).all()
-    ids_motoristas = {m.militar_id for m in motoristas_ativos}
+    mapa_diario = {
+        registro.militar_id: registro
+        for registro in registros_diarios
+    }
 
-    viaturas_obm = Viaturas.query.filter_by(obm_id=obm_id).order_by(Viaturas.prefixo.asc()).all()
+    # =========================================================================
+    # FÉRIAS VIGENTES
+    # Não usa ano_referencia propositalmente.
+    # Assim também cobre férias que atravessam dezembro/janeiro.
+    # =========================================================================
+    hoje = datetime.now().date()
+
+    ids_militares = [militar.id for militar in militares]
+    ferias_por_militar = {}
+
+    if ids_militares:
+        pafs_com_ferias_vigentes = (
+            Paf.query
+            .filter(
+                Paf.militar_id.in_(ids_militares),
+
+                or_(
+                    and_(
+                        Paf.primeiro_periodo_ferias <= hoje,
+                        Paf.fim_primeiro_periodo >= hoje
+                    ),
+                    and_(
+                        Paf.segundo_periodo_ferias <= hoje,
+                        Paf.fim_segundo_periodo >= hoje
+                    ),
+                    and_(
+                        Paf.terceiro_periodo_ferias <= hoje,
+                        Paf.fim_terceiro_periodo >= hoje
+                    )
+                )
+            )
+            .all()
+        )
+
+        for paf in pafs_com_ferias_vigentes:
+            periodos = [
+                (
+                    paf.primeiro_periodo_ferias,
+                    paf.fim_primeiro_periodo
+                ),
+                (
+                    paf.segundo_periodo_ferias,
+                    paf.fim_segundo_periodo
+                ),
+                (
+                    paf.terceiro_periodo_ferias,
+                    paf.fim_terceiro_periodo
+                )
+            ]
+
+            for inicio, fim in periodos:
+                if inicio and fim and inicio <= hoje <= fim:
+                    ferias_por_militar[paf.militar_id] = {
+                        "inicio": inicio,
+                        "fim": fim
+                    }
+                    break
+
+    # =========================================================================
+    # MOTORISTAS
+    # =========================================================================
+    motoristas_ativos = (
+        Motoristas.query
+        .filter(
+            Motoristas.modified.is_(None),
+            or_(
+                Motoristas.desclassificar.is_(None),
+                Motoristas.desclassificar != 'SIM'
+            )
+        )
+        .all()
+    )
+
+    ids_motoristas = {
+        motorista.militar_id
+        for motorista in motoristas_ativos
+    }
+
+    # =========================================================================
+    # DADOS AUXILIARES DA TELA
+    # =========================================================================
+    viaturas_obm = (
+        Viaturas.query
+        .filter_by(obm_id=obm_id)
+        .order_by(Viaturas.prefixo.asc())
+        .all()
+    )
+
     ids_permitidos = [4, 5, 6, 8]
-    modalidades = Modalidade.query.filter(Modalidade.id.in_(ids_permitidos)).order_by(Modalidade.descricao.asc()).all()
+
+    modalidades = (
+        Modalidade.query
+        .filter(Modalidade.id.in_(ids_permitidos))
+        .order_by(Modalidade.descricao.asc())
+        .all()
+    )
+
     cursos = Curso.query.order_by(Curso.nome.asc()).all()
 
-    return render_template('partial_tabela_gestao_chefia.html', obm=obm, militares=militares, mapa_diario=mapa_diario,
-                           ids_motoristas=ids_motoristas, viaturas_obm=viaturas_obm, modalidades=modalidades, cursos=cursos)
+    return render_template(
+        'partial_tabela_gestao_chefia.html',
+        obm=obm,
+        militares=militares,
+        mapa_diario=mapa_diario,
+        ferias_por_militar=ferias_por_militar,
+        ids_motoristas=ids_motoristas,
+        viaturas_obm=viaturas_obm,
+        modalidades=modalidades,
+        cursos=cursos
+    )
 
 
 @app.route('/gestao-chefia/update', methods=['POST'])

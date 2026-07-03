@@ -40,11 +40,22 @@
     <tbody>
         {% for militar in militares %}
         {% set registro = mapa_diario.get(militar.id) %}
+        {% set ferias = ferias_por_militar.get(militar.id) %}
         {% set is_motorista = militar.id in ids_motoristas %}
 
         <tr>
             <td class="text-nowrap">{{ militar.posto_grad.sigla }}</td>
-            <td class="fw-semibold">{{ militar.nome_completo }}</td>
+            <td class="fw-semibold">
+                <div>{{ militar.nome_completo }}</div>
+
+                {% if ferias %}
+                <span class="badge bg-info text-dark d-inline-block mt-1"
+                    title="Férias de {{ ferias.inicio.strftime('%d/%m/%Y') }} até {{ ferias.fim.strftime('%d/%m/%Y') }}">
+                    <i class="bi bi-sun-fill me-1"></i>
+                    Em férias até {{ ferias.fim.strftime('%d/%m/%Y') }}
+                </span>
+                {% endif %}
+            </td>
 
             <td>
                 {% if not registro or registro.presente_na_obm %}
