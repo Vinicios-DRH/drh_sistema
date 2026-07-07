@@ -215,7 +215,8 @@
   {% if messages %}
   <div id="flash-stack">
     {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+    {% set bootstrap_category = category.replace('alert-', '') %}
+    <div class="alert alert-{{ bootstrap_category }} alert-dismissible fade show" role="alert">
       {{ message }}
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
     </div>
@@ -232,52 +233,41 @@
     crossorigin="anonymous"></script>
 
   <script>
-    // auto-fechar alerts
     setTimeout(function () {
-      let alerts = document.querySelectorAll('.alert');
+      const alerts = document.querySelectorAll('#flash-stack .alert');
+
       alerts.forEach(function (alert) {
-        let bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
         bsAlert.close();
       });
     }, 6000);
   </script>
 
   <script>
-    // Atualiza --nav-h SOMENTE se existir navbar
     (function () {
       const nav = document.querySelector('.navbar.fixed-top');
-      if (!nav) return;
 
-      function setNavHeight() {
-        const h = Math.round(nav.getBoundingClientRect().height || 64);
-        document.documentElement.style.setProperty('--nav-h', h + 'px');
+      if (!nav) {
+        return;
       }
 
-      window.addEventListener('load', setNavHeight);
-      window.addEventListener('resize', setNavHeight);
+      function atualizarAlturaNavbar() {
+        const altura = Math.round(nav.getBoundingClientRect().height || 64);
 
-      const obs = new MutationObserver(setNavHeight);
-      obs.observe(document.body, { attributes: true, childList: true, subtree: true });
-    })();
-  </script>
-
-  <script>
-    // Recalcula ao abrir/fechar offcanvas SOMENTE se existir navbar
-    (function () {
-      const nav = document.querySelector('.navbar.fixed-top');
-      if (!nav) return;
-
-      function setSpacer() {
-        const h = nav.offsetHeight || 0;
-        document.documentElement.style.setProperty('--nav-h', h + 'px');
+        document.documentElement.style.setProperty(
+          '--nav-h',
+          altura + 'px'
+        );
       }
 
-      setSpacer();
-      window.addEventListener('resize', setSpacer);
+      atualizarAlturaNavbar();
 
-      const oc = document.getElementById('offcanvasNavbar');
-      oc?.addEventListener('shown.bs.offcanvas', setSpacer);
-      oc?.addEventListener('hidden.bs.offcanvas', setSpacer);
+      window.addEventListener('resize', atualizarAlturaNavbar, {
+        passive: true
+      });
+
+      const resizeObserver = new ResizeObserver(atualizarAlturaNavbar);
+      resizeObserver.observe(nav);
     })();
   </script>
 

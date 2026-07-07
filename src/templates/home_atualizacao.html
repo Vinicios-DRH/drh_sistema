@@ -1,533 +1,1339 @@
 {% extends "base.html" %}
 
+{% block title %}Área do Usuário | SIGDP{% endblock %}
+
 {% block head %}
-<!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
     :root {
-        --brand-red: #B5121B;
-        --brand-red-600: #9e1119;
-        --glass-bg: rgba(255, 255, 255, .06);
-        --glass-brd: rgba(255, 255, 255, .16);
-        --ink-200: #e8eef6;
-        --ink-400: #c0cfda;
+        --hua-navy: #0b2e4f;
+        --hua-blue: #176cae;
+        --hua-blue-soft: #eaf4fc;
+        --hua-ink: #162334;
+        --hua-muted: #637286;
+        --hua-border: #dbe6ef;
+        --hua-bg: #eef5fa;
+        --hua-success: #14804a;
+        --hua-success-bg: #e9f8ef;
+        --hua-warning: #a96400;
+        --hua-warning-bg: #fff5df;
+        --hua-danger: #b4232d;
+        --hua-danger-bg: #fff0f1;
     }
 
     body {
-        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+        background:
+            radial-gradient(circle at top right, rgba(23, 108, 174, .14), transparent 32%),
+            linear-gradient(135deg, #edf5fa 0%, #f7fafc 48%, #e8f1f8 100%) fixed;
     }
 
-    .brand-header {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-        border: 1px solid var(--glass-brd);
-        border-radius: 16px;
-        color: var(--ink-200);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    .hua-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 28px 0 48px;
     }
 
-    .glass-card {
-        background: var(--glass-bg);
-        border: 1px solid var(--glass-brd);
-        border-radius: 16px;
-        color: var(--ink-200);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    .hua-container {
+        max-width: 1220px;
     }
 
-    .card-soft {
+    /* ==========================================================================
+       HERO
+       ========================================================================== */
+
+    .hua-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 30px;
+        border-radius: 22px;
+        color: #fff;
+        background:
+            radial-gradient(circle at top right, rgba(255, 255, 255, .16), transparent 30%),
+            linear-gradient(135deg, #0a2947 0%, #0f4c81 55%, #176cae 100%);
+        box-shadow: 0 18px 38px rgba(8, 54, 95, .22);
+    }
+
+    .hua-hero::before,
+    .hua-hero::after {
+        position: absolute;
+        border-radius: 50%;
+        content: "";
+        pointer-events: none;
+    }
+
+    .hua-hero::before {
+        top: -110px;
+        right: -90px;
+        width: 260px;
+        height: 260px;
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .hua-hero::after {
+        bottom: -145px;
+        left: 38%;
+        width: 260px;
+        height: 260px;
+        background: rgba(255, 255, 255, .05);
+    }
+
+    .hua-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hua-avatar {
+        display: grid;
+        flex: 0 0 68px;
+        width: 68px;
+        height: 68px;
+        place-items: center;
+        border: 3px solid rgba(255, 255, 255, .45);
+        border-radius: 50%;
+        color: var(--hua-navy);
+        font-size: 1.65rem;
+        font-weight: 800;
         background: #fff;
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 16px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .16);
     }
 
-    .kpi .title {
-        font-size: .85rem;
-        color: #475569
+    .hua-eyebrow {
+        display: block;
+        margin-bottom: 5px;
+        color: rgba(255, 255, 255, .76);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .10em;
+        text-transform: uppercase;
     }
 
-    .kpi .value {
-        font-size: 1.6rem;
-        font-weight: 700
+    .hua-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(1.45rem, 2.4vw, 2rem);
+        font-weight: 800;
+        letter-spacing: -.03em;
     }
 
-    .chip {
+    .hua-subtitle {
+        max-width: 680px;
+        margin: 7px 0 0;
+        color: rgba(255, 255, 255, .82);
+        font-size: .95rem;
+        line-height: 1.55;
+    }
+
+    .hua-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .hua-btn-primary,
+    .hua-btn-secondary {
         display: inline-flex;
         align-items: center;
-        gap: .4rem;
-        padding: .2rem .55rem;
-        font-size: .78rem;
-        border-radius: 999px;
-        border: 1px solid var(--glass-brd)
-    }
-
-    .list-plain {
-        margin: 0;
-        padding: 0;
-        list-style: none
-    }
-
-    .list-plain li {
-        display: flex;
-        justify-content: space-between;
+        justify-content: center;
         gap: 8px;
-        padding: .4rem 0;
-        border-bottom: 1px dashed #e5e7eb
+        min-height: 46px;
+        padding: 0 16px;
+        border-radius: 10px;
+        font-size: .9rem;
+        font-weight: 750;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
     }
 
-    .list-plain li:last-child {
-        border-bottom: 0
+    .hua-btn-primary {
+        border: 1px solid #fff;
+        color: var(--hua-navy);
+        background: #fff;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, .13);
     }
 
-    .muted {
-        color: #64748b
+    .hua-btn-primary:hover,
+    .hua-btn-primary:focus {
+        color: #06233d;
+        background: #edf6ff;
+        transform: translateY(-1px);
     }
 
-    .avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
+    .hua-btn-secondary {
+        border: 1px solid rgba(255, 255, 255, .44);
+        color: #fff;
+        background: rgba(255, 255, 255, .10);
+    }
+
+    .hua-btn-secondary:hover,
+    .hua-btn-secondary:focus {
+        border-color: #fff;
+        color: var(--hua-navy);
+        background: #fff;
+    }
+
+    /* ==========================================================================
+       ALERTAS E PRAZOS
+       ========================================================================== */
+
+    .hua-status-row {
         display: grid;
-        place-items: center;
-        font-weight: 700;
-        background: rgba(255, 255, 255, .1);
-        color: #fff;
-        border: 1px solid var(--glass-brd)
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        margin-top: 18px;
+        padding: 14px 16px;
+        border: 1px solid var(--hua-border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .85);
+        box-shadow: 0 8px 18px rgba(21, 58, 85, .06);
     }
 
-    .btn-primary {
-        background: var(--brand-red);
-        border-color: var(--brand-red)
+    .hua-status-main {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
     }
 
-    .btn-primary:hover {
-        background: var(--brand-red-600);
-        border-color: var(--brand-red-600)
-    }
-
-    .btn-outline-primary {
-        color: var(--brand-red);
-        border-color: var(--brand-red)
-    }
-
-    .btn-outline-primary:hover {
-        color: #fff;
-        background: var(--brand-red)
-    }
-
-    .modal-backdrop-home,
-    .modal-backdrop-home2 {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, .45);
-        display: none;
+    .hua-status-icon {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        z-index: 1050
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        color: var(--hua-blue);
+        font-size: 1.1rem;
+        background: var(--hua-blue-soft);
     }
 
-    .modal-backdrop-home.show,
-    .modal-backdrop-home2.show {
-        display: flex
+    .hua-status-title {
+        margin: 0;
+        color: var(--hua-ink);
+        font-size: .92rem;
+        font-weight: 800;
     }
 
-    .modal-card-home,
-    .modal-card-home2 {
-        background: #fff;
-        color: #0f172a;
-        border: 1px solid rgba(0, 0, 0, .08);
+    .hua-status-description {
+        margin: 2px 0 0;
+        color: var(--hua-muted);
+        font-size: .82rem;
+        line-height: 1.4;
+    }
+
+    .hua-deadline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 750;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .hua-deadline-open {
+        border: 1px solid #bce6cb;
+        color: var(--hua-success);
+        background: var(--hua-success-bg);
+    }
+
+    .hua-deadline-closed {
+        border: 1px solid #f0ce92;
+        color: var(--hua-warning);
+        background: var(--hua-warning-bg);
+    }
+
+    /* ==========================================================================
+       KPIs
+       ========================================================================== */
+
+    .hua-kpi-card {
+        height: 100%;
+        padding: 18px;
+        border: 1px solid var(--hua-border);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 10px 22px rgba(16, 59, 91, .06);
+    }
+
+    .hua-kpi-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .hua-kpi-label {
+        color: var(--hua-muted);
+        font-size: .78rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .hua-kpi-value {
+        margin-top: 8px;
+        color: var(--hua-ink);
+        font-size: 1.8rem;
+        font-weight: 850;
+        letter-spacing: -.03em;
+        line-height: 1;
+    }
+
+    .hua-kpi-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
         border-radius: 12px;
-        width: min(640px, 96vw);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .25)
+        font-size: 1.1rem;
+    }
+
+    .hua-kpi-total .hua-kpi-icon {
+        color: #145a96;
+        background: #e8f3fe;
+    }
+
+    .hua-kpi-pendente .hua-kpi-icon {
+        color: #9a5c00;
+        background: #fff3d7;
+    }
+
+    .hua-kpi-validada .hua-kpi-icon {
+        color: #137a36;
+        background: #e7f7ed;
+    }
+
+    .hua-kpi-inconforme .hua-kpi-icon {
+        color: #b4232d;
+        background: #fff0f1;
+    }
+
+    /* ==========================================================================
+       PAINÉIS
+       ========================================================================== */
+
+    .hua-panel {
+        height: auto !important;
+        min-height: 0;
+        border: 1px solid var(--hua-border);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .96);
+        box-shadow: 0 12px 26px rgba(16, 59, 91, .07);
+    }
+
+    .hua-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 21px 22px 16px;
+        border-bottom: 1px solid #edf2f6;
+    }
+
+    .hua-panel-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hua-panel-heading-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        color: var(--hua-blue);
+        font-size: 1rem;
+        background: var(--hua-blue-soft);
+    }
+
+    .hua-panel-title {
+        margin: 0;
+        color: var(--hua-ink);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .hua-panel-subtitle {
+        margin: 3px 0 0;
+        color: var(--hua-muted);
+        font-size: .81rem;
+        line-height: 1.4;
+    }
+
+    .hua-panel-body {
+        padding: 22px;
+    }
+
+    /* ==========================================================================
+       AÇÕES RÁPIDAS
+       ========================================================================== */
+
+    .hua-action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .hua-action-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-height: 108px;
+        padding: 15px;
+        border: 1px solid #dde8f0;
+        border-radius: 14px;
+        color: var(--hua-ink);
+        background: #fbfdff;
+        text-decoration: none;
+    }
+
+    .hua-action-card-disabled {
+        cursor: not-allowed;
+        opacity: .72;
+        background: #f7f9fb;
+    }
+
+    .hua-action-card-disabled:hover,
+    .hua-action-card-disabled:focus {
+        border-color: #dde8f0;
+        color: var(--hua-ink);
+        background: #f7f9fb;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .hua-action-card:hover,
+    .hua-action-card:focus {
+        border-color: #91bfdf;
+        color: var(--hua-ink);
+        background: #f1f8fe;
+        box-shadow: 0 9px 18px rgba(23, 108, 174, .10);
+        transform: translateY(-2px);
+    }
+
+    .hua-action-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 42px;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        color: var(--hua-blue);
+        font-size: 1.15rem;
+        background: var(--hua-blue-soft);
+    }
+
+    .hua-action-title {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--hua-ink);
+        font-size: .89rem;
+        font-weight: 800;
+    }
+
+    .hua-action-text {
+        display: block;
+        color: var(--hua-muted);
+        font-size: .78rem;
+        line-height: 1.42;
+    }
+
+    /* ==========================================================================
+       DECLARAÇÕES
+       ========================================================================== */
+
+    .hua-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .hua-status-pendente {
+        border: 1px solid #f1d69c;
+        color: #986000;
+        background: #fff6e1;
+    }
+
+    .hua-status-validado {
+        border: 1px solid #bce6cb;
+        color: var(--hua-success);
+        background: var(--hua-success-bg);
+    }
+
+    .hua-status-inconforme {
+        border: 1px solid #f2bfc3;
+        color: var(--hua-danger);
+        background: var(--hua-danger-bg);
+    }
+
+    .hua-status-default {
+        border: 1px solid #d7e1e9;
+        color: #506275;
+        background: #f3f7fa;
+    }
+
+    .hua-declaration-main {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .hua-declaration-title {
+        margin: 0;
+        color: var(--hua-ink);
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .hua-declaration-info {
+        margin: 6px 0 0;
+        color: var(--hua-muted);
+        font-size: .84rem;
+        line-height: 1.5;
+    }
+
+    .hua-inline-warning {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid #f3c8cc;
+        border-radius: 12px;
+        color: #8d252d;
+        font-size: .83rem;
+        line-height: 1.5;
+        background: #fff4f5;
+    }
+
+    .hua-inline-warning strong {
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .hua-panel-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 42px;
+        padding: 0 14px;
+        border: 1px solid var(--hua-blue);
+        border-radius: 10px;
+        color: #fff;
+        font-size: .84rem;
+        font-weight: 750;
+        text-decoration: none;
+        background: var(--hua-blue);
+    }
+
+    .hua-panel-button:hover,
+    .hua-panel-button:focus {
+        border-color: #0d4f83;
+        color: #fff;
+        background: #0d4f83;
+        transform: translateY(-1px);
+    }
+
+    .hua-panel-button-outline {
+        border-color: #b7cad9;
+        color: #31516b;
+        background: #fff;
+    }
+
+    .hua-panel-button-outline:hover,
+    .hua-panel-button-outline:focus {
+        border-color: #87b1cf;
+        color: #17486d;
+        background: #f0f7fc;
+    }
+
+    /* ==========================================================================
+       DADOS PESSOAIS
+       ========================================================================== */
+
+    .hua-data-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .hua-data-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 0;
+        border-bottom: 1px solid #edf2f6;
+    }
+
+    .hua-data-item:first-child {
+        padding-top: 0;
+    }
+
+    .hua-data-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .hua-data-label {
+        flex: 0 0 38%;
+        color: var(--hua-muted);
+        font-size: .77rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: .035em;
+    }
+
+    .hua-data-value {
+        min-width: 0;
+        color: var(--hua-ink);
+        font-size: .86rem;
+        font-weight: 700;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    /* ==========================================================================
+       DOCUMENTOS E ATIVIDADES
+       ========================================================================== */
+
+    .hua-document-list,
+    .hua-activity-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .hua-document-item,
+    .hua-activity-item {
+        display: flex;
+        gap: 11px;
+        padding: 12px 0;
+        border-bottom: 1px solid #edf2f6;
+    }
+
+    .hua-document-item:first-child,
+    .hua-activity-item:first-child {
+        padding-top: 0;
+    }
+
+    .hua-document-item:last-child,
+    .hua-activity-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .hua-document-icon,
+    .hua-activity-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        color: var(--hua-blue);
+        background: var(--hua-blue-soft);
+    }
+
+    .hua-document-name,
+    .hua-activity-text {
+        min-width: 0;
+        color: var(--hua-ink);
+        font-size: .83rem;
+        font-weight: 700;
+        line-height: 1.42;
+        overflow-wrap: anywhere;
+    }
+
+    .hua-document-meta,
+    .hua-activity-date {
+        display: block;
+        margin-top: 3px;
+        color: var(--hua-muted);
+        font-size: .74rem;
+        font-weight: 500;
+    }
+
+    .hua-empty {
+        padding: 10px 0 3px;
+        color: var(--hua-muted);
+        font-size: .84rem;
+        line-height: 1.5;
+    }
+
+    .hua-security-box {
+        padding: 15px;
+        border: 1px solid #d7e5f0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #f5fbff, #eef7fd);
+    }
+
+    .hua-security-title {
+        margin: 0;
+        color: var(--hua-ink);
+        font-size: .89rem;
+        font-weight: 800;
+    }
+
+    .hua-security-text {
+        margin: 5px 0 12px;
+        color: var(--hua-muted);
+        font-size: .8rem;
+        line-height: 1.48;
+    }
+
+    .hua-footer-note {
+        margin-top: 24px;
+        color: #6c7b8b;
+        font-size: .78rem;
+        text-align: center;
+    }
+
+    @media (max-width: 991.98px) {
+        .hua-page {
+            padding-top: 20px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .hua-page {
+            padding: 16px 0 34px;
+        }
+
+        .hua-hero {
+            padding: 22px 18px;
+            border-radius: 17px;
+        }
+
+        .hua-avatar {
+            flex-basis: 56px;
+            width: 56px;
+            height: 56px;
+            font-size: 1.3rem;
+        }
+
+        .hua-hero-actions {
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .hua-btn-primary,
+        .hua-btn-secondary {
+            width: 100%;
+        }
+
+        .hua-status-row {
+            grid-template-columns: 1fr;
+        }
+
+        .hua-deadline {
+            justify-self: start;
+        }
+
+        .hua-action-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .hua-panel-header,
+        .hua-panel-body {
+            padding-right: 17px;
+            padding-left: 17px;
+        }
+
+        .hua-panel-header {
+            padding-top: 18px;
+            padding-bottom: 14px;
+        }
+
+        .hua-panel-body {
+            padding-top: 18px;
+            padding-bottom: 18px;
+        }
+
+        .hua-declaration-main {
+            flex-direction: column;
+        }
+
+        .hua-panel-button {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
 
 {% block body %}
-<section class="py-3 py-md-4">
-    <div class="container py-2 py-md-3">
 
-        <!-- Header -->
-        <div class="brand-header p-3 p-md-4 mb-3">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="avatar">{{ (nome_exibicao or 'U')[:1] }}</div>
-                    <div>
-                        <h1 class="h5 m-0">Olá, {{ nome_exibicao or 'Usuário' }}</h1>
-                        <div class="small opacity-75">Último acesso: {{ last_login_dt.strftime('%d/%m/%Y %H:%M') if
-                            last_login_dt else '—' }}</div>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    {% if user_pg %}<span class="chip"><i class="bi bi-award me-1"></i>{{ user_pg }}</span>{% endif %}
-                    {% if user_obm_siglas %}<span class="chip"><i class="bi bi-building me-1"></i>OBM: {{ ",
-                        ".join(user_obm_siglas) }}</span>{% endif %}
-                    {% if drh_like %}<span class="chip"><i class="bi bi-shield-lock me-1"></i>Perfil DRH</span>{% endif
-                    %}
-                    <a class="btn btn-outline-light" href="{{ url_for('atualizacao_cadastral.atualizar') }}"><i
-                            class="bi bi-person-gear me-1"></i> Atualização Cadastral</a>
-                </div>
-            </div>
-        </div>
+{% set nome_completo = (militar.nome_completo if militar else none) or current_user.nome or current_user.login or
+'Usuário' %}
+{% set email_exibir = (militar.email if militar and militar.email else current_user.email|default('')) %}
+{% set telefone_exibir = (militar.celular if militar and militar.celular else current_user.telefone|default('')) %}
 
-        <!-- KPIs -->
-        <div class="row g-3 mb-3">
-            <div class="col-6 col-md-3">
-                <div class="card-soft p-3 kpi text-center">
-                    <div class="title">Declarações — {{ ano_atual }}</div>
-                    <div class="value">{{ kpi_decl_total }}</div>
-                    <div class="small text-muted">enviadas por você</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card-soft p-3 kpi text-center">
-                    <div class="title">Aguardando validação</div>
-                    <div class="value">{{ kpi_decl_pendentes }}</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card-soft p-3 kpi text-center">
-                    <div class="title">Validadas</div>
-                    <div class="value">{{ kpi_decl_validadas }}</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card-soft p-3 kpi text-center">
-                    <div class="title">Inconformes</div>
-                    <div class="value">{{ kpi_decl_inconformes }}</div>
-                </div>
-            </div>
-        </div>
+{% set tem_decl = minhas_declaracoes|length > 0 %}
+{% set ultima = minhas_declaracoes[0] if tem_decl else none %}
+{% set ultima_status = (ultima.status or '')|lower if ultima else '' %}
 
-        <div class="row g-3">
-            <!-- Esquerda -->
-            <div class="col-12 col-lg-7">
-                <div class="glass-card p-3 p-md-4">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <h2 class="h6 m-0"><i class="bi bi-person-badge me-1"></i> Seus dados</h2>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6">
-                            <ul class="list-plain">
-                                <li><span>Nome completo</span><strong>{{ (militar.nome_completo if militar else None) or
-                                        current_user.nome or current_user.login or '—' }}</strong></li>
-                                <li><span>Matrícula</span><strong>{{ (militar.matricula if militar else None) or '—'
-                                        }}</strong></li>
-                                <li><span>CPF</span><strong>{{ (militar.cpf if militar else current_user.cpf) or '—'
-                                        }}</strong></li>
-                                <li><span>Posto/Graduação</span><strong>{{ user_pg or '—' }}</strong></li>
-                            </ul>
+{# Período de declaração de acúmulo fechado:
+não monta URL e não libera criação de novas declarações. #}
+{% set url_nova_declaracao = none %}
+
+{% set info_inconforme = inconforme_info_map.get(ultima.id) if ultima and ultima_status == 'inconforme' else none %}
+
+<main class="hua-page">
+    <div class="container hua-container">
+
+        <section class="hua-hero">
+            <div class="hua-hero-content">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="hua-avatar" aria-hidden="true">
+                            {{ (nome_exibicao or 'U')[:1]|upper }}
                         </div>
-                        <div class="col-12 col-md-6">
-                            <ul class="list-plain">
-                                {% set email_exibir = (militar.email if militar and militar.email else
-                                current_user.email) %}
-                                <li><span>E-mail</span><strong>{{ email_exibir or '—' }}</strong></li>
-                                <li><span>Telefone</span><strong>{{ (militar.celular if militar and militar.celular else
-                                        current_user.telefone) or '—' }}</strong></li>
-                                <li><span>Função</span><strong>{{ militar_funcoes|join(', ') if militar_funcoes else '—'
-                                        }}</strong></li>
-                                <li><span>OBM(s)</span><strong>{{ user_obm_siglas|join(', ') if user_obm_siglas else '—'
-                                        }}</strong></li>
-                            </ul>
+
+                        <div>
+                            <span class="hua-eyebrow">Portal do usuário</span>
+                            <h1 class="hua-title">Olá, {{ nome_exibicao or 'Usuário' }}</h1>
+                            <p class="hua-subtitle">
+                                Consulte suas informações, atualize seu cadastro, acompanhe documentos
+                                e mantenha os dados da sua conta sempre atualizados.
+                            </p>
                         </div>
                     </div>
-                </div>
 
-                <div class="glass-card p-3 p-md-4 mt-3">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <h2 class="h6 m-0"><i class="bi bi-activity me-1"></i> Atividades recentes</h2>
-                        <a class="btn btn-sm btn-outline-light" href="#">Ver tudo</a>
-                    </div>
-                    {% if atividades %}
-                    <ul class="list-plain">
-                        {% for a in atividades %}
-                        <li><span class="muted">{{ a.quando.strftime('%d/%m/%Y %H:%M') }}</span><span>{{ a.texto
-                                }}</span></li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="muted small">Sem atividades recentes.</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Direita -->
-            <div class="col-12 col-lg-5">
-                <!-- <div class="glass-card p-3 p-md-4">
-                    <h2 class="h6"><i class="bi bi-lightning-charge me-1"></i> Ações rápidas</h2>
-                    <div class="d-grid gap-2">
-                        <button id="btn-nova-declaracao" class="btn btn-primary" type="button"><i
-                                class="bi bi-file-earmark-plus me-1"></i> Nova declaração</button>
-                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.minhas_declaracoes') }}">
-                            <i class="bi bi-folder2-open me-1"></i> Minhas declarações
+                    <div class="hua-hero-actions">
+                        <a class="hua-btn-primary" href="{{ url_for('atualizacao_cadastral.atualizar') }}">
+                            <i class="bi bi-person-gear"></i>
+                            Atualizar meus dados
                         </a>
-                        {% if drh_like %}
-                        <a class="btn btn-outline-primary" href="{{ url_for('acumulo.recebimento') }}"><i
-                                class="bi bi-inboxes me-1"></i> Recebimento (DRH)</a>
-                        {% endif %}
-                    </div>
-                </div> -->
 
-                <div class="glass-card p-3 p-md-4">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <h2 class="h6 m-0"><i class="bi bi-envelope-paper me-1"></i> Documentos para você</h2>
-                        {% if docs_pendentes_qtd %}
-                        <span class="chip"><i class="bi bi-bell-fill me-1"></i>{{ docs_pendentes_qtd }} pendente{{ 's'
-                            if docs_pendentes_qtd != 1 else '' }}</span>
-                        {% endif %}
+                        <a class="hua-btn-secondary" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                            <i class="bi bi-shield-lock"></i>
+                            Meu perfil e senha
+                        </a>
                     </div>
+                </div>
+            </div>
+        </section>
 
-                    {% if docs_pendentes_qtd %}
-                    <ul class="list-plain mt-2">
-                        {% for d in docs_pendentes %}
-                        <li>
-                            <span class="text-truncate" style="max-width:60%">
-                                <i class="bi bi-file-earmark-text me-1"></i>{{ d.nome_original }}
-                            </span>
-                            <span class="muted small text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <div class="d-grid mt-3">
-                        <a class="btn btn-primary" href="{{ url_for('meus_documentos') }}"><i
-                                class="bi bi-download me-1"></i> Abrir meus documentos</a>
-                    </div>
-                    {% else %}
-                    <div class="muted small mt-2">Nenhum documento disponível no momento.</div>
-                    <div class="d-grid mt-3">
-                        <a class="btn btn-outline-primary" href="{{ url_for('meus_documentos') }}"><i
-                                class="bi bi-folder2-open me-1"></i> Ver histórico</a>
-                    </div>
-                    {% endif %}
+        <section class="hua-status-row" aria-label="Situação da atualização">
+            <div class="hua-status-main">
+                <div class="hua-status-icon">
+                    <i class="bi bi-info-circle"></i>
                 </div>
 
-                <!-- <div class="glass-card p-3 p-md-4 mt-3">
-                    <h2 class="h6"><i class="bi bi-clipboard-check me-1"></i> Minhas declarações ({{ ano_atual }})</h2>
-                    {% if minhas_declaracoes %}
-                    <ul class="list-plain">
-                        {% for d in minhas_declaracoes %}
-                        <li>
-                            {% if d.status == 'inconforme' %}
-                            <a class="btn btn-outline-primary" href="{{ url_for('acumulo.editar', decl_id=d.id) }}">
-                                {{ d.ano_referencia }} — {{ d.tipo or '—' }} — Editar
+                <div>
+                    <p class="hua-status-title">Mantenha seus dados pessoais atualizados</p>
+                    <p class="hua-status-description">
+                        Confira informações como telefone, endereço, contatos de emergência e demais dados cadastrais.
+                    </p>
+                </div>
+            </div>
+
+            {% if prazo_fechado %}
+            <span class="hua-deadline hua-deadline-closed">
+                <i class="bi bi-clock-history"></i>
+                Prazo de declaração encerrado em {{ prazo_limite.strftime('%d/%m/%Y') }}
+            </span>
+            {% else %}
+            <span class="hua-deadline hua-deadline-open">
+                <i class="bi bi-calendar-check"></i>
+                Prazo de declaração até {{ prazo_limite.strftime('%d/%m/%Y') }}
+            </span>
+            {% endif %}
+        </section>
+
+        <section class="row g-3 mt-1">
+            <div class="col-6 col-lg-3">
+                <article class="hua-kpi-card hua-kpi-total">
+                    <div class="hua-kpi-top">
+                        <span class="hua-kpi-label">Declarações em {{ ano_atual }}</span>
+                        <span class="hua-kpi-icon">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </span>
+                    </div>
+                    <div class="hua-kpi-value">{{ kpi_decl_total }}</div>
+                </article>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <article class="hua-kpi-card hua-kpi-pendente">
+                    <div class="hua-kpi-top">
+                        <span class="hua-kpi-label">Aguardando validação</span>
+                        <span class="hua-kpi-icon">
+                            <i class="bi bi-hourglass-split"></i>
+                        </span>
+                    </div>
+                    <div class="hua-kpi-value">{{ kpi_decl_pendentes }}</div>
+                </article>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <article class="hua-kpi-card hua-kpi-validada">
+                    <div class="hua-kpi-top">
+                        <span class="hua-kpi-label">Declarações validadas</span>
+                        <span class="hua-kpi-icon">
+                            <i class="bi bi-check2-circle"></i>
+                        </span>
+                    </div>
+                    <div class="hua-kpi-value">{{ kpi_decl_validadas }}</div>
+                </article>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <article class="hua-kpi-card hua-kpi-inconforme">
+                    <div class="hua-kpi-top">
+                        <span class="hua-kpi-label">Pendências encontradas</span>
+                        <span class="hua-kpi-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </span>
+                    </div>
+                    <div class="hua-kpi-value">{{ kpi_decl_inconformes }}</div>
+                </article>
+            </div>
+        </section>
+
+        <section class="row g-4 mt-1">
+
+            <div class="col-12 col-lg-8">
+
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-lightning-charge"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Ações rápidas</h2>
+                                <p class="hua-panel-subtitle">
+                                    Acesse os serviços mais usados sem procurar no menu.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hua-panel-body">
+                        <div class="hua-action-grid">
+
+                            <a class="hua-action-card" href="{{ url_for('atualizacao_cadastral.atualizar') }}">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-person-vcard"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Atualização cadastral</span>
+                                    <span class="hua-action-text">
+                                        Revise seus dados pessoais, endereço, contatos e demais informações.
+                                    </span>
+                                </span>
+                            </a>
+
+                            <a class="hua-action-card" href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-key"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Perfil e senha</span>
+                                    <span class="hua-action-text">
+                                        Atualize seu e-mail e altere sua senha de acesso ao SIGDP.
+                                    </span>
+                                </span>
+                            </a>
+
+                            <a class="hua-action-card" href="{{ url_for('meus_documentos') }}">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-folder2-open"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Meus documentos</span>
+                                    <span class="hua-action-text">
+                                        Consulte documentos disponibilizados para o seu cadastro.
+                                    </span>
+                                </span>
+                            </a>
+
+                            {% if url_nova_declaracao %}
+                            <a class="hua-action-card" href="{{ url_nova_declaracao }}">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-clipboard-check"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Declarações</span>
+                                    <span class="hua-action-text">
+                                        Preencha ou consulte declarações vinculadas ao seu cadastro.
+                                    </span>
+                                </span>
                             </a>
                             {% else %}
-                            <span>{{ d.ano_referencia }} — {{ d.tipo or '—' }}</span>
+                            <div class="hua-action-card hua-action-card-disabled">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-calendar-x"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Declarações de vínculos</span>
+                                    <span class="hua-action-text">
+                                        O período para envio de declarações não está aberto no momento.
+                                    </span>
+                                </span>
+                            </div>
                             {% endif %}
-                            <span>
-                                {% if d.status == 'validado' %}
-                                <span class="chip"><span class="badge text-bg-success">validado</span></span>
-                                {% elif d.status == 'inconforme' %}
-                                <span class="chip"><span class="badge text-bg-danger">inconforme</span></span>
-                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger btn-ver-motivo"
-                                    data-decl-id="{{ d.id }}">Ver motivo</button>
-                                {% else %}
-                                <span class="chip"><span class="badge text-bg-warning text-dark">pendente</span></span>
-                                {% endif %}
+
+                        </div>
+                    </div>
+                </article>
+
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-clipboard-data"></i>
                             </span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="muted small">Nenhuma declaração sua para {{ ano_atual }}.</div>
-                    {% endif %}
-                </div> -->
 
-                <div class="glass-card p-3 p-md-4 mt-3">
-                    <h2 class="h6"><i class="bi bi-shield-lock me-1"></i> Segurança</h2>
-                    <ul class="list-plain">
-                        <li><span>2FA</span><strong>{{ 'Ativado' if twofa_enabled else 'Desativado' }}</strong></li>
-                        <li><span>Último IP</span><strong>{{ last_ip or '—' }}</strong></li>
-                    </ul>
-                    <div class="mt-2"><a class="btn btn-sm btn-outline-light" href="#">Configurar segurança</a></div>
-                </div>
+                            <div>
+                                <h2 class="hua-panel-title">Situação das declarações</h2>
+                                <p class="hua-panel-subtitle">
+                                    Acompanhe o status mais recente das suas declarações de {{ ano_atual }}.
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if ultima_status == 'pendente' %}
+                        <span class="hua-status-pill hua-status-pendente">
+                            <i class="bi bi-hourglass-split"></i>
+                            Pendente
+                        </span>
+                        {% elif ultima_status == 'validado' %}
+                        <span class="hua-status-pill hua-status-validado">
+                            <i class="bi bi-check2-circle"></i>
+                            Validada
+                        </span>
+                        {% elif ultima_status == 'inconforme' %}
+                        <span class="hua-status-pill hua-status-inconforme">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Inconforme
+                        </span>
+                        {% else %}
+                        <span class="hua-status-pill hua-status-default">
+                            <i class="bi bi-info-circle"></i>
+                            Sem registro
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="hua-panel-body">
+
+                        {% if ultima %}
+                        <div class="hua-declaration-main">
+                            <div>
+                                <p class="hua-declaration-title">
+                                    {{ ultima.tipo or 'Declaração de acumulação' }}
+                                </p>
+
+                                <p class="hua-declaration-info">
+                                    Referência: {{ ultima.ano_referencia or ano_atual }}
+
+                                    {% if ultima.updated_at %}
+                                    · Última atualização em
+                                    {{ ultima.updated_at.strftime('%d/%m/%Y às %H:%M') }}
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            {% if ultima_status == 'inconforme' %}
+                            <a class="hua-panel-button" href="{{ url_for('acumulo.editar', decl_id=ultima.id) }}">
+                                <i class="bi bi-pencil-square"></i>
+                                Corrigir declaração
+                            </a>
+                            {% else %}
+                            <a class="hua-panel-button hua-panel-button-outline"
+                                href="{{ url_for('acumulo.detalhe', decl_id=ultima.id) }}">
+                                <i class="bi bi-eye"></i>
+                                Visualizar declaração
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        {% if ultima_status == 'inconforme' and info_inconforme %}
+                        <div class="hua-inline-warning">
+                            <strong>
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                Correção necessária
+                            </strong>
+
+                            {{ info_inconforme.motivo or 'Há pendências que precisam ser corrigidas nesta declaração.'
+                            }}
+
+                            {% if info_inconforme.quando %}
+                            <div class="mt-1 small">
+                                Registrado em {{ info_inconforme.quando.strftime('%d/%m/%Y às %H:%M') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% else %}
+                        <div class="hua-declaration-main">
+                            <div>
+                                <p class="hua-declaration-title">Nenhuma declaração registrada</p>
+                                <p class="hua-declaration-info">
+                                    Não há declarações encontradas para {{ ano_atual }} neste painel.
+                                </p>
+                            </div>
+
+                            {% if url_nova_declaracao %}
+                            <a class="hua-panel-button" href="{{ url_nova_declaracao }}">
+                                <i class="bi bi-file-earmark-plus"></i>
+                                Nova declaração
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </article>
+
+                <article class="hua-panel">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-activity"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Atividades recentes</h2>
+                                <p class="hua-panel-subtitle">
+                                    Últimas movimentações relacionadas às suas declarações.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hua-panel-body">
+                        {% if atividades %}
+                        <ul class="hua-activity-list">
+                            {% for atividade in atividades %}
+                            <li class="hua-activity-item">
+                                <span class="hua-activity-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </span>
+
+                                <div>
+                                    <div class="hua-activity-text">{{ atividade.texto }}</div>
+
+                                    {% if atividade.quando %}
+                                    <span class="hua-activity-date">
+                                        {{ atividade.quando.strftime('%d/%m/%Y às %H:%M') }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="hua-empty">
+                            Nenhuma atividade recente encontrada.
+                        </div>
+                        {% endif %}
+                    </div>
+                </article>
+
             </div>
-        </div>
+
+            <div class="col-12 col-lg-4">
+
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-person-badge"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Seus dados</h2>
+                                <p class="hua-panel-subtitle">
+                                    Informações principais vinculadas ao seu cadastro.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hua-panel-body">
+                        <ul class="hua-data-list">
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">Nome</span>
+                                <span class="hua-data-value">{{ nome_completo }}</span>
+                            </li>
+
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">Matrícula</span>
+                                <span class="hua-data-value">
+                                    {{ militar.matricula if militar and militar.matricula else '—' }}
+                                </span>
+                            </li>
+
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">Posto/Graduação</span>
+                                <span class="hua-data-value">{{ user_pg or '—' }}</span>
+                            </li>
+
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">OBM(s)</span>
+                                <span class="hua-data-value">
+                                    {{ user_obm_siglas|join(', ') if user_obm_siglas else '—' }}
+                                </span>
+                            </li>
+
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">E-mail</span>
+                                <span class="hua-data-value">{{ email_exibir or '—' }}</span>
+                            </li>
+
+                            <li class="hua-data-item">
+                                <span class="hua-data-label">Telefone</span>
+                                <span class="hua-data-value">{{ telefone_exibir or '—' }}</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-3">
+                            <a class="hua-panel-button hua-panel-button-outline w-100"
+                                href="{{ url_for('atualizacao_cadastral.atualizar') }}">
+                                <i class="bi bi-pencil-square"></i>
+                                Atualizar informações
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-envelope-paper"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Documentos para você</h2>
+                                <p class="hua-panel-subtitle">
+                                    Arquivos enviados para o seu cadastro.
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if docs_pendentes_qtd %}
+                        <span class="hua-status-pill hua-status-pendente">
+                            {{ docs_pendentes_qtd }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="hua-panel-body">
+                        {% if docs_pendentes_qtd %}
+                        <ul class="hua-document-list">
+                            {% for documento in docs_pendentes %}
+                            <li class="hua-document-item">
+                                <span class="hua-document-icon">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </span>
+
+                                <div>
+                                    <div class="hua-document-name">
+                                        {{ documento.nome_original }}
+                                    </div>
+
+                                    {% if documento.criado_em %}
+                                    <span class="hua-document-meta">
+                                        Disponibilizado em
+                                        {{ documento.criado_em.strftime('%d/%m/%Y às %H:%M') }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+
+                        <div class="mt-3">
+                            <a class="hua-panel-button w-100" href="{{ url_for('meus_documentos') }}">
+                                <i class="bi bi-download"></i>
+                                Abrir meus documentos
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="hua-empty">
+                            Nenhum documento pendente para você no momento.
+                        </div>
+
+                        <div class="mt-3">
+                            <a class="hua-panel-button hua-panel-button-outline w-100"
+                                href="{{ url_for('meus_documentos') }}">
+                                <i class="bi bi-folder2-open"></i>
+                                Ver histórico
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <article class="hua-panel">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-shield-check"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Acesso à conta</h2>
+                                <p class="hua-panel-subtitle">
+                                    Gerencie seu e-mail e senha de acesso.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hua-panel-body">
+                        <div class="hua-security-box">
+                            <p class="hua-security-title">Sua conta está protegida</p>
+
+                            <p class="hua-security-text">
+                                {% if last_login_dt %}
+                                Último acesso registrado em
+                                {{ last_login_dt.strftime('%d/%m/%Y às %H:%M') }}.
+                                {% else %}
+                                Mantenha sua senha atualizada e não compartilhe suas credenciais de acesso.
+                                {% endif %}
+                            </p>
+
+                            <a class="hua-panel-button hua-panel-button-outline w-100"
+                                href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                                <i class="bi bi-key"></i>
+                                Gerenciar perfil e senha
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <p class="hua-footer-note">
+            SIGDP · Diretoria de Pessoal · Corpo de Bombeiros Militar do Amazonas
+        </p>
     </div>
-</section>
-
-<!-- Modal: motivo inconformidade -->
-<div id="modal-motivo-inconforme" class="modal-backdrop-home" aria-hidden="true">
-    <div class="modal-card-home">
-        <div class="p-3 border-bottom">
-            <h5 class="m-0">Motivo da inconformidade</h5>
-            <div class="small text-muted mt-1" id="motivo-quando"></div>
-        </div>
-        <div class="p-3">
-            <div id="motivo-texto" style="white-space:pre-wrap;"></div>
-        </div>
-        <div class="p-3 border-top d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-outline-secondary" id="btn-fechar-motivo">Fechar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: prazo encerrado -->
-<div id="modal-prazo-fechado" class="modal-backdrop-home2" aria-hidden="true">
-    <div class="modal-card-home2">
-        <div class="p-3 border-bottom">
-            <h5 class="m-0">Prazo encerrado</h5>
-        </div>
-        <div class="p-3">
-            <p>O prazo para envio da declaração <strong>encerrou em {{ prazo_limite.strftime('%d/%m/%Y') }}</strong>.
-            </p>
-            <p class="mb-0">Caso necessário, procure sua chefia ou a DRH.</p>
-        </div>
-        <div class="p-3 border-top d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-primary" id="btn-ok-prazo">OK</button>
-        </div>
-    </div>
-</div>
-
-{# última declaração do ano corrente #}
-{% set tem_decl = (minhas_declaracoes|length > 0) %}
-{% set ultima = (minhas_declaracoes[0] if tem_decl else None) %}
-{% set ultima_status = (ultima.status if ultima else '') %}
-{% set ultima_id = (ultima.id if ultima else None) %}
-{% set ultima_tipo = (ultima.tipo if ultima else '') %}
-
-<script>
-    (() => {
-        const ctx = {
-            tem: {{ tem_decl | tojson
-    }},
-    status: { { ultima_status | tojson } },
-    declId: { { ultima_id | tojson } },
-    tipo: { { ultima_tipo | tojson } },
-    pessoaTipo: { { (pessoa_tipo_atual or '') | tojson } },
-    pessoaId: { { (pessoa_id_atual or '') | tojson } },
-    urlNovoMil: { { (url_for('acumulo.novo', militar_id = (militar_id_atual or 0)) if militar_id_atual else '') | tojson } },
-    urlNovoGen: { { (url_for('acumulo.novo_generico', pessoa_tipo = (pessoa_tipo_atual or 'militar'), pessoa_id = (pessoa_id_atual or 0)) if pessoa_id_atual else '') | tojson } },
-    urlEditar: { { url_for('acumulo.editar', decl_id = 0) | tojson } },
-    urlDetalhe: { { url_for('acumulo.detalhe', decl_id = 0) | tojson } },
-  };
-
-    const btnNova = document.getElementById('btn-nova-declaracao');
-    const modal = document.getElementById('modal-alerta-envio');
-    const sub = document.getElementById('alerta-subtitle');
-    const body = document.getElementById('alerta-body');
-    const btnAbrir = document.getElementById('btn-ver-ou-editar');
-    const btnCont = document.getElementById('btn-continuar-novo');
-    const btnClose = document.getElementById('btn-fechar-alerta');
-
-    function showModal(htmlBody, subtitle, abrirHref, abrirLabel, mostrarContinuar) {
-        if (sub) sub.textContent = subtitle || '';
-        if (body) body.innerHTML = htmlBody || '';
-        if (btnAbrir) {
-            if (abrirHref) { btnAbrir.href = abrirHref; btnAbrir.textContent = abrirLabel || 'Abrir'; btnAbrir.classList.remove('d-none'); }
-            else { btnAbrir.classList.add('d-none'); }
-        }
-        if (btnCont) {
-            if (mostrarContinuar) btnCont.classList.remove('d-none');
-            else btnCont.classList.add('d-none');
-        }
-        modal?.classList.add('show'); modal?.setAttribute('aria-hidden', 'false');
-    }
-    function hideModal() { modal?.classList.remove('show'); modal?.setAttribute('aria-hidden', 'true'); }
-    btnClose?.addEventListener('click', hideModal);
-    modal?.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
-
-    const prazoFechado = {{ (prazo_fechado or False) | tojson }};
-    const modalPrazo = document.getElementById('modal-prazo-fechado');
-    const btnOkPrazo = document.getElementById('btn-ok-prazo');
-    function showPrazo() { modalPrazo?.classList.add('show'); modalPrazo?.setAttribute('aria-hidden', 'false'); }
-    function hidePrazo() { modalPrazo?.classList.remove('show'); modalPrazo?.setAttribute('aria-hidden', 'true'); }
-    btnOkPrazo?.addEventListener('click', hidePrazo);
-    modalPrazo?.addEventListener('click', (e) => { if (e.target === modalPrazo) hidePrazo(); });
-
-    btnNova?.addEventListener('click', () => {
-        // ✅ Liberação: se NÃO tem declaração no ano, pode criar mesmo com prazo fechado
-        if (!ctx.tem) {
-            const href = (ctx.pessoaTipo === 'aluno') ? ctx.urlNovoGen : (ctx.urlNovoMil || ctx.urlNovoGen);
-            if (href) window.location.href = href; else alert('Não foi possível abrir a tela de nova declaração (identidade ausente).');
-            return;
-        }
-
-        const st = (ctx.status || '').toLowerCase();
-
-        if (st === 'inconforme') {
-            // continua igual: pode editar mesmo com prazo fechado
-            const hrefEditar = ctx.urlEditar.replace('/0', `/${ctx.declId}`);
-            showModal(
-                `<p>Sua declaração está com status <strong>INCONFORME</strong>.</p>
-        <p>Você pode editar para corrigir as pendências.</p>`,
-                'Status atual: inconforme',
-                hrefEditar,
-                'Editar declaração',
-                false
-            );
-            return;
-        }
-
-        if (st === 'validado') {
-            const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-            showModal(
-                `<p>Sua declaração <strong>já foi validada</strong>. Não é necessário enviar outra para este ano.</p>`,
-                'Status atual: validado',
-                hrefDet,
-                'Ver declaração',
-                false
-            );
-            return;
-        }
-
-        // pendente
-        const hrefDet = ctx.urlDetalhe.replace('/0', `/${ctx.declId}`);
-        showModal(
-            `<p>Sua declaração <strong>já foi enviada</strong> e está <strong>aguardando análise</strong>.</p>`,
-            'Status atual: pendente',
-            hrefDet,
-            'Ver envio',
-            false
-        );
-    });
-}) ();
-</script>
-
-<script>
-    (() => {
-        // Map: { decl_id: {motivo: "...", quando: "..."} }
-        const inconformeInfo = {{ (inconforme_info_map or { }) | tojson
-    }};
-    const modal = document.getElementById('modal-motivo-inconforme');
-    const txt = document.getElementById('motivo-texto');
-    const quandoE = document.getElementById('motivo-quando');
-    const btnF = document.getElementById('btn-fechar-motivo');
-
-    function showMotivo(motivo, quandoStr) {
-        if (txt) txt.textContent = motivo || '(sem motivo informado)';
-        if (quandoE) quandoE.textContent = quandoStr ? ('Registrado em ' + quandoStr) : '';
-        modal?.classList.add('show'); modal?.setAttribute('aria-hidden', 'false');
-    }
-    function hideMotivo() {
-        modal?.classList.remove('show'); modal?.setAttribute('aria-hidden', 'true');
-        if (txt) txt.textContent = ''; if (quandoE) quandoE.textContent = '';
-    }
-    btnF?.addEventListener('click', hideMotivo);
-    modal?.addEventListener('click', (e) => { if (e.target === modal) hideMotivo(); });
-
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.btn-ver-motivo'); if (!btn) return;
-        e.preventDefault();
-        const id = btn.getAttribute('data-decl-id');
-        const info = inconformeInfo?.[id];
-        if (!info) { showMotivo('(sem motivo encontrado)', ''); return; }
-        let quandoStr = ''; try {
-            if (info.quando) {
-                const d = new Date(info.quando);
-                const dd = String(d.getDate()).padStart(2, '0');
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const yy = d.getFullYear();
-                const hh = String(d.getHours()).padStart(2, '0');
-                const mi = String(d.getMinutes()).padStart(2, '0');
-                quandoStr = `${dd}/${mm}/${yy} ${hh}:${mi}`;
-            }
-        } catch (_) { }
-        showMotivo(info.motivo || '(sem motivo informado)', quandoStr);
-    });
-}) ();
-</script>
-
+</main>
 {% endblock %}
