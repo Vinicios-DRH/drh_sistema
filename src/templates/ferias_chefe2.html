@@ -3,632 +3,1125 @@
 {% block head %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
 <style>
-  :root {
-    --brand-blue-900: #071324;
-    --brand-blue-700: #0d2036;
-    --brand-blue-600: #0c3761;
-    --brand-accent: #1a5c9e;
+  /* ==========================================================================
+     PÁGINA — GESTÃO DE PAFS
+     ========================================================================== */
+
+  .paf-page {
+    min-height: calc(100vh - var(--nav-h, 64px));
+    padding: 1rem 0 2.5rem;
+    color: var(--app-text);
+    background:
+      radial-gradient(circle at top right, rgba(38, 128, 191, .13), transparent 34%),
+      radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 24%),
+      linear-gradient(135deg,
+        var(--app-page-bg) 0%,
+        var(--app-page-bg-alt) 52%,
+        var(--app-surface-muted) 100%);
   }
 
-  body {
-    background: linear-gradient(135deg, var(--brand-blue-900) 0%, var(--brand-blue-700) 50%, var(--brand-blue-600) 100%) fixed;
-    min-height: 100vh;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  .paf-container {
+    max-width: 1540px;
   }
 
-  .page-wrap {
-    padding: 24px 16px;
-  }
-
-  .alert-stack {
+  .paf-alert-stack {
     position: fixed;
-    top: 16px;
+    top: calc(var(--nav-h, 64px) + 14px);
     left: 50%;
-    transform: translateX(-50%);
-    width: min(900px, 92vw);
     z-index: 3000;
+    width: min(860px, calc(100vw - 28px));
+    transform: translateX(-50%);
     pointer-events: none;
   }
 
-  .alert-stack .alert {
+  .paf-alert-stack .alert {
+    margin-bottom: .65rem;
+    border-radius: 13px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .18);
     pointer-events: auto;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-    border-radius: 12px;
-    border: none;
-    margin-bottom: 12px;
-    backdrop-filter: blur(8px);
   }
 
-  .glass-card {
-    background: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  .paf-hero {
+    position: relative;
     overflow: hidden;
-  }
-
-  .brand-top {
-    background: linear-gradient(120deg, var(--brand-blue-700) 0%, var(--brand-accent) 100%);
+    padding: 1.35rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 20px;
     color: #fff;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background:
+      radial-gradient(circle at top right, rgba(255, 255, 255, .14), transparent 30%),
+      linear-gradient(135deg, #071b2c 0%, #0b385e 50%, #145883 100%);
+    box-shadow: var(--app-shadow-hero);
   }
 
-  .brand-top h4 {
-    margin: 0;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+  .paf-hero::before {
+    position: absolute;
+    top: -105px;
+    right: -82px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    content: "";
+    background: rgba(255, 255, 255, .06);
+    pointer-events: none;
   }
 
-  .muted {
-    opacity: 0.85;
-    font-weight: 400;
+  .paf-hero-content {
+    position: relative;
+    z-index: 1;
   }
 
-  .toolbar {
+  .paf-hero-main {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     flex-wrap: wrap;
-    gap: 16px;
-    align-items: end;
-    padding: 20px 24px;
-    background: #f8f9fc;
-    border-bottom: 1px solid #edf2f7;
   }
 
-  .toolbar .grow {
-    flex: 1 1 300px;
+  .paf-hero-title-area {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    min-width: 0;
   }
 
-  .form-select,
-  .form-control {
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s;
+  .paf-logo-box {
+    display: grid;
+    flex: 0 0 60px;
+    width: 60px;
+    height: 60px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .20);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .09);
   }
 
-  .form-select:focus,
-  .form-control:focus {
-    border-color: var(--brand-accent);
-    box-shadow: 0 0 0 3px rgba(26, 92, 158, 0.15);
+  .paf-logo-box img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
   }
 
-  .table-wrap {
-    padding: 16px 24px 24px;
-  }
-
-  .table-sticky thead th {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: #f1f5f9;
-    color: #334155;
-    font-weight: 600;
+  .paf-eyebrow {
+    display: block;
+    margin-bottom: .25rem;
+    color: rgba(255, 255, 255, .72);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .08em;
     text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    border-bottom: 2px solid #e2e8f0;
   }
 
-  .modal-backdrop.show {
-    backdrop-filter: blur(4px);
-    opacity: 0.6;
+  .paf-title {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+    font-weight: 850;
+    letter-spacing: -.025em;
+  }
+
+  .paf-subtitle {
+    margin: .28rem 0 0;
+    color: rgba(255, 255, 255, .78);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .paf-hero-meta {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .paf-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .42rem;
+    min-height: 35px;
+    padding: 0 .7rem;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 999px;
+    color: #fff;
+    font-size: .76rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, .10);
+    white-space: nowrap;
+  }
+
+  .paf-hero-badge-warning {
+    border-color: rgba(255, 204, 107, .42);
+    color: #fff0c8;
+    background: rgba(255, 183, 3, .16);
+  }
+
+  .paf-hero-badge-success {
+    border-color: rgba(111, 224, 158, .35);
+    color: #d7ffe8;
+    background: rgba(40, 171, 102, .20);
+  }
+
+  .paf-panel {
+    overflow: hidden;
+    margin-top: 1rem;
+    border: 1px solid var(--app-border);
+    border-radius: 20px;
+    color: var(--app-text);
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow-card);
+  }
+
+  .paf-toolbar {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) auto;
+    gap: 1rem;
+    align-items: end;
+    padding: 1rem;
+    border-bottom: 1px solid var(--app-border);
+    background: var(--app-surface-soft);
+  }
+
+  .paf-field-label {
+    display: block;
+    margin-bottom: .35rem;
+    color: var(--app-text);
+    font-size: .78rem;
+    font-weight: 850;
+  }
+
+  .paf-select {
+    min-height: 46px;
+    border-color: var(--app-border);
+    color: var(--app-text);
+    background: var(--app-surface);
+    font-weight: 700;
+  }
+
+  .paf-select:focus {
+    border-color: var(--app-primary);
+    color: var(--app-text);
+    background: var(--app-surface);
+    box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--app-primary) 16%, transparent);
+  }
+
+  .paf-overview-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 46px;
+    padding: 0 1rem;
+    border-radius: 10px;
+    font-size: .84rem;
+    font-weight: 800;
+  }
+
+  .paf-content {
+    padding: 1rem;
+  }
+
+  .paf-empty-state {
+    display: grid;
+    min-height: 290px;
+    place-items: center;
+    padding: 2rem 1rem;
+    color: var(--app-muted);
+    text-align: center;
+  }
+
+  .paf-empty-icon {
+    display: grid;
+    width: 68px;
+    height: 68px;
+    place-items: center;
+    margin: 0 auto .85rem;
+    border: 1px solid var(--app-border);
+    border-radius: 19px;
+    color: var(--app-primary);
+    font-size: 1.8rem;
+    background: var(--app-surface-soft);
+  }
+
+  .paf-empty-state h2 {
+    margin: 0 0 .3rem;
+    color: var(--app-text);
+    font-size: 1.08rem;
+    font-weight: 850;
+  }
+
+  .paf-empty-state p {
+    max-width: 440px;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .paf-footer-note {
+    margin-top: 1rem;
+    color: var(--app-muted);
+    font-size: .75rem;
+    font-weight: 650;
+    text-align: center;
+  }
+
+  /* ==========================================================================
+     DATATABLES
+     ========================================================================== */
+
+  .dataTables_wrapper {
+    color: var(--app-text);
+  }
+
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    color: var(--app-muted) !important;
+    font-size: .82rem;
+  }
+
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    min-height: 35px;
+    border: 1px solid var(--app-border) !important;
+    border-radius: 8px;
+    color: var(--app-text) !important;
+    background: var(--app-surface) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    margin: 0 .1rem;
+    border: 1px solid var(--app-border) !important;
+    border-radius: 8px !important;
+    color: var(--app-text) !important;
+    background: var(--app-surface) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    border-color: var(--app-primary) !important;
+    color: var(--app-primary-contrast) !important;
+    background: var(--app-primary) !important;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    border-color: var(--app-primary) !important;
+    color: var(--app-primary) !important;
+    background: var(--app-surface-soft) !important;
+  }
+
+  /* ==========================================================================
+     MODAIS
+     ========================================================================== */
+
+  .paf-modal .modal-content {
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    border-radius: 18px;
+    color: var(--app-text);
+    background: var(--app-surface);
+  }
+
+  .paf-modal .modal-header,
+  .paf-modal .modal-footer {
+    border-color: var(--app-border);
+  }
+
+  .paf-modal-title-icon {
+    color: var(--app-primary);
+  }
+
+  .paf-chart-body {
+    min-height: 250px;
+    color: var(--app-text);
+    background: var(--app-surface);
+  }
+
+  .paf-rule-modal .modal-content {
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    border-radius: 20px;
+    color: var(--app-text);
+    background: var(--app-surface);
+  }
+
+  .paf-rule-modal-header {
+    color: #fff;
+    background: linear-gradient(135deg, #8b1017, #bd1a24);
+  }
+
+  .paf-rule-list {
+    padding: 1rem;
+    border: 1px solid var(--app-border);
+    border-radius: 13px;
+    color: var(--app-text);
+    background: var(--app-surface-soft);
+  }
+
+  .paf-rule-list h6 {
+    color: var(--app-text);
+    font-size: .76rem;
+    font-weight: 850;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .paf-rule-list ul {
+    margin-bottom: 0;
+    color: var(--app-muted);
+    font-size: .82rem;
+    line-height: 1.65;
+  }
+
+  html[data-theme="dark"] .paf-modal .btn-close,
+  html[data-theme="dark"] .paf-rule-modal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+
+  @media (max-width: 767.98px) {
+    .paf-page {
+      padding-top: .75rem;
+    }
+
+    .paf-hero,
+    .paf-panel {
+      border-radius: 16px;
+    }
+
+    .paf-hero {
+      padding: 1rem;
+    }
+
+    .paf-hero-main {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .paf-hero-meta {
+      justify-content: flex-start;
+    }
+
+    .paf-toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .paf-overview-btn {
+      width: 100%;
+    }
+
+    .paf-content {
+      padding: .75rem;
+    }
+
+    .paf-modal .modal-dialog,
+    .paf-rule-modal .modal-dialog {
+      margin: .5rem;
+    }
+
+    .paf-rule-modal .modal-footer {
+      justify-content: stretch;
+    }
+
+    .paf-rule-modal .modal-footer .btn {
+      width: 100%;
+    }
+  }
+
+  #militaresTable,
+  #militaresTable.dataTable,
+  #militaresTable tbody,
+  #militaresTable tbody tr,
+  #militaresTable tbody td {
+    height: auto !important;
+  }
+
+  /* O scrollY do DataTables pode continuar existindo, mas a tabela não estica
+   artificialmente as linhas para preencher o espaço vertical. */
+  #militaresTable_wrapper .dataTables_scrollBody {
+    min-height: 0 !important;
+    background: var(--app-surface) !important;
+  }
+
+  #militaresTable_wrapper .dataTables_scroll,
+  #militaresTable_wrapper .dataTables_scrollHead,
+  #militaresTable_wrapper .dataTables_scrollHeadInner,
+  #militaresTable_wrapper .dataTables_scrollBody {
+    background: var(--app-surface) !important;
+  }
+
+  /* --------------------------------------------------------------------------
+   MODO ESCURO — força fundo correto nas células.
+   Necessário porque Bootstrap usa box-shadow interno em .table e pode
+   sobrescrever o background aparentemente com branco.
+   -------------------------------------------------------------------------- */
+
+  html[data-theme="dark"] #militaresTable,
+  html[data-theme="dark"] #militaresTable.dataTable {
+    --bs-table-color: var(--app-text);
+    --bs-table-bg: var(--app-surface);
+    --bs-table-border-color: var(--app-border);
+    --bs-table-striped-color: var(--app-text);
+    --bs-table-striped-bg: var(--app-surface-soft);
+    --bs-table-hover-color: var(--app-text);
+    --bs-table-hover-bg: var(--app-table-row-hover);
+
+    color: var(--app-text) !important;
+    background: var(--app-surface) !important;
+  }
+
+  html[data-theme="dark"] #militaresTable tbody,
+  html[data-theme="dark"] #militaresTable tbody tr {
+    color: var(--app-text) !important;
+    background: var(--app-surface) !important;
+  }
+
+  /* Remove o “overlay” branco criado por estilos Bootstrap/DataTables. */
+  html[data-theme="dark"] #militaresTable tbody>tr>td {
+    color: var(--app-text) !important;
+    background-color: var(--app-surface) !important;
+    box-shadow: none !important;
+  }
+
+  /* Zebra suave para leitura no escuro. */
+  html[data-theme="dark"] #militaresTable.table-striped tbody>tr:nth-of-type(odd)>td {
+    background-color: var(--app-surface-soft) !important;
+  }
+
+  /* Hover da linha. */
+  html[data-theme="dark"] #militaresTable.table-hover tbody>tr:hover>td {
+    color: var(--app-text) !important;
+    background-color: var(--app-table-row-hover) !important;
+  }
+
+  /* A célula fixa de ações também precisa acompanhar o fundo da linha. */
+  html[data-theme="dark"] #militaresTable .paf-action-cell {
+    color: var(--app-text) !important;
+    background: var(--app-surface) !important;
+  }
+
+  html[data-theme="dark"] #militaresTable.table-striped tbody>tr:nth-of-type(odd) .paf-action-cell {
+    background: var(--app-surface-soft) !important;
+  }
+
+  html[data-theme="dark"] #militaresTable.table-hover tbody>tr:hover .paf-action-cell {
+    background: var(--app-table-row-hover) !important;
+  }
+
+  /* Inputs e selects da tabela no modo escuro. */
+  html[data-theme="dark"] #militaresTable .form-control,
+  html[data-theme="dark"] #militaresTable .form-select {
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+    background-color: var(--app-input-bg, #0d1d2c) !important;
+  }
+
+  html[data-theme="dark"] #militaresTable .form-control[readonly],
+  html[data-theme="dark"] #militaresTable .paf-readonly-date {
+    color: var(--app-muted) !important;
+    background-color: var(--app-surface-muted) !important;
+  }
+
+  /* Cabeçalho clonado pelo DataTables quando scrollX está ativo. */
+  html[data-theme="dark"] #militaresTable_wrapper .dataTables_scrollHead th,
+  html[data-theme="dark"] #militaresTable_wrapper .dataTables_scrollHead td {
+    color: var(--app-text) !important;
+    background: var(--app-table-head) !important;
+    box-shadow: none !important;
   }
 </style>
 {% endblock %}
 
 {% block body %}
+{% set janela_aberta = (10 <= dia_atual <=20) %} {% set super_user=(current_user.funcao_user_id==6) %} <div
+  class="paf-alert-stack" aria-live="polite" aria-atomic="true">
+  {% if not janela_aberta and not super_user %}
+  <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
 
-<div class="alert-stack" aria-live="polite" aria-atomic="true">
-  {% if dia_atual < 10 or dia_atual> 20 %}
-    <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert">
-      <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-      <div><strong>Atenção:</strong> As alterações estão liberadas apenas do dia <b>10</b> ao <b>20</b>.</div>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-    </div>
-    {% endif %}
-    {% with msgs=get_flashed_messages(with_categories=true) %}
-    {% if msgs %}{% for category, msg in msgs %}
-    <div
-      class="alert alert-{{ category if category in ['primary','success','danger','warning','info'] else 'info' }} alert-dismissible fade show d-flex align-items-center"
-      role="alert">
-      <div>{{ msg|safe }}</div>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-    </div>
-    {% endfor %}{% endif %}
-    {% endwith %}
-</div>
-
-<div class="container-fluid page-wrap">
-  <div class="glass-card">
-    <div class="brand-top d-flex align-items-center justify-content-between flex-wrap gap-3">
-      <div>
-        <h4><i class="bi bi-calendar2-check me-2"></i> Gestão de PAFs • CBMAM</h4>
-        <div class="muted small mt-1">Selecione a OBM para auditar e gerenciar férias.</div>
-      </div>
-      <span class="badge bg-white text-dark shadow-sm px-3 py-2 rounded-pill fw-bold">Ano: {{ ano_vigente }}</span>
+    <div>
+      <strong>Atenção:</strong>
+      alterações de férias ficam liberadas do dia <b>10</b> ao dia <b>20</b>.
     </div>
 
-    <div class="toolbar">
-      <div class="grow">
-        <label class="form-label small fw-bold text-muted mb-2">SELECIONE A UNIDADE (OBM)</label>
-        <select id="obmSelect" class="form-select form-select-lg fw-medium">
-          <option value="">— Selecione uma opção —</option>
-          {% for obm in lista_obms %}
-          <option value="{{ obm.id }}">{{ obm.sigla }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="d-flex gap-2 ms-auto">
-        <button class="btn btn-outline-primary btn-lg rounded-3 fw-semibold shadow-sm" id="btnGrafico" disabled>
-          <i class="bi bi-pie-chart-fill me-2"></i> Visão Geral
-        </button>
-      </div>
-    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
+  {% endif %}
 
-    <div class="table-wrap">
-      <div id="tabelaContainer">
-        <div class="text-center text-muted py-5">
-          <i class="bi bi-inbox fs-1 mb-3 d-block opacity-50"></i>
-          <p>Nenhuma unidade selecionada no momento.</p>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+  {% if msgs %}
+  {% for category, msg in msgs %}
+  <div
+    class="alert alert-{{ category if category in ['primary', 'success', 'danger', 'warning', 'info'] else 'info' }} alert-dismissible fade show d-flex align-items-center"
+    role="alert">
+    <div>{{ msg|safe }}</div>
+
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+  </div>
+
+  <main class="paf-page">
+    <div class="container-fluid px-2 px-md-3 paf-container">
+
+      <section class="paf-hero">
+        <div class="paf-hero-content">
+          <div class="paf-hero-main">
+            <div class="paf-hero-title-area">
+              <div class="paf-logo-box">
+                <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+              </div>
+
+              <div>
+                <span class="paf-eyebrow">Gestão de férias</span>
+
+                <h1 class="paf-title">
+                  Plano Anual de Férias
+                </h1>
+
+                <p class="paf-subtitle">
+                  Planeje, audite e atualize os períodos de férias do efetivo por OBM.
+                </p>
+              </div>
+            </div>
+
+            <div class="paf-hero-meta">
+              <span class="paf-hero-badge">
+                <i class="bi bi-calendar2-check"></i>
+                Ano {{ ano_vigente }}
+              </span>
+
+              {% if janela_aberta or super_user %}
+              <span class="paf-hero-badge paf-hero-badge-success">
+                <i class="bi bi-unlock-fill"></i>
+                Alterações liberadas
+              </span>
+              {% else %}
+              <span class="paf-hero-badge paf-hero-badge-warning">
+                <i class="bi bi-lock-fill"></i>
+                Janela fechada
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="paf-panel">
+        <div class="paf-toolbar">
+          <div>
+            <label class="paf-field-label" for="obmSelect">
+              Selecione a unidade operacional
+            </label>
+
+            <select id="obmSelect" class="form-select paf-select">
+              <option value="">— Selecione uma OBM —</option>
+
+              {% for obm in lista_obms %}
+              <option value="{{ obm.id }}">
+                {{ obm.sigla }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <button class="btn btn-outline-primary paf-overview-btn" id="btnGrafico" disabled>
+              <i class="bi bi-pie-chart-fill"></i>
+              Visão geral das férias
+            </button>
+          </div>
+        </div>
+
+        <div class="paf-content">
+          <div id="tabelaContainer">
+            <div class="paf-empty-state">
+              <div>
+                <div class="paf-empty-icon">
+                  <i class="bi bi-calendar-week"></i>
+                </div>
+
+                <h2>Escolha uma OBM para começar</h2>
+
+                <p>
+                  Após selecionar a unidade, o SIGDP carregará os militares e os respectivos períodos de férias.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="paf-footer-note">
+        Sistema de Controle de Férias · CBMAM · {{ ano_atual }}
+      </p>
+    </div>
+  </main>
+
+  <div class="modal fade paf-modal" id="modalGrafico" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-bar-chart-line-fill paf-modal-title-icon me-2"></i>
+            Visão geral das férias
+          </h5>
+
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body paf-chart-body text-center pt-3 pb-4" id="graficoBody">
+          <div class="spinner-border text-primary" role="status"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="text-center text-white-50 small mt-4 fw-medium">Sistema de Controle de Férias CBMAM &copy; {{ ano_atual }}
-  </div>
-</div>
 
-<div class="modal fade" id="modalGrafico" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 rounded-4 shadow-lg">
-      <div class="modal-header border-bottom-0 pb-0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i> Gráfico de Férias
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body text-center pt-2 pb-4" id="graficoBody">
-        <div class="spinner-border text-primary" role="status"></div>
-      </div>
-    </div>
-  </div>
-</div>
+  <div class="modal fade paf-rule-modal" id="modalRegrasFerias" data-bs-backdrop="static" data-bs-keyboard="false"
+    tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header paf-rule-modal-header border-0">
+          <h5 class="modal-title fw-bold fs-6">
+            <i class="bi bi-shield-fill-exclamation me-2"></i>
+            Regra de férias não atendida
+          </h5>
+        </div>
 
-<div class="modal fade" id="modalRegrasFerias" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-  aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header bg-danger text-white border-0" style="border-radius: 20px 20px 0 0; padding: 20px 24px;">
-        <h5 class="modal-title fw-bold fs-5"><i class="bi bi-shield-fill-exclamation me-2"></i> Ação Bloqueada pelo
-          Sistema</h5>
-      </div>
-      <div class="modal-body p-4 bg-white">
-        <p class="fs-6 text-dark fw-bold mb-4" id="textoErroFerias" style="line-height: 1.5;"></p>
-        <div class="p-3 bg-light rounded-3 border border-secondary border-opacity-25">
-          <h6 class="fw-bold mb-3 text-dark text-uppercase" style="font-size: 0.8rem;"><i
-              class="bi bi-card-checklist me-2"></i>Critérios Obrigatórios:</h6>
-          <ul class="mb-0 small text-dark ps-3" style="line-height: 1.7;">
-            <li>O saldo total de dias deve ser agendado por <strong>completo</strong>.</li>
-            <li>O término do período <strong>não pode ultrapassar 31/12</strong>, salvo uso da flag "Exceção".</li>
-            <li>Férias que iniciam em <strong>Dezembro</strong> exigem cota única, salvo Exceções.</li>
-            <li><strong>Ordem cronológica estrita:</strong> Períodos não podem se sobrepor ou retroceder.</li>
-          </ul>
+        <div class="modal-body p-4">
+          <p class="fw-bold mb-4" id="textoErroFerias" style="line-height: 1.55;"></p>
+
+          <div class="paf-rule-list">
+            <h6>
+              <i class="bi bi-card-checklist me-2"></i>
+              Critérios obrigatórios
+            </h6>
+
+            <ul class="ps-3">
+              <li>O saldo total de dias precisa ser distribuído integralmente.</li>
+              <li>O término não pode ultrapassar 31/12, exceto com a flag de exceção autorizada.</li>
+              <li>Férias iniciadas em dezembro exigem cota única, salvo exceções.</li>
+              <li>Os períodos devem respeitar ordem cronológica e não podem se sobrepor.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="modal-footer border-0 pt-0 justify-content-center">
+          <button type="button" class="btn btn-dark px-5 py-2 rounded-pill fw-semibold" data-bs-dismiss="modal">
+            Compreendido
+          </button>
         </div>
       </div>
-      <div class="modal-footer border-0 bg-light justify-content-center"
-        style="border-radius: 0 0 20px 20px; padding: 16px;">
-        <button type="button" class="btn btn-dark px-5 py-2 fw-semibold rounded-pill"
-          data-bs-dismiss="modal">Compreendido</button>
-      </div>
     </div>
   </div>
-</div>
 
-<script>
-  window.CAN_EDIT = {{ ((10 <= dia_atual <= 20) or(current_user.funcao_user_id == 6)) | tojson }};
-  window.IS_SUPER_USER = {{ (current_user.funcao_user_id == 6) | tojson }};
-  window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
+  <script>
+    window.CAN_EDIT = {{ ((10 <= dia_atual <= 20) or(current_user.funcao_user_id == 6)) | tojson }};
+    window.IS_SUPER_USER = {{ (current_user.funcao_user_id == 6) | tojson }};
+    window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
 
-  window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
-  window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
+    window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
+    window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
 
-  const BASE_URL = "{{ request.script_root }}";
-  const CAN_EDIT = Boolean(window.CAN_EDIT);
-  const hoje = new Date();
-  const ANO_ATUAL = Number(window.PAF_ANO_VIGENTE || new Date().getFullYear());
-  const pad = v => String(v).padStart(2, '0');
-  const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const BASE_URL = "{{ request.script_root }}";
+    const CAN_EDIT = Boolean(window.CAN_EDIT);
+    const hoje = new Date();
+    const ANO_ATUAL = Number(window.PAF_ANO_VIGENTE || new Date().getFullYear());
+    const pad = v => String(v).padStart(2, '0');
+    const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
 
-  function getLimiteAno(row) {
-    if (row && row.dataset.excecao === 'true') return new Date(ANO_ATUAL + 1, 11, 31);
-    return new Date(ANO_ATUAL, 11, 31);
-  }
-
-  function parseInputDate(s) {
-    if (!s) return null;
-    const t = String(s).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y, m, d] = t.split('-').map(Number); return new Date(y, m - 1, d); }
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d, m, y] = t.split('/').map(Number); return new Date(y, m - 1, d); }
-    return null;
-  }
-
-  function setMinMax(input, minDate, row) {
-    if (!input || input.type !== 'date') return;
-    const min = minDate || firstDayNextMonth();
-    input.min = fmtISO(min);
-    input.max = fmtISO(getLimiteAno(row));
-  }
-
-  function getNum(row, name) { return parseInt(row.querySelector(`[name="${name}"]`)?.value || 0, 10); }
-
-  function totals(row, mid) {
-    const d1 = getNum(row, `qtd_dias_1_${mid}`);
-    const d2 = getNum(row, `qtd_dias_2_${mid}`);
-    const d3 = getNum(row, `qtd_dias_3_${mid}`);
-    return { d1, d2, d3, total12: d1 + d2, total123: d1 + d2 + d3 };
-  }
-
-  function clearPeriodo(row, mid, p) {
-    const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-    const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
-    if (s) s.value = ''; if (i) i.value = ''; if (f) f.value = '';
-  }
-
-  function lockPeriodo(row, mid, p, lock, title = '') {
-    ['qtd_dias', 'inicio', 'fim'].forEach(k => {
-      const el = row.querySelector(`[name="${k}_${p}_${mid}"]`);
-      if (el) { el.disabled = !!lock; el.readOnly = !!lock; el.title = title || ''; }
-    });
-  }
-
-  function calcularFim(row, mid, p) {
-    const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
-    const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
-    const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
-    if (!i || !s || !f) return;
-
-    const di = parseInputDate(i.value);
-    const n = parseInt(s.value || 0, 10);
-    if (!di || !n) { f.value = ''; return; }
-
-    const out = new Date(di.getFullYear(), di.getMonth(), di.getDate() + n - 1);
-    f.value = fmtISO(out);
-  }
-
-  function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
-    const dias1 = getNum(row, `qtd_dias_1_${mid}`);
-    const sel2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
-    if (!sel2) return;
-    const teto = podeTer40 ? 40 : 30;
-    const valores = Array.from(sel2.options).map(o => parseInt(o.value, 10)).filter(n => !isNaN(n));
-    let permitidas;
-    if (podeTer40 && forcar20x20) { permitidas = (dias1 + 20 <= 40) ? [20] : []; }
-    else { permitidas = valores.filter(v => (dias1 + v) <= teto); }
-    Array.from(sel2.options).forEach(opt => {
-      if (!opt.value) return;
-      opt.disabled = !permitidas.includes(parseInt(opt.value, 10));
-    });
-    const atual = parseInt(sel2.value || 0, 10);
-    if (!permitidas.includes(atual)) { sel2.value = ''; clearPeriodo(row, mid, 2); }
-  }
-
-  function refreshRow(row) {
-    const mid = row.dataset.militarId;
-    const midNum = Number(mid);
-    const podeTer40 = (row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(midNum);
-    const forcar20x20 = (window.MILITARES_20_20 || []).includes(midNum);
-    const isExcecao = (row.dataset.excecao === 'true');
-    const teto = podeTer40 ? 40 : 30;
-
-    const blockForChief = (isExcecao && !window.IS_SUPER_USER);
-
-    if (!CAN_EDIT) { row.querySelectorAll('input,select,button.botao-salvar').forEach(el => el.disabled = true); return; }
-
-    const s1 = row.querySelector(`[name="qtd_dias_1_${mid}"]`);
-    const i1 = row.querySelector(`[name="inicio_1_${mid}"]`);
-    const f1 = row.querySelector(`[name="fim_1_${mid}"]`);
-    const s2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
-    const i2 = row.querySelector(`[name="inicio_2_${mid}"]`);
-    const f2 = row.querySelector(`[name="fim_2_${mid}"]`);
-    const s3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
-    const i3 = row.querySelector(`[name="inicio_3_${mid}"]`);
-    const f3 = row.querySelector(`[name="fim_3_${mid}"]`);
-
-    if (i1) setMinMax(i1, firstDayNextMonth(), row);
-    if (f1) f1.disabled = true;
-
-    // Trava para o chefe se os períodos recuarem a um mês passado que já foi salvo antes
-    const v1 = parseInputDate(i1?.value || '');
-    if (v1 && v1 < firstDayNextMonth()) lockPeriodo(row, mid, '1', true, 'Período em mês bloqueado');
-    else { if (s1) s1.disabled = false; if (i1) i1.disabled = false; }
-
-    calcularFim(row, mid, 1);
-
-    const { d1, total12 } = totals(row, mid);
-
-    const podeUsar2 = d1 > 0 && d1 < teto;
-    [s2, i2, f2].forEach(el => { if (el) el.disabled = !podeUsar2; });
-    if (podeUsar2) {
-      aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
-      let min2 = firstDayNextMonth();
-      const vf1 = parseInputDate(f1?.value || '');
-      if (vf1) { const d = new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate() + 1); if (d > min2) min2 = d; }
-      if (i2) setMinMax(i2, min2, row);
-      if (f2) f2.disabled = true;
-      const v2 = parseInputDate(i2?.value || '');
-      if (v2 && v2 < min2) lockPeriodo(row, mid, '2', true, 'Período em mês bloqueado');
-    }
-    calcularFim(row, mid, 2);
-
-    const podeUsar3 = !forcar20x20 && total12 < teto;
-    [s3, i3, f3].forEach(el => { if (el) el.disabled = !podeUsar3; });
-    if (podeUsar3) {
-      let min3 = firstDayNextMonth();
-      const vf2 = parseInputDate(f2?.value || '');
-      const vf1b = parseInputDate(f1?.value || '');
-      if (vf2) { const d = new Date(vf2.getFullYear(), vf2.getMonth(), vf2.getDate() + 1); if (d > min3) min3 = d; }
-      else if (vf1b) { const d = new Date(vf1b.getFullYear(), vf1b.getMonth(), vf1b.getDate() + 1); if (d > min3) min3 = d; }
-      if (i3) setMinMax(i3, min3, row);
-      if (f3) f3.disabled = true;
-      const v3 = parseInputDate(i3?.value || '');
-      if (v3 && v3 < min3) lockPeriodo(row, mid, '3', true, 'Período em mês bloqueado');
-    }
-    calcularFim(row, mid, 3);
-
-    const saveBtn = row.querySelector('.botao-salvar');
-    if (saveBtn) {
-      saveBtn.disabled = blockForChief;
-      saveBtn.title = blockForChief ? 'Bloqueado: Apenas o Super User pode salvar férias de exceção' : '';
-    }
-  }
-
-  // === VALIDAÇÕES INSTANTÂNEAS (Corrigida a lógica dos meses passados) ===
-  function validarRegrasInstantaneas(row, mid, teto) {
-    const temExcecaoAno = (row.dataset.excecao === 'true');
-
-    const i1Input = row.querySelector(`[name="inicio_1_${mid}"]`);
-    const i2Input = row.querySelector(`[name="inicio_2_${mid}"]`);
-    const i3Input = row.querySelector(`[name="inicio_3_${mid}"]`);
-
-    const i1 = parseInputDate(i1Input?.value);
-    const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value);
-    const i2 = parseInputDate(i2Input?.value);
-    const f2 = parseInputDate(row.querySelector(`[name="fim_2_${mid}"]`)?.value);
-    const i3 = parseInputDate(i3Input?.value);
-    const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value);
-    const d1 = getNum(row, `qtd_dias_1_${mid}`);
-
-    // Checagem retroativa estrita: Só grita se o input ESTIVER ABERTO (editável) e violar a data mínima
-    if (i1 && i1Input?.min && (i1Input.disabled === false) && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita.`;
-    if (i2 && i2Input?.min && (i2Input.disabled === false) && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita.`;
-    if (i3 && i3Input?.min && (i3Input.disabled === false) && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita.`;
-
-    // Limite Máximo do Ano
-    const limiteAno = getLimiteAno(row);
-    if ((f1 && f1 > limiteAno) || (f2 && f2 > limiteAno) || (f3 && f3 > limiteAno)) {
-      if (!temExcecaoAno) return `DATA FORA DO LIMITE: O término ultrapassa 31/12. Se o militar possui autorização, marque "Exceção".`;
-      else return `LIMITE DE EXCEÇÃO EXCEDIDO: O término ultrapassa o limite máximo de exceção (31/12 do ano seguinte).`;
+    function getLimiteAno(row) {
+      if (row && row.dataset.excecao === 'true') return new Date(ANO_ATUAL + 1, 11, 31);
+      return new Date(ANO_ATUAL, 11, 31);
     }
 
-    // Regra Dezembro Cota Única
-    if (!temExcecaoAno && i1 && i1.getMonth() === 11 && d1 > 0 && d1 < teto) {
-      return `REGRA DE DEZEMBRO: Férias iniciadas em Dezembro requerem cota única. Marque ${teto} dias no 1º período.`;
+    function parseInputDate(s) {
+      if (!s) return null;
+      const t = String(s).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) { const [y, m, d] = t.split('-').map(Number); return new Date(y, m - 1, d); }
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) { const [d, m, y] = t.split('/').map(Number); return new Date(y, m - 1, d); }
+      return null;
     }
 
-    // Conflitos de Cronologia (Sobreposição de datas)
-    if (i2 && (f1 || i1) && i2 <= (f1 || i1)) {
-      return `CONFLITO DE DATAS: O 2º período NÃO PODE iniciar antes do término do 1º período.`;
-    }
-    const base3 = f2 || i2 || f1 || i1;
-    if (i3 && base3 && i3 <= base3) {
-      return `CONFLITO DE DATAS: O 3º período NÃO PODE iniciar antes do término dos períodos anteriores.`;
+    function setMinMax(input, minDate, row) {
+      if (!input || input.type !== 'date') return;
+      const min = minDate || firstDayNextMonth();
+      input.min = fmtISO(min);
+      input.max = fmtISO(getLimiteAno(row));
     }
 
-    return null;
-  }
+    function getNum(row, name) { return parseInt(row.querySelector(`[name="${name}"]`)?.value || 0, 10); }
 
-  function dispararModalInconsistencia(mensagem) {
-    document.getElementById('textoErroFerias').innerText = mensagem;
-    if (typeof bootstrap !== 'undefined') {
-      const modalEl = document.getElementById('modalRegrasFerias');
-      let modal = bootstrap.Modal.getInstance(modalEl);
-      if (!modal) modal = new bootstrap.Modal(modalEl);
-      modal.show();
-    } else {
-      $('#modalRegrasFerias').modal('show');
-    }
-  }
-
-  function ligarListenersLinha(row) {
-    const mid = row.dataset.militarId;
-    const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
-
-    const toggleExc = row.querySelector('.toggle-excecao');
-    if (toggleExc) {
-      toggleExc.addEventListener('change', function () {
-        const isChecked = this.checked;
-        row.dataset.excecao = isChecked ? 'true' : 'false';
-
-        const formData = new URLSearchParams();
-        formData.append('militar_id', mid);
-        formData.append('ano', ANO_ATUAL);
-        formData.append('excecao', isChecked);
-
-        fetch(`${BASE_URL}/pafs/toggle_excecao`, { method: 'POST', body: formData })
-          .then(r => r.json())
-          .then(resp => { if (resp.status !== 'success') alert('Erro ao registrar exceção no servidor.'); })
-          .catch(() => alert('Erro de conexão ao salvar a exceção.'));
-
-        refreshRow(row);
-        auditarLinha(row);
-      });
+    function totals(row, mid) {
+      const d1 = getNum(row, `qtd_dias_1_${mid}`);
+      const d2 = getNum(row, `qtd_dias_2_${mid}`);
+      const d3 = getNum(row, `qtd_dias_3_${mid}`);
+      return { d1, d2, d3, total12: d1 + d2, total123: d1 + d2 + d3 };
     }
 
-    ['1', '2', '3'].forEach(p => {
+    function clearPeriodo(row, mid, p) {
       const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
       const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+      const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
+      if (s) s.value = ''; if (i) i.value = ''; if (f) f.value = '';
+    }
 
-      if (i) {
-        i.addEventListener('change', () => {
-          calcularFim(row, mid, p);
-          refreshRow(row);
-
-          const erro = validarRegrasInstantaneas(row, mid, teto);
-          if (erro) dispararModalInconsistencia(erro);
-
-          auditarLinha(row);
-        });
-      }
-      if (s) {
-        s.addEventListener('change', () => {
-          if (!s.value) clearPeriodo(row, mid, p);
-          else calcularFim(row, mid, p);
-          refreshRow(row);
-
-          const erro = validarRegrasInstantaneas(row, mid, teto);
-          if (erro) dispararModalInconsistencia(erro);
-
-          auditarLinha(row);
-        });
-      }
-    });
-
-    row.querySelectorAll('.botao-salvar').forEach(btn => {
-      btn.addEventListener('click', () => {
-        let erroBloqueante = validarRegrasInstantaneas(row, mid, teto);
-        if (!erroBloqueante) {
-          const { total123 } = totals(row, mid);
-          if (total123 > 0 && total123 < teto) {
-            erroBloqueante = `SALDO INCOMPLETO: O militar possui direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
-          }
-        }
-
-        if (erroBloqueante) {
-          dispararModalInconsistencia(erroBloqueante);
-          return;
-        }
-
-        const formData = new URLSearchParams();
-        formData.append('militar_id', mid);
-        ['mes_usufruto', 'qtd_dias_1', 'inicio_1', 'fim_1', 'qtd_dias_2', 'inicio_2', 'fim_2', 'qtd_dias_3', 'inicio_3', 'fim_3']
-          .forEach(c => formData.append(c, row.querySelector(`[name="${c}_${mid}"]`)?.value || ''));
-        formData.append('ano_referencia', ANO_ATUAL);
-
-        const icon = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-
-        fetch(`${BASE_URL}/pafs/update`, { method: 'POST', body: formData })
-          .then(r => r.json())
-          .then(resp => {
-            alert(resp.message);
-            row.classList.remove('table-danger');
-          })
-          .catch(() => alert('Erro na comunicação com o servidor ao salvar.'))
-          .finally(() => btn.innerHTML = icon);
+    function lockPeriodo(row, mid, p, lock, title = '') {
+      ['qtd_dias', 'inicio', 'fim'].forEach(k => {
+        const el = row.querySelector(`[name="${k}_${p}_${mid}"]`);
+        if (el) { el.disabled = !!lock; el.readOnly = !!lock; el.title = title || ''; }
       });
-    });
+    }
 
-    refreshRow(row);
-  }
+    function calcularFim(row, mid, p) {
+      const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+      const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
+      const f = row.querySelector(`[name="fim_${p}_${mid}"]`);
+      if (!i || !s || !f) return;
 
-  function auditarLinha(row) {
-    const mid = row.dataset.militarId;
-    const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
+      const di = parseInputDate(i.value);
+      const n = parseInt(s.value || 0, 10);
+      if (!di || !n) { f.value = ''; return; }
 
-    let erro = validarRegrasInstantaneas(row, mid, teto);
-    
-    // Se não bateu em nenhuma regra de data, checa a regra matemática do Saldo Obrigatório
-    if (!erro) {
-      const { total123 } = totals(row, mid);
-      if (total123 > 0 && total123 < teto) {
-        erro = `SALDO INCOMPLETO: O sistema entende que este militar tem direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
+      const out = new Date(di.getFullYear(), di.getMonth(), di.getDate() + n - 1);
+      f.value = fmtISO(out);
+    }
+
+    function aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20) {
+      const dias1 = getNum(row, `qtd_dias_1_${mid}`);
+      const sel2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
+      if (!sel2) return;
+      const teto = podeTer40 ? 40 : 30;
+      const valores = Array.from(sel2.options).map(o => parseInt(o.value, 10)).filter(n => !isNaN(n));
+      let permitidas;
+      if (podeTer40 && forcar20x20) { permitidas = (dias1 + 20 <= 40) ? [20] : []; }
+      else { permitidas = valores.filter(v => (dias1 + v) <= teto); }
+      Array.from(sel2.options).forEach(opt => {
+        if (!opt.value) return;
+        opt.disabled = !permitidas.includes(parseInt(opt.value, 10));
+      });
+      const atual = parseInt(sel2.value || 0, 10);
+      if (!permitidas.includes(atual)) { sel2.value = ''; clearPeriodo(row, mid, 2); }
+    }
+
+    function refreshRow(row) {
+      const mid = row.dataset.militarId;
+      const midNum = Number(mid);
+      const podeTer40 = (row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(midNum);
+      const forcar20x20 = (window.MILITARES_20_20 || []).includes(midNum);
+      const isExcecao = (row.dataset.excecao === 'true');
+      const teto = podeTer40 ? 40 : 30;
+
+      const blockForChief = (isExcecao && !window.IS_SUPER_USER);
+
+      if (!CAN_EDIT) { row.querySelectorAll('input,select,button.botao-salvar').forEach(el => el.disabled = true); return; }
+
+      const s1 = row.querySelector(`[name="qtd_dias_1_${mid}"]`);
+      const i1 = row.querySelector(`[name="inicio_1_${mid}"]`);
+      const f1 = row.querySelector(`[name="fim_1_${mid}"]`);
+      const s2 = row.querySelector(`[name="qtd_dias_2_${mid}"]`);
+      const i2 = row.querySelector(`[name="inicio_2_${mid}"]`);
+      const f2 = row.querySelector(`[name="fim_2_${mid}"]`);
+      const s3 = row.querySelector(`[name="qtd_dias_3_${mid}"]`);
+      const i3 = row.querySelector(`[name="inicio_3_${mid}"]`);
+      const f3 = row.querySelector(`[name="fim_3_${mid}"]`);
+
+      if (i1) setMinMax(i1, firstDayNextMonth(), row);
+      if (f1) f1.disabled = true;
+
+      // Trava para o chefe se os períodos recuarem a um mês passado que já foi salvo antes
+      const v1 = parseInputDate(i1?.value || '');
+      if (v1 && v1 < firstDayNextMonth()) lockPeriodo(row, mid, '1', true, 'Período em mês bloqueado');
+      else { if (s1) s1.disabled = false; if (i1) i1.disabled = false; }
+
+      calcularFim(row, mid, 1);
+
+      const { d1, total12 } = totals(row, mid);
+
+      const podeUsar2 = d1 > 0 && d1 < teto;
+      [s2, i2, f2].forEach(el => { if (el) el.disabled = !podeUsar2; });
+      if (podeUsar2) {
+        aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
+        let min2 = firstDayNextMonth();
+        const vf1 = parseInputDate(f1?.value || '');
+        if (vf1) { const d = new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate() + 1); if (d > min2) min2 = d; }
+        if (i2) setMinMax(i2, min2, row);
+        if (f2) f2.disabled = true;
+        const v2 = parseInputDate(i2?.value || '');
+        if (v2 && v2 < min2) lockPeriodo(row, mid, '2', true, 'Período em mês bloqueado');
+      }
+      calcularFim(row, mid, 2);
+
+      const podeUsar3 = !forcar20x20 && total12 < teto;
+      [s3, i3, f3].forEach(el => { if (el) el.disabled = !podeUsar3; });
+      if (podeUsar3) {
+        let min3 = firstDayNextMonth();
+        const vf2 = parseInputDate(f2?.value || '');
+        const vf1b = parseInputDate(f1?.value || '');
+        if (vf2) { const d = new Date(vf2.getFullYear(), vf2.getMonth(), vf2.getDate() + 1); if (d > min3) min3 = d; }
+        else if (vf1b) { const d = new Date(vf1b.getFullYear(), vf1b.getMonth(), vf1b.getDate() + 1); if (d > min3) min3 = d; }
+        if (i3) setMinMax(i3, min3, row);
+        if (f3) f3.disabled = true;
+        const v3 = parseInputDate(i3?.value || '');
+        if (v3 && v3 < min3) lockPeriodo(row, mid, '3', true, 'Período em mês bloqueado');
+      }
+      calcularFim(row, mid, 3);
+
+      const saveBtn = row.querySelector('.botao-salvar');
+      if (saveBtn) {
+        saveBtn.disabled = blockForChief;
+        saveBtn.title = blockForChief ? 'Bloqueado: Apenas o Super User pode salvar férias de exceção' : '';
       }
     }
 
-    if (erro) {
-      row.classList.add('table-danger');
-      // Injeta o motivo exato no title para o usuário ver ao passar o mouse
-      row.title = erro; 
-      return true;
-    } else {
-      row.classList.remove('table-danger');
-      row.title = "";
-      return false;
-    }
-  }
+    // === VALIDAÇÕES INSTANTÂNEAS (Corrigida a lógica dos meses passados) ===
+    function validarRegrasInstantaneas(row, mid, teto) {
+      const temExcecaoAno = (row.dataset.excecao === 'true');
 
-  function auditarTabelaCarregada() {
-    let errosEncontrados = 0;
-    document.querySelectorAll('tr[data-militar-id]').forEach(row => {
-      if (auditarLinha(row)) errosEncontrados++;
+      const i1Input = row.querySelector(`[name="inicio_1_${mid}"]`);
+      const i2Input = row.querySelector(`[name="inicio_2_${mid}"]`);
+      const i3Input = row.querySelector(`[name="inicio_3_${mid}"]`);
+
+      const i1 = parseInputDate(i1Input?.value);
+      const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value);
+      const i2 = parseInputDate(i2Input?.value);
+      const f2 = parseInputDate(row.querySelector(`[name="fim_2_${mid}"]`)?.value);
+      const i3 = parseInputDate(i3Input?.value);
+      const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value);
+      const d1 = getNum(row, `qtd_dias_1_${mid}`);
+
+      // Checagem retroativa estrita: Só grita se o input ESTIVER ABERTO (editável) e violar a data mínima
+      if (i1 && i1Input?.min && (i1Input.disabled === false) && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita.`;
+      if (i2 && i2Input?.min && (i2Input.disabled === false) && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita.`;
+      if (i3 && i3Input?.min && (i3Input.disabled === false) && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita.`;
+
+      // Limite Máximo do Ano
+      const limiteAno = getLimiteAno(row);
+      if ((f1 && f1 > limiteAno) || (f2 && f2 > limiteAno) || (f3 && f3 > limiteAno)) {
+        if (!temExcecaoAno) return `DATA FORA DO LIMITE: O término ultrapassa 31/12. Se o militar possui autorização, marque "Exceção".`;
+        else return `LIMITE DE EXCEÇÃO EXCEDIDO: O término ultrapassa o limite máximo de exceção (31/12 do ano seguinte).`;
+      }
+
+      // Regra Dezembro Cota Única
+      if (!temExcecaoAno && i1 && i1.getMonth() === 11 && d1 > 0 && d1 < teto) {
+        return `REGRA DE DEZEMBRO: Férias iniciadas em Dezembro requerem cota única. Marque ${teto} dias no 1º período.`;
+      }
+
+      // Conflitos de Cronologia (Sobreposição de datas)
+      if (i2 && (f1 || i1) && i2 <= (f1 || i1)) {
+        return `CONFLITO DE DATAS: O 2º período NÃO PODE iniciar antes do término do 1º período.`;
+      }
+      const base3 = f2 || i2 || f1 || i1;
+      if (i3 && base3 && i3 <= base3) {
+        return `CONFLITO DE DATAS: O 3º período NÃO PODE iniciar antes do término dos períodos anteriores.`;
+      }
+
+      return null;
+    }
+
+    function dispararModalInconsistencia(mensagem) {
+      document.getElementById('textoErroFerias').innerText = mensagem;
+      if (typeof bootstrap !== 'undefined') {
+        const modalEl = document.getElementById('modalRegrasFerias');
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) modal = new bootstrap.Modal(modalEl);
+        modal.show();
+      } else {
+        $('#modalRegrasFerias').modal('show');
+      }
+    }
+
+    function ligarListenersLinha(row) {
+      const mid = row.dataset.militarId;
+      const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
+
+      const toggleExc = row.querySelector('.toggle-excecao');
+      if (toggleExc) {
+        toggleExc.addEventListener('change', function () {
+          const isChecked = this.checked;
+          row.dataset.excecao = isChecked ? 'true' : 'false';
+
+          const formData = new URLSearchParams();
+          formData.append('militar_id', mid);
+          formData.append('ano', ANO_ATUAL);
+          formData.append('excecao', isChecked);
+
+          fetch(`${BASE_URL}/pafs/toggle_excecao`, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(resp => { if (resp.status !== 'success') alert('Erro ao registrar exceção no servidor.'); })
+            .catch(() => alert('Erro de conexão ao salvar a exceção.'));
+
+          refreshRow(row);
+          auditarLinha(row);
+        });
+      }
+
+      ['1', '2', '3'].forEach(p => {
+        const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
+        const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
+
+        if (i) {
+          i.addEventListener('change', () => {
+            calcularFim(row, mid, p);
+            refreshRow(row);
+
+            const erro = validarRegrasInstantaneas(row, mid, teto);
+            if (erro) dispararModalInconsistencia(erro);
+
+            auditarLinha(row);
+          });
+        }
+        if (s) {
+          s.addEventListener('change', () => {
+            if (!s.value) clearPeriodo(row, mid, p);
+            else calcularFim(row, mid, p);
+            refreshRow(row);
+
+            const erro = validarRegrasInstantaneas(row, mid, teto);
+            if (erro) dispararModalInconsistencia(erro);
+
+            auditarLinha(row);
+          });
+        }
+      });
+
+      row.querySelectorAll('.botao-salvar').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let erroBloqueante = validarRegrasInstantaneas(row, mid, teto);
+          if (!erroBloqueante) {
+            const { total123 } = totals(row, mid);
+            if (total123 > 0 && total123 < teto) {
+              erroBloqueante = `SALDO INCOMPLETO: O militar possui direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
+            }
+          }
+
+          if (erroBloqueante) {
+            dispararModalInconsistencia(erroBloqueante);
+            return;
+          }
+
+          const formData = new URLSearchParams();
+          formData.append('militar_id', mid);
+          ['mes_usufruto', 'qtd_dias_1', 'inicio_1', 'fim_1', 'qtd_dias_2', 'inicio_2', 'fim_2', 'qtd_dias_3', 'inicio_3', 'fim_3']
+            .forEach(c => formData.append(c, row.querySelector(`[name="${c}_${mid}"]`)?.value || ''));
+          formData.append('ano_referencia', ANO_ATUAL);
+
+          const icon = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+          fetch(`${BASE_URL}/pafs/update`, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(resp => {
+              alert(resp.message);
+              row.classList.remove('table-danger');
+            })
+            .catch(() => alert('Erro na comunicação com o servidor ao salvar.'))
+            .finally(() => btn.innerHTML = icon);
+        });
+      });
+
+      refreshRow(row);
+    }
+
+    function auditarLinha(row) {
+      const mid = row.dataset.militarId;
+      const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
+
+      let erro = validarRegrasInstantaneas(row, mid, teto);
+
+      // Se não bateu em nenhuma regra de data, checa a regra matemática do Saldo Obrigatório
+      if (!erro) {
+        const { total123 } = totals(row, mid);
+        if (total123 > 0 && total123 < teto) {
+          erro = `SALDO INCOMPLETO: O sistema entende que este militar tem direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
+        }
+      }
+
+      if (erro) {
+        row.classList.add('table-danger');
+        // Injeta o motivo exato no title para o usuário ver ao passar o mouse
+        row.title = erro;
+        return true;
+      } else {
+        row.classList.remove('table-danger');
+        row.title = "";
+        return false;
+      }
+    }
+
+    function auditarTabelaCarregada() {
+      let errosEncontrados = 0;
+      document.querySelectorAll('tr[data-militar-id]').forEach(row => {
+        if (auditarLinha(row)) errosEncontrados++;
+      });
+
+      if (errosEncontrados > 0) {
+        dispararModalInconsistencia(`Atenção: Identificamos ${errosEncontrados} militar(es) com regras de férias violadas nesta grade. Linhas afetadas foram marcadas em vermelho. Por favor, regularize.`);
+      }
+    }
+
+    function inicializarListeners() {
+      document.querySelectorAll('tr[data-militar-id]').forEach(ligarListenersLinha);
+    }
+
+    document.getElementById('obmSelect').addEventListener('change', function () {
+      const obmId = this.value;
+      const btnGrafico = document.getElementById('btnGrafico');
+      const alvo = document.getElementById('tabelaContainer');
+
+      btnGrafico.disabled = !obmId;
+      if (!obmId) { alvo.innerHTML = ''; return; }
+
+      alvo.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted fw-semibold">Carregando dados da unidade...</div></div>';
+
+      fetch(`${BASE_URL}/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
+        .then(r => r.text())
+        .then(html => {
+          alvo.innerHTML = html;
+          const tbl = document.getElementById('militaresTable');
+          if (tbl) {
+            tbl.classList.add('table', 'table-hover', 'table-bordered', 'align-middle', 'w-100', 'table-sticky', 'shadow-sm', 'rounded', 'overflow-hidden');
+          }
+
+          if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
+            const t = $('#militaresTable');
+            if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
+            t.DataTable({
+              scrollX: true, scrollY: '500px', paging: true, pageLength: 25,
+              language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' },
+              drawCallback: function () { inicializarListeners(); }
+            });
+          } else {
+            inicializarListeners();
+          }
+          setTimeout(auditarTabelaCarregada, 300);
+        })
+        .catch(() => { alvo.innerHTML = '<div class="alert alert-danger mx-3 mt-3">Falha ao carregar a tabela.</div>'; });
     });
 
-    if (errosEncontrados > 0) {
-      dispararModalInconsistencia(`Atenção: Identificamos ${errosEncontrados} militar(es) com regras de férias violadas nesta grade. Linhas afetadas foram marcadas em vermelho. Por favor, regularize.`);
-    }
-  }
+    document.getElementById('btnGrafico').addEventListener('click', function () {
+      const obmId = document.getElementById('obmSelect').value;
+      if (!obmId) return;
+      const body = document.getElementById('graficoBody');
+      body.innerHTML = `<div class="spinner-border text-primary" role="status"></div><p class="mt-3 fw-medium">Processando relatório visual...</p>`;
 
-  function inicializarListeners() {
-    document.querySelectorAll('tr[data-militar-id]').forEach(ligarListenersLinha);
-  }
-
-  document.getElementById('obmSelect').addEventListener('change', function () {
-    const obmId = this.value;
-    const btnGrafico = document.getElementById('btnGrafico');
-    const alvo = document.getElementById('tabelaContainer');
-
-    btnGrafico.disabled = !obmId;
-    if (!obmId) { alvo.innerHTML = ''; return; }
-
-    alvo.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted fw-semibold">Carregando dados da unidade...</div></div>';
-
-    fetch(`${BASE_URL}/pafs/tabela/${obmId}?ano=${ANO_ATUAL}`)
-      .then(r => r.text())
-      .then(html => {
-        alvo.innerHTML = html;
-        const tbl = document.getElementById('militaresTable');
-        if (tbl) {
-          tbl.classList.add('table', 'table-hover', 'table-bordered', 'align-middle', 'w-100', 'table-sticky', 'shadow-sm', 'rounded', 'overflow-hidden');
-        }
-
-        if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
-          const t = $('#militaresTable');
-          if ($.fn.dataTable.isDataTable(t)) t.DataTable().destroy();
-          t.DataTable({
-            scrollX: true, scrollY: '500px', paging: true, pageLength: 25,
-            language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' },
-            drawCallback: function () { inicializarListeners(); }
-          });
-        } else {
-          inicializarListeners();
-        }
-        setTimeout(auditarTabelaCarregada, 300);
-      })
-      .catch(() => { alvo.innerHTML = '<div class="alert alert-danger mx-3 mt-3">Falha ao carregar a tabela.</div>'; });
-  });
-
-  document.getElementById('btnGrafico').addEventListener('click', function () {
-    const obmId = document.getElementById('obmSelect').value;
-    if (!obmId) return;
-    const body = document.getElementById('graficoBody');
-    body.innerHTML = `<div class="spinner-border text-primary" role="status"></div><p class="mt-3 fw-medium">Processando relatório visual...</p>`;
-
-    fetch(`${BASE_URL}/grafico-ferias/${obmId}`)
-      .then(r => r.text())
-      .then(data => {
-        const img = document.createElement('img');
-        img.src = 'data:image/png;base64,' + data;
-        img.className = 'img-fluid rounded shadow-sm';
-        body.innerHTML = ''; body.appendChild(img);
-        new bootstrap.Modal(document.getElementById('modalGrafico')).show();
-      })
-      .catch(() => { body.innerHTML = '<div class="alert alert-danger mb-0">Erro de comunicação ao extrair o gráfico.</div>'; });
-  });
-</script>
-{% endblock %}
+      fetch(`${BASE_URL}/grafico-ferias/${obmId}`)
+        .then(r => r.text())
+        .then(data => {
+          const img = document.createElement('img');
+          img.src = 'data:image/png;base64,' + data;
+          img.className = 'img-fluid rounded shadow-sm';
+          body.innerHTML = ''; body.appendChild(img);
+          new bootstrap.Modal(document.getElementById('modalGrafico')).show();
+        })
+        .catch(() => { body.innerHTML = '<div class="alert alert-danger mb-0">Erro de comunicação ao extrair o gráfico.</div>'; });
+    });
+  </script>
+  {% endblock %}

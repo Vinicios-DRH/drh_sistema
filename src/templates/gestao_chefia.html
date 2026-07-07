@@ -1,297 +1,1168 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 
 <style>
-    :root {
-        --brand-blue-700: #0d2036;
-        --brand-blue-600: #0c3761;
+    .gc-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
+        background:
+            radial-gradient(circle at top right, rgba(38, 128, 191, .13), transparent 34%),
+            linear-gradient(135deg,
+                var(--app-page-bg) 0%,
+                var(--app-page-bg-alt) 52%,
+                var(--app-surface-muted) 100%);
     }
 
-    body {
-        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
-        min-height: 100vh;
+    .gc-container {
+        max-width: 1500px;
     }
 
-    .page-wrap {
-        padding: 18px 10px;
+    .gc-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.3rem;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 20px;
+        color: #fff;
+        background:
+            radial-gradient(circle at top right, rgba(255, 255, 255, .13), transparent 30%),
+            linear-gradient(135deg, #071b2c 0%, #0b385e 50%, #145883 100%);
+        box-shadow: var(--app-shadow-hero);
     }
 
-    .glass-card {
-        background: rgba(255, 255, 255, .96);
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 16px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
+    .gc-hero::before {
+        position: absolute;
+        top: -110px;
+        right: -90px;
+        width: 270px;
+        height: 270px;
+        border-radius: 50%;
+        content: "";
+        background: rgba(255, 255, 255, .06);
+        pointer-events: none;
+    }
+
+    .gc-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .gc-hero-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .gc-hero-title-area {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        min-width: 0;
+    }
+
+    .gc-logo-box {
+        display: grid;
+        flex: 0 0 60px;
+        width: 60px;
+        height: 60px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 17px;
+        background: rgba(255, 255, 255, .09);
+    }
+
+    .gc-logo-box img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+    }
+
+    .gc-eyebrow {
+        display: block;
+        margin-bottom: .25rem;
+        color: rgba(255, 255, 255, .72);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .gc-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(1.25rem, 2vw, 1.7rem);
+        font-weight: 850;
+        letter-spacing: -.025em;
+    }
+
+    .gc-subtitle {
+        margin: .28rem 0 0;
+        color: rgba(255, 255, 255, .78);
+        font-size: .88rem;
+        line-height: 1.45;
+    }
+
+    .gc-panel {
+        margin-top: 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 20px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
         overflow: hidden;
     }
 
-    .brand-top {
-        background: linear-gradient(90deg, var(--brand-blue-700) 0%, var(--brand-blue-600) 100%);
-        color: #fff;
-        padding: 16px 18px;
-        border-bottom: 1px solid rgba(0, 0, 0, .06);
-    }
-
-    .brand-top h4 {
-        margin: 0;
-        font-weight: 900;
-    }
-
-    .muted {
-        opacity: .85;
-    }
-
-    .toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+    .gc-toolbar {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.1fr) minmax(220px, .8fr) auto;
+        gap: .75rem;
         align-items: end;
-        padding: 14px 18px;
-        border-bottom: 1px solid rgba(0, 0, 0, .06);
-        background: rgba(255, 255, 255, .55);
+        padding: 1rem;
+        border-bottom: 1px solid var(--app-border);
+        background: var(--app-surface-soft);
     }
 
-    .toolbar .grow {
-        flex: 1 1 320px;
-        min-width: 260px;
+    .gc-label {
+        display: block;
+        margin-bottom: .35rem;
+        color: var(--app-text);
+        font-size: .78rem;
+        font-weight: 800;
     }
 
-    .table-wrap {
-        padding: 12px 12px 18px;
+    .gc-toolbar .form-control,
+    .gc-toolbar .form-select {
+        min-height: 44px;
+        border-color: var(--app-border);
+        color: var(--app-text);
+        background: var(--app-surface);
+    }
+
+    .gc-toolbar .form-control:focus,
+    .gc-toolbar .form-select:focus {
+        border-color: var(--app-primary);
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--app-primary) 16%, transparent);
+    }
+
+    .gc-content {
+        padding: 1rem;
+    }
+
+    .gc-empty-state {
+        display: grid;
+        place-items: center;
+        min-height: 260px;
+        padding: 2rem 1rem;
+        color: var(--app-muted);
+        text-align: center;
+    }
+
+    .gc-empty-icon {
+        display: grid;
+        width: 64px;
+        height: 64px;
+        place-items: center;
+        margin: 0 auto .8rem;
+        border: 1px solid var(--app-border);
+        border-radius: 18px;
+        color: var(--app-primary);
+        font-size: 1.8rem;
+        background: var(--app-surface-soft);
+    }
+
+    .gc-feedback {
+        display: none;
+        margin: 0 1rem 1rem;
+        padding: .8rem .95rem;
+        border-radius: 12px;
+        font-size: .86rem;
+        font-weight: 700;
+    }
+
+    .gc-feedback.show {
+        display: block;
+    }
+
+    .gc-feedback.success {
+        border: 1px solid #bce6cb;
+        color: #14804a;
+        background: #e9f8ef;
+    }
+
+    .gc-feedback.error {
+        border: 1px solid #f2bfc3;
+        color: #b4232d;
+        background: #fff0f1;
+    }
+
+    html[data-theme="dark"] .gc-feedback.success {
+        border-color: #2c704a;
+        color: #75dda1;
+        background: #143b2a;
+    }
+
+    html[data-theme="dark"] .gc-feedback.error {
+        border-color: #743d46;
+        color: #ffa2aa;
+        background: #441d25;
+    }
+
+    .gc-table-shell {
+        border: 1px solid var(--app-border);
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--app-surface);
+    }
+
+    #militaresTable {
+        --bs-table-color: var(--app-text);
+        --bs-table-bg: transparent;
+        --bs-table-striped-color: var(--app-text);
+        --bs-table-striped-bg: rgba(127, 155, 180, .07);
+        --bs-table-hover-color: var(--app-text);
+        --bs-table-hover-bg: var(--app-table-row-hover);
+        --bs-table-border-color: var(--app-border);
+    }
+
+    #militaresTable thead th {
+        color: var(--app-text);
+        white-space: nowrap;
+        background: var(--app-table-head);
+    }
+
+    #militaresTable tbody td {
+        color: var(--app-text);
+        vertical-align: middle;
+        font-size: .9rem;
+    }
+
+    .dataTables_wrapper {
+        color: var(--app-text);
+    }
+
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_info {
+        color: var(--app-muted) !important;
+        font-size: .84rem;
+    }
+
+    .dataTables_filter input,
+    .dataTables_length select {
+        border: 1px solid var(--app-border) !important;
+        border-radius: 10px !important;
+        color: var(--app-text) !important;
+        background: var(--app-surface) !important;
+    }
+
+    .page-link {
+        color: var(--app-primary);
+        border-color: var(--app-border);
+        background: var(--app-surface);
+    }
+
+    .page-item.active .page-link {
+        border-color: var(--app-primary);
+        color: var(--app-primary-contrast);
+        background: var(--app-primary);
+    }
+
+    .gc-mobile-list {
+        display: none;
+    }
+
+    .gc-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+
+    .gc-stat-card {
+        padding: .85rem .95rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface-soft);
+    }
+
+    .gc-stat-label {
+        color: var(--app-muted);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .gc-stat-value {
+        margin-top: .25rem;
+        color: var(--app-text);
+        font-size: 1.35rem;
+        font-weight: 850;
+        line-height: 1;
+    }
+
+    .gc-mobile-card {
+        padding: 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 15px;
+        color: var(--app-text);
+        background: var(--app-surface-soft);
+    }
+
+    .gc-mobile-card+.gc-mobile-card {
+        margin-top: .75rem;
+    }
+
+    .gc-mobile-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .gc-mobile-name {
+        margin: 0;
+        color: var(--app-text);
+        font-size: .98rem;
+        font-weight: 850;
+        line-height: 1.35;
+    }
+
+    .gc-mobile-rank {
+        margin-top: .18rem;
+        color: var(--app-muted);
+        font-size: .8rem;
+        font-weight: 700;
+    }
+
+    .gc-mobile-facts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .7rem;
+        margin-top: 1rem;
+    }
+
+    .gc-mobile-label {
+        display: block;
+        margin-bottom: .15rem;
+        color: var(--app-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .gc-mobile-value {
+        display: block;
+        color: var(--app-text);
+        font-size: .82rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .gc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .55rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .gc-badge-success {
+        color: #137a36;
+        background: #e7f7ed;
+        border: 1px solid #bce6cb;
+    }
+
+    .gc-badge-warning {
+        color: #8a5b00;
+        background: #fff5df;
+        border: 1px solid #f1d69c;
+    }
+
+    .gc-badge-danger {
+        color: #b4232d;
+        background: #fff0f1;
+        border: 1px solid #f2bfc3;
+    }
+
+    .gc-badge-info {
+        color: #145a96;
+        background: #e8f3fe;
+        border: 1px solid #bbd9f1;
+    }
+
+    .gc-badge-muted {
+        color: var(--app-muted);
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
+    }
+
+    html[data-theme="dark"] .gc-badge-success {
+        color: #75dda1;
+        background: #143b2a;
+        border-color: #2c704a;
+    }
+
+    html[data-theme="dark"] .gc-badge-warning {
+        color: #f3c46b;
+        background: #3b2d10;
+        border-color: #725826;
+    }
+
+    html[data-theme="dark"] .gc-badge-danger {
+        color: #ffa2aa;
+        background: #441d25;
+        border-color: #743d46;
+    }
+
+    html[data-theme="dark"] .gc-badge-info {
+        color: #7cc3f5;
+        background: #123552;
+        border-color: #315f82;
+    }
+
+    .gc-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .38rem;
+        min-height: 36px;
+        border-radius: 10px;
+        font-weight: 800;
+    }
+
+    .gc-modal .modal-content {
+        border: 1px solid var(--app-border);
+        border-radius: 18px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        overflow: hidden;
+    }
+
+    .gc-modal-header {
+        color: #fff;
+        background:
+            radial-gradient(circle at top right, rgba(255, 255, 255, .12), transparent 30%),
+            linear-gradient(135deg, #071b2c, #0b385e 55%, #145883);
+    }
+
+    .gc-modal-body {
+        background: var(--app-surface);
+    }
+
+    .gc-modal-section {
+        padding: 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 15px;
+        background: var(--app-surface-soft);
+    }
+
+    .gc-modal-section+.gc-modal-section {
+        margin-top: 1rem;
+    }
+
+    .gc-modal-section-title {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        margin: 0 0 .85rem;
+        color: var(--app-text);
+        font-size: .9rem;
+        font-weight: 850;
+    }
+
+    .gc-field-label {
+        display: block;
+        margin-bottom: .32rem;
+        color: var(--app-text);
+        font-size: .76rem;
+        font-weight: 800;
+    }
+
+    .gc-modal .form-control,
+    .gc-modal .form-select {
+        min-height: 44px;
+        border-color: var(--app-border);
+        color: var(--app-text);
+        background: var(--app-surface);
+    }
+
+    .gc-modal .form-control:focus,
+    .gc-modal .form-select:focus {
+        border-color: var(--app-primary);
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--app-primary) 16%, transparent);
+    }
+
+    .gc-course-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: .75rem;
+    }
+
+    .gc-course-card {
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface);
+        overflow: hidden;
+    }
+
+    .gc-course-main {
+        display: flex;
+        align-items: flex-start;
+        gap: .55rem;
+        padding: .75rem;
+    }
+
+    .gc-course-title {
+        color: var(--app-text);
+        font-size: .8rem;
+        font-weight: 800;
+        line-height: 1.35;
+        cursor: pointer;
+    }
+
+    .gc-course-file {
+        display: none;
+        padding: .75rem;
+        border-top: 1px solid var(--app-border);
+        background: var(--app-surface-soft);
+    }
+
+    .locked-checkbox {
+        pointer-events: none;
+        opacity: .7;
+    }
+
+    .gc-validated-box {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        padding: .55rem;
+        border: 1px solid #bce6cb;
+        border-radius: 10px;
+        color: #137a36;
+        background: #e7f7ed;
+    }
+
+    html[data-theme="dark"] .gc-validated-box {
+        border-color: #2c704a;
+        color: #75dda1;
+        background: #143b2a;
+    }
+
+    @media (max-width: 991.98px) {
+        .gc-toolbar {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .gc-toolbar .gc-refresh-wrap {
+            grid-column: span 2;
+        }
+
+        .gc-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .gc-page {
+            padding-top: .75rem;
+        }
+
+        .gc-hero,
+        .gc-panel {
+            border-radius: 16px;
+        }
+
+        .gc-hero-main {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .gc-toolbar {
+            grid-template-columns: 1fr;
+        }
+
+        .gc-toolbar .gc-refresh-wrap {
+            grid-column: auto;
+        }
+
+        .gc-toolbar .btn,
+        .gc-toolbar .form-control,
+        .gc-toolbar .form-select {
+            width: 100%;
+        }
+
+        .gc-desktop-table {
+            display: none;
+        }
+
+        .gc-mobile-list {
+            display: block;
+        }
+
+        .gc-stat-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .gc-mobile-top {
+            flex-direction: column;
+        }
+
+        .gc-mobile-top .btn {
+            width: 100%;
+        }
+
+        .gc-mobile-facts {
+            grid-template-columns: 1fr;
+        }
+
+        .gc-modal .modal-dialog {
+            margin: .5rem;
+        }
+
+        .gc-modal .modal-footer {
+            align-items: stretch;
+            flex-direction: column-reverse;
+        }
+
+        .gc-modal .modal-footer .btn {
+            width: 100%;
+        }
+
+        .gc-course-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid page-wrap">
-    <div class="glass-card">
-        <div class="brand-top d-flex align-items-start justify-content-between flex-wrap gap-2">
-            <div>
-                <h4><i class="bi bi-person-lines-fill"></i> Gestão do Efetivo</h4>
-                <div class="muted small">Selecione a OBM para atualizar as situações (LTS, LE, etc) e especialidades.
+<main class="gc-page">
+    <div class="container-fluid px-2 px-md-3 gc-container">
+
+        <section class="gc-hero">
+            <div class="gc-hero-content">
+                <div class="gc-hero-main">
+                    <div class="gc-hero-title-area">
+                        <div class="gc-logo-box">
+                            <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                        </div>
+
+                        <div>
+                            <span class="gc-eyebrow">Gestão de chefia</span>
+                            <h1 class="gc-title">Mapa da Força da OBM</h1>
+                            <p class="gc-subtitle">
+                                Atualize lotação diária, situação funcional, viatura e especialidades operacionais.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-white-50 small">
+                        <i class="bi bi-shield-check me-1"></i>
+                        Acesso limitado às OBMs permitidas para o usuário.
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="toolbar">
-            <div class="grow">
-                <label class="form-label small mb-1 fw-bold text-dark">Selecione a sua OBM</label>
-                <select id="obmSelect" class="form-select border-secondary">
-                    <option value="">— Selecione —</option>
-                    {% for obm in lista_obms %}
-                    <option value="{{ obm.id }}">{{ obm.sigla }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
+        <section class="gc-panel">
+            <div class="gc-toolbar">
+                <div>
+                    <label class="gc-label" for="obmSelect">Selecione a OBM</label>
+                    <select id="obmSelect" class="form-select">
+                        <option value="">— Selecione —</option>
+                        {% for obm in lista_obms %}
+                        <option value="{{ obm.id }}">{{ obm.sigla }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        <div class="table-wrap">
-            <div id="tabelaContainer">
-                <div class="text-muted text-center py-5">
-                    <i class="bi bi-arrow-up-circle fs-1"></i>
-                    <p class="mt-2">Selecione uma OBM acima para carregar o efetivo.</p>
+                <div>
+                    <label class="gc-label" for="gcSearchPage">Busca rápida na página</label>
+                    <input id="gcSearchPage" class="form-control" type="search" placeholder="Nome, posto, viatura..."
+                        disabled>
+                </div>
+
+                <div class="gc-refresh-wrap">
+                    <button id="btnRecarregarTabela" class="btn btn-primary w-100" type="button" disabled>
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Recarregar
+                    </button>
                 </div>
             </div>
-        </div>
+
+            <div id="gcFeedback" class="gc-feedback"></div>
+
+            <div class="gc-content">
+                <div id="tabelaContainer">
+                    <div class="gc-empty-state">
+                        <div>
+                            <div class="gc-empty-icon">
+                                <i class="bi bi-arrow-up-circle"></i>
+                            </div>
+                            <h2 class="h5 fw-bold mb-1">Selecione uma OBM</h2>
+                            <p class="mb-0">
+                                O efetivo será carregado aqui para atualização do mapa da força.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
-</div>
+</main>
 
 <script>
-    document.getElementById('obmSelect').addEventListener('change', function () {
-        const obmId = this.value;
-        const alvo = document.getElementById('tabelaContainer');
+    document.addEventListener("DOMContentLoaded", function () {
         const BASE_URL = "{{ request.script_root }}";
 
-        if (!obmId) {
-            alvo.innerHTML = '<div class="text-muted text-center py-5">Selecione uma OBM.</div>';
-            return;
+        const obmSelect = document.getElementById("obmSelect");
+        const tabelaContainer = document.getElementById("tabelaContainer");
+        const searchInput = document.getElementById("gcSearchPage");
+        const reloadButton = document.getElementById("btnRecarregarTabela");
+        const feedback = document.getElementById("gcFeedback");
+
+        let dataTable = null;
+        let modalChefia = null;
+
+        function showFeedback(type, message) {
+            if (!feedback) return;
+
+            feedback.className = "gc-feedback show " + type;
+            feedback.innerHTML = message;
+
+            window.clearTimeout(showFeedback.timer);
+            showFeedback.timer = window.setTimeout(function () {
+                feedback.className = "gc-feedback";
+                feedback.innerHTML = "";
+            }, 4500);
         }
 
-        alvo.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Carregando...</p></div>';
+        function setEmptyState(message) {
+            tabelaContainer.innerHTML = `
+                <div class="gc-empty-state">
+                    <div>
+                        <div class="gc-empty-icon">
+                            <i class="bi bi-info-circle"></i>
+                        </div>
+                        <h2 class="h5 fw-bold mb-1">Nenhuma OBM carregada</h2>
+                        <p class="mb-0">${message}</p>
+                    </div>
+                </div>
+            `;
+        }
 
-        fetch(`${BASE_URL}/gestao-chefia/tabela/${obmId}`)
-            .then(r => r.text())
-            .then(html => {
-                alvo.innerHTML = html;
+        function setLoading() {
+            tabelaContainer.innerHTML = `
+                <div class="gc-empty-state">
+                    <div>
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3 mb-0 text-muted">Carregando efetivo da OBM...</p>
+                    </div>
+                </div>
+            `;
+        }
 
-                if ($.fn.dataTable.isDataTable('#militaresTable')) $('#militaresTable').DataTable().destroy();
-                $('#militaresTable').DataTable({ scrollX: true, language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Portuguese.json' } });
+        function destroyDataTable() {
+            if (window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable("#militaresTable")) {
+                $("#militaresTable").DataTable().destroy();
+            }
 
-                const modalEl = document.getElementById('modalEdicaoChefia');
-                const modalChefia = new bootstrap.Modal(modalEl);
+            dataTable = null;
+        }
 
-                // --- GATILHOS INTELIGENTES DE UPLOAD E VIEW ---
-                const selectModalidade = document.getElementById('edit_modalidade_id');
-                const divArquivoModalidade = document.getElementById('div_arquivo_modalidade');
+        function initDataTable() {
+            const table = document.getElementById("militaresTable");
 
-                if (selectModalidade && divArquivoModalidade) {
-                    selectModalidade.addEventListener('change', function () {
-                        const hiddenInput = document.getElementById('edit_militar_id');
-                        const origMod = hiddenInput.dataset.originalModalidade;
-                        const origUrl = hiddenInput.dataset.originalUrl;
+            if (!table || !window.jQuery || !$.fn.DataTable) {
+                return;
+            }
 
-                        // Oculta tudo se voltar para "Pronto" (vazio ou id 8)
-                        if (!this.value || this.value === "8") {
-                            divArquivoModalidade.style.display = 'none';
-                            return;
+            dataTable = $("#militaresTable").DataTable({
+                scrollX: true,
+                autoWidth: false,
+                pageLength: 25,
+                order: [],
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json"
+                }
+            });
+        }
+
+        function filterMobileCards(term) {
+            const normalized = (term || "").trim().toLowerCase();
+
+            document.querySelectorAll(".gc-mobile-card").forEach(function (card) {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(normalized) ? "" : "none";
+            });
+        }
+
+        function resetSearch() {
+            if (!searchInput) return;
+
+            searchInput.value = "";
+            searchInput.disabled = false;
+
+            if (dataTable) {
+                dataTable.search("").draw();
+            }
+
+            filterMobileCards("");
+        }
+
+        function clearModalFilesAndCourses() {
+            document.querySelectorAll('#modalEdicaoChefia input[type="file"]').forEach(function (input) {
+                input.value = "";
+            });
+
+            document.querySelectorAll(".check-curso").forEach(function (checkbox) {
+                checkbox.checked = false;
+                checkbox.readOnly = false;
+                checkbox.classList.remove("locked-checkbox");
+
+                const uploadBox = document.getElementById("bloco_upload_curso_" + checkbox.value);
+                const viewBox = document.getElementById("bloco_view_curso_" + checkbox.value);
+                const container = document.getElementById("container_arquivo_" + checkbox.value);
+
+                if (uploadBox) uploadBox.style.display = "block";
+                if (viewBox) viewBox.style.display = "none";
+                if (container) container.style.display = "none";
+            });
+        }
+
+        function updateModalidadeFileState() {
+            const selectModalidade = document.getElementById("edit_modalidade_id");
+            const divArquivoModalidade = document.getElementById("div_arquivo_modalidade");
+            const hiddenInput = document.getElementById("edit_militar_id");
+
+            if (!selectModalidade || !divArquivoModalidade || !hiddenInput) {
+                return;
+            }
+
+            const originalModalidade = hiddenInput.dataset.originalModalidade || "";
+            const originalUrl = hiddenInput.dataset.originalUrl || "";
+
+            if (!selectModalidade.value || selectModalidade.value === "8") {
+                divArquivoModalidade.style.display = "none";
+                return;
+            }
+
+            divArquivoModalidade.style.display = "block";
+
+            const uploadBlock = document.getElementById("bloco_upload_modalidade");
+            const viewBlock = document.getElementById("bloco_view_modalidade");
+            const viewLink = document.getElementById("link_view_modalidade");
+            const arquivoInput = document.getElementById("arquivo_modalidade");
+
+            if (
+                selectModalidade.value === originalModalidade &&
+                originalUrl &&
+                originalUrl !== "None"
+            ) {
+                if (uploadBlock) uploadBlock.style.display = "none";
+                if (viewBlock) viewBlock.style.display = "flex";
+                if (viewLink) viewLink.href = originalUrl;
+                if (arquivoInput) arquivoInput.value = "";
+            } else {
+                if (uploadBlock) uploadBlock.style.display = "block";
+                if (viewBlock) viewBlock.style.display = "none";
+            }
+        }
+
+        function bindPartialHandlers() {
+            const modalElement = document.getElementById("modalEdicaoChefia");
+
+            if (modalElement) {
+                modalChefia = bootstrap.Modal.getOrCreateInstance(modalElement);
+            }
+
+            const selectModalidade = document.getElementById("edit_modalidade_id");
+            selectModalidade?.addEventListener("change", updateModalidadeFileState);
+
+            const switchPresente = document.getElementById("edit_presente_na_obm");
+            switchPresente?.addEventListener("change", function () {
+                const divLocal = document.getElementById("div_local_disposicao");
+                if (divLocal) {
+                    divLocal.style.display = this.checked ? "none" : "block";
+                }
+            });
+
+            document.querySelectorAll(".check-curso").forEach(function (checkbox) {
+                checkbox.addEventListener("change", function () {
+                    const container = document.getElementById("container_arquivo_" + this.value);
+
+                    if (container) {
+                        container.style.display = this.checked ? "block" : "none";
+                    }
+                });
+            });
+
+            document.querySelectorAll(".btn-editar").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    clearModalFilesAndCourses();
+
+                    const hiddenId = document.getElementById("edit_militar_id");
+
+                    hiddenId.value = this.dataset.id || "";
+                    hiddenId.dataset.originalModalidade = this.dataset.modalidade || "";
+                    hiddenId.dataset.originalUrl = this.dataset.comprovanteModalidade || "";
+
+                    document.getElementById("edit_obm_id").value = this.dataset.obmId || "";
+                    document.getElementById("modalNomeMilitar").textContent = this.dataset.nome || "Militar";
+                    document.getElementById("edit_inicio_periodo").value = this.dataset.inicio || "";
+                    document.getElementById("edit_fim_periodo").value = this.dataset.fim || "";
+
+                    const selectMod = document.getElementById("edit_modalidade_id");
+                    if (selectMod) {
+                        selectMod.value = this.dataset.modalidade || "";
+                        updateModalidadeFileState();
+                    }
+
+                    const switchPresente = document.getElementById("edit_presente_na_obm");
+                    const divLocal = document.getElementById("div_local_disposicao");
+                    const inputLocal = document.getElementById("edit_local_disposicao");
+
+                    if (switchPresente) {
+                        switchPresente.checked = this.dataset.presente === "true";
+                    }
+
+                    if (inputLocal) {
+                        inputLocal.value = this.dataset.local || "";
+                    }
+
+                    if (divLocal && switchPresente) {
+                        divLocal.style.display = switchPresente.checked ? "none" : "block";
+                    }
+
+                    const viaturaSelect = document.getElementById("edit_viatura_diaria_id");
+                    if (viaturaSelect) {
+                        viaturaSelect.value = this.dataset.viaturaDiaria || "";
+                    }
+
+                    let cursosInfo = [];
+
+                    try {
+                        cursosInfo = JSON.parse(this.dataset.cursosInfo || "[]");
+                    } catch (error) {
+                        cursosInfo = [];
+                    }
+
+                    cursosInfo.forEach(function (curso) {
+                        const checkbox = document.getElementById("curso_" + curso.id);
+
+                        if (!checkbox) return;
+
+                        checkbox.checked = true;
+
+                        if (curso.url && curso.url !== "None") {
+                            checkbox.readOnly = true;
+                            checkbox.classList.add("locked-checkbox");
+
+                            const upload = document.getElementById("bloco_upload_curso_" + curso.id);
+                            const view = document.getElementById("bloco_view_curso_" + curso.id);
+                            const link = document.getElementById("link_view_curso_" + curso.id);
+
+                            if (upload) upload.style.display = "none";
+                            if (view) view.style.display = "flex";
+                            if (link) link.href = curso.url;
                         }
-                        divArquivoModalidade.style.display = 'block';
 
-                        // Lógica de Trava: Se for a mesma licença de antes e tiver arquivo, mostra o comprovante
-                        if (this.value === origMod && origUrl && origUrl !== "None" && origUrl !== "") {
-                            document.getElementById('bloco_upload_modalidade').style.display = 'none';
-                            document.getElementById('bloco_view_modalidade').style.display = 'flex';
-                            document.getElementById('link_view_modalidade').href = origUrl;
-                            document.getElementById('arquivo_modalidade').value = ''; // Limpa o input escondido
-                        } else {
-                            // Se trocou de licença ou não tinha arquivo, exige o upload de novo
-                            document.getElementById('bloco_upload_modalidade').style.display = 'block';
-                            document.getElementById('bloco_view_modalidade').style.display = 'none';
-                        }
+                        checkbox.dispatchEvent(new Event("change"));
                     });
+
+                    modalChefia?.show();
+                });
+            });
+
+            const salvarButton = document.getElementById("btnSalvarChefia");
+
+            if (salvarButton) {
+                salvarButton.onclick = salvarAtualizacaoChefia;
+            }
+        }
+
+        function validarFormularioChefia() {
+            const selectMod = document.getElementById("edit_modalidade_id");
+            const blocoUploadMod = document.getElementById("bloco_upload_modalidade");
+            const inputArquivoMod = document.getElementById("arquivo_modalidade");
+
+            if (
+                selectMod &&
+                selectMod.value &&
+                selectMod.value !== "8" &&
+                blocoUploadMod &&
+                blocoUploadMod.style.display !== "none"
+            ) {
+                if (!inputArquivoMod || inputArquivoMod.files.length === 0) {
+                    showFeedback(
+                        "error",
+                        "<i class='bi bi-exclamation-triangle me-1'></i> Anexe o PDF do comprovante da situação/licença selecionada."
+                    );
+                    return false;
+                }
+            }
+
+            let cursoSemArquivo = false;
+
+            document.querySelectorAll(".check-curso:checked").forEach(function (checkbox) {
+                if (checkbox.classList.contains("locked-checkbox")) {
+                    return;
                 }
 
-                document.querySelectorAll('.check-curso').forEach(checkbox => {
-                    checkbox.addEventListener('change', function () {
-                        const container = document.getElementById('container_arquivo_' + this.value);
-                        if (container) {
-                            container.style.display = this.checked ? 'block' : 'none';
-                        }
-                    });
-                });
+                const inputFile = document.querySelector(
+                    'input[name="arquivo_curso_' + checkbox.value + '"]'
+                );
 
-                // --- ABERTURA DO MODAL ---
-                $('#militaresTable tbody').on('click', '.btn-editar', function () {
-                    const btn = this;
-
-                    // 1. Limpa rastros do militar anterior
-                    document.querySelectorAll('input[type="file"]').forEach(fileInput => fileInput.value = '');
-                    document.querySelectorAll('.check-curso').forEach(c => {
-                        c.checked = false;
-                        c.readOnly = false;
-                        c.classList.remove('locked-checkbox');
-                        const upBox = document.getElementById('bloco_upload_curso_' + c.value);
-                        const viewBox = document.getElementById('bloco_view_curso_' + c.value);
-                        if (upBox) upBox.style.display = 'block';
-                        if (viewBox) viewBox.style.display = 'none';
-                    });
-
-                    // 2. Preenchimento Base e Armazenamento dos Originais
-                    const hiddenId = document.getElementById('edit_militar_id');
-                    hiddenId.value = btn.dataset.id;
-                    hiddenId.dataset.originalModalidade = btn.dataset.modalidade;
-                    hiddenId.dataset.originalUrl = btn.dataset.comprovanteModalidade;
-
-                    document.getElementById('edit_obm_id').value = btn.dataset.obmId;
-                    document.getElementById('modalNomeMilitar').textContent = btn.dataset.nome;
-                    document.getElementById('edit_inicio_periodo').value = btn.dataset.inicio;
-                    document.getElementById('edit_fim_periodo').value = btn.dataset.fim;
-
-                    // 3. Gatilho de Situação (O change vai verificar a originalidade automaticamente)
-                    selectModalidade.value = btn.dataset.modalidade;
-                    selectModalidade.dispatchEvent(new Event('change'));
-
-                    // 4. Lógica de Lotação
-                    const switchPresente = document.getElementById('edit_presente_na_obm');
-                    const divLocal = document.getElementById('div_local_disposicao');
-                    const inputLocal = document.getElementById('edit_local_disposicao');
-                    switchPresente.checked = (btn.dataset.presente === 'true');
-                    inputLocal.value = btn.dataset.local;
-                    divLocal.style.display = switchPresente.checked ? 'none' : 'block';
-
-                    // 5. Lógica Viatura
-                    document.getElementById('bloco_viatura_diaria').style.display = 'block';
-                    document.getElementById('edit_viatura_diaria_id').value = btn.dataset.viaturaDiaria || "";
-
-                    // 6. Lógica de Especialidades e Trava de Arquivos
-                    const cursosInfo = JSON.parse(btn.dataset.cursosInfo || "[]");
-                    cursosInfo.forEach(curso => {
-                        const checkbox = document.getElementById('curso_' + curso.id);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                            if (curso.url && curso.url !== "None" && curso.url !== "") {
-                                checkbox.readOnly = true;
-                                checkbox.classList.add('locked-checkbox');
-
-                                document.getElementById('bloco_upload_curso_' + curso.id).style.display = 'none';
-                                document.getElementById('bloco_view_curso_' + curso.id).style.display = 'block';
-                                document.getElementById('link_view_curso_' + curso.id).href = curso.url;
-                            }
-                            checkbox.dispatchEvent(new Event('change'));
-                        }
-                    });
-
-                    modalChefia.show();
-                });
-
-                document.getElementById('edit_presente_na_obm').addEventListener('change', function () {
-                    document.getElementById('div_local_disposicao').style.display = this.checked ? 'none' : 'block';
-                });
-
-                document.getElementById('btnSalvarChefia').onclick = function () {
-                    const btn = this;
-
-                    // --- INÍCIO DA VALIDAÇÃO OBRIGATÓRIA NO FRONTEND ---
-
-                    // 1. Valida Licença (Se selecionou algo diferente de "Pronto"/8, arquivo é obrigatório)
-                    const selectMod = document.getElementById('edit_modalidade_id');
-                    const blocoUploadMod = document.getElementById('bloco_upload_modalidade');
-                    const inputArquivoMod = document.getElementById('arquivo_modalidade');
-
-                    if (selectMod.value && selectMod.value !== "8" && blocoUploadMod.style.display !== 'none') {
-                        if (inputArquivoMod.files.length === 0) {
-                            alert("⚠️ Ação bloqueada: É obrigatório anexar o PDF do comprovante para a Situação/Licença selecionada.");
-                            return;
-                        }
-                    }
-
-                    // 2. Valida Especialidades (Se marcou o checkbox e não tá bloqueado, o arquivo é obrigatório)
-                    let erroCurso = false;
-                    document.querySelectorAll('.check-curso:checked').forEach(checkbox => {
-                        if (!checkbox.classList.contains('locked-checkbox')) {
-                            const inputFile = document.querySelector('input[name="arquivo_curso_' + checkbox.value + '"]');
-                            if (inputFile && inputFile.files.length === 0) {
-                                erroCurso = true;
-                            }
-                        }
-                    });
-
-                    if (erroCurso) {
-                        alert("⚠️ Ação bloqueada: É obrigatório anexar os arquivos em PDF para as novas Especialidades selecionadas.");
-                        return;
-                    }
-
-                    // --- FIM DA VALIDAÇÃO OBRIGATÓRIA ---
-
-                    btn.disabled = true;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
-
-                    fetch(`${BASE_URL}/gestao-chefia/update`, {
-                        method: 'POST',
-                        body: new FormData(document.getElementById('formAtualizacaoChefia'))
-                    })
-                        .then(r => r.json())
-                        .then(data => {
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
-                            if (data.status === 'success') {
-                                bootstrap.Modal.getInstance(document.getElementById('modalEdicaoChefia')).hide();
-                                document.getElementById('obmSelect').dispatchEvent(new Event('change'));
-                            } else {
-                                alert(data.message);
-                            }
-                        })
-                        .catch(err => {
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
-                            alert("Erro de comunicação com o servidor.");
-                        });
-                };
+                if (inputFile && inputFile.files.length === 0) {
+                    cursoSemArquivo = true;
+                }
             });
+
+            if (cursoSemArquivo) {
+                showFeedback(
+                    "error",
+                    "<i class='bi bi-exclamation-triangle me-1'></i> Anexe os PDFs das novas especialidades selecionadas."
+                );
+                return false;
+            }
+
+            return true;
+        }
+
+        function salvarAtualizacaoChefia() {
+            if (!validarFormularioChefia()) {
+                return;
+            }
+
+            const button = document.getElementById("btnSalvarChefia");
+            const form = document.getElementById("formAtualizacaoChefia");
+
+            if (!button || !form) {
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = `
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                Salvando...
+            `;
+
+            fetch(`${BASE_URL}/gestao-chefia/update`, {
+                method: "POST",
+                body: new FormData(form)
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
+
+                    if (data.status === "success") {
+                        bootstrap.Modal.getInstance(document.getElementById("modalEdicaoChefia"))?.hide();
+
+                        showFeedback(
+                            "success",
+                            "<i class='bi bi-check-circle me-1'></i> " + (data.message || "Mapa da força atualizado.")
+                        );
+
+                        loadTabela();
+                    } else {
+                        showFeedback(
+                            "error",
+                            "<i class='bi bi-exclamation-triangle me-1'></i> " + (data.message || "Erro ao salvar.")
+                        );
+                    }
+                })
+                .catch(function () {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-save me-1"></i> Salvar Mapa da Força';
+
+                    showFeedback(
+                        "error",
+                        "<i class='bi bi-wifi-off me-1'></i> Erro de comunicação com o servidor."
+                    );
+                });
+        }
+
+        function loadTabela() {
+            const obmId = obmSelect.value;
+
+            destroyDataTable();
+
+            if (!obmId) {
+                searchInput.disabled = true;
+                reloadButton.disabled = true;
+                setEmptyState("Selecione uma OBM acima para carregar o efetivo.");
+                return;
+            }
+
+            reloadButton.disabled = false;
+            searchInput.disabled = true;
+            setLoading();
+
+            fetch(`${BASE_URL}/gestao-chefia/tabela/${obmId}`)
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.text().then(function (text) {
+                            throw new Error(text || "Erro ao carregar tabela.");
+                        });
+                    }
+
+                    return response.text();
+                })
+                .then(function (html) {
+                    tabelaContainer.innerHTML = html;
+
+                    initDataTable();
+                    bindPartialHandlers();
+                    resetSearch();
+                })
+                .catch(function (error) {
+                    tabelaContainer.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            ${error.message || "Erro ao carregar o efetivo da OBM."}
+                        </div>
+                    `;
+                });
+        }
+
+        obmSelect.addEventListener("change", loadTabela);
+        reloadButton.addEventListener("click", loadTabela);
+
+        searchInput.addEventListener("input", function () {
+            const term = this.value || "";
+
+            if (dataTable) {
+                dataTable.search(term).draw();
+            }
+
+            filterMobileCards(term);
+        });
     });
 </script>
 {% endblock %}

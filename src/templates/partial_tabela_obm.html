@@ -1,263 +1,694 @@
 {% set max_iso = ano ~ "-12-31" %}
+
 <style>
-    .card-obm {
-        background: #ffffff;
-        border-radius: 12px;
+    /* ==========================================================================
+       PAF — TABELA DINÂMICA POR OBM
+       Este partial mantém todos os IDs/classes necessários ao JS existente.
+       ========================================================================== */
+
+    .paf-obm-card {
         overflow: hidden;
+        border: 1px solid var(--app-border);
+        border-radius: 18px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
     }
 
-    .titulo-obm {
-        background: #f8fafc;
-        border-bottom: 2px solid #e2e8f0;
-        padding: 16px 20px;
+    .paf-obm-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--app-border);
+        background: var(--app-surface-soft);
     }
 
-    .table-wrap {
-        padding: 0;
+    .paf-obm-title-area {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+        min-width: 0;
     }
 
-    .table {
-        margin-bottom: 0;
+    .paf-obm-icon {
+        display: grid;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid color-mix(in srgb, var(--app-primary) 20%, var(--app-border));
+        border-radius: 13px;
+        color: var(--app-primary);
+        font-size: 1.1rem;
+        background: color-mix(in srgb, var(--app-primary) 9%, var(--app-surface));
     }
 
-    .table th {
-        font-size: 0.8rem;
-        color: #475569;
-        background-color: #f1f5f9 !important;
+    .paf-obm-eyebrow {
+        display: block;
+        margin-bottom: .18rem;
+        color: var(--app-muted);
+        font-size: .67rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
     }
 
-    .table td {
-        font-size: 0.85rem;
-        color: #1e293b;
-        vertical-align: middle;
+    .paf-obm-title {
+        margin: 0;
+        color: var(--app-text);
+        font-size: 1.08rem;
+        font-weight: 850;
+        line-height: 1.2;
     }
 
-    .table>tbody>tr.table-danger>td {
-        background-color: #fee2e2 !important;
-        border-color: #fca5a5 !important;
+    .paf-obm-subtitle {
+        margin-top: .18rem;
+        color: var(--app-muted);
+        font-size: .78rem;
+        line-height: 1.35;
     }
 
-    .table>tbody>tr.table-danger:hover>td {
-        background-color: #fecaca !important;
-    }
-
-    .nowrap {
+    .paf-export-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 40px;
+        padding: 0 .85rem;
+        border-radius: 10px;
+        font-size: .8rem;
+        font-weight: 800;
         white-space: nowrap;
     }
 
-    .min-col {
-        width: 110px;
+    .paf-table-guide {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        padding: .75rem 1.1rem;
+        border-bottom: 1px solid var(--app-border);
+        color: var(--app-muted);
+        font-size: .78rem;
+        background: color-mix(in srgb, var(--app-surface-soft) 82%, var(--app-surface));
     }
 
-    .min-col-sm {
-        width: 100px;
+    .paf-table-guide i {
+        color: var(--app-primary);
+        font-size: 1rem;
     }
 
-    .form-select-sm,
-    .form-control-sm {
-        border-radius: 6px;
-        border: 1px solid #cbd5e1;
-        font-weight: 500;
+    .paf-table-scroll {
+        overflow-x: auto;
     }
 
-    .form-select-sm:focus,
-    .form-control-sm:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    .paf-table {
+        --bs-table-color: var(--app-text);
+        --bs-table-bg: transparent;
+        --bs-table-striped-color: var(--app-text);
+        --bs-table-striped-bg: rgba(127, 155, 180, .06);
+        --bs-table-hover-color: var(--app-text);
+        --bs-table-hover-bg: var(--app-table-row-hover);
+        --bs-table-border-color: var(--app-border);
+
+        margin-bottom: 0;
+    }
+
+    .paf-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        padding: .78rem .7rem;
+        border-bottom: 1px solid var(--app-border);
+        color: var(--app-text);
+        font-size: .69rem;
+        font-weight: 850;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        background: var(--app-table-head);
+    }
+
+    .paf-table tbody td {
+        padding: .72rem .7rem;
+        color: var(--app-text);
+        font-size: .82rem;
+        vertical-align: middle;
+    }
+
+    .paf-table>tbody>tr.table-danger>td {
+        border-color: #efb3b9 !important;
+        background-color: #fff0f1 !important;
+    }
+
+    .paf-table>tbody>tr.table-danger:hover>td {
+        background-color: #ffe3e6 !important;
+    }
+
+    html[data-theme="dark"] .paf-table>tbody>tr.table-danger>td {
+        border-color: #743d46 !important;
+        background-color: #441d25 !important;
+    }
+
+    html[data-theme="dark"] .paf-table>tbody>tr.table-danger:hover>td {
+        background-color: #51232d !important;
+    }
+
+    .paf-nowrap {
+        white-space: nowrap;
+    }
+
+    .paf-rank {
+        color: var(--app-muted);
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .paf-military-name {
+        color: var(--app-text);
+        font-weight: 850;
+        line-height: 1.35;
+    }
+
+    .paf-matricula {
+        color: var(--app-muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .paf-quadro {
+        display: inline-flex;
+        align-items: center;
+        padding: .25rem .5rem;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        color: var(--app-muted);
+        font-size: .72rem;
+        font-weight: 800;
+        background: var(--app-surface-soft);
+        white-space: nowrap;
+    }
+
+    .paf-exception-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .35rem;
+        padding: .28rem .48rem;
+        border: 1px solid #eccd7d;
+        border-radius: 999px;
+        color: #8a5b00;
+        font-size: .67rem;
+        font-weight: 800;
+        background: #fff5df;
+    }
+
+    html[data-theme="dark"] .paf-exception-badge {
+        border-color: #725826;
+        color: #f3c46b;
+        background: #3b2d10;
+    }
+
+    .paf-table .form-select-sm,
+    .paf-table .form-control-sm {
+        min-height: 34px;
+        min-width: 86px;
+        border-color: var(--app-border);
+        border-radius: 8px;
+        color: var(--app-text);
+        font-size: .78rem;
+        font-weight: 700;
+        background: var(--app-surface);
+    }
+
+    .paf-table .form-select-sm:focus,
+    .paf-table .form-control-sm:focus {
+        border-color: var(--app-primary);
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: 0 0 0 .15rem color-mix(in srgb, var(--app-primary) 16%, transparent);
+    }
+
+    .paf-readonly-date {
+        color: var(--app-muted) !important;
+        font-weight: 800 !important;
+        background: var(--app-surface-soft) !important;
+    }
+
+    .paf-action-cell {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        min-width: 150px;
+        border-left: 1px solid var(--app-border);
+        background: var(--app-surface);
+    }
+
+    .paf-table>tbody>tr.table-danger .paf-action-cell {
+        background: #fff0f1;
+    }
+
+    html[data-theme="dark"] .paf-table>tbody>tr.table-danger .paf-action-cell {
+        background: #441d25;
+    }
+
+    .paf-switch-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: .65rem;
+    }
+
+    .paf-switch-wrap .form-check-input {
+        width: 2.35em;
+        height: 1.18em;
+        cursor: pointer;
+    }
+
+    .paf-switch-wrap .form-check-input:checked {
+        border-color: #c98300;
+        background-color: #d99b00;
+    }
+
+    .paf-switch-label {
+        color: var(--app-muted);
+        font-size: .72rem;
+        font-weight: 750;
+        cursor: pointer;
     }
 
     .btn-salvar {
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 6px 16px;
-        border-radius: 6px;
-        transition: all 0.2s;
+        min-height: 36px;
+        border-radius: 9px;
+        font-size: .76rem;
+        font-weight: 850;
+        transition: transform .18s ease, box-shadow .18s ease;
     }
 
     .btn-salvar:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 14px rgba(22, 123, 72, .18);
     }
 
-    .last-update {
-        font-size: 0.72rem;
-        color: #475569;
-        margin-top: 8px;
-        line-height: 1.3;
+    .paf-last-update {
+        margin-top: .6rem;
+        padding: .48rem;
+        border: 1px dashed var(--app-border);
+        border-radius: 8px;
+        color: var(--app-muted);
+        font-size: .67rem;
+        line-height: 1.35;
         text-align: center;
-        background: #f8fafc;
-        padding: 4px;
-        border-radius: 6px;
-        border: 1px dashed #cbd5e1;
+        background: var(--app-surface-soft);
     }
 
-    .last-update-name {
-        font-weight: 700;
-        color: #0f172a;
+    .paf-last-update-name {
+        display: block;
+        overflow: hidden;
+        color: var(--app-text);
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .paf-last-update-name i {
+        color: var(--app-primary);
+    }
+
+    @media (max-width: 767.98px) {
+        .paf-obm-header {
+            align-items: stretch;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        .paf-export-btn {
+            width: 100%;
+        }
+
+        .paf-table-guide {
+            align-items: flex-start;
+            padding: .8rem 1rem;
+        }
+
+        /* Mantém os mesmos inputs e nomes usados pelo JS,
+           apenas transforma cada linha em card no mobile. */
+        #militaresTable_wrapper .dataTables_scrollHead,
+        #militaresTable_wrapper .dataTables_scrollFoot {
+            display: none !important;
+        }
+
+        #militaresTable_wrapper .dataTables_scroll,
+        #militaresTable_wrapper .dataTables_scrollBody {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .paf-table-scroll {
+            overflow: visible;
+        }
+
+        .paf-table,
+        .paf-table tbody,
+        .paf-table tr,
+        .paf-table td {
+            display: block;
+            width: 100% !important;
+        }
+
+        .paf-table thead {
+            display: none;
+        }
+
+        .paf-table tbody tr {
+            overflow: hidden;
+            margin: .75rem;
+            border: 1px solid var(--app-border);
+            border-radius: 14px;
+            background: var(--app-surface);
+            box-shadow: 0 5px 14px rgba(16, 59, 91, .05);
+        }
+
+        .paf-table tbody tr.table-danger {
+            border-color: #efb3b9;
+        }
+
+        html[data-theme="dark"] .paf-table tbody tr.table-danger {
+            border-color: #743d46;
+        }
+
+        .paf-table tbody td {
+            display: grid;
+            grid-template-columns: 118px minmax(0, 1fr);
+            gap: .7rem;
+            padding: .72rem .8rem;
+            border: 0;
+            border-bottom: 1px solid var(--app-border);
+            text-align: left !important;
+            white-space: normal !important;
+        }
+
+        .paf-table tbody td::before {
+            align-self: center;
+            color: var(--app-muted);
+            content: attr(data-label);
+            font-size: .66rem;
+            font-weight: 850;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .paf-table tbody td.paf-name-cell {
+            display: block;
+            padding: .9rem .85rem;
+            background: var(--app-surface-soft);
+        }
+
+        .paf-table tbody td.paf-name-cell::before {
+            display: none;
+        }
+
+        .paf-table tbody td.paf-action-cell {
+            position: static;
+            display: block;
+            padding: .9rem .85rem;
+            border-bottom: 0;
+            background: var(--app-surface-soft);
+        }
+
+        .paf-table tbody td.paf-action-cell::before {
+            display: none;
+        }
+
+        .paf-table tbody td.paf-action-cell .btn-salvar {
+            width: 100%;
+        }
+
+        .paf-table tbody td .form-select-sm,
+        .paf-table tbody td .form-control-sm {
+            width: 100%;
+        }
+
+        .paf-switch-wrap {
+            justify-content: flex-start;
+        }
+
+        .paf-last-update {
+            text-align: left;
+        }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            float: none;
+            margin: .75rem;
+            text-align: center;
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            width: min(100%, 260px);
+        }
     }
 </style>
 
-<div class="card-obm">
-    <div class="titulo-obm d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center">
-            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 me-3">
-                <i class="bi bi-building fs-4"></i>
+<div class="paf-obm-card">
+    <div class="paf-obm-header">
+        <div class="paf-obm-title-area">
+            <div class="paf-obm-icon">
+                <i class="bi bi-building"></i>
             </div>
+
             <div>
-                <span class="d-block small text-muted fw-bold mb-1">GRADE OPERACIONAL</span>
-                <span class="fw-bolder fs-5 text-dark text-uppercase">{{ obm.sigla }}</span>
+                <span class="paf-obm-eyebrow">Planejamento anual de férias</span>
+
+                <h2 class="paf-obm-title">
+                    {{ obm.sigla }}
+                </h2>
+
+                <div class="paf-obm-subtitle">
+                    Ajuste os períodos, valide as regras e salve cada militar individualmente.
+                </div>
             </div>
         </div>
 
-        <div class="d-flex gap-2">
-            <a class="btn btn-primary fw-semibold rounded-pill px-4"
-                href="{{ url_for('exportar_pafs_obm', obm_id=obm.id) }}?ano={{ ano }}">
-                <i class="bi bi-file-earmark-excel-fill me-2"></i> Baixar Relatório (Excel)
-            </a>
-        </div>
+        <a class="btn btn-primary paf-export-btn"
+            href="{{ url_for('exportar_pafs_obm', obm_id=obm.id) }}?ano={{ ano }}">
+            <i class="bi bi-file-earmark-excel-fill"></i>
+            Exportar Excel
+        </a>
     </div>
 
-    <div class="table-responsive">
-        <table id="militaresTable" class="table table-hover align-middle mb-0">
+    <div class="paf-table-guide">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>
+            A grade aceita edição por militar. Linhas em vermelho indicam inconsistência em períodos ou saldo de férias.
+        </span>
+    </div>
+
+    <div class="paf-table-scroll">
+        <table id="militaresTable" class="table table-hover table-striped align-middle paf-table">
             <thead>
                 <tr>
-                    <th class="nowrap">Posto/Grad</th>
-                    <th>Nome do Militar</th>
-                    <th class="nowrap">Matrícula</th>
+                    <th>Posto/Grad</th>
+                    <th>Militar</th>
+                    <th>Matrícula</th>
                     <th>Quadro</th>
-                    <th class="nowrap">Mês Ref.</th>
-                    <th class="nowrap min-col">Qtd 1º</th>
-                    <th class="nowrap min-col-sm">Início 1º</th>
-                    <th class="nowrap min-col-sm">Fim 1º</th>
-                    <th class="nowrap min-col">Qtd 2º</th>
-                    <th class="nowrap min-col-sm">Início 2º</th>
-                    <th class="nowrap min-col-sm">Fim 2º</th>
-                    <th class="nowrap min-col">Qtd 3º</th>
-                    <th class="nowrap min-col-sm">Início 3º</th>
-                    <th class="nowrap min-col-sm">Fim 3º</th>
-                    <th class="nowrap text-center">Status / Ação</th>
+                    <th>Mês ref.</th>
+                    <th>Qtd. 1º</th>
+                    <th>Início 1º</th>
+                    <th>Fim 1º</th>
+                    <th>Qtd. 2º</th>
+                    <th>Início 2º</th>
+                    <th>Fim 2º</th>
+                    <th>Qtd. 3º</th>
+                    <th>Início 3º</th>
+                    <th>Fim 3º</th>
+                    <th class="text-center">Status e ação</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for militar, paf in militares_pafs %}
-                {% set pode_ter_40 = militar.obm_funcoes | selectattr('obm_id','equalto',48) |
-                selectattr('data_fim','equalto',none) | list | length > 0 and militar.especialidade_id == 12 %}
+                {% set pode_ter_40 = militar.obm_funcoes
+                | selectattr('obm_id', 'equalto', 48)
+                | selectattr('data_fim', 'equalto', none)
+                | list
+                | length > 0
+                and militar.especialidade_id == 12
+                %}
 
                 <tr id="militar-{{ militar.id }}" data-militar-id="{{ militar.id }}"
                     data-pode-ter-40="{{ 'true' if pode_ter_40 else 'false' }}"
                     data-excecao="{{ 'true' if paf and paf.excecao_virada_ano else 'false' }}">
 
-                    <td class="nowrap fw-semibold text-secondary">{{ militar.posto_grad.sigla }}</td>
-                    <td class="fw-bold text-dark">{{ militar.nome_completo }}</td>
-                    <td class="nowrap font-monospace text-muted">{{ militar.matricula }}</td>
-                    <td><span class="badge bg-light text-dark border">{{ militar.quadro.quadro }}</span></td>
+                    <td data-label="Posto/Grad" class="paf-nowrap paf-rank">
+                        {{ militar.posto_grad.sigla if militar.posto_grad else '—' }}
+                    </td>
 
-                    <td class="nowrap">
+                    <td data-label="Militar" class="paf-name-cell">
+                        <div class="paf-military-name">
+                            {{ militar.nome_completo }}
+                        </div>
+
+                        <div class="paf-matricula mt-1">
+                            {{ militar.nome_guerra or 'Sem nome de guerra' }}
+                        </div>
+
+                        {% if pode_ter_40 %}
+                        <span class="paf-exception-badge">
+                            <i class="bi bi-star-fill"></i>
+                            Direito a 40 dias
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <td data-label="Matrícula" class="paf-nowrap paf-matricula">
+                        {{ militar.matricula or '—' }}
+                    </td>
+
+                    <td data-label="Quadro">
+                        <span class="paf-quadro">
+                            {{ militar.quadro.quadro if militar.quadro else '—' }}
+                        </span>
+                    </td>
+
+                    <td data-label="Mês referência" class="paf-nowrap">
                         {% set mes_paf = meses.get(paf.mes_usufruto) if paf and paf.mes_usufruto else None %}
-                        {% set mes_paf_bloqueado = (bloqueio_mes_atual and ((ano < min_year) or (ano==min_year and
-                            mes_paf and mes_paf < min_month))) %} <select name="mes_usufruto_{{ militar.id }}"
-                            class="form-select form-select-sm" {% if mes_paf_bloqueado %}disabled{% endif %}>
-                            <option value="">Sel...</option>
+                        {% set mes_paf_bloqueado = (
+                        bloqueio_mes_atual
+                        and (
+                        (ano < min_year) or (ano==min_year and mes_paf and mes_paf < min_month) ) ) %} <select
+                            name="mes_usufruto_{{ militar.id }}" class="form-select form-select-sm" {% if
+                            mes_paf_bloqueado %}disabled{% endif %}>
+                            <option value="">Selecione...</option>
+
                             {% for mes in meses.keys() %}
                             {% set mes_num = meses[mes] %}
-                            {% set bloqueado = (bloqueio_mes_atual and ((ano < min_year) or (ano==min_year and mes_num <
-                                min_month))) %} <option value="{{ mes }}" {% if paf and paf.mes_usufruto==mes
-                                %}selected{% endif %} {% if bloqueado %}disabled{% endif %}>
+                            {% set bloqueado = (
+                            bloqueio_mes_atual
+                            and (
+                            (ano < min_year) or (ano==min_year and mes_num < min_month) ) ) %} <option value="{{ mes }}"
+                                {% if paf and paf.mes_usufruto==mes %}selected{% endif %} {% if bloqueado %}disabled{%
+                                endif %}>
                                 {{ mes }}
                                 </option>
                                 {% endfor %}
                                 </select>
                     </td>
 
-                    <td class="nowrap">
+                    <td data-label="Quantidade 1º" class="paf-nowrap">
                         <select name="qtd_dias_1_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
                             data-period="1">
                             <option value="">---</option>
-                            {% set opcoes = [10,20,30] if pode_ter_40 else [10,15,20,30] %}
+
+                            {% set opcoes = [10, 20, 30] if pode_ter_40 else [10, 15, 20, 30] %}
+
                             {% for dias in opcoes %}
                             <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias %}selected{%
-                                endif %}>{{ dias }}</option>
+                                endif %}>
+                                {{ dias }}
+                            </option>
                             {% endfor %}
                         </select>
                     </td>
-                    <td class="nowrap">
+
+                    <td data-label="Início 1º" class="paf-nowrap">
                         <input type="date" name="inicio_1_{{ militar.id }}"
                             class="form-control form-control-sm inicio-periodo"
-                            value="{{ paf.primeiro_periodo_ferias if paf }}" min="{{ min_iso }}">
-                    </td>
-                    <td class="nowrap">
-                        <input type="date" name="fim_1_{{ militar.id }}" class="form-control form-control-sm bg-light"
-                            value="{{ paf.fim_primeiro_periodo if paf }}" readonly>
+                            value="{{ paf.primeiro_periodo_ferias if paf else '' }}" min="{{ min_iso }}">
                     </td>
 
-                    <td class="nowrap">
+                    <td data-label="Fim 1º" class="paf-nowrap">
+                        <input type="date" name="fim_1_{{ militar.id }}"
+                            class="form-control form-control-sm paf-readonly-date"
+                            value="{{ paf.fim_primeiro_periodo if paf else '' }}" readonly>
+                    </td>
+
+                    <td data-label="Quantidade 2º" class="paf-nowrap">
                         <select name="qtd_dias_2_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
                             data-period="2">
                             <option value="">---</option>
-                            <option value="10" {% if paf and paf.qtd_dias_segundo_periodo==10 %}selected{% endif %}>10
+                            <option value="10" {% if paf and paf.qtd_dias_segundo_periodo==10 %}selected{% endif %}>
+                                10
                             </option>
-                            <option value="15" {% if paf and paf.qtd_dias_segundo_periodo==15 %}selected{% endif %}>15
+                            <option value="15" {% if paf and paf.qtd_dias_segundo_periodo==15 %}selected{% endif %}>
+                                15
                             </option>
-                            <option value="20" {% if paf and paf.qtd_dias_segundo_periodo==20 %}selected{% endif %}>20
+                            <option value="20" {% if paf and paf.qtd_dias_segundo_periodo==20 %}selected{% endif %}>
+                                20
                             </option>
                         </select>
                     </td>
-                    <td class="nowrap">
+
+                    <td data-label="Início 2º" class="paf-nowrap">
                         <input type="date" name="inicio_2_{{ militar.id }}" class="form-control form-control-sm"
-                            value="{{ paf.segundo_periodo_ferias if paf }}" min="{{ min_iso }}">
-                    </td>
-                    <td class="nowrap">
-                        <input type="date" name="fim_2_{{ militar.id }}" class="form-control form-control-sm bg-light"
-                            value="{{ paf.fim_segundo_periodo if paf }}" readonly>
+                            value="{{ paf.segundo_periodo_ferias if paf else '' }}" min="{{ min_iso }}">
                     </td>
 
-                    <td class="nowrap">
+                    <td data-label="Fim 2º" class="paf-nowrap">
+                        <input type="date" name="fim_2_{{ militar.id }}"
+                            class="form-control form-control-sm paf-readonly-date"
+                            value="{{ paf.fim_segundo_periodo if paf else '' }}" readonly>
+                    </td>
+
+                    <td data-label="Quantidade 3º" class="paf-nowrap">
                         <select name="qtd_dias_3_{{ militar.id }}" class="form-select form-select-sm qtd-dias"
                             data-period="3">
                             <option value="">---</option>
-                            <option value="10" {% if paf and paf.qtd_dias_terceiro_periodo==10 %}selected{% endif %}>10
+                            <option value="10" {% if paf and paf.qtd_dias_terceiro_periodo==10 %}selected{% endif %}>
+                                10
                             </option>
                         </select>
                     </td>
-                    <td class="nowrap">
+
+                    <td data-label="Início 3º" class="paf-nowrap">
                         <input type="date" name="inicio_3_{{ militar.id }}" class="form-control form-control-sm"
-                            value="{{ paf.terceiro_periodo_ferias if paf }}" min="{{ min_iso }}">
-                    </td>
-                    <td class="nowrap">
-                        <input type="date" name="fim_3_{{ militar.id }}" class="form-control form-control-sm bg-light"
-                            value="{{ paf.fim_terceiro_periodo if paf }}" readonly>
+                            value="{{ paf.terceiro_periodo_ferias if paf else '' }}" min="{{ min_iso }}">
                     </td>
 
-                    <td class="text-center bg-white border-start px-3"
-                        style="position: sticky; right: 0; z-index: 1; min-width: 140px;">
+                    <td data-label="Fim 3º" class="paf-nowrap">
+                        <input type="date" name="fim_3_{{ militar.id }}"
+                            class="form-control form-control-sm paf-readonly-date"
+                            value="{{ paf.fim_terceiro_periodo if paf else '' }}" readonly>
+                    </td>
 
-                        <div class="form-check form-switch mb-2 d-flex justify-content-center"
-                            title="Marcar como exceção (Cruzar de Ano)">
-                            <input class="form-check-input toggle-excecao border-secondary" type="checkbox"
-                                role="switch" id="exc_{{ militar.id }}" data-militar-id="{{ militar.id }}" {% if paf and
-                                paf.excecao_virada_ano %}checked{% endif %}>
-                            <label class="form-check-label small ms-2 fw-medium text-secondary"
-                                for="exc_{{ militar.id }}">Exceção</label>
+                    <td data-label="Status e ação" class="paf-action-cell">
+                        <div class="paf-switch-wrap" title="Marcar como exceção para cruzar de ano">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input toggle-excecao" type="checkbox" role="switch"
+                                    id="exc_{{ militar.id }}" data-militar-id="{{ militar.id }}" {% if paf and
+                                    paf.excecao_virada_ano %}checked{% endif %}>
+
+                                <label class="form-check-label paf-switch-label ms-2" for="exc_{{ militar.id }}">
+                                    Exceção
+                                </label>
+                            </div>
                         </div>
 
-                        {% set is_exception = (paf and paf.excecao_virada_ano) %}
-                        {% set btn_disabled = (is_exception and not is_super) %}
+                        {% set is_exception = paf and paf.excecao_virada_ano %}
+                        {% set btn_disabled = is_exception and not is_super %}
 
-                        <button class="botao-salvar btn btn-success btn-salvar w-100 shadow-sm"
-                            data-militar-id="{{ militar.id }}" {% if btn_disabled %}disabled
-                            title="Bloqueado: Apenas o Super User pode salvar férias de exceção" {% endif %}>
-                            <i class="bi bi-floppy-fill me-1"></i> Salvar
+                        <button class="botao-salvar btn btn-success btn-salvar w-100" data-militar-id="{{ militar.id }}"
+                            {% if btn_disabled %} disabled
+                            title="Bloqueado: apenas Super User pode salvar férias de exceção" {% endif %}>
+                            <i class="bi bi-floppy-fill me-1"></i>
+                            Salvar
                         </button>
 
                         {% if paf and paf.data_alteracao %}
-                        <div class="last-update">
-                            <div class="last-update-name text-truncate" style="max-width: 120px;"
-                                title="{{ paf.usuario.nome }}">
-                                <i class="bi bi-person-fill text-primary"></i> {{ paf.usuario.nome }}
-                            </div>
-                            <div class="mt-1 text-muted">
-                                <i class="bi bi-clock-history"></i> {{ paf.data_alteracao.strftime('%d/%m/%Y %H:%M') }}
-                            </div>
+                        <div class="paf-last-update">
+                            <span class="paf-last-update-name" title="{{ paf.usuario.nome if paf.usuario else '' }}">
+                                <i class="bi bi-person-fill me-1"></i>
+                                {{ paf.usuario.nome if paf.usuario else 'Usuário não identificado' }}
+                            </span>
+
+                            <span class="d-block mt-1">
+                                <i class="bi bi-clock-history me-1"></i>
+                                {{ paf.data_alteracao.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
                         </div>
                         {% endif %}
                     </td>
