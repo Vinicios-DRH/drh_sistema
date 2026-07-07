@@ -3183,6 +3183,7 @@ def status_documento(doc_id):
 
 def build_tabela_militares_query():
     vals = request.values  # funciona com args e form
+
     search = vals.get('search', '', type=str).strip()
     sexo_filtro = vals.get('sexo', '', type=str).strip().upper()
 
@@ -3193,6 +3194,14 @@ def build_tabela_militares_query():
     especialidade_ids = vals.getlist('especialidade_ids', type=int)
     localidade_ids = vals.getlist('localidade_ids', type=int)
     modalidade_ids = vals.getlist('modalidade_ids', type=int)
+
+    # CORREÇÃO: lê o filtro de destino enviado pelo front-end.
+    destino_ids = vals.getlist('destino_ids', type=int)
+
+    # Proteção extra: o campo WTForms se chama destino_id.
+    # Assim funciona mesmo se alguma tela enviar destino_id em vez de destino_ids.
+    if not destino_ids:
+        destino_ids = vals.getlist('destino_id', type=int)
 
     query = Militar.query.options(
         joinedload(Militar.posto_grad),
@@ -3205,23 +3214,45 @@ def build_tabela_militares_query():
         joinedload(Militar.obm_funcoes).joinedload(MilitarObmFuncao.funcao),
     ).filter(Militar.inativo.is_(False))
 
-    # busca atual da tabela
     if search:
-        query = query.filter(Militar.nome_completo.ilike(f"%{search}%"))
+        query = query.filter(
+            Militar.nome_completo.ilike(f"%{search}%")
+        )
 
-    # filtros FK diretos
+    # Filtros FK diretos
     if posto_grad_ids:
-        query = query.filter(Militar.posto_grad_id.in_(posto_grad_ids))
-    if quadro_ids:
-        query = query.filter(Militar.quadro_id.in_(quadro_ids))
-    if especialidade_ids:
-        query = query.filter(Militar.especialidade_id.in_(especialidade_ids))
-    if localidade_ids:
-        query = query.filter(Militar.localidade_id.in_(localidade_ids))
-    if modalidade_ids:
-        query = query.filter(Militar.modalidade_id.in_(modalidade_ids))
+        query = query.filter(
+            Militar.posto_grad_id.in_(posto_grad_ids)
+        )
 
-    # filtros de OBM/Função ativas
+    if quadro_ids:
+        query = query.filter(
+            Militar.quadro_id.in_(quadro_ids)
+        )
+
+    if especialidade_ids:
+        query = query.filter(
+            Militar.especialidade_id.in_(especialidade_ids)
+        )
+
+    if localidade_ids:
+        query = query.filter(
+            Militar.localidade_id.in_(localidade_ids)
+        )
+
+    if modalidade_ids:
+        query = query.filter(
+            Militar.modalidade_id.in_(modalidade_ids)
+        )
+
+    # CORREÇÃO PRINCIPAL:
+    # destino agora entra no mesmo WHERE dos demais filtros.
+    if destino_ids:
+        query = query.filter(
+            Militar.destino_id.in_(destino_ids)
+        )
+
+    # Filtros de OBM/Função ativas
     if obm_ids or funcao_ids:
         mo = (
             database.session.query(MilitarObmFuncao.militar_id)
@@ -3229,12 +3260,20 @@ def build_tabela_militares_query():
         )
 
         if obm_ids:
-            mo = mo.filter(MilitarObmFuncao.obm_id.in_(obm_ids))
+            mo = mo.filter(
+                MilitarObmFuncao.obm_id.in_(obm_ids)
+            )
+
         if funcao_ids:
-            mo = mo.filter(MilitarObmFuncao.funcao_id.in_(funcao_ids))
+            mo = mo.filter(
+                MilitarObmFuncao.funcao_id.in_(funcao_ids)
+            )
 
         mo = mo.distinct()
-        query = query.filter(Militar.id.in_(mo))
+
+        query = query.filter(
+            Militar.id.in_(mo)
+        )
 
     sexo_norm = func.lower(func.trim(Militar.sexo))
 
@@ -3243,6 +3282,7 @@ def build_tabela_militares_query():
             Militar.sexo.isnot(None),
             sexo_norm.like('m%')
         )
+
     elif sexo_filtro == 'F':
         query = query.filter(
             Militar.sexo.isnot(None),
