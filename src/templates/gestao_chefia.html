@@ -191,6 +191,53 @@
         font-weight: 700;
     }
 
+    /* ==========================================================================
+   FEEDBACK DENTRO DO MODAL
+   ========================================================================== */
+
+    .gc-modal-feedback {
+        display: none;
+        align-items: center;
+        gap: .55rem;
+
+        margin: .9rem 1rem 0;
+        padding: .8rem .95rem;
+
+        border-radius: 12px;
+
+        font-size: .86rem;
+        font-weight: 750;
+        line-height: 1.4;
+    }
+
+    .gc-modal-feedback.show {
+        display: flex;
+    }
+
+    .gc-modal-feedback.success {
+        border: 1px solid #bce6cb;
+        color: #14804a;
+        background: #e9f8ef;
+    }
+
+    .gc-modal-feedback.error {
+        border: 1px solid #f2bfc3;
+        color: #b4232d;
+        background: #fff0f1;
+    }
+
+    html[data-theme="dark"] .gc-modal-feedback.success {
+        border-color: #2c704a;
+        color: #75dda1;
+        background: #143b2a;
+    }
+
+    html[data-theme="dark"] .gc-modal-feedback.error {
+        border-color: #743d46;
+        color: #ffa2aa;
+        background: #441d25;
+    }
+
     .gc-feedback.show {
         display: block;
     }
@@ -747,17 +794,35 @@
         let dataTable = null;
         let modalChefia = null;
 
-        function showFeedback(type, message) {
-            if (!feedback) return;
+        function showFeedback(type, message, destino = "auto") {
+            const modalElement = document.getElementById("modalEdicaoChefia");
+            const modalAberto = modalElement && modalElement.classList.contains("show");
 
-            feedback.className = "gc-feedback show " + type;
-            feedback.innerHTML = message;
+            const usarModal =
+                destino === "modal" ||
+                (destino === "auto" && modalAberto);
 
-            window.clearTimeout(showFeedback.timer);
-            showFeedback.timer = window.setTimeout(function () {
-                feedback.className = "gc-feedback";
-                feedback.innerHTML = "";
-            }, 4500);
+            const alvo = usarModal
+                ? document.getElementById("gcModalFeedback")
+                : feedback;
+
+            if (!alvo) {
+                return;
+            }
+
+            const classeBase = usarModal
+                ? "gc-modal-feedback"
+                : "gc-feedback";
+
+            alvo.className = classeBase + " show " + type;
+            alvo.innerHTML = message;
+
+            window.clearTimeout(alvo._feedbackTimer);
+
+            alvo._feedbackTimer = window.setTimeout(function () {
+                alvo.className = classeBase;
+                alvo.innerHTML = "";
+            }, 6000);
         }
 
         function setEmptyState(message) {
@@ -923,6 +988,12 @@
             document.querySelectorAll(".btn-editar").forEach(function (button) {
                 button.addEventListener("click", function () {
                     clearModalFilesAndCourses();
+                    const modalFeedback = document.getElementById("gcModalFeedback");
+
+                    if (modalFeedback) {
+                        modalFeedback.className = "gc-modal-feedback";
+                        modalFeedback.innerHTML = "";
+                    }
 
                     const hiddenId = document.getElementById("edit_militar_id");
 
@@ -1086,7 +1157,8 @@
 
                         showFeedback(
                             "success",
-                            "<i class='bi bi-check-circle me-1'></i> " + (data.message || "Mapa da força atualizado.")
+                            "<i class='bi bi-check-circle me-1'></i> " + (data.message || "Mapa da força atualizado."),
+                            "page"
                         );
 
                         loadTabela();
