@@ -1,62 +1,113 @@
 {% extends 'base.html' %}
 
-{% macro render_field(field, col='col-md-4', input_class='form-control', extra_class='', placeholder='') %}
+{# ==========================================================================
+MACROS
+========================================================================== #}
+
+{% macro render_field(field, col='col-md-4', extra_class='', placeholder='', readonly=False) %}
 <div class="{{ col }}">
-  {{ field.label(class="field-label") }}
-  {% set cls = input_class + (' is-invalid' if field.errors else '') + (' ' + extra_class if extra_class else '') %}
-  {{ field(class=cls, placeholder=placeholder) }}
+  {{ field.label(class="mp-field-label") }}
+
+  {% set classes =
+  "form-control" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else "") +
+  (" mp-readonly-control" if readonly else "")
+  %}
+
+  {% if can_edit and not readonly %}
+  {{ field(class=classes, placeholder=placeholder) }}
+  {% else %}
+  {{ field(
+  class=classes + " mp-readonly-control",
+  placeholder=placeholder,
+  readonly=True
+  ) }}
+  {% endif %}
+
   {% if field.errors %}
   <div class="invalid-feedback d-block">
-    {% for e in field.errors %}{{ e }}{% endfor %}
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
   </div>
   {% endif %}
 </div>
 {% endmacro %}
+
 
 {% macro render_select(field, col='col-md-4', extra_class='') %}
 <div class="{{ col }}">
-  {{ field.label(class="field-label") }}
-  {{ field(class="form-select" + (' is-invalid' if field.errors else '') + (' ' + extra_class if extra_class else ''))
-  }}
+  {{ field.label(class="mp-field-label") }}
+
+  {% set classes =
+  "form-select" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else "")
+  %}
+
+  {% if can_edit %}
+  {{ field(class=classes) }}
+  {% else %}
+  {{ field(class=classes + " mp-readonly-control", disabled=True) }}
+  {% endif %}
+
   {% if field.errors %}
   <div class="invalid-feedback d-block">
-    {% for e in field.errors %}{{ e }}{% endfor %}
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
   </div>
   {% endif %}
 </div>
 {% endmacro %}
+
 
 {% macro render_readonly_field(field, col='col-md-3', extra_class='') %}
 <div class="{{ col }}">
-  {{ field.label(class="field-label") }}
-  {{ field(class="form-control readonly-field" + (' is-invalid' if field.errors else '') + (' ' + extra_class if
-  extra_class else ''), readonly=True) }}
+  {{ field.label(class="mp-field-label") }}
+
+  {{ field(
+  class="form-control mp-readonly-control" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else ""),
+  readonly=True
+  ) }}
+
   {% if field.errors %}
   <div class="invalid-feedback d-block">
-    {% for e in field.errors %}{{ e }}{% endfor %}
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
   </div>
   {% endif %}
 </div>
 {% endmacro %}
 
+
 {% macro text_input(name, label, value='', col='col-md-4', type='text', extra_class='', placeholder='') %}
 <div class="{{ col }}">
-  <label class="field-label">{{ label }}</label>
-  <input type="{{ type }}" name="{{ name }}" value="{{ value }}" class="form-control {{ extra_class }}"
-    placeholder="{{ placeholder }}">
+  <label class="mp-field-label" for="{{ name|replace('[]', '') }}">{{ label }}</label>
+
+  <input type="{{ type }}" name="{{ name }}" value="{{ value }}" id="{{ name|replace('[]', '') }}"
+    class="form-control {{ extra_class }}" placeholder="{{ placeholder }}" {% if not can_edit %}readonly{% endif %}>
 </div>
 {% endmacro %}
+
 
 {% macro textarea_input(name, label, value='', col='col-12', rows='3', extra_class='', placeholder='') %}
 <div class="{{ col }}">
-  <label class="field-label">{{ label }}</label>
-  <textarea name="{{ name }}" rows="{{ rows }}" class="form-control {{ extra_class }}"
-    placeholder="{{ placeholder }}">{{ value }}</textarea>
+  <label class="mp-field-label" for="{{ name|replace('[]', '') }}">{{ label }}</label>
+
+  <textarea name="{{ name }}" id="{{ name|replace('[]', '') }}" rows="{{ rows }}" class="form-control {{ extra_class }}"
+    placeholder="{{ placeholder }}" {% if not can_edit %}readonly{% endif %}>{{ value }}</textarea>
 </div>
 {% endmacro %}
 
+
 {% block head %}
 <script src="{{ url_for('static', filename='js/exibir_militar.js') }}"></script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
 <script>
@@ -64,197 +115,71 @@
 </script>
 
 <style>
-  :root {
-    --brand-red: #B5121B;
-    --brand-red-dark: #8f1017;
-    --brand-gold: #FFB703;
-    --page-1: #081320;
-    --page-2: #0c2740;
-    --page-3: #113c62;
+  /* ==========================================================================
+     PÁGINA
+     ========================================================================== */
 
-    --panel: #0e1c2b;
-    --panel-2: #13263a;
-    --panel-3: #172d45;
-    --line: rgba(255, 255, 255, .08);
-    --line-strong: rgba(255, 255, 255, .14);
+  .mp-page {
+    --mp-red: #b5121b;
+    --mp-red-dark: #8f1017;
+    --mp-gold: #d99b00;
 
-    --text: #eef4fb;
-    --muted: #9fb2c7;
-    --soft: #dbe7f3;
-    --input: #112436;
-    --input-2: #162c42;
-    --readonly: #1a334b;
+    --mp-radius-xl: 22px;
+    --mp-radius-lg: 18px;
+    --mp-radius-md: 14px;
+    --mp-radius-sm: 10px;
 
-    --shadow: 0 18px 50px rgba(0, 0, 0, .28);
-    --radius-xl: 28px;
-    --radius-lg: 20px;
-    --radius-md: 16px;
-    --radius-sm: 12px;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
+    min-height: calc(100vh - var(--nav-h, 64px));
+    padding: 1rem 0 2.5rem;
+    color: var(--app-text, #172033);
     background:
-      radial-gradient(circle at top left, rgba(255, 183, 3, .08), transparent 18%),
-      radial-gradient(circle at right center, rgba(181, 18, 27, .10), transparent 20%),
-      linear-gradient(135deg, var(--page-1) 0%, var(--page-2) 45%, var(--page-3) 100%) fixed;
-    color: var(--text);
+      radial-gradient(circle at top left, rgba(181, 18, 27, .10), transparent 18%),
+      radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 25%),
+      linear-gradient(135deg,
+        var(--app-page-bg, #eef5fa) 0%,
+        var(--app-page-bg-alt, #f8fbfd) 52%,
+        var(--app-surface-muted, #eaf3fa) 100%);
   }
 
-  .page-shell {
-    padding: 1.25rem 0 2rem;
-    min-height: 100vh;
+  .mp-container {
+    max-width: 1500px;
   }
 
-  .hero-shell {
-    background:
-      linear-gradient(135deg, rgba(181, 18, 27, .16), rgba(255, 255, 255, .03)),
-      linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .01));
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow);
-    overflow: hidden;
+  /* ==========================================================================
+     HERO
+     ========================================================================== */
+
+  .mp-hero {
     position: relative;
-  }
-
-  .hero-shell::before {
-    content: "";
-    position: absolute;
-    right: -80px;
-    top: -80px;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, .12), transparent 65%);
-    pointer-events: none;
-  }
-
-  .hero-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .hero-badge-logo {
-    width: 72px;
-    height: 72px;
-    border-radius: 22px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
-    border: 1px solid rgba(255, 255, 255, .14);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .hero-title {
-    font-size: 1.55rem;
-    font-weight: 800;
-    margin: 0;
-    color: #fff;
-    letter-spacing: .2px;
-  }
-
-  .hero-subtitle {
-    color: var(--muted);
-    margin-top: .2rem;
-    font-size: .95rem;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: .6rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .top-summary {
-    display: grid;
-    grid-template-columns: 1.4fr repeat(4, minmax(120px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .summary-main,
-  .summary-mini {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 1rem 1.1rem;
-  }
-
-  .summary-name {
-    font-size: 1.2rem;
-    font-weight: 800;
-    line-height: 1.15;
-    color: #fff;
-  }
-
-  .summary-sub {
-    color: var(--muted);
-    margin-top: .35rem;
-    font-size: .92rem;
-  }
-
-  .summary-code {
-    color: var(--soft);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: .84rem;
-    margin-top: .6rem;
-  }
-
-  .summary-mini .k {
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--muted);
-    margin-bottom: .35rem;
-  }
-
-  .summary-mini .v {
-    font-weight: 800;
-    color: #fff;
-    font-size: .95rem;
-  }
-
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: .45rem;
-    padding: .45rem .75rem;
-    border-radius: 999px;
-    background: rgba(255, 183, 3, .14);
-    color: #fff;
-    border: 1px solid rgba(255, 183, 3, .18);
-    font-size: .78rem;
-    font-weight: 700;
-    margin-top: .8rem;
-  }
-
-  .content-frame {
-    margin-top: 1rem;
-    background: linear-gradient(180deg, rgba(8, 14, 22, .16), rgba(8, 14, 22, .08));
-    border: 1px solid var(--line);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow);
     overflow: hidden;
+    padding: 1.35rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: var(--mp-radius-xl);
+    color: #fff;
+    background:
+      radial-gradient(circle at top right, rgba(255, 255, 255, .13), transparent 30%),
+      linear-gradient(135deg, #071b2c 0%, #0b385e 50%, #145883 100%);
+    box-shadow: var(--app-shadow-hero, 0 10px 30px rgba(0, 0, 0, .28));
   }
 
-  .toolbar {
-    position: sticky;
-    top: 10px;
-    z-index: 30;
-    background: rgba(11, 20, 32, .92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line);
-    padding: .95rem 1rem;
+  .mp-hero::before {
+    position: absolute;
+    top: -100px;
+    right: -80px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    background: rgba(255, 255, 255, .06);
   }
 
-  .toolbar-inner {
+  .mp-hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .mp-hero-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -262,590 +187,989 @@
     flex-wrap: wrap;
   }
 
-  .toolbar-title {
+  .mp-hero-title-area {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    min-width: 0;
+  }
+
+  .mp-logo-box {
+    display: grid;
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .20);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .09);
+    backdrop-filter: blur(10px);
+  }
+
+  .mp-logo-box img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+  }
+
+  .mp-eyebrow {
+    display: block;
+    margin-bottom: .25rem;
+    color: rgba(255, 255, 255, .70);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .mp-hero-title {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.2rem, 2vw, 1.65rem);
+    font-weight: 850;
+    letter-spacing: -.025em;
+  }
+
+  .mp-hero-subtitle {
+    margin: .28rem 0 0;
+    color: rgba(255, 255, 255, .76);
+    font-size: .87rem;
+    line-height: 1.45;
+  }
+
+  .mp-hero-actions {
+    display: flex;
+    gap: .55rem;
+    flex-wrap: wrap;
+  }
+
+  .mp-btn-hero,
+  .mp-btn-hero-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 42px;
+    padding: 0 .9rem;
+    border-radius: 10px;
+    font-size: .84rem;
+    font-weight: 750;
+    text-decoration: none;
+  }
+
+  .mp-btn-hero {
+    border: 1px solid #fff;
+    color: #0a2c49;
+    background: #fff;
+  }
+
+  .mp-btn-hero:hover {
+    color: #061e32;
+    background: #e9f5ff;
+  }
+
+  .mp-btn-hero-outline {
+    border: 1px solid rgba(255, 255, 255, .34);
+    color: #fff;
+    background: rgba(255, 255, 255, .08);
+  }
+
+  .mp-btn-hero-outline:hover {
+    border-color: #fff;
+    color: #0a2c49;
+    background: #fff;
+  }
+
+  .mp-summary-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 1.7fr) repeat(5, minmax(125px, 1fr));
+    gap: .75rem;
+    margin-top: 1rem;
+  }
+
+  .mp-summary-main,
+  .mp-summary-item {
+    min-width: 0;
+    padding: .95rem 1rem;
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: var(--mp-radius-md);
+    background: rgba(255, 255, 255, .07);
+    backdrop-filter: blur(10px);
+  }
+
+  .mp-summary-name {
+    color: #fff;
+    font-size: 1.18rem;
+    font-weight: 850;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .mp-summary-rank {
+    margin-top: .25rem;
+    color: rgba(255, 255, 255, .75);
+    font-size: .88rem;
+    font-weight: 700;
+  }
+
+  .mp-summary-code {
+    margin-top: .55rem;
+    color: rgba(255, 255, 255, .72);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .76rem;
+  }
+
+  .mp-summary-label {
+    display: block;
+    margin-bottom: .3rem;
+    color: rgba(255, 255, 255, .64);
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .mp-summary-value {
+    color: #fff;
+    font-size: .86rem;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .mp-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-top: .75rem;
+    padding: .34rem .62rem;
+    border: 1px solid rgba(255, 183, 3, .25);
+    border-radius: 999px;
+    color: #fff2cb;
+    font-size: .74rem;
+    font-weight: 800;
+    background: rgba(255, 183, 3, .16);
+  }
+
+  .mp-status-pill.is-inactive {
+    border-color: rgba(255, 126, 132, .28);
+    color: #ffd4d6;
+    background: rgba(181, 18, 27, .22);
+  }
+
+  /* ==========================================================================
+     ESTRUTURA PRINCIPAL
+     ========================================================================== */
+
+  .mp-shell {
+    overflow: hidden;
+    margin-top: 1rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: var(--mp-radius-xl);
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+    box-shadow: var(--app-shadow-card, 0 10px 24px rgba(16, 59, 91, .08));
+  }
+
+  .mp-readonly-banner {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin: 1rem 1rem 0;
+    padding: .8rem .95rem;
+    border: 1px solid #e8c86f;
+    border-radius: var(--mp-radius-md);
+    color: #77540b;
+    font-size: .84rem;
+    font-weight: 650;
+    background: #fff8df;
+  }
+
+  html[data-theme="dark"] .mp-readonly-banner {
+    border-color: #665123;
+    color: #f3d37d;
+    background: #382f15;
+  }
+
+  .mp-tabs-bar {
+    position: sticky;
+    top: calc(var(--nav-h, 64px) + 8px);
+    z-index: 20;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--app-border, #d8e4ed);
+    background: color-mix(in srgb, var(--app-surface, #fff) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mp-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .55rem;
+    overflow-x: auto;
+    padding-bottom: .1rem;
+    scrollbar-width: thin;
+  }
+
+  .mp-tabs .nav-link {
+    flex: 0 0 auto;
+    padding: .66rem .9rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--app-muted, #66758a);
+    font-size: .83rem;
+    font-weight: 800;
+    white-space: nowrap;
+    background: var(--app-surface-soft, #f5f9fc);
+  }
+
+  .mp-tabs .nav-link:hover {
+    border-color: var(--app-border, #d8e4ed);
+    color: var(--app-text, #172033);
+  }
+
+  .mp-tabs .nav-link.active {
+    border-color: var(--mp-red);
+    color: #fff;
+    background: linear-gradient(180deg, var(--mp-red), var(--mp-red-dark));
+    box-shadow: 0 8px 18px rgba(181, 18, 27, .22);
+  }
+
+  .mp-form-body {
+    padding: 1rem;
+  }
+
+  /* ==========================================================================
+     SEÇÕES
+     ========================================================================== */
+
+  .mp-section {
+    overflow: hidden;
+    margin-bottom: 1rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: var(--mp-radius-lg);
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+  }
+
+  .mp-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--app-border, #d8e4ed);
+    background: var(--app-surface-soft, #f5f9fc);
+  }
+
+  .mp-section-title-area {
     display: flex;
     align-items: center;
     gap: .75rem;
     min-width: 0;
   }
 
-  .toolbar-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(180deg, var(--brand-red), var(--brand-red-dark));
-    color: #fff;
-    box-shadow: 0 10px 24px rgba(181, 18, 27, .24);
-    flex-shrink: 0;
-  }
-
-  .toolbar-title h2 {
-    margin: 0;
+  .mp-section-icon {
+    display: grid;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--mp-red) 20%, var(--app-border));
+    border-radius: 12px;
+    color: var(--mp-red);
     font-size: 1rem;
-    font-weight: 800;
-    color: #fff;
+    background: color-mix(in srgb, var(--mp-red) 8%, var(--app-surface));
   }
 
-  .toolbar-title p {
+  .mp-section-title {
     margin: 0;
-    color: var(--muted);
-    font-size: .86rem;
+    color: var(--app-text, #172033);
+    font-size: .98rem;
+    font-weight: 850;
   }
 
-  .toolbar-actions {
-    display: flex;
-    gap: .6rem;
-    flex-wrap: wrap;
+  .mp-section-description {
+    margin: .18rem 0 0;
+    color: var(--app-muted, #66758a);
+    font-size: .8rem;
+    line-height: 1.4;
   }
 
-  .nav-pills-modern {
-    padding: .8rem 1rem 0;
-    background: linear-gradient(180deg, rgba(255, 255, 255, .02), transparent);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .nav-pills-modern .nav {
-    gap: .6rem;
-    flex-wrap: wrap;
-  }
-
-  .nav-pills-modern .nav-link {
-    border: none;
+  .mp-section-tag {
+    flex: 0 0 auto;
+    padding: .35rem .6rem;
+    border: 1px solid var(--app-border, #d8e4ed);
     border-radius: 999px;
-    padding: .75rem 1rem;
-    color: var(--soft);
-    background: rgba(255, 255, 255, .04);
-    border: 1px solid transparent;
-    font-weight: 700;
-    font-size: .88rem;
+    color: var(--app-muted, #66758a);
+    font-size: .7rem;
+    font-weight: 800;
+    white-space: nowrap;
+    background: var(--app-surface, #fff);
   }
 
-  .nav-pills-modern .nav-link:hover {
-    background: rgba(255, 255, 255, .06);
-    color: #fff;
-    border-color: var(--line);
-  }
-
-  .nav-pills-modern .nav-link.active {
-    background: linear-gradient(180deg, var(--brand-red), var(--brand-red-dark));
-    color: #fff;
-    border-color: rgba(255, 255, 255, .08);
-    box-shadow: 0 8px 20px rgba(181, 18, 27, .22);
-  }
-
-  .form-area {
+  .mp-section-body {
     padding: 1.1rem;
   }
 
-  .tab-pane-shell {
-    display: none;
-    animation: fadeIn .18s ease;
-  }
-
-  .tab-pane-shell.active {
-    display: block;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .cluster {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .02));
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    overflow: hidden;
+  .mp-audit-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
     margin-bottom: 1rem;
+    padding: .85rem;
+    border: 1px solid #ebcf7b;
+    border-radius: var(--mp-radius-md);
+    color: #73540d;
+    background: #fff8df;
   }
 
-  .cluster-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.15rem;
-    border-bottom: 1px solid var(--line);
-    background: linear-gradient(180deg, rgba(255, 255, 255, .03), transparent);
-  }
-
-  .cluster-title {
-    display: flex;
-    align-items: center;
-    gap: .8rem;
-  }
-
-  .cluster-title .icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid var(--line);
-    color: #fff;
-  }
-
-  .cluster-title h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #fff;
-  }
-
-  .cluster-title p {
-    margin: 0;
-    color: var(--muted);
-    font-size: .84rem;
-  }
-
-  .cluster-tag {
-    padding: .45rem .7rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .04);
-    color: var(--muted);
-    font-size: .75rem;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .cluster-body {
-    padding: 1.15rem;
-  }
-
-
-  /* Estilo profissional para os checkboxes de curso virarem Pílulas clicáveis */
-  .cursos-grid {
+  .mp-audit-icon {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.75rem;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 10px;
+    color: #8e6400;
+    background: rgba(255, 183, 3, .18);
   }
 
-  .btn-outline-curso {
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    font-size: 0.88rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .btn-outline-curso::before {
-    content: '\F28A';
-    /* Ícone de círculo vazio do Bootstrap Icons */
-    font-family: 'bootstrap-icons';
-    font-size: 1.1rem;
-    color: var(--line-strong);
-  }
-
-  /* Quando o checkbox invisível estiver marcado, altera o visual do label */
-  .btn-check:checked+.btn-outline-curso {
-    background: rgba(181, 18, 27, 0.15);
-    /* Fundo vermelho suave baseado no seu brand-red */
-    border-color: var(--brand-red);
-    color: #fff;
-  }
-
-  .btn-check:checked+.btn-outline-curso::before {
-    content: '\F28E';
-    /* Ícone de checkmark preenchido */
-    color: var(--brand-red);
-  }
-
-  .btn-outline-curso:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-  }
-
-  .field-label {
-    color: var(--soft);
-    font-weight: 700;
+  .mp-audit-title {
+    display: block;
+    margin-bottom: .15rem;
+    color: inherit;
     font-size: .86rem;
-    margin-bottom: .48rem;
+    font-weight: 850;
   }
 
-  .form-control,
-  .form-select {
-    min-height: 54px;
-    background: linear-gradient(180deg, var(--input), var(--input-2)) !important;
-    border: 1px solid rgba(255, 255, 255, .09) !important;
-    color: #fff !important;
-    border-radius: 16px;
-    box-shadow: none !important;
-    padding: .88rem 1rem;
-    transition: .18s ease;
+  .mp-audit-text {
+    font-size: .8rem;
+    line-height: 1.45;
   }
 
-  .form-control:hover,
-  .form-select:hover {
-    border-color: rgba(255, 255, 255, .16) !important;
+  html[data-theme="dark"] .mp-audit-note {
+    border-color: #6d5723;
+    color: #f3d37d;
+    background: #382f15;
   }
 
-  .form-control:focus,
-  .form-select:focus {
-    border-color: rgba(255, 255, 255, .22) !important;
-    background: linear-gradient(180deg, #173149, #19354e) !important;
-    box-shadow: 0 0 0 .18rem rgba(255, 255, 255, .05) !important;
+  html[data-theme="dark"] .mp-audit-icon {
+    color: #f3d37d;
+    background: rgba(255, 183, 3, .13);
   }
 
-  .form-control::placeholder {
-    color: rgba(255, 255, 255, .42);
+  /* ==========================================================================
+     CAMPOS
+     ========================================================================== */
+
+  .mp-field-label {
+    display: block;
+    margin-bottom: .42rem;
+    color: var(--app-text, #172033);
+    font-size: .78rem;
+    font-weight: 800;
   }
 
-  textarea.form-control {
-    min-height: 120px;
+  .mp-page .form-control,
+  .mp-page .form-select {
+    min-height: 46px;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: 11px;
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+    box-shadow: none;
+  }
+
+  .mp-page .form-control:hover,
+  .mp-page .form-select:hover {
+    border-color: color-mix(in srgb, var(--app-primary, #0f4c81) 48%, var(--app-border));
+  }
+
+  .mp-page .form-control:focus,
+  .mp-page .form-select:focus {
+    border-color: var(--app-primary, #0f4c81);
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+    box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--app-primary, #0f4c81) 16%, transparent);
+  }
+
+  .mp-page .form-control::placeholder {
+    color: var(--app-muted, #66758a);
+  }
+
+  .mp-page textarea.form-control {
+    min-height: 105px;
     resize: vertical;
   }
 
-  .readonly-field,
-  .form-control[readonly],
-  .form-control[disabled],
-  .form-select[disabled],
-  textarea[disabled] {
-    background: linear-gradient(180deg, var(--readonly), #203b55) !important;
-    border: 1px solid rgba(255, 255, 255, .12) !important;
-    color: #f5fbff !important;
+  .mp-page .form-select option {
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
+  }
+
+  .mp-readonly-control,
+  .mp-page .form-control[readonly],
+  .mp-page .form-control[disabled],
+  .mp-page .form-select[disabled] {
+    border-color: var(--app-border, #d8e4ed) !important;
+    color: var(--app-muted, #66758a) !important;
     font-weight: 700;
+    background: var(--app-surface-soft, #f5f9fc) !important;
     opacity: 1 !important;
   }
 
-  .field-phone {
-    font-weight: 800;
-    letter-spacing: .2px;
+  .mp-phone {
+    font-weight: 750;
+    letter-spacing: .01em;
   }
 
-  .dynamic-card {
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .03);
-    border-radius: 18px;
-    padding: 1rem;
-  }
-
-  .upload-box {
-    border: 1px dashed rgba(255, 255, 255, .18);
-    border-radius: 18px;
-    padding: 1.2rem;
-    background: rgba(255, 255, 255, .03);
-  }
-
-  .upload-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: .6rem;
-    padding: .85rem 1rem;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid var(--line);
-    color: #fff;
+  .mp-page .form-check-input {
+    width: 2.4em;
+    height: 1.25em;
     cursor: pointer;
   }
 
-  #fileInput {
-    display: none;
+  .mp-page .form-check-input:checked {
+    border-color: var(--mp-red);
+    background-color: var(--mp-red);
   }
 
-  .footer-actions {
+  .mp-page .form-check-label {
+    color: var(--app-text, #172033);
+    font-size: .84rem;
+    font-weight: 700;
+  }
+
+  /* ==========================================================================
+     BLOCOS DINÂMICOS
+     ========================================================================== */
+
+  .mp-dynamic-card {
+    padding: 1rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: var(--mp-radius-md);
+    background: var(--app-surface-soft, #f5f9fc);
+  }
+
+  .mp-course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: .65rem;
+  }
+
+  .mp-course-option {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    min-height: 48px;
+    padding: .7rem .8rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: 12px;
+    color: var(--app-text, #172033);
+    font-size: .82rem;
+    font-weight: 700;
+    text-align: left;
+    background: var(--app-surface-soft, #f5f9fc);
+    cursor: pointer;
+  }
+
+  .mp-course-option::before {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: 5px;
+    content: "";
+    background: var(--app-surface, #fff);
+  }
+
+  .btn-check:checked+.mp-course-option {
+    border-color: var(--mp-red);
+    color: var(--mp-red-dark);
+    background: color-mix(in srgb, var(--mp-red) 9%, var(--app-surface));
+  }
+
+  .btn-check:checked+.mp-course-option::before {
+    border-color: var(--mp-red);
+    content: "✓";
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 900;
+    text-align: center;
+    line-height: 16px;
+    background: var(--mp-red);
+  }
+
+  html[data-theme="dark"] .btn-check:checked+.mp-course-option {
+    color: #ffccd0;
+    background: rgba(181, 18, 27, .18);
+  }
+
+  .mp-upload-box {
+    padding: 1rem;
+    border: 1px dashed color-mix(in srgb, var(--app-primary, #0f4c81) 35%, var(--app-border));
+    border-radius: var(--mp-radius-md);
+    background: var(--app-surface-soft, #f5f9fc);
+  }
+
+  .mp-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    min-height: 42px;
+    padding: 0 .85rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: 10px;
+    color: var(--app-text, #172033);
+    font-size: .84rem;
+    font-weight: 750;
+    cursor: pointer;
+    background: var(--app-surface, #fff);
+  }
+
+  .mp-upload-label:hover {
+    border-color: var(--app-primary, #0f4c81);
+    color: var(--app-primary, #0f4c81);
+  }
+
+  .mp-muted-note {
+    color: var(--app-muted, #66758a);
+    font-size: .8rem;
+    line-height: 1.45;
+  }
+
+  /* ==========================================================================
+     AÇÕES
+     ========================================================================== */
+
+  .mp-actions {
     position: sticky;
     bottom: 10px;
-    z-index: 25;
-    margin-top: 1rem;
-    background: rgba(9, 18, 28, .92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--line-strong);
-    border-radius: 22px;
-    padding: .9rem;
+    z-index: 15;
     display: flex;
     justify-content: flex-end;
-    gap: .7rem;
+    gap: .65rem;
     flex-wrap: wrap;
-    box-shadow: var(--shadow);
+    margin-top: 1rem;
+    padding: .8rem;
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: var(--mp-radius-lg);
+    background: color-mix(in srgb, var(--app-surface, #fff) 94%, transparent);
+    box-shadow: var(--app-shadow-card, 0 10px 24px rgba(16, 59, 91, .08));
+    backdrop-filter: blur(14px);
   }
 
-  .footer-actions .btn {
-    min-width: 160px;
-  }
-
-  .btn-primary {
-    background: linear-gradient(180deg, var(--brand-red), var(--brand-red-dark));
-    border-color: var(--brand-red);
+  .mp-btn-save {
+    min-width: 170px;
+    border-color: var(--mp-red);
     color: #fff;
+    font-weight: 800;
+    background: linear-gradient(180deg, var(--mp-red), var(--mp-red-dark));
   }
 
-  .btn-primary:hover {
-    background: linear-gradient(180deg, #ca1823, var(--brand-red));
-    border-color: #ca1823;
-  }
-
-  .btn-outline-light {
-    border-color: rgba(255, 255, 255, .18);
-  }
-
-  .btn-outline-light:hover {
-    color: #111;
-    background: #fff;
-  }
-
-  .form-check-input:checked {
-    background-color: var(--brand-red);
-    border-color: var(--brand-red);
-  }
-
-  .muted-note {
-    color: var(--muted);
-    font-size: .83rem;
-  }
-
-  .modal-content {
-    background: linear-gradient(180deg, #13263a, #102132);
-    border: 1px solid var(--line-strong);
+  .mp-btn-save:hover,
+  .mp-btn-save:focus {
+    border-color: #cb1a25;
     color: #fff;
-    border-radius: 22px;
+    background: linear-gradient(180deg, #cb1a25, var(--mp-red));
   }
 
-  .btn-close-white {
-    filter: none;
+  .mp-btn-outline {
+    min-width: 145px;
+    border-color: var(--app-border, #d8e4ed);
+    color: var(--app-text, #172033);
+    font-weight: 750;
+    background: var(--app-surface, #fff);
   }
 
-  .form-select option,
-  .form-select optgroup {
-    background-color: #ffffff !important;
-    color: #111111 !important;
+  .mp-btn-outline:hover {
+    border-color: var(--app-primary, #0f4c81);
+    color: var(--app-primary, #0f4c81);
+    background: var(--app-surface-soft, #f5f9fc);
   }
 
-  .form-select option:hover,
-  .form-select option:checked {
-    background-color: #eef2f7 !important;
-    color: #111111 !important;
+  /* ==========================================================================
+     MODAL
+     ========================================================================== */
+
+  .mp-modal .modal-content {
+    border: 1px solid var(--app-border, #d8e4ed);
+    border-radius: var(--mp-radius-lg);
+    color: var(--app-text, #172033);
+    background: var(--app-surface, #fff);
   }
 
-  .form-select option[disabled] {
-    color: #94a3b8 !important;
+  .mp-modal .modal-header,
+  .mp-modal .modal-footer {
+    border-color: var(--app-border, #d8e4ed);
   }
 
-  @media (max-width: 1199.98px) {
-    .top-summary {
-      grid-template-columns: repeat(2, 1fr);
+  html[data-theme="dark"] .mp-modal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+
+  /* ==========================================================================
+     RESPONSIVIDADE
+     ========================================================================== */
+
+  @media (max-width: 1399.98px) {
+    .mp-summary-grid {
+      grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(130px, 1fr));
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .mp-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mp-summary-main {
+      grid-column: span 2;
     }
   }
 
   @media (max-width: 767.98px) {
-    .hero-left {
-      align-items: flex-start;
+    .mp-page {
+      padding-top: .75rem;
     }
 
-    .top-summary {
+    .mp-hero,
+    .mp-shell {
+      border-radius: 16px;
+    }
+
+    .mp-hero {
+      padding: 1rem;
+    }
+
+    .mp-hero-main {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .mp-hero-actions {
+      width: 100%;
+    }
+
+    .mp-hero-actions a,
+    .mp-hero-actions button {
+      flex: 1 1 auto;
+    }
+
+    .mp-logo-box {
+      flex-basis: 54px;
+      width: 54px;
+      height: 54px;
+      border-radius: 15px;
+    }
+
+    .mp-logo-box img {
+      width: 34px;
+      height: 34px;
+    }
+
+    .mp-summary-grid {
       grid-template-columns: 1fr;
     }
 
-    .toolbar-inner {
+    .mp-summary-main {
+      grid-column: auto;
+    }
+
+    .mp-tabs-bar {
+      top: calc(var(--nav-h, 64px) + 4px);
+      padding: .6rem .75rem;
+    }
+
+    .mp-form-body,
+    .mp-section-body {
+      padding: .9rem;
+    }
+
+    .mp-section-header {
       align-items: flex-start;
-    }
-
-    .footer-actions {
-      position: static;
-    }
-
-    .cluster-head {
       flex-direction: column;
-      align-items: flex-start;
+      padding: .9rem;
+    }
+
+    .mp-section-tag {
+      align-self: flex-start;
+    }
+
+    .mp-actions {
+      position: static;
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .mp-actions .btn,
+    .mp-actions input[type="submit"] {
+      width: 100%;
+    }
+
+    .mp-course-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>
 {% endblock %}
 
+
 {% block body %}
-<section class="page-shell">
-  <div class="container-fluid container-xxl">
+<main class="mp-page">
+  <div class="container-fluid px-2 px-md-3 mp-container">
 
-    <div class="hero-shell p-3 p-md-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-        <div class="hero-left">
-          <div class="hero-badge-logo">
-            <img src="{{ url_for('static', filename='img/logobm.png') }}" width="42" height="42" alt="CBMAM">
-          </div>
-          <div>
-            <h1 class="hero-title">Prontuário Funcional do Militar</h1>
-            <div class="hero-subtitle">Interface redesenhada para operação rápida, leitura mais clara e edição
-              centralizada.</div>
-          </div>
-        </div>
+    {# ======================================================================
+    HERO
+    ====================================================================== #}
 
-        <div class="hero-actions">
-          <a href="{{ url_for('militares') }}" class="btn btn-outline-light">
-            <i class="bi bi-arrow-left"></i> Voltar
-          </a>
-          <button type="button" class="btn btn-outline-light"
-            onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">
-            <i class="bi bi-chevron-double-down"></i> Ir para ações
-          </button>
-        </div>
-      </div>
+    <section class="mp-hero">
+      <div class="mp-hero-content">
 
-      <div class="top-summary">
-        <div class="summary-main">
-          <div id="s_nome" class="summary-name">{{ militar.nome_guerra or militar.nome_completo or '—' }}</div>
-          <div id="s_posto" class="summary-sub">{{ militar.posto_grad.sigla if militar.posto_grad else '—' }}</div>
-          <div class="summary-code">Matrícula: <span id="s_matricula">{{ militar.matricula or '—' }}</span></div>
-          <div class="summary-code">CPF: <span id="s_cpf">{{ militar.cpf or '—' }}</span></div>
-          <div class="status-pill" id="statusBadgeHero">
-            <i class="bi bi-shield-check"></i> Ativo
-          </div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Situação</div>
-          <div class="v">{{ militar.situacao or '—' }}</div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Modalidade</div>
-          <div class="v">{{ militar.modalidade.descricao if militar.modalidade else '—' }}</div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Motivo</div>
-          <div class="v">{{ militar.motivo.descricao if militar.motivo else '—' }}</div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Localidade</div>
-          <div class="v">{{ militar.localidade.sigla if militar.localidade else '—' }}</div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Quadro</div>
-          <div class="v">{{ militar.quadro.quadro if militar.quadro else '—' }}</div>
-        </div>
-
-        <div class="summary-mini">
-          <div class="k">Especialidade</div>
-          <div class="v">{{ militar.especialidade.ocupacao if militar.especialidade else '—' }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="content-frame">
-      <div class="toolbar">
-        <div class="toolbar-inner">
-          <div class="toolbar-title">
-            <div class="toolbar-icon">
-              <i class="bi bi-ui-checks-grid"></i>
+        <div class="mp-hero-main">
+          <div class="mp-hero-title-area">
+            <div class="mp-logo-box">
+              <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
             </div>
+
             <div>
-              <h2>Ficha operacional</h2>
-              <p>Troque entre as áreas da ficha sem depender de rolagem gigante.</p>
+              <span class="mp-eyebrow">Prontuário funcional</span>
+
+              <h1 class="mp-hero-title">
+                {{ militar.nome_completo or 'Militar sem nome cadastrado' }}
+              </h1>
+
+              <p class="mp-hero-subtitle">
+                Consulta, atualização e gestão centralizada dos dados funcionais.
+              </p>
             </div>
           </div>
 
-          <div class="toolbar-actions">
-            <button type="button" class="btn btn-outline-light" data-tab-target="tab-pessoal">
-              <i class="bi bi-person"></i> Pessoal
-            </button>
-            <button type="button" class="btn btn-outline-light" data-tab-target="tab-funcional">
-              <i class="bi bi-diagram-3"></i> Funcional
-            </button>
-            <button type="button" class="btn btn-outline-light" data-tab-target="tab-complementar">
-              <i class="bi bi-grid"></i> Complementar
-            </button>
+          <div class="mp-hero-actions">
+            <a href="{{ url_for('militares') }}" class="mp-btn-hero-outline">
+              <i class="bi bi-arrow-left"></i>
+              Voltar para militares
+            </a>
+
+            {% if can_edit %}
+            <a href="#acoes-finais" class="mp-btn-hero">
+              <i class="bi bi-save"></i>
+              Salvar alterações
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mp-summary-grid">
+          <div class="mp-summary-main">
+            <div id="s_nome" class="mp-summary-name">
+              {{ militar.nome_guerra or militar.nome_completo or '—' }}
+            </div>
+
+            <div id="s_posto" class="mp-summary-rank">
+              {{ militar.posto_grad.sigla if militar.posto_grad else '—' }}
+            </div>
+
+            <div class="mp-summary-code">
+              Matrícula:
+              <span id="s_matricula">{{ militar.matricula or '—' }}</span>
+            </div>
+
+            <div class="mp-summary-code">
+              CPF:
+              <span id="s_cpf">{{ militar.cpf or '—' }}</span>
+            </div>
+
+            <div id="statusBadgeHero" class="mp-status-pill {{ 'is-inactive' if militar.inativo else '' }}">
+              <i class="bi {{ 'bi-person-slash' if militar.inativo else 'bi-shield-check' }}"></i>
+              {{ 'Cadastro inativo' if militar.inativo else 'Cadastro ativo' }}
+            </div>
+          </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Situação</span>
+            <span class="mp-summary-value">{{ militar.situacao or '—' }}</span>
+          </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Modalidade</span>
+            <span class="mp-summary-value">
+              {{ militar.modalidade.descricao if militar.modalidade else '—' }}
+            </span>
+          </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Motivo</span>
+            <span class="mp-summary-value">
+              {{ militar.motivo.descricao if militar.motivo else '—' }}
+            </span>
+          </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Localidade</span>
+            <span class="mp-summary-value">
+              {{ militar.localidade.sigla if militar.localidade else '—' }}
+            </span>
+          </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Quadro</span>
+            <span class="mp-summary-value">
+              {{ militar.quadro.quadro if militar.quadro else '—' }}
+            </span>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="nav-pills-modern">
-        <ul class="nav" id="customTabNav">
-          <li class="nav-item"><button type="button" class="nav-link active" data-tab-target="tab-pessoal">Pessoal &
-              Documentos</button></li>
-          <li class="nav-item"><button type="button" class="nav-link" data-tab-target="tab-funcional">Funcional &
-              Situação</button></li>
-          <li class="nav-item"><button type="button" class="nav-link" data-tab-target="tab-complementar">Formação,
-              contatos & anexos</button></li>
-        </ul>
+    {# ======================================================================
+    FORMULÁRIO
+    ====================================================================== #}
+
+    <section class="mp-shell">
+
+      {% if not can_edit %}
+      <div class="mp-readonly-banner">
+        <i class="bi bi-lock-fill"></i>
+        <span>
+          Você está visualizando esta ficha em modo leitura. Sua conta não possui permissão para alterar os dados.
+        </span>
       </div>
+      {% endif %}
 
-      <div class="form-area">
-        <form method="POST" enctype="multipart/form-data">
-          {{ form_militar.csrf_token }}
+      <form id="formMilitar" method="POST" enctype="multipart/form-data">
+        {{ form_militar.csrf_token }}
 
-          <div id="tab-pessoal" class="tab-pane-shell active">
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-person-badge"></i></div>
+        <div class="mp-tabs-bar">
+          <ul class="nav nav-pills mp-tabs" id="prontuarioTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-pessoal-btn" data-bs-toggle="pill" data-bs-target="#tab-pessoal"
+                type="button" role="tab" aria-controls="tab-pessoal" aria-selected="true">
+                <i class="bi bi-person-vcard me-1"></i>
+                Dados pessoais
+              </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-funcional-btn" data-bs-toggle="pill" data-bs-target="#tab-funcional"
+                type="button" role="tab" aria-controls="tab-funcional" aria-selected="false">
+                <i class="bi bi-diagram-3 me-1"></i>
+                Funcional e situação
+              </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-complementar-btn" data-bs-toggle="pill"
+                data-bs-target="#tab-complementar" type="button" role="tab" aria-controls="tab-complementar"
+                aria-selected="false">
+                <i class="bi bi-mortarboard me-1"></i>
+                Formação e contatos
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="tab-content mp-form-body" id="prontuarioTabsContent">
+
+          {# ==================================================================
+          ABA: DADOS PESSOAIS
+          ================================================================== #}
+
+          <div class="tab-pane fade show active" id="tab-pessoal" role="tabpanel" aria-labelledby="tab-pessoal-btn"
+            tabindex="0">
+
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-person-badge"></i>
+                  </div>
+
                   <div>
-                    <h3>Identificação</h3>
-                    <p>Dados principais e estado civil.</p>
+                    <h2 class="mp-section-title">Identificação</h2>
+                    <p class="mp-section-description">
+                      Dados principais, filiação e estado civil.
+                    </p>
                   </div>
                 </div>
-                <span class="cluster-tag">Base cadastral</span>
+
+                <span class="mp-section-tag">Base cadastral</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
-                  {{ render_field(form_militar.nome_completo, 'col-md-6', 'form-control', '', 'Nome completo') }}
-                  {{ render_field(form_militar.nome_guerra, 'col-md-4', 'form-control', '', 'Nome de guerra') }}
+                  {{ render_field(form_militar.nome_completo, 'col-md-6', '', 'Nome completo') }}
+                  {{ render_field(form_militar.nome_guerra, 'col-md-4', '', 'Nome de guerra') }}
                   {{ render_select(form_militar.estado_civil, 'col-md-2') }}
+
                   {{ render_field(form_militar.nome_pai, 'col-md-6') }}
                   {{ render_field(form_militar.nome_mae, 'col-md-6') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div id="conjuge_section" class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-heart"></i></div>
+            <section id="conjuge_section" class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-heart"></i>
+                  </div>
+
                   <div>
-                    <h3>Cônjuge</h3>
-                    <p>Bloco exibido conforme estado civil.</p>
+                    <h2 class="mp-section-title">Cônjuge</h2>
+                    <p class="mp-section-description">
+                      Informações exibidas conforme o estado civil informado.
+                    </p>
                   </div>
                 </div>
-                <span class="cluster-tag">Condicional</span>
+
+                <span class="mp-section-tag">Condicional</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div id="conjugeWrapper" class="row g-3">
                   {{ text_input('conjuge_nome', 'Nome do cônjuge', conjuge.nome if conjuge else '', 'col-md-5') }}
                   {{ text_input('conjuge_cpf', 'CPF', conjuge.cpf if conjuge else '', 'col-md-3') }}
                   {{ text_input('conjuge_telefone', 'Telefone', conjuge.telefone if conjuge else '', 'col-md-4', 'text',
-                  'field-phone') }}
-                  {{ text_input('conjuge_data_nascimento', 'Data de nascimento',
+                  'mp-phone') }}
+
+                  {{ text_input(
+                  'conjuge_data_nascimento',
+                  'Data de nascimento',
                   conjuge.data_nascimento.strftime('%Y-%m-%d') if conjuge and conjuge.data_nascimento else '',
-                  'col-md-3', 'date') }}
+                  'col-md-3',
+                  'date'
+                  ) }}
+
                   {{ text_input('conjuge_endereco', 'Endereço', conjuge.endereco if conjuge else '', 'col-md-9') }}
-                  {{ textarea_input('conjuge_observacao', 'Observação', conjuge.observacao if conjuge else '',
-                  'col-md-12', '3') }}
+
+                  {{ textarea_input(
+                  'conjuge_observacao',
+                  'Observação',
+                  conjuge.observacao if conjuge else '',
+                  'col-12',
+                  '3'
+                  ) }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-card-text"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-card-text"></i>
+                  </div>
+
                   <div>
-                    <h3>Documentos</h3>
-                    <p>Matrícula, RG, PIS/PASEP e CPF.</p>
+                    <h2 class="mp-section-title">Documentos</h2>
+                    <p class="mp-section-description">
+                      Matrícula, RG, PIS/PASEP e CPF.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.matricula, 'col-md-3') }}
                   {{ render_field(form_militar.rg, 'col-md-3') }}
@@ -853,19 +1177,25 @@
                   {{ render_field(form_militar.cpf, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-people"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-person-lines-fill"></i>
+                  </div>
+
                   <div>
-                    <h3>Dados eleitorais</h3>
-                    <p>Título, zona e seção.</p>
+                    <h2 class="mp-section-title">Dados eleitorais</h2>
+                    <p class="mp-section-description">
+                      Título, zona e seção eleitoral.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.num_titulo_eleitor, 'col-md-3') }}
                   {{ render_field(form_militar.digito_titulo_eleitor, 'col-md-3') }}
@@ -873,44 +1203,89 @@
                   {{ render_field(form_militar.secao, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-calendar3"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-calendar3"></i>
+                  </div>
+
                   <div>
-                    <h3>Datas & cálculos</h3>
-                    <p>Datas de vida funcional e campos automáticos.</p>
+                    <h2 class="mp-section-title">Datas e cálculos</h2>
+                    <p class="mp-section-description">
+                      Datas da vida funcional e campos calculados automaticamente.
+                    </p>
                   </div>
                 </div>
+
+                <span class="mp-section-tag">Serviço</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
+
                   <div class="col-md-3">
-                    {{ form_militar.data_nascimento.label(class="field-label") }}
-                    {{ form_militar.data_nascimento(class="form-control" + (' is-invalid' if
-                    form_militar.data_nascimento.errors else ''), id='data_nascimento', oninput='calculateAge()') }}
+                    {{ form_militar.data_nascimento.label(class="mp-field-label") }}
+
+                    {% if can_edit %}
+                    {{ form_militar.data_nascimento(
+                    class="form-control" + (" is-invalid" if form_militar.data_nascimento.errors else ""),
+                    id="data_nascimento",
+                    oninput="calculateAge()"
+                    ) }}
+                    {% else %}
+                    {{ form_militar.data_nascimento(
+                    class="form-control mp-readonly-control",
+                    id="data_nascimento",
+                    readonly=True
+                    ) }}
+                    {% endif %}
                   </div>
 
                   {{ render_readonly_field(form_militar.idade_atual, 'col-md-3') }}
 
                   <div class="col-md-3">
-                    {{ form_militar.inclusao.label(class="field-label") }}
-                    {{ form_militar.inclusao(class="form-control" + (' is-invalid' if form_militar.inclusao.errors else
-                    ''), id='inclusao', oninput='calculateInclusao()') }}
+                    {{ form_militar.inclusao.label(class="mp-field-label") }}
+
+                    {% if can_edit %}
+                    {{ form_militar.inclusao(
+                    class="form-control" + (" is-invalid" if form_militar.inclusao.errors else ""),
+                    id="inclusao",
+                    oninput="calculateInclusao()"
+                    ) }}
+                    {% else %}
+                    {{ form_militar.inclusao(
+                    class="form-control mp-readonly-control",
+                    id="inclusao",
+                    readonly=True
+                    ) }}
+                    {% endif %}
                   </div>
 
                   {{ render_field(form_militar.completa_25_inclusao, 'col-md-3') }}
                   {{ render_field(form_militar.completa_30_inclusao, 'col-md-3') }}
+
                   {{ render_select(form_militar.punicao_id, 'col-md-3') }}
                   {{ render_select(form_militar.comportamento_id, 'col-md-3') }}
 
                   <div class="col-md-3">
-                    {{ form_militar.efetivo_servico.label(class="field-label") }}
-                    {{ form_militar.efetivo_servico(class="form-control" + (' is-invalid' if
-                    form_militar.efetivo_servico.errors else ''), id='efetivo_servico',
-                    oninput='calculateServiceDetails()') }}
+                    {{ form_militar.efetivo_servico.label(class="mp-field-label") }}
+
+                    {% if can_edit %}
+                    {{ form_militar.efetivo_servico(
+                    class="form-control" + (" is-invalid" if form_militar.efetivo_servico.errors else ""),
+                    id="efetivo_servico",
+                    oninput="calculateServiceDetails()"
+                    ) }}
+                    {% else %}
+                    {{ form_militar.efetivo_servico(
+                    class="form-control mp-readonly-control",
+                    id="efetivo_servico",
+                    readonly=True
+                    ) }}
+                    {% endif %}
                   </div>
 
                   {{ render_readonly_field(form_militar.completa_25_anos_sv, 'col-md-3') }}
@@ -922,39 +1297,40 @@
                   {{ render_readonly_field(form_militar.total_dias, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
           </div>
 
-          <div id="tab-funcional" class="tab-pane-shell">
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-diagram-3"></i></div>
+          {# ==================================================================
+          ABA: FUNCIONAL
+          ================================================================== #}
+
+          <div class="tab-pane fade" id="tab-funcional" role="tabpanel" aria-labelledby="tab-funcional-btn"
+            tabindex="0">
+
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-diagram-3"></i>
+                  </div>
+
                   <div>
-                    <h3>Vínculo / OBM & Função</h3>
-                    <p>Lotações, funções e classificação funcional.</p>
+                    <h2 class="mp-section-title">Lotação, OBM e função</h2>
+                    <p class="mp-section-description">
+                      Vínculos ativos de exercício e classificação funcional.
+                    </p>
                   </div>
                 </div>
-                <span class="cluster-tag">Operacional</span>
+
+                <span class="mp-section-tag">Operacional</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    {{ form_militar.obm_ids_1.label(class="field-label") }}
-                    {{ form_militar.obm_ids_1(class="form-select") }}
-                  </div>
-                  <div class="col-md-6">
-                    {{ form_militar.funcao_ids_1.label(class="field-label") }}
-                    {{ form_militar.funcao_ids_1(class="form-select") }}
-                  </div>
-                  <div class="col-md-6">
-                    {{ form_militar.obm_ids_2.label(class="field-label") }}
-                    {{ form_militar.obm_ids_2(class="form-select") }}
-                  </div>
-                  <div class="col-md-6">
-                    {{ form_militar.funcao_ids_2.label(class="field-label") }}
-                    {{ form_militar.funcao_ids_2(class="form-select") }}
-                  </div>
+                  {{ render_select(form_militar.obm_ids_1, 'col-md-6') }}
+                  {{ render_select(form_militar.funcao_ids_1, 'col-md-6') }}
+                  {{ render_select(form_militar.obm_ids_2, 'col-md-6') }}
+                  {{ render_select(form_militar.funcao_ids_2, 'col-md-6') }}
                 </div>
 
                 <div class="row g-3">
@@ -963,19 +1339,25 @@
                   {{ render_select(form_militar.transferencia, 'col-md-4') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-pin-map"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-pin-map"></i>
+                  </div>
+
                   <div>
-                    <h3>Perfil & localidade</h3>
-                    <p>Enquadramento funcional, sexo, raça e localidade.</p>
+                    <h2 class="mp-section-title">Perfil e localidade</h2>
+                    <p class="mp-section-description">
+                      Especialidade, sexo, raça, antiguidade e lotação geográfica.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_select(form_militar.especialidade_id, 'col-md-4') }}
                   {{ render_field(form_militar.antiguidade, 'col-md-4') }}
@@ -985,65 +1367,92 @@
                   {{ render_select(form_militar.funcao_gratificada_id, 'col-md-4') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-clipboard2-pulse"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-clipboard2-pulse"></i>
+                  </div>
+
                   <div>
-                    <h3>Situação</h3>
-                    <p>Situação funcional, agregação e destino.</p>
+                    <h2 class="mp-section-title">Situação funcional</h2>
+                    <p class="mp-section-description">
+                      Situação principal, modalidade, motivo, destino e períodos.
+                    </p>
                   </div>
                 </div>
-                <span class="cluster-tag">Crítico</span>
+
+                <span class="mp-section-tag">Acompanhamento</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
 
                 {% if auditoria_info %}
-                <div class="d-flex align-items-center gap-3 mb-4 p-3"
-                  style="background: rgba(255, 183, 3, 0.08); border: 1px solid rgba(255, 183, 3, 0.15); border-radius: 16px;">
-                  <div
-                    style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 183, 3, 0.15); display: flex; align-items: center; justify-content: center; color: var(--brand-gold); flex-shrink: 0;">
-                    <i class="bi bi-clock-history fs-5"></i>
+                <div class="mp-audit-note">
+                  <div class="mp-audit-icon">
+                    <i class="bi bi-clock-history"></i>
                   </div>
-                  <div style="font-size: 0.86rem; color: var(--soft);">
-                    <strong class="text-white d-block mb-1" style="font-size: 0.95rem;">Atualização via Gestão de
-                      Chefia</strong>
-                    {{ auditoria_info }}
+
+                  <div>
+                    <span class="mp-audit-title">
+                      Atualização via Gestão de Chefia
+                    </span>
+
+                    <div class="mp-audit-text">
+                      {{ auditoria_info }}
+                    </div>
                   </div>
                 </div>
                 {% endif %}
+
                 <div class="row g-3">
                   <div class="col-md-2">
-                    <label for="situacao" class="field-label">Situação</label>
-                    <select id="situacao" name="situacao" class="form-select">
+                    <label for="situacao" class="mp-field-label">Situação</label>
+
+                    <select id="situacao" name="situacao" class="form-select" {% if not can_edit %}disabled{% endif %}>
                       <option value="">-- Selecione --</option>
+
                       <option value="PRONTO" {{ 'selected' if (form_militar.situacao.data or militar.situacao)=='PRONTO'
-                        else '' }}>PRONTO</option>
+                        else '' }}>
+                        PRONTO
+                      </option>
+
                       <option value="AGREGADO" {{ 'selected' if (form_militar.situacao.data or
-                        militar.situacao)=='AGREGADO' else '' }}>AGREGADO</option>
+                        militar.situacao)=='AGREGADO' else '' }}>
+                        AGREGADO
+                      </option>
+
                       <option value="À DISPOSIÇÃO" {{ 'selected' if (form_militar.situacao.data or
-                        militar.situacao)=='À DISPOSIÇÃO' else '' }}>À DISPOSIÇÃO</option>
+                        militar.situacao)=='À DISPOSIÇÃO' else '' }}>
+                        À DISPOSIÇÃO
+                      </option>
                     </select>
                   </div>
+
                   <div class="col-md-4">
-                    <label for="modalidade_id" class="field-label">Modalidade</label>
-                    <select id="modalidade_id" name="modalidade_id" class="form-select">
+                    <label for="modalidade_id" class="mp-field-label">Modalidade</label>
+
+                    <select id="modalidade_id" name="modalidade_id" class="form-select" {% if not can_edit %}disabled{%
+                      endif %}>
                       {% for val, label in form_militar.modalidade_id.choices %}
-                      <option value="{{ val }}" {{ 'selected' if (form_militar.modalidade_id.data==val or
-                        militar.modalidade_id==val) else '' }}>
+                      <option value="{{ val }}" {{ 'selected' if (form_militar.modalidade_id.data|string==val|string or
+                        militar.modalidade_id|string==val|string) else '' }}>
                         {{ label }}
                       </option>
                       {% endfor %}
                     </select>
                   </div>
+
                   <div class="col-md-4">
-                    <label for="motivo_id" class="field-label">Motivo</label>
-                    <select id="motivo_id" name="motivo_id" class="form-select">
+                    <label for="motivo_id" class="mp-field-label">Motivo</label>
+
+                    <select id="motivo_id" name="motivo_id" class="form-select" {% if not can_edit %}disabled{% endif
+                      %}>
                       {% for val, label in form_militar.motivo_id.choices %}
-                      <option value="{{ val }}" {{ 'selected' if (form_militar.motivo_id.data==val or
-                        militar.motivo_id==val) else '' }}>
+                      <option value="{{ val }}" {{ 'selected' if (form_militar.motivo_id.data|string==val|string or
+                        militar.motivo_id|string==val|string) else '' }}>
                         {{ label }}
                       </option>
                       {% endfor %}
@@ -1056,64 +1465,86 @@
                   {{ render_field(form_militar.situacao_militar, 'col-md-6') }}
                 </div>
 
-                <div class="dynamic-card mt-3">
+                <div class="mp-dynamic-card mt-3">
                   <div class="row g-3">
                     <div class="col-md-4">
-                      <label for="situacao2_id" class="field-label">Situação Extra</label>
-                      <select id="situacao2_id" name="situacao2_id" class="form-select">
+                      <label for="situacao2_id" class="mp-field-label">Situação extra</label>
+
+                      <select id="situacao2_id" name="situacao2_id" class="form-select" {% if not can_edit %}disabled{%
+                        endif %}>
                         <option value="">-- Selecione --</option>
+
                         {% for val, label in form_militar.modalidade_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.situacao2_id==val else '' }}>{{ label }}
+                        <option value="{{ val }}" {{ 'selected' if militar.situacao2_id|string==val|string else '' }}>
+                          {{ label }}
                         </option>
                         {% endfor %}
                       </select>
                     </div>
 
                     <div class="col-md-4">
-                      <label for="agregacoes2_id" class="field-label">Agregação Extra</label>
-                      <select id="agregacoes2_id" name="agregacoes2_id" class="form-select">
+                      <label for="agregacoes2_id" class="mp-field-label">Agregação extra</label>
+
+                      <select id="agregacoes2_id" name="agregacoes2_id" class="form-select" {% if not can_edit
+                        %}disabled{% endif %}>
                         <option value="">-- Selecione --</option>
+
                         {% for val, label in form_militar.motivo_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id==val else '' }}>{{ label }}
+                        <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id|string==val|string else '' }}>
+                          {{ label }}
                         </option>
                         {% endfor %}
                       </select>
                     </div>
 
                     <div class="col-md-3">
-                      <label for="inicio_situacao2" class="field-label">Início</label>
+                      <label for="inicio_situacao2" class="mp-field-label">Início</label>
+
                       <input type="date" id="inicio_situacao2" name="inicio_situacao2" class="form-control"
-                        value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}">
+                        value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}"
+                        {% if not can_edit %}readonly{% endif %}>
                     </div>
 
                     <div class="col-md-3">
-                      <label for="fim_situacao2" class="field-label">Término</label>
+                      <label for="fim_situacao2" class="mp-field-label">Término</label>
+
                       <input type="date" id="fim_situacao2" name="fim_situacao2" class="form-control"
-                        value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}">
+                        value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}" {% if
+                        not can_edit %}readonly{% endif %}>
                     </div>
 
                     <div class="col-md-6">
-                      <label for="situacao_militar_2" class="field-label">Publicação (BG) — Situação 2</label>
+                      <label for="situacao_militar_2" class="mp-field-label">
+                        Publicação (BG) — Situação extra
+                      </label>
+
                       <input type="text" id="situacao_militar_2" name="situacao_militar_2" class="form-control"
                         placeholder="Ex.: BG nº 1234/2025, p. 45"
-                        value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}">
+                        value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}" {% if not can_edit %}readonly{%
+                        endif %}>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-heart-pulse"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-heart-pulse"></i>
+                  </div>
+
                   <div>
-                    <h3>LTIP</h3>
-                    <p>Campos vinculados ao período e impacto funcional.</p>
+                    <h2 class="mp-section-title">LTIP</h2>
+                    <p class="mp-section-description">
+                      Períodos e impactos funcionais relacionados ao afastamento.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_readonly_field(form_militar.ltip_afastamento_cargo_eletivo, 'col-md-3') }}
                   {{ render_field(form_militar.periodo_ltip, 'col-md-6') }}
@@ -1122,246 +1553,360 @@
                   {{ render_field(form_militar.completa_30_anos_ltip, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-arrow-up-right-circle"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-arrow-up-right-circle"></i>
+                  </div>
+
                   <div>
-                    <h3>Progressões</h3>
-                    <p>Evolução funcional e publicações de promoção.</p>
+                    <h2 class="mp-section-title">Progressões e publicações</h2>
+                    <p class="mp-section-description">
+                      Evolução funcional e boletins gerais de promoção.
+                    </p>
                   </div>
                 </div>
+
+                <span class="mp-section-tag">Carreira</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.soldado_tres, 'col-md-3') }}
                   {{ render_field(form_militar.soldado_dois, 'col-md-3') }}
                   {{ render_field(form_militar.soldado_um, 'col-md-3') }}
                   {{ render_field(form_militar.cabo, 'col-md-3') }}
+
                   {{ render_field(form_militar.terceiro_sgt, 'col-md-3') }}
                   {{ render_field(form_militar.segundo_sgt, 'col-md-3') }}
                   {{ render_field(form_militar.primeiro_sgt, 'col-md-3') }}
                   {{ render_field(form_militar.subtenente, 'col-md-3') }}
+
                   {{ render_field(form_militar.segundo_tenente, 'col-md-3') }}
                   {{ render_field(form_militar.publicidade_segundo_tenente, 'col-md-3') }}
                   {{ render_field(form_militar.primeiro_tenente, 'col-md-3') }}
                   {{ render_field(form_militar.publicidade_primeiro_tenente, 'col-md-3') }}
+
                   {{ render_field(form_militar.cap, 'col-md-3') }}
                   {{ render_field(form_militar.pub_cap, 'col-md-3') }}
                   {{ render_field(form_militar.maj, 'col-md-3') }}
                   {{ render_field(form_militar.pub_maj, 'col-md-3') }}
+
                   {{ render_field(form_militar.tc, 'col-md-3') }}
                   {{ render_field(form_militar.pub_tc, 'col-md-3') }}
                   {{ render_field(form_militar.cel, 'col-md-3') }}
                   {{ render_field(form_militar.pub_cel, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
           </div>
 
-          <div id="tab-complementar" class="tab-pane-shell">
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-rulers"></i></div>
+          {# ==================================================================
+          ABA: COMPLEMENTAR
+          ================================================================== #}
+
+          <div class="tab-pane fade" id="tab-complementar" role="tabpanel" aria-labelledby="tab-complementar-btn"
+            tabindex="0">
+
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-rulers"></i>
+                  </div>
+
                   <div>
-                    <h3>Dados físicos e características</h3>
-                    <p>Características, medidas e sinais particulares.</p>
+                    <h2 class="mp-section-title">Dados físicos e características</h2>
+                    <p class="mp-section-description">
+                      Características físicas, medidas e sinais particulares.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.local_nascimento, 'col-md-4') }}
-                  {{ render_field(form_militar.altura, 'col-md-2', 'form-control', '', 'Ex: 1.75') }}
+                  {{ render_field(form_militar.altura, 'col-md-2', '', 'Ex.: 1,75') }}
                   {{ render_field(form_militar.cor_olhos, 'col-md-3') }}
                   {{ render_field(form_militar.cor_cabelos, 'col-md-3') }}
+
                   {{ render_field(form_militar.medida_cabeca, 'col-md-3') }}
                   {{ render_field(form_militar.numero_sapato, 'col-md-3') }}
                   {{ render_field(form_militar.medida_calca, 'col-md-3') }}
                   {{ render_field(form_militar.medida_camisa, 'col-md-3') }}
+
                   {{ render_select(form_militar.tipo_sanguineo, 'col-md-3') }}
 
                   <div class="col-md-3">
-                    <label class="field-label d-block">{{ form_militar.bigode.label.text }}</label>
+                    <label class="mp-field-label d-block">
+                      {{ form_militar.bigode.label.text }}
+                    </label>
+
                     <div class="form-check form-switch pt-2">
+                      {% if can_edit %}
                       {{ form_militar.bigode(class="form-check-input") }}
+                      {% else %}
+                      {{ form_militar.bigode(class="form-check-input", disabled=True) }}
+                      {% endif %}
+
                       {{ form_militar.bigode.label(class="form-check-label") }}
                     </div>
                   </div>
 
                   <div class="col-md-3">
-                    <label class="field-label d-block">{{ form_militar.tatuagem.label.text }}</label>
+                    <label class="mp-field-label d-block">
+                      {{ form_militar.tatuagem.label.text }}
+                    </label>
+
                     <div class="form-check form-switch pt-2">
-                      {{ form_militar.tatuagem(class="form-check-input", id="tatuagem_check_admin") }}
+                      {% if can_edit %}
+                      {{ form_militar.tatuagem(
+                      class="form-check-input",
+                      id="tatuagem_check_admin"
+                      ) }}
+                      {% else %}
+                      {{ form_militar.tatuagem(
+                      class="form-check-input",
+                      id="tatuagem_check_admin",
+                      disabled=True
+                      ) }}
+                      {% endif %}
+
                       {{ form_militar.tatuagem.label(class="form-check-label") }}
                     </div>
                   </div>
 
                   <div class="col-md-3" id="local_tatuagem_wrapper_admin">
-                    {{ form_militar.local_tatuagem.label(class="field-label") }}
-                    {{ form_militar.local_tatuagem(class="form-control" + (' is-invalid' if
-                    form_militar.local_tatuagem.errors else '')) }}
+                    {{ render_field(form_militar.local_tatuagem, 'col-12') }}
                   </div>
 
-                  <div class="col-md-12">
-                    {{ form_militar.sinais_particulares.label(class="field-label") }}
-                    {{ form_militar.sinais_particulares(class="form-control" + (' is-invalid' if
-                    form_militar.sinais_particulares.errors else ''), rows="3") }}
+                  <div class="col-12">
+                    {{ form_militar.sinais_particulares.label(class="mp-field-label") }}
+
+                    {% if can_edit %}
+                    {{ form_militar.sinais_particulares(
+                    class="form-control" + (" is-invalid" if form_militar.sinais_particulares.errors else ""),
+                    rows="3"
+                    ) }}
+                    {% else %}
+                    {{ form_militar.sinais_particulares(
+                    class="form-control mp-readonly-control",
+                    rows="3",
+                    readonly=True
+                    ) }}
+                    {% endif %}
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-mortarboard"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-mortarboard"></i>
+                  </div>
+
                   <div>
-                    <h3>Formação & cursos</h3>
-                    <p>Escolaridade e formação militar/civil.</p>
+                    <h2 class="mp-section-title">Formação e cursos</h2>
+                    <p class="mp-section-description">
+                      Escolaridade, cursos militares, formação civil e especializações.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.cursos, 'col-md-6') }}
                   {{ render_select(form_militar.grau_instrucao, 'col-md-6') }}
+
                   {{ render_field(form_militar.graduacao, 'col-md-3') }}
                   {{ render_field(form_militar.pos_graduacao, 'col-md-3') }}
                   {{ render_field(form_militar.mestrado, 'col-md-3') }}
                   {{ render_field(form_militar.doutorado, 'col-md-3') }}
+
                   {{ render_field(form_militar.cfsd, 'col-md-3') }}
                   {{ render_field(form_militar.cfc, 'col-md-3') }}
                   {{ render_field(form_militar.cfs, 'col-md-3') }}
                   {{ render_field(form_militar.cas, 'col-md-3') }}
+
                   {{ render_field(form_militar.choa, 'col-md-3') }}
                   {{ render_field(form_militar.cfo, 'col-md-3') }}
                   {{ render_field(form_militar.cbo, 'col-md-3') }}
                   {{ render_field(form_militar.cao, 'col-md-3') }}
+
                   {{ render_field(form_militar.csbm, 'col-md-3') }}
                   {{ render_field(form_militar.cursos_civis, 'col-md-3') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-award"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-award"></i>
+                  </div>
+
                   <div>
-                    <h3>Especialidades Operacionais</h3>
-                    <p>Selecione os cursos de especialização concluídos pelo militar.</p>
+                    <h2 class="mp-section-title">Especialidades operacionais</h2>
+                    <p class="mp-section-description">
+                      Cursos de especialização concluídos pelo militar.
+                    </p>
                   </div>
                 </div>
+
+                <span class="mp-section-tag">Cursos</span>
               </div>
-              <div class="cluster-body">
-                <div class="cursos-grid">
-                  <!-- O WTForms gera uma lista ul/li, mas com um pouco de estilo ou extraindo os campos, fica perfeito -->
+
+              <div class="mp-section-body">
+                <div class="mp-course-grid">
                   {% for subfield in form_militar.cursos_ids %}
                   <div>
-                    <!-- A classe btn-check oculta o checkbox padrão do navegador -->
+                    {% if can_edit %}
                     {{ subfield(class="btn-check", id=subfield.id) }}
-                    <!-- O label assume o visual do botão -->
-                    <label class="btn-outline-curso w-100 text-start" for="{{ subfield.id }}">
+                    {% else %}
+                    {{ subfield(class="btn-check", id=subfield.id, disabled=True) }}
+                    {% endif %}
+
+                    <label class="mp-course-option w-100" for="{{ subfield.id }}">
                       {{ subfield.label.text }}
                     </label>
                   </div>
                   {% endfor %}
                 </div>
+
                 {% if form_militar.cursos_ids.errors %}
                 <div class="invalid-feedback d-block mt-2">
-                  {% for error in form_militar.cursos_ids.errors %}{{ error }}{% endfor %}
+                  {% for error in form_militar.cursos_ids.errors %}
+                  {{ error }}
+                  {% endfor %}
                 </div>
                 {% endif %}
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-book"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-book"></i>
+                  </div>
+
                   <div>
-                    <h3>Graduações adicionais</h3>
-                    <p>Lista dinâmica de graduações complementares.</p>
+                    <h2 class="mp-section-title">Graduações adicionais</h2>
+                    <p class="mp-section-description">
+                      Formação complementar além dos campos principais.
+                    </p>
                   </div>
                 </div>
+
+                {% if can_edit %}
+                <button type="button" class="btn btn-sm mp-btn-outline" onclick="addGraduacaoDRH()">
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Adicionar
+                </button>
+                {% endif %}
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div id="graduacoesContainer" class="row g-3">
                   {% if graduacoes %}
                   {% for grad in graduacoes %}
                   <div class="col-12 graduacao-item">
-                    <div class="dynamic-card">
+                    <div class="mp-dynamic-card">
                       <div class="row g-3">
                         {{ text_input('graduacoes_curso[]', 'Curso', grad.curso or '', 'col-md-5') }}
                         {{ text_input('graduacoes_instituicao[]', 'Instituição', grad.instituicao or '', 'col-md-4') }}
                         {{ text_input('graduacoes_ano[]', 'Ano', grad.ano_conclusao or '', 'col-md-2') }}
+
+                        {% if can_edit %}
                         <div class="col-md-1 d-flex align-items-end">
-                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
+                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)"
+                            aria-label="Remover graduação">
                             <i class="bi bi-trash"></i>
                           </button>
                         </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
                   {% endfor %}
                   {% else %}
                   <div class="col-12 graduacao-item">
-                    <div class="dynamic-card">
+                    <div class="mp-dynamic-card">
                       <div class="row g-3">
                         {{ text_input('graduacoes_curso[]', 'Curso', '', 'col-md-5') }}
                         {{ text_input('graduacoes_instituicao[]', 'Instituição', '', 'col-md-4') }}
                         {{ text_input('graduacoes_ano[]', 'Ano', '', 'col-md-2') }}
+
+                        {% if can_edit %}
                         <div class="col-md-1 d-flex align-items-end">
-                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
+                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)"
+                            aria-label="Remover graduação">
                             <i class="bi bi-trash"></i>
                           </button>
                         </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>
                   {% endif %}
                 </div>
-
-                <div class="mt-3">
-                  <button type="button" class="btn btn-outline-light" onclick="addGraduacaoDRH()">
-                    <i class="bi bi-plus-circle"></i> Adicionar graduação
-                  </button>
-                </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-telephone-forward"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-telephone-forward"></i>
+                  </div>
+
                   <div>
-                    <h3>Contatos de emergência</h3>
-                    <p>Lista de contatos com telefone e observações.</p>
+                    <h2 class="mp-section-title">Contatos de emergência</h2>
+                    <p class="mp-section-description">
+                      Pessoas de referência, telefones e observações.
+                    </p>
                   </div>
                 </div>
+
+                {% if can_edit %}
+                <button type="button" class="btn btn-sm mp-btn-outline" onclick="addContatoEmergenciaDRH()">
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Adicionar
+                </button>
+                {% endif %}
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div id="contatosEmergenciaContainer" class="row g-3">
                   {% if contatos_emergencia %}
                   {% for contato in contatos_emergencia %}
                   <div class="col-12 contato-item">
-                    <div class="dynamic-card">
+                    <div class="mp-dynamic-card">
                       <div class="row g-3">
                         {{ text_input('contato_nome[]', 'Nome', contato.nome or '', 'col-md-4') }}
                         {{ text_input('contato_parentesco[]', 'Parentesco', contato.parentesco or '', 'col-md-3') }}
                         {{ text_input('contato_telefone[]', 'Telefone', contato.telefone or '', 'col-md-2 col-lg-2',
-                        'text', 'field-phone') }}
+                        'text', 'mp-phone') }}
                         {{ text_input('contato_telefone_secundario[]', 'Telefone 2', contato.telefone_secundario or '',
-                        'col-md-2 col-lg-2', 'text', 'field-phone') }}
+                        'col-md-2 col-lg-2', 'text', 'mp-phone') }}
+
+                        {% if can_edit %}
                         <div class="col-md-1 d-flex align-items-end">
-                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
+                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)"
+                            aria-label="Remover contato">
                             <i class="bi bi-trash"></i>
                           </button>
                         </div>
+                        {% endif %}
+
                         {{ text_input('contato_observacao[]', 'Observação', contato.observacao or '', 'col-md-12') }}
                       </div>
                     </div>
@@ -1369,45 +1914,49 @@
                   {% endfor %}
                   {% else %}
                   <div class="col-12 contato-item">
-                    <div class="dynamic-card">
+                    <div class="mp-dynamic-card">
                       <div class="row g-3">
                         {{ text_input('contato_nome[]', 'Nome', '', 'col-md-4') }}
                         {{ text_input('contato_parentesco[]', 'Parentesco', '', 'col-md-3') }}
-                        {{ text_input('contato_telefone[]', 'Telefone', '', 'col-md-2 col-lg-2', 'text', 'field-phone')
-                        }}
+                        {{ text_input('contato_telefone[]', 'Telefone', '', 'col-md-2 col-lg-2', 'text', 'mp-phone') }}
                         {{ text_input('contato_telefone_secundario[]', 'Telefone 2', '', 'col-md-2 col-lg-2', 'text',
-                        'field-phone') }}
+                        'mp-phone') }}
+
+                        {% if can_edit %}
                         <div class="col-md-1 d-flex align-items-end">
-                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
+                          <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)"
+                            aria-label="Remover contato">
                             <i class="bi bi-trash"></i>
                           </button>
                         </div>
+                        {% endif %}
+
                         {{ text_input('contato_observacao[]', 'Observação', '', 'col-md-12') }}
                       </div>
                     </div>
                   </div>
                   {% endif %}
                 </div>
-
-                <div class="mt-3">
-                  <button type="button" class="btn btn-outline-light" onclick="addContatoEmergenciaDRH()">
-                    <i class="bi bi-plus-circle"></i> Adicionar contato
-                  </button>
-                </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-geo-alt"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-geo-alt"></i>
+                  </div>
+
                   <div>
-                    <h3>Endereço & contatos</h3>
-                    <p>Residência, celular, e-mail e BG de inclusão.</p>
+                    <h2 class="mp-section-title">Endereço e contatos</h2>
+                    <p class="mp-section-description">
+                      Residência, celular, e-mail e publicação de inclusão.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3 mb-4">
                   {{ render_field(form_militar.endereco, 'col-12') }}
                   {{ render_field(form_militar.complemento, 'col-12') }}
@@ -1417,269 +1966,330 @@
                 </div>
 
                 <div class="row g-3">
-                  {{ render_field(form_militar.celular, 'col-md-4 col-lg-3', 'form-control', 'field-phone') }}
+                  {{ render_field(form_militar.celular, 'col-md-4 col-lg-3', 'mp-phone') }}
                   {{ render_field(form_militar.email, 'col-md-8 col-lg-6') }}
                   {{ render_field(form_militar.inclusao_bg, 'col-md-4 col-lg-3') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-pencil-square"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-pencil-square"></i>
+                  </div>
+
                   <div>
-                    <h3>Alterações</h3>
-                    <p>Nome de guerra e publicação vinculada.</p>
+                    <h2 class="mp-section-title">Alterações</h2>
+                    <p class="mp-section-description">
+                      Nome de guerra e publicação de alteração correspondente.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   {{ render_field(form_militar.alteracao_nome_guerra, 'col-md-6') }}
                   {{ render_field(form_militar.pub_alteracao, 'col-md-6') }}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-paperclip"></i></div>
+            {% if can_edit %}
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-paperclip"></i>
+                  </div>
+
                   <div>
-                    <h3>Anexos</h3>
-                    <p>Boletins gerais e documentos complementares.</p>
+                    <h2 class="mp-section-title">Anexos</h2>
+                    <p class="mp-section-description">
+                      Boletins gerais e documentos complementares para o prontuário.
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="cluster-body">
-                <div class="upload-box">
-                  <label for="fileInput" class="upload-trigger">
-                    <i class="bi bi-cloud-upload"></i> Adicionar Boletins Gerais
+
+              <div class="mp-section-body">
+                <div class="mp-upload-box">
+                  <label for="fileInput" class="mp-upload-label">
+                    <i class="bi bi-cloud-upload"></i>
+                    Selecionar Boletins Gerais
                   </label>
-                  <input type="file" id="fileInput" name="arquivo" multiple>
-                  <span id="bg-arquivo" class="ms-2 muted-note"></span>
+
+                  <input type="file" id="fileInput" name="arquivo" multiple class="d-none">
+
+                  <span id="bg-arquivo" class="ms-2 mp-muted-note"></span>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="cluster">
-              <div class="cluster-head">
-                <div class="cluster-title">
-                  <div class="icon"><i class="bi bi-send"></i></div>
+            <section class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-send"></i>
+                  </div>
+
                   <div>
-                    <h3>Enviar documento ao militar</h3>
-                    <p>Arquivo disponível para download único do militar.</p>
+                    <h2 class="mp-section-title">Enviar documento ao militar</h2>
+                    <p class="mp-section-description">
+                      O arquivo ficará disponível em “Meus Documentos” para o militar.
+                    </p>
                   </div>
                 </div>
+
+                <span class="mp-section-tag">Comunicação</span>
               </div>
-              <div class="cluster-body">
+
+              <div class="mp-section-body">
                 <div class="row g-3">
                   <div class="col-12">
-                    <label class="field-label">Observação ao militar (opcional)</label>
-                    <textarea name="obs_para_militar" class="form-control" rows="3" maxlength="1000"
+                    <label class="mp-field-label" for="obs_para_militar">
+                      Observação ao militar
+                    </label>
+
+                    <textarea id="obs_para_militar" name="obs_para_militar" class="form-control" rows="3"
+                      maxlength="1000"
                       placeholder="Ex.: Prazo para entrega até 15/10. Assine e devolva ao DRH."></textarea>
-                    <div class="muted-note mt-2">Essa mensagem aparece para o militar em “Meus Documentos”.</div>
+
+                    <div class="mp-muted-note mt-2">
+                      Esta mensagem aparecerá para o militar junto ao documento enviado.
+                    </div>
                   </div>
 
                   <div class="col-12">
-                    <label class="field-label">Arquivo (PDF, DOCX, etc.)</label>
-                    <input type="file" name="doc_para_militar" class="form-control" optional>
-                    <div class="muted-note mt-2">O arquivo ficará disponível para o militar baixar uma única vez.</div>
+                    <label class="mp-field-label" for="doc_para_militar">
+                      Arquivo para o militar
+                    </label>
+
+                    <input type="file" id="doc_para_militar" name="doc_para_militar" class="form-control">
+
+                    <div class="mp-muted-note mt-2">
+                      O documento ficará disponível para download no cadastro do militar.
+                    </div>
                   </div>
 
-                  <div class="col-12 d-flex justify-content-end gap-2 flex-wrap">
-                    <button type="submit" class="btn btn-primary">
-                      <i class="bi bi-save"></i> Salvar ficha
-                    </button>
-
-                    <button type="submit" class="btn btn-outline-light"
+                  <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn mp-btn-outline"
                       formaction="{{ url_for('enviar_documento_militar', militar_id=militar.id) }}" formmethod="post"
-                      formenctype="multipart/form-data" optional>
-                      <i class="bi bi-cloud-upload"></i> Enviar ao militar
+                      formenctype="multipart/form-data">
+                      <i class="bi bi-cloud-upload me-1"></i>
+                      Enviar documento
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
+            {% endif %}
           </div>
+        </div>
 
-          <div class="footer-actions">
-            {{ form_militar.botao_submit(class="btn btn-primary") }}
-            <button type="button" class="btn btn-outline-light" data-bs-toggle="modal"
-              data-bs-target="#inativarMilitarModal">
-              <i class="bi bi-person-slash"></i> Inativar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {% if can_edit %}
+        <div id="acoes-finais" class="mp-actions">
+          {{ form_militar.botao_submit(class="btn mp-btn-save") }}
+
+          {% if can_delete %}
+          <button type="button" class="btn mp-btn-outline" data-bs-toggle="modal"
+            data-bs-target="#inativarMilitarModal">
+            <i class="bi bi-person-slash me-1"></i>
+            Inativar militar
+          </button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </form>
+    </section>
   </div>
-</section>
+</main>
 
-<div class="modal fade" id="inativarMilitarModal" tabindex="-1" aria-labelledby="inativarMilitarLabel"
+
+{% if can_delete %}
+<div class="modal fade mp-modal" id="inativarMilitarModal" tabindex="-1" aria-labelledby="inativarMilitarLabel"
   aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header border-0">
-        <h1 class="modal-title fs-6" id="inativarMilitarLabel">
-          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Inativar Militar?
-        </h1>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header">
+        <h2 class="modal-title fs-6" id="inativarMilitarLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+          Inativar militar?
+        </h2>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
+
       <div class="modal-body">
-        Esta ação <strong>não apaga</strong> os dados do militar; apenas marca como inativo para preservar o histórico.
+        <p class="mb-0">
+          Esta ação não apaga os dados. O militar será marcado como inativo e continuará disponível no histórico.
+        </p>
 
         <div class="mt-3">
-          <label class="field-label">Motivo (opcional)</label>
-          <input type="text" name="motivo_inativacao" form="formInativarMilitar" class="form-control"
-            placeholder="Ex.: desligamento, falecimento, transferência definitiva, etc.">
+          <label class="mp-field-label" for="motivo_inativacao">
+            Motivo da inativação
+          </label>
+
+          <input type="text" id="motivo_inativacao" name="motivo_inativacao" form="formInativarMilitar"
+            class="form-control" placeholder="Ex.: desligamento, transferência definitiva, falecimento...">
         </div>
       </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+
         <form id="formInativarMilitar" method="POST" action="{{ url_for('inativar_militar', militar_id=militar.id) }}">
-          {{ form_militar.csrf_token }}
+          <input type="hidden" name="csrf_token" value="{{ form_militar.csrf_token._value() }}">
+
           <button type="submit" class="btn btn-warning">
-            <i class="bi bi-person-slash"></i> Confirmar inativação
+            <i class="bi bi-person-slash me-1"></i>
+            Confirmar inativação
           </button>
         </form>
       </div>
     </div>
   </div>
 </div>
+{% endif %}
+
 
 <script>
   (function () {
-    const fileInput = document.getElementById('fileInput');
-    const info = document.getElementById('bg-arquivo');
+    const fileInput = document.getElementById("fileInput");
+    const info = document.getElementById("bg-arquivo");
 
-    if (fileInput) {
-      fileInput.addEventListener('change', () => {
-        if (!fileInput.files || !fileInput.files.length) {
-          info.textContent = '';
-          return;
-        }
-        const names = Array.from(fileInput.files).map(f => f.name);
-        info.textContent = names.slice(0, 3).join(', ') + (names.length > 3 ? ` e +${names.length - 3} arquivo(s)` : '');
-      });
-    }
-  })();
-</script>
-
-<script>
-  (function () {
-    const navButtons = document.querySelectorAll('[data-tab-target]');
-    const panes = document.querySelectorAll('.tab-pane-shell');
-    const tabLinks = document.querySelectorAll('#customTabNav .nav-link');
-
-    function activateTab(targetId) {
-      panes.forEach(p => p.classList.remove('active'));
-      tabLinks.forEach(b => b.classList.remove('active'));
-
-      const pane = document.getElementById(targetId);
-      if (pane) pane.classList.add('active');
-
-      document.querySelectorAll(`[data-tab-target="${targetId}"]`).forEach(btn => {
-        btn.classList.add('active');
-      });
-
-      window.scrollTo({ top: document.querySelector('.content-frame').offsetTop - 10, behavior: 'smooth' });
+    if (!fileInput || !info) {
+      return;
     }
 
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', function () {
-        activateTab(this.dataset.tabTarget);
+    fileInput.addEventListener("change", function () {
+      const files = Array.from(fileInput.files || []);
+
+      if (!files.length) {
+        info.textContent = "";
+        return;
+      }
+
+      const nomes = files.map(function (file) {
+        return file.name;
       });
+
+      info.textContent =
+        nomes.slice(0, 3).join(", ") +
+        (nomes.length > 3
+          ? " e +" + (nomes.length - 3) + " arquivo(s)"
+          : "");
     });
   })();
 </script>
 
+
 <script>
   (function () {
-    const sNome = document.getElementById('s_nome');
-    const sPosto = document.getElementById('s_posto');
-    const sMatricula = document.getElementById('s_matricula');
-    const sCpf = document.getElementById('s_cpf');
+    const sNome = document.getElementById("s_nome");
+    const sPosto = document.getElementById("s_posto");
+    const sMatricula = document.getElementById("s_matricula");
+    const sCpf = document.getElementById("s_cpf");
 
-    const iNomeCompleto = document.getElementById('nome_completo');
-    const iNomeGuerra = document.getElementById('nome_guerra');
-    const iPosto = document.getElementById('posto_grad_id');
-    const iMatricula = document.getElementById('matricula');
-    const iCpf = document.getElementById('cpf');
+    const inputNomeCompleto = document.getElementById("nome_completo");
+    const inputNomeGuerra = document.getElementById("nome_guerra");
+    const inputPosto = document.getElementById("posto_grad_id");
+    const inputMatricula = document.getElementById("matricula");
+    const inputCpf = document.getElementById("cpf");
 
-    function formatCpf(v) {
-      const d = (v || '').replace(/\D/g, '').slice(0, 11);
-      if (d.length <= 3) return d;
-      if (d.length <= 6) return d.replace(/(\d{3})(\d+)/, '$1.$2');
-      if (d.length <= 9) return d.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
-      return d.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+    function formatCpf(valor) {
+      const numeros = (valor || "").replace(/\D/g, "").slice(0, 11);
+
+      if (numeros.length <= 3) return numeros;
+      if (numeros.length <= 6) return numeros.replace(/(\d{3})(\d+)/, "$1.$2");
+      if (numeros.length <= 9) return numeros.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+
+      return numeros.replace(
+        /(\d{3})(\d{3})(\d{3})(\d{0,2}).*/,
+        "$1.$2.$3-$4"
+      );
     }
 
     function updateSummary() {
-      const ng = iNomeGuerra?.value?.trim();
-      const nc = iNomeCompleto?.value?.trim();
+      const nomeGuerra = inputNomeGuerra?.value?.trim();
+      const nomeCompleto = inputNomeCompleto?.value?.trim();
 
-      if (sNome) sNome.textContent = ng || nc || '—';
-      if (sPosto && iPosto) {
-        const opt = iPosto.options[iPosto.selectedIndex];
-        sPosto.textContent = opt ? opt.text : '—';
+      if (sNome) {
+        sNome.textContent = nomeGuerra || nomeCompleto || "—";
       }
-      if (sMatricula && iMatricula) sMatricula.textContent = iMatricula.value || '—';
-      if (sCpf && iCpf) sCpf.textContent = formatCpf(iCpf.value) || '—';
+
+      if (sPosto && inputPosto) {
+        const option = inputPosto.options[inputPosto.selectedIndex];
+        sPosto.textContent = option ? option.text : "—";
+      }
+
+      if (sMatricula && inputMatricula) {
+        sMatricula.textContent = inputMatricula.value || "—";
+      }
+
+      if (sCpf && inputCpf) {
+        sCpf.textContent = formatCpf(inputCpf.value) || "—";
+      }
     }
 
-    [iNomeCompleto, iNomeGuerra, iPosto, iMatricula, iCpf].forEach(el => {
-      if (!el) return;
-      el.addEventListener('input', updateSummary);
-      el.addEventListener('change', updateSummary);
+    [
+      inputNomeCompleto,
+      inputNomeGuerra,
+      inputPosto,
+      inputMatricula,
+      inputCpf
+    ].forEach(function (element) {
+      if (!element) return;
+
+      element.addEventListener("input", updateSummary);
+      element.addEventListener("change", updateSummary);
     });
 
     updateSummary();
+  })();
+</script>
 
-    const selSituacao = document.getElementById('modalidade_id');
-    const badgeHero = document.getElementById('statusBadgeHero');
+
+<script>
+  (function () {
+    const modalidade = document.getElementById("modalidade_id");
+    const badgeHero = document.getElementById("statusBadgeHero");
 
     function updateBadge() {
-      if (!badgeHero || !selSituacao) return;
-      const txt = (selSituacao.options[selSituacao.selectedIndex]?.text || '').toLowerCase();
+      if (!modalidade || !badgeHero) {
+        return;
+      }
 
-      let label = 'Ativo';
-      if (txt.includes('afast')) label = 'Afastado';
-      else if (txt.includes('reserva')) label = 'Reserva';
-      else if (txt.includes('licença')) label = 'Licença';
+      const texto = (
+        modalidade.options[modalidade.selectedIndex]?.text || ""
+      ).toLowerCase();
 
-      badgeHero.innerHTML = `<i class="bi bi-shield-check"></i> ${label}`;
+      let label = "Cadastro ativo";
+      let icon = "bi-shield-check";
+
+      if (texto.includes("afast")) {
+        label = "Afastado";
+        icon = "bi-person-dash";
+      } else if (texto.includes("reserva")) {
+        label = "Reserva";
+        icon = "bi-shield";
+      } else if (texto.includes("licença") || texto.includes("licenca")) {
+        label = "Licença";
+        icon = "bi-calendar-x";
+      }
+
+      badgeHero.innerHTML = `<i class="bi ${icon}"></i> ${label}`;
     }
 
-    selSituacao && selSituacao.addEventListener('change', updateBadge);
+    modalidade?.addEventListener("change", updateBadge);
     updateBadge();
   })();
 </script>
 
-<script>
-  (function () {
-    if (window.CAN_EDIT) return;
-
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      if (el.type === 'hidden') return;
-      if (el.name === 'csrf_token') return;
-      el.setAttribute('disabled', 'disabled');
-    });
-
-    document.querySelectorAll('button[type="submit"], .footer-actions, #fileInput').forEach(el => {
-      if (el) el.style.display = 'none';
-    });
-
-    const hero = document.querySelector('.hero-shell');
-    if (hero) {
-      const warn = document.createElement('div');
-      warn.className = 'alert alert-warning mt-3 mb-0';
-      warn.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Você está em modo leitura (sem permissão para editar).';
-      hero.appendChild(warn);
-    }
-  })();
-</script>
 
 <script>
   (function () {
@@ -1687,91 +2297,20 @@
     const wrapper = document.getElementById("local_tatuagem_wrapper_admin");
 
     function toggleLocalTatuagem() {
-      if (!tatuagemCheck || !wrapper) return;
+      if (!tatuagemCheck || !wrapper) {
+        return;
+      }
+
       wrapper.style.display = tatuagemCheck.checked ? "block" : "none";
     }
 
-    if (tatuagemCheck) {
-      tatuagemCheck.addEventListener("change", toggleLocalTatuagem);
-      toggleLocalTatuagem();
-    }
+    tatuagemCheck?.addEventListener("change", toggleLocalTatuagem);
+    toggleLocalTatuagem();
   })();
 </script>
 
+
 <script>
-  function removeBlock(button) {
-    const block = button.closest(".graduacao-item, .contato-item");
-    if (block) block.remove();
-  }
-
-  function addGraduacaoDRH() {
-    const container = document.getElementById("graduacoesContainer");
-    const html = `
-      <div class="col-12 graduacao-item">
-        <div class="dynamic-card">
-          <div class="row g-3">
-            <div class="col-md-5">
-              <label class="field-label">Curso</label>
-              <input type="text" name="graduacoes_curso[]" class="form-control">
-            </div>
-            <div class="col-md-4">
-              <label class="field-label">Instituição</label>
-              <input type="text" name="graduacoes_instituicao[]" class="form-control">
-            </div>
-            <div class="col-md-2">
-              <label class="field-label">Ano</label>
-              <input type="text" name="graduacoes_ano[]" class="form-control">
-            </div>
-            <div class="col-md-1 d-flex align-items-end">
-              <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    container.insertAdjacentHTML("beforeend", html);
-  }
-
-  function addContatoEmergenciaDRH() {
-    const container = document.getElementById("contatosEmergenciaContainer");
-    const html = `
-      <div class="col-12 contato-item">
-        <div class="dynamic-card">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="field-label">Nome</label>
-              <input type="text" name="contato_nome[]" class="form-control">
-            </div>
-            <div class="col-md-3">
-              <label class="field-label">Parentesco</label>
-              <input type="text" name="contato_parentesco[]" class="form-control">
-            </div>
-            <div class="col-md-2 col-lg-2">
-              <label class="field-label">Telefone</label>
-              <input type="text" name="contato_telefone[]" class="form-control field-phone">
-            </div>
-            <div class="col-md-2 col-lg-2">
-              <label class="field-label">Telefone 2</label>
-              <input type="text" name="contato_telefone_secundario[]" class="form-control field-phone">
-            </div>
-            <div class="col-md-1 d-flex align-items-end">
-              <button type="button" class="btn btn-outline-danger w-100" onclick="removeBlock(this)">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-            <div class="col-md-12">
-              <label class="field-label">Observação</label>
-              <input type="text" name="contato_observacao[]" class="form-control">
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    container.insertAdjacentHTML("beforeend", html);
-  }
-
   (function () {
     const estadoCivil = document.getElementById("estado_civil");
     const conjugeSection = document.getElementById("conjuge_section");
@@ -1785,10 +2324,14 @@
     }
 
     function toggleConjugeSection() {
-      if (!estadoCivil || !conjugeSection) return;
+      if (!estadoCivil || !conjugeSection) {
+        return;
+      }
 
-      const texto = estadoCivil.options[estadoCivil.selectedIndex]
-        ? normalizarTexto(estadoCivil.options[estadoCivil.selectedIndex].text)
+      const option = estadoCivil.options[estadoCivil.selectedIndex];
+
+      const texto = option
+        ? normalizarTexto(option.text)
         : "";
 
       const mostrar =
@@ -1799,9 +2342,162 @@
       conjugeSection.style.display = mostrar ? "block" : "none";
     }
 
-    if (estadoCivil) {
-      estadoCivil.addEventListener("change", toggleConjugeSection);
-      toggleConjugeSection();
+    estadoCivil?.addEventListener("change", toggleConjugeSection);
+    toggleConjugeSection();
+  })();
+</script>
+
+
+<script>
+  function removeBlock(button) {
+    if (!window.CAN_EDIT) {
+      return;
+    }
+
+    const block = button.closest(".graduacao-item, .contato-item");
+
+    if (block) {
+      block.remove();
+    }
+  }
+
+  function addGraduacaoDRH() {
+    if (!window.CAN_EDIT) {
+      return;
+    }
+
+    const container = document.getElementById("graduacoesContainer");
+
+    if (!container) {
+      return;
+    }
+
+    const html = `
+      <div class="col-12 graduacao-item">
+        <div class="mp-dynamic-card">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="mp-field-label">Curso</label>
+              <input type="text" name="graduacoes_curso[]" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+              <label class="mp-field-label">Instituição</label>
+              <input type="text" name="graduacoes_instituicao[]" class="form-control">
+            </div>
+
+            <div class="col-md-2">
+              <label class="mp-field-label">Ano</label>
+              <input type="text" name="graduacoes_ano[]" class="form-control">
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+              <button
+                type="button"
+                class="btn btn-outline-danger w-100"
+                onclick="removeBlock(this)"
+                aria-label="Remover graduação"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", html);
+  }
+
+  function addContatoEmergenciaDRH() {
+    if (!window.CAN_EDIT) {
+      return;
+    }
+
+    const container = document.getElementById("contatosEmergenciaContainer");
+
+    if (!container) {
+      return;
+    }
+
+    const html = `
+      <div class="col-12 contato-item">
+        <div class="mp-dynamic-card">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="mp-field-label">Nome</label>
+              <input type="text" name="contato_nome[]" class="form-control">
+            </div>
+
+            <div class="col-md-3">
+              <label class="mp-field-label">Parentesco</label>
+              <input type="text" name="contato_parentesco[]" class="form-control">
+            </div>
+
+            <div class="col-md-2 col-lg-2">
+              <label class="mp-field-label">Telefone</label>
+              <input type="text" name="contato_telefone[]" class="form-control mp-phone">
+            </div>
+
+            <div class="col-md-2 col-lg-2">
+              <label class="mp-field-label">Telefone 2</label>
+              <input type="text" name="contato_telefone_secundario[]" class="form-control mp-phone">
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+              <button
+                type="button"
+                class="btn btn-outline-danger w-100"
+                onclick="removeBlock(this)"
+                aria-label="Remover contato"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+            <div class="col-md-12">
+              <label class="mp-field-label">Observação</label>
+              <input type="text" name="contato_observacao[]" class="form-control">
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", html);
+  }
+</script>
+
+
+<script>
+  (function () {
+    const invalidField = document.querySelector(".is-invalid");
+
+    if (!invalidField) {
+      return;
+    }
+
+    const pane = invalidField.closest(".tab-pane");
+
+    if (!pane) {
+      return;
+    }
+
+    const target = "#" + pane.id;
+
+    const tabButton = document.querySelector(
+      '[data-bs-target="' + target + '"]'
+    );
+
+    if (tabButton) {
+      bootstrap.Tab.getOrCreateInstance(tabButton).show();
+
+      setTimeout(function () {
+        invalidField.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+      }, 250);
     }
   })();
 </script>

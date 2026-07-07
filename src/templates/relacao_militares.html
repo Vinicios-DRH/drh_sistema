@@ -7,113 +7,108 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
 
 <style>
-    :root {
-        --ink-200: #e8eef6;
-        --glass-brd: rgba(255, 255, 255, .12);
+    .rel-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
+        background:
+            radial-gradient(circle at top right, rgba(38, 128, 191, .13), transparent 34%),
+            linear-gradient(135deg,
+                var(--app-page-bg) 0%,
+                var(--app-page-bg-alt) 52%,
+                var(--app-surface-muted) 100%);
     }
 
-    body {
-        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
-    }
-
-    .brand-header {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-        border: 1px solid var(--glass-brd);
-        border-radius: 16px;
-        color: var(--ink-200);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-    }
-
-    .glass-panel {
-        background: rgba(255, 255, 255, .95);
-        border: 1px solid rgba(255, 255, 255, .55);
+    .rel-header {
+        border: 1px solid rgba(255, 255, 255, .16);
         border-radius: 18px;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-        color: #111;
+        color: var(--app-hero-text);
+        background: linear-gradient(135deg,
+                var(--app-hero-start),
+                var(--app-hero-middle) 48%,
+                var(--app-hero-end));
+        box-shadow: var(--app-shadow-hero);
+    }
+
+    .rel-panel {
+        border: 1px solid var(--app-border);
+        border-radius: 18px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
     }
 
     .summary-card {
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 14px;
-        background: #fff;
-        padding: .9rem 1rem;
         height: 100%;
+        padding: .9rem 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: 0 5px 14px rgba(16, 59, 91, .04);
     }
 
-    .summary-card .label {
-        font-size: .8rem;
-        color: #6c757d;
-        margin-bottom: .2rem;
+    .summary-card .label,
+    .table-meta .left,
+    .muted-note,
+    .empty-state {
+        color: var(--app-muted);
     }
 
     .summary-card .value {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #0b2e4f;
+        color: var(--app-primary);
+        font-size: 1.35rem;
+        font-weight: 850;
     }
 
     .dt-toolbar {
-        background: rgba(13, 110, 253, .05);
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 12px;
-        padding: .65rem;
         margin-bottom: .75rem;
+        padding: .65rem;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface-soft);
     }
 
     .table-shell {
-        border: 1px solid rgba(0, 0, 0, .06);
-        border-radius: 14px;
         overflow: hidden;
-        background: #fff;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface);
+    }
+
+    #tabela-militares {
+        --bs-table-color: var(--app-text);
+        --bs-table-bg: transparent;
+        --bs-table-hover-color: var(--app-text);
+        --bs-table-hover-bg: var(--app-table-row-hover);
+        --bs-table-border-color: var(--app-border);
     }
 
     #tabela-militares thead th {
         position: sticky;
         top: 0;
         z-index: 2;
-        background: #f8fafc;
+        color: var(--app-text);
         white-space: nowrap;
         font-size: .9rem;
+        background: var(--app-table-head);
+        box-shadow: inset 0 -1px 0 var(--app-border);
     }
 
     #tabela-militares tbody td {
+        color: var(--app-text);
         vertical-align: middle;
         font-size: .92rem;
     }
 
     .name-link {
-        color: #0b2e4f;
-        font-weight: 600;
+        color: var(--app-primary);
+        font-weight: 750;
     }
 
     .name-link:hover {
-        color: #0d6efd;
-    }
-
-    .muted-note {
-        font-size: .86rem;
-        color: #6c757d;
-    }
-
-    .chip-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .35rem;
-    }
-
-    .chip {
-        display: inline-block;
-        padding: .2rem .5rem;
-        border-radius: 999px;
-        background: rgba(13, 110, 253, .08);
-        color: #0b2e4f;
-        border: 1px solid rgba(13, 110, 253, .12);
-        font-size: .78rem;
-        white-space: nowrap;
+        color: var(--app-primary-hover);
+        text-decoration: underline;
     }
 
     .pagination .page-link {
@@ -123,28 +118,135 @@
 
     .table-meta {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
         gap: 1rem;
         flex-wrap: wrap;
         margin-bottom: .75rem;
     }
 
-    .table-meta .left {
-        font-size: .9rem;
-        color: #6c757d;
+    .rel-mobile-list {
+        display: none;
     }
 
-    .empty-state {
-        padding: 2rem 1rem;
-        text-align: center;
-        color: #6c757d;
+    .rel-mobile-card {
+        padding: 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        color: var(--app-text);
+        background: var(--app-surface-soft);
+        box-shadow: 0 5px 14px rgba(16, 59, 91, .05);
     }
 
-    @media (max-width: 768px) {
+    .rel-mobile-card+.rel-mobile-card {
+        margin-top: .75rem;
+    }
+
+    .rel-mobile-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .rel-mobile-name {
+        margin: 0;
+        color: var(--app-text);
+        font-size: 1rem;
+        font-weight: 850;
+        line-height: 1.35;
+    }
+
+    .rel-mobile-subtitle {
+        margin-top: .2rem;
+        color: var(--app-muted);
+        font-size: .82rem;
+        font-weight: 650;
+    }
+
+    .rel-mobile-facts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+        margin-top: 1rem;
+    }
+
+    .rel-mobile-label {
+        display: block;
+        margin-bottom: .16rem;
+        color: var(--app-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .rel-mobile-value {
+        display: block;
+        color: var(--app-text);
+        font-size: .83rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .rel-mobile-extra {
+        margin-top: 1rem;
+        padding-top: .85rem;
+        border-top: 1px solid var(--app-border);
+    }
+
+    .rel-mobile-extra summary {
+        cursor: pointer;
+        color: var(--app-primary);
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .rel-mobile-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        margin-top: .8rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .rel-page {
+            padding-top: .75rem;
+        }
+
+        .rel-header,
+        .rel-panel {
+            border-radius: 14px;
+        }
+
+        .rel-desktop-table {
+            display: none;
+        }
+
+        .rel-mobile-list {
+            display: block;
+        }
+
         .table-meta {
+            align-items: stretch;
             flex-direction: column;
-            align-items: flex-start;
+        }
+
+        .table-meta .left {
+            width: 100%;
+        }
+
+        .rel-header .btn {
+            width: 100%;
+        }
+
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .modal-dialog {
+            margin: .5rem;
         }
     }
 </style>
@@ -160,10 +262,10 @@
 {% endif %}
 {% endfor %}
 
-<section class="py-3 py-md-4">
+<main class="rel-page">
     <div class="container-fluid px-3 px-md-4">
 
-        <div class="brand-header p-3 p-md-4 mb-3 mt-2">
+        <div class="rel-header p-3 p-md-4 mb-3 mt-2">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
                     <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
@@ -215,7 +317,7 @@
             </div>
         </div>
 
-        <div class="glass-panel p-3 p-md-4">
+        <div class="rel-panel p-3 p-md-4">
 
             <form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('tabela_militares') }}">
                 <div class="col-12 col-lg-5">
@@ -263,85 +365,242 @@
                 </div>
             </div>
 
-            <div class="table-shell">
-                <div class="table-responsive">
-                    <table id="tabela-militares" class="table table-hover align-middle mb-0 nowrap" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Nome Completo</th>
-                                <th>Nome de Guerra</th>
-                                <th>Posto/Graduação</th>
-                                <th>Quadro</th>
-                                <th>Sexo</th>
-                                <th>Raça/Cor</th>
-                                <th>CPF</th>
-                                <th>RG</th>
-                                <th>Matrícula</th>
-                                <th>Inclusão</th>
-                                <th>Especialidade</th>
-                                <th>Localidade</th>
-                                <th>Modalidade</th>
-                                <th>Destino</th>
-                                <th>OBM 1</th>
-                                <th>Função 1</th>
-                                <th>OBM 2</th>
-                                <th>Função 2</th>
-                                <th>Data de Nascimento</th>
-                                <th>Graduação</th>
-                                <th>Grau de Instrução</th>
-                                <th>Pós-Graduação</th>
-                                <th>Mestrado</th>
-                                <th>Doutorado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if militares %}
-                            {% for militar in militares %}
-                            {% set sit = militar.modalidade|upper %}
-                            <tr>
-                                <td>
-                                    <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
-                                        class="text-decoration-none name-link">
-                                        {{ militar.nome_completo }}
-                                    </a>
-                                </td>
-                                <td>{{ militar.nome_guerra }}</td>
-                                <td>{{ militar.posto_grad }}</td>
-                                <td>{{ militar.quadro }}</td>
-                                <td>{{ militar.sexo }}</td>
-                                <td>{{ militar.raca }}</td>
-                                <td>{{ militar.cpf }}</td>
-                                <td>{{ militar.rg }}</td>
-                                <td>{{ militar.matricula }}</td>
-                                <td>{{ militar.inclusao }}</td>
-                                <td>{{ militar.especialidade }}</td>
-                                <td>{{ militar.localidade }}</td>
-                                <td>
-                                    {% if sit == 'AGREGADO' %}
-                                    <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
-                                    {% elif sit == 'À DISPOSIÇÃO' %}
-                                    <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ militar.modalidade }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ militar.destino }}</td>
-                                <td>{{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}</td>
-                                <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}</td>
-                                <td>{{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}</td>
-                                <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}</td>
-                                <td>{{ militar.data_nascimento }}</td>
-                                <td>{{ militar.graduacao }}</td>
-                                <td>{{ militar.grau_instrucao }}</td>
-                                <td>{{ militar.pos_graduacao }}</td>
-                                <td>{{ militar.mestrado }}</td>
-                                <td>{{ militar.doutorado }}</td>
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
+            <div class="rel-desktop-table">
+                <div class="table-shell">
+                    <div class="table-responsive">
+                        <table id="tabela-militares" class="table table-hover align-middle mb-0 nowrap"
+                            style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Nome Completo</th>
+                                    <th>Nome de Guerra</th>
+                                    <th>Posto/Graduação</th>
+                                    <th>Quadro</th>
+                                    <th>Sexo</th>
+                                    <th>Raça/Cor</th>
+                                    <th>CPF</th>
+                                    <th>RG</th>
+                                    <th>Matrícula</th>
+                                    <th>Inclusão</th>
+                                    <th>Especialidade</th>
+                                    <th>Localidade</th>
+                                    <th>Modalidade</th>
+                                    <th>Destino</th>
+                                    <th>OBM 1</th>
+                                    <th>Função 1</th>
+                                    <th>OBM 2</th>
+                                    <th>Função 2</th>
+                                    <th>Data de Nascimento</th>
+                                    <th>Graduação</th>
+                                    <th>Grau de Instrução</th>
+                                    <th>Pós-Graduação</th>
+                                    <th>Mestrado</th>
+                                    <th>Doutorado</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for militar in militares %}
+                                {% set sit = militar.modalidade|upper %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
+                                            class="text-decoration-none name-link">
+                                            {{ militar.nome_completo }}
+                                        </a>
+                                    </td>
+                                    <td>{{ militar.nome_guerra }}</td>
+                                    <td>{{ militar.posto_grad }}</td>
+                                    <td>{{ militar.quadro }}</td>
+                                    <td>{{ militar.sexo }}</td>
+                                    <td>{{ militar.raca }}</td>
+                                    <td>{{ militar.cpf }}</td>
+                                    <td>{{ militar.rg }}</td>
+                                    <td>{{ militar.matricula }}</td>
+                                    <td>{{ militar.inclusao }}</td>
+                                    <td>{{ militar.especialidade }}</td>
+                                    <td>{{ militar.localidade }}</td>
+                                    <td>
+                                        {% if sit == 'AGREGADO' %}
+                                        <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
+                                        {% elif sit == 'À DISPOSIÇÃO' %}
+                                        <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ militar.modalidade }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ militar.destino }}</td>
+                                    <td>{{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}</td>
+                                    <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}</td>
+                                    <td>{{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}</td>
+                                    <td>{{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}</td>
+                                    <td>{{ militar.data_nascimento }}</td>
+                                    <td>{{ militar.graduacao }}</td>
+                                    <td>{{ militar.grau_instrucao }}</td>
+                                    <td>{{ militar.pos_graduacao }}</td>
+                                    <td>{{ militar.mestrado }}</td>
+                                    <td>{{ militar.doutorado }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </div>
+
+            <div class="rel-mobile-list">
+                {% if militares %}
+                {% for militar in militares %}
+                {% set sit = militar.modalidade|upper %}
+
+                <article class="rel-mobile-card">
+                    <div class="rel-mobile-top">
+                        <div>
+                            <h2 class="rel-mobile-name">{{ militar.nome_completo }}</h2>
+
+                            <div class="rel-mobile-subtitle">
+                                {{ militar.posto_grad }} · {{ militar.quadro }}
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            Ver ficha
+                        </a>
+                    </div>
+
+                    <div class="rel-mobile-badges">
+                        {% if sit == 'AGREGADO' %}
+                        <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
+                        {% elif sit == 'À DISPOSIÇÃO' %}
+                        <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ militar.modalidade }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="rel-mobile-facts">
+                        <div>
+                            <span class="rel-mobile-label">Matrícula</span>
+                            <span class="rel-mobile-value">{{ militar.matricula }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">Sexo</span>
+                            <span class="rel-mobile-value">{{ militar.sexo }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">CPF</span>
+                            <span class="rel-mobile-value">{{ militar.cpf }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">Destino</span>
+                            <span class="rel-mobile-value">{{ militar.destino }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">OBM principal</span>
+                            <span class="rel-mobile-value">
+                                {{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">Função principal</span>
+                            <span class="rel-mobile-value">
+                                {{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <details class="rel-mobile-extra">
+                        <summary>Ver informações completas</summary>
+
+                        <div class="rel-mobile-facts">
+                            <div>
+                                <span class="rel-mobile-label">Nome de guerra</span>
+                                <span class="rel-mobile-value">{{ militar.nome_guerra }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">RG</span>
+                                <span class="rel-mobile-value">{{ militar.rg }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Raça/Cor</span>
+                                <span class="rel-mobile-value">{{ militar.raca }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Inclusão</span>
+                                <span class="rel-mobile-value">{{ militar.inclusao }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Especialidade</span>
+                                <span class="rel-mobile-value">{{ militar.especialidade }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Localidade</span>
+                                <span class="rel-mobile-value">{{ militar.localidade }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">OBM 2</span>
+                                <span class="rel-mobile-value">
+                                    {{ militar.obms[1] if militar.obms|length > 1 else 'N/A' }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Função 2</span>
+                                <span class="rel-mobile-value">
+                                    {{ militar.funcoes[1] if militar.funcoes|length > 1 else 'N/A' }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Nascimento</span>
+                                <span class="rel-mobile-value">{{ militar.data_nascimento }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Graduação</span>
+                                <span class="rel-mobile-value">{{ militar.graduacao }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Grau de instrução</span>
+                                <span class="rel-mobile-value">{{ militar.grau_instrucao }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Pós-graduação</span>
+                                <span class="rel-mobile-value">{{ militar.pos_graduacao }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Mestrado</span>
+                                <span class="rel-mobile-value">{{ militar.mestrado }}</span>
+                            </div>
+
+                            <div>
+                                <span class="rel-mobile-label">Doutorado</span>
+                                <span class="rel-mobile-value">{{ militar.doutorado }}</span>
+                            </div>
+                        </div>
+                    </details>
+                </article>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    Nenhum militar encontrado para os filtros informados.
+                </div>
+                {% endif %}
             </div>
 
             {% if total_pages > 1 %}
@@ -405,16 +664,16 @@
     <div class="modal fade" id="modalExportarExcel" tabindex="-1" aria-labelledby="modalExportarExcelLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content glass-panel">
+            <div class="modal-content rel-panel">
                 <form method="POST"
                     action="{{ url_for('export_excel') }}{% if qs.value %}?{{ qs.value[:-1] if qs.value.endswith('&') else qs.value }}{% endif %}">
                     <div class="modal-header border-bottom border-secondary">
-                        <h5 class="modal-title text-dark" id="modalExportarExcelLabel"><i
+                        <h5 class="modal-title" id="modalExportarExcelLabel"><i
                                 class="bi bi-file-earmark-spreadsheet me-2"></i>Personalizar Planilha</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
 
-                    <div class="modal-body text-dark">
+                    <div class="modal-body">
                         <p class="mb-3">Selecione quais colunas deseja incluir no arquivo Excel. Sua ação será
                             registrada para fins de auditoria.</p>
 
@@ -449,7 +708,7 @@
             </div>
         </div>
     </div>
-</section>
+</main>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
@@ -466,6 +725,8 @@
     $(function () {
         const hasRows = {{ 'true' if militares and militares| length > 0 else 'false'
     }};
+    const searchInput = document.getElementById('searchTable');
+    const desktop = window.matchMedia('(min-width: 768px)').matches;
 
     if (!hasRows) {
         $('#searchTable')
@@ -474,42 +735,55 @@
         return;
     }
 
-    const dt = $('#tabela-militares').DataTable({
-        responsive: false,
-        scrollX: true,
-        autoWidth: false,
-        paging: false,
-        info: false,
-        lengthChange: false,
-        ordering: true,
-        searching: true,
-        order: [],
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json'
-        },
-        dom: '<"dt-toolbar d-flex flex-wrap gap-2 align-items-center"B>rt',
-        buttons: [
-            {
-                extend: 'csvHtml5',
-                title: 'relacao_militares_pagina_{{ page }}',
-                text: '<i class="bi bi-filetype-csv"></i> CSV (página atual)',
-                className: 'btn btn-outline-secondary btn-sm'
-            },
-            {
-                extend: 'print',
-                text: '<i class="bi bi-printer"></i> Imprimir',
-                className: 'btn btn-outline-secondary btn-sm'
-            },
-            {
-                extend: 'colvis',
-                text: '<i class="bi bi-view-list"></i> Colunas',
-                className: 'btn btn-outline-primary btn-sm'
-            }
-        ]
-    });
+    let dt = null;
 
-    $('#searchTable').on('input', function () {
-        dt.search(this.value).draw();
+    if (desktop) {
+        dt = $('#tabela-militares').DataTable({
+            responsive: false,
+            scrollX: true,
+            autoWidth: false,
+            paging: false,
+            info: false,
+            lengthChange: false,
+            ordering: true,
+            searching: true,
+            order: [],
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json'
+            },
+            dom: '<"dt-toolbar d-flex flex-wrap gap-2 align-items-center"B>rt',
+            buttons: [
+                {
+                    extend: 'csvHtml5',
+                    title: 'relacao_militares_pagina_{{ page }}',
+                    text: '<i class="bi bi-filetype-csv"></i> CSV (página atual)',
+                    className: 'btn btn-outline-secondary btn-sm'
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="bi bi-printer"></i> Imprimir',
+                    className: 'btn btn-outline-secondary btn-sm'
+                },
+                {
+                    extend: 'colvis',
+                    text: '<i class="bi bi-view-list"></i> Colunas',
+                    className: 'btn btn-outline-primary btn-sm'
+                }
+            ]
+        });
+    }
+
+    searchInput.addEventListener('input', function () {
+        const termo = this.value.trim().toLowerCase();
+
+        if (dt) {
+            dt.search(termo).draw();
+        }
+
+        document.querySelectorAll('.rel-mobile-card').forEach(function (card) {
+            const texto = card.textContent.toLowerCase();
+            card.style.display = texto.includes(termo) ? '' : 'none';
+        });
     });
     });
 </script>

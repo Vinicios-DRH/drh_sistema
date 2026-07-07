@@ -2909,11 +2909,6 @@ def exibir_militar(militar_id):
         acao="ATUALIZACAO_SITUACAO_CHEFIA"
     ).order_by(AuditoriaAtualizacaoCadastral.id.desc()).first()
 
-    ultima_auditoria = AuditoriaAtualizacaoCadastral.query.filter_by(
-        militar_id=militar.id,
-        acao="ATUALIZACAO_SITUACAO_CHEFIA"
-    ).order_by(AuditoriaAtualizacaoCadastral.id.desc()).first()
-
     auditoria_info = None
     if ultima_auditoria:
         data_aud = getattr(ultima_auditoria, 'criado_em', None) or getattr(
@@ -3458,7 +3453,7 @@ def militares():
             sexo_norm.like('f%')
         )
 
-    per_page = 100
+    per_page = 50
     query = query.order_by(Militar.nome_completo.asc())
     militares_paginados = query.paginate(page=page, per_page=per_page)
 

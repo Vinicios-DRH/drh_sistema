@@ -3,6 +3,76 @@
    Carregado após os estilos específicos de cada página.
    ========================================================================== */
 
+/* ==========================================================================
+   TOKENS GLOBAIS DO SIGDP
+   Templates novos/refatorados devem consumir estas variáveis.
+   ========================================================================== */
+
+:root,
+html[data-theme="light"] {
+    --app-page-bg: #edf5fa;
+    --app-page-bg-alt: #f8fbfd;
+
+    --app-surface: #ffffff;
+    --app-surface-soft: #f5f9fc;
+    --app-surface-muted: #eaf3fa;
+
+    --app-text: #172033;
+    --app-muted: #66758a;
+    --app-border: #d8e4ed;
+
+    --app-primary: #0f4c81;
+    --app-primary-hover: #0b3d68;
+    --app-primary-contrast: #ffffff;
+
+    --app-hero-start: #0e1726;
+    --app-hero-middle: #0b2e4f;
+    --app-hero-end: #0b3a63;
+    --app-hero-text: #e8eef6;
+    --app-hero-muted: #c7d7e4;
+
+    --app-chip-bg: #f2f7fb;
+    --app-chip-text: #1d4f75;
+
+    --app-table-head: #f5f8fb;
+    --app-table-row-hover: #eff7fd;
+
+    --app-shadow-card: 0 10px 24px rgba(16, 59, 91, .08);
+    --app-shadow-hero: 0 10px 30px rgba(0, 0, 0, .28);
+}
+
+html[data-theme="dark"] {
+    --app-page-bg: #08131e;
+    --app-page-bg-alt: #0d2031;
+
+    --app-surface: #112536;
+    --app-surface-soft: #162f44;
+    --app-surface-muted: #18364e;
+
+    --app-text: #edf4fa;
+    --app-muted: #a8b9c8;
+    --app-border: #2b465d;
+
+    --app-primary: #72c2f6;
+    --app-primary-hover: #9ad8fb;
+    --app-primary-contrast: #071d30;
+
+    --app-hero-start: #071523;
+    --app-hero-middle: #0b2942;
+    --app-hero-end: #15527d;
+    --app-hero-text: #edf4fa;
+    --app-hero-muted: #c1d4e4;
+
+    --app-chip-bg: #17374f;
+    --app-chip-text: #b9e4ff;
+
+    --app-table-head: #162f44;
+    --app-table-row-hover: #19364c;
+
+    --app-shadow-card: 0 12px 26px rgba(0, 0, 0, .26);
+    --app-shadow-hero: 0 12px 30px rgba(0, 0, 0, .42);
+}
+
 
 /* ==========================================================================
    BASE / BOOTSTRAP
@@ -225,4 +295,44 @@ html[data-theme="dark"] .hua-kpi-inconforme .hua-kpi-icon {
 
 html[data-theme="dark"] .hua-footer-note {
     color: #9fb3c4;
+}
+
+/* ==========================================================================
+   SELECT2 — MODO ESCURO
+   ========================================================================== */
+
+html[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--app-border);
+    color: var(--app-text);
+    background: var(--app-surface-soft);
+}
+
+html[data-theme="dark"] .select2-container--bootstrap-5
+.select2-selection--multiple
+.select2-selection__choice {
+    border-color: #426a86;
+    color: var(--app-text);
+    background: #1b405c;
+}
+
+html[data-theme="dark"] .select2-container--bootstrap-5
+.select2-selection__choice__remove {
+    color: var(--app-muted);
+}
+
+html[data-theme="dark"] .select2-dropdown {
+    border-color: var(--app-border);
+    color: var(--app-text);
+    background: var(--app-surface);
+}
+
+html[data-theme="dark"] .select2-container--bootstrap-5
+.select2-results__option {
+    color: var(--app-text);
+}
+
+html[data-theme="dark"] .select2-container--bootstrap-5
+.select2-results__option--highlighted {
+    color: var(--app-primary-contrast);
+    background: var(--app-primary);
 }
