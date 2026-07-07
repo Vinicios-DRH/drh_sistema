@@ -4155,7 +4155,7 @@ def exibir_usuario(id_usuario):
         try:
             database.session.commit()
             flash('Usuário atualizado com sucesso!', 'alert-success')
-            return redirect(url_for('usuarios', id_usuario=id_usuario))
+            return redirect(url_for('perfil', id_usuario=id_usuario))
         except Exception as e:
             database.session.rollback()
             flash(
@@ -4210,7 +4210,7 @@ def perfil(id_usuario):
         try:
             database.session.commit()
             flash('Usuário atualizado com sucesso!', 'alert-success')
-            return redirect(url_for('home', id_usuario=id_usuario))
+            return redirect(url_for('perfil', id_usuario=id_usuario))
         except Exception as e:
             database.session.rollback()
             flash(

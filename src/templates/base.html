@@ -76,7 +76,7 @@
       font-weight: 700;
     }
 
-    .navbar-nav .nav-link::before {
+    .navbar-nav .nav-link.menu-item-pasta::before {
       content: "📁";
       margin-right: 8px;
       font-size: 18px;
@@ -163,6 +163,37 @@
         opacity: 1;
         transform: translateY(0);
       }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+      line-height: 1.5;
+      text-decoration: none;
+    }
+
+    button.btn,
+    a.btn,
+    input.btn {
+      font-size: 1rem;
+    }
+
+    /*
+    Evita que imagens ou ícones internos alterem o alinhamento
+    visual dos botões.
+  */
+    .btn>i,
+    .btn>img {
+      flex: 0 0 auto;
+    }
+
+    /*
+    Não deixa regras antigas de anchor tag aumentar os botões.
+  */
+    a.btn {
+      padding: .375rem .75rem;
     }
   </style>
 

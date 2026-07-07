@@ -1,206 +1,630 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>Detalhes do Usuário</title>
+<title>Meu Perfil | SIGDP</title>
+
+<style>
+    :root {
+        --perfil-primaria: #0f4c81;
+        --perfil-primaria-escura: #08365f;
+        --perfil-secundaria: #eaf3fb;
+        --perfil-texto: #1f2937;
+        --perfil-texto-suave: #6b7280;
+        --perfil-borda: #dbe5ef;
+    }
+
+    .perfil-page {
+        min-height: 100vh;
+        padding: 28px 0 48px;
+        background:
+            radial-gradient(circle at top left, rgba(73, 143, 205, 0.20), transparent 36%),
+            linear-gradient(135deg, #edf5fb 0%, #f7fafc 50%, #e7f0f8 100%);
+    }
+
+    .perfil-container {
+        max-width: 1180px;
+    }
+
+    .perfil-cabecalho {
+        position: relative;
+        overflow: hidden;
+        padding: 28px;
+        border: 0;
+        border-radius: 22px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--perfil-primaria), var(--perfil-primaria-escura));
+        box-shadow: 0 18px 38px rgba(8, 54, 95, 0.20);
+    }
+
+    .perfil-cabecalho::after {
+        position: absolute;
+        top: -95px;
+        right: -70px;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        content: "";
+        background: rgba(255, 255, 255, 0.09);
+    }
+
+    .perfil-cabecalho-conteudo {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .perfil-avatar {
+        display: flex;
+        flex: 0 0 76px;
+        align-items: center;
+        justify-content: center;
+        width: 76px;
+        height: 76px;
+        border: 3px solid rgba(255, 255, 255, 0.55);
+        border-radius: 50%;
+        color: var(--perfil-primaria-escura);
+        font-size: 1.9rem;
+        font-weight: 800;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .perfil-titulo {
+        margin: 0;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .perfil-subtitulo {
+        margin: 5px 0 0;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.96rem;
+    }
+
+    .perfil-voltar {
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        border-radius: 10px;
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.10);
+        transition: 0.2s ease;
+    }
+
+    .perfil-voltar:hover {
+        border-color: #ffffff;
+        color: var(--perfil-primaria-escura);
+        background: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .perfil-card {
+        height: 100%;
+        border: 1px solid var(--perfil-borda);
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 12px 30px rgba(15, 76, 129, 0.08);
+    }
+
+    .perfil-card-header {
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .perfil-card-header h2 {
+        margin: 0;
+        color: var(--perfil-texto);
+        font-size: 1.15rem;
+        font-weight: 750;
+    }
+
+    .perfil-card-header p {
+        margin: 5px 0 0;
+        color: var(--perfil-texto-suave);
+        font-size: 0.9rem;
+    }
+
+    .perfil-card-body {
+        padding: 24px;
+    }
+
+    .perfil-info-item {
+        padding: 14px 0;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .perfil-info-item:first-child {
+        padding-top: 0;
+    }
+
+    .perfil-info-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .perfil-info-label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--perfil-texto-suave);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .perfil-info-valor {
+        color: var(--perfil-texto);
+        font-size: 0.96rem;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .perfil-alerta {
+        display: flex;
+        gap: 10px;
+        margin-top: 22px;
+        padding: 14px;
+        border: 1px solid #cfe3f5;
+        border-radius: 12px;
+        color: #24567e;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        background: #eff7ff;
+    }
+
+    .perfil-alerta-icone {
+        flex: 0 0 auto;
+        font-size: 1rem;
+    }
+
+    .perfil-label {
+        margin-bottom: 7px;
+        color: #374151;
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+
+    .perfil-input,
+    .perfil-select {
+        min-height: 48px;
+        border: 1px solid #d5e0ea;
+        border-radius: 10px;
+        color: var(--perfil-texto);
+        background-color: #ffffff;
+        box-shadow: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .perfil-input:focus,
+    .perfil-select:focus {
+        border-color: #4f91c5;
+        box-shadow: 0 0 0 0.20rem rgba(79, 145, 197, 0.18);
+    }
+
+    .perfil-input[readonly],
+    .perfil-select:disabled {
+        cursor: not-allowed;
+        color: #667085;
+        background-color: #f5f8fb;
+        opacity: 1;
+    }
+
+    .perfil-password-wrapper {
+        position: relative;
+    }
+
+    .perfil-password-wrapper .perfil-input {
+        padding-right: 52px;
+    }
+
+    .perfil-toggle-password {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        z-index: 3;
+        padding: 6px 9px;
+        border: 0;
+        border-radius: 7px;
+        color: var(--perfil-primaria);
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: transparent;
+        transform: translateY(-50%);
+    }
+
+    .perfil-toggle-password:hover {
+        background: #eaf3fb;
+    }
+
+    .perfil-campo-ajuda {
+        margin-top: 6px;
+        color: var(--perfil-texto-suave);
+        font-size: 0.78rem;
+    }
+
+    .perfil-acoes {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 10px;
+    }
+
+    .perfil-botao-salvar,
+    .perfil-botao-cancelar {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        width: auto !important;
+        min-width: 150px !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
+
+        padding: 0 20px !important;
+        margin: 0 !important;
+
+        border-radius: 10px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        text-decoration: none !important;
+
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .perfil-botao-salvar {
+        border: 1px solid #0f4c81 !important;
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #0f4c81, #176cae) !important;
+        box-shadow: 0 8px 18px rgba(15, 76, 129, .20);
+    }
+
+    .perfil-botao-salvar:hover,
+    .perfil-botao-salvar:focus {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #0b3f6d, #125b95) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(15, 76, 129, .28);
+    }
+
+    .perfil-botao-cancelar {
+        border: 1px solid #ccd8e3 !important;
+        color: #4b5563 !important;
+        background: #ffffff !important;
+    }
+
+    .perfil-botao-cancelar:hover,
+    .perfil-botao-cancelar:focus {
+        border-color: #9eb4c7 !important;
+        color: #0f4c81 !important;
+        background: #f4f8fb !important;
+    }
+
+
+    @media (max-width: 767.98px) {
+        .perfil-page {
+            padding: 16px 0 34px;
+        }
+
+        .perfil-cabecalho {
+            padding: 22px 18px;
+            border-radius: 16px;
+        }
+
+        .perfil-cabecalho-conteudo {
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .perfil-avatar {
+            flex-basis: 58px;
+            width: 58px;
+            height: 58px;
+            font-size: 1.35rem;
+        }
+
+        .perfil-voltar {
+            width: 100%;
+            margin-top: 18px;
+        }
+
+        .perfil-card-header,
+        .perfil-card-body {
+            padding-right: 18px;
+            padding-left: 18px;
+        }
+
+        .perfil-card-body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        .perfil-acoes {
+            flex-direction: column-reverse;
+        }
+
+        .perfil-botao-salvar,
+        .perfil-botao-cancelar {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block body %}
-<section class="bg-light py-3 py-md-5 mt-2">
-    <div class="col md-10 container">
-        <h3>Detalhes do Usuário</h3>
-        <table class="table table-striped" style="width:100%">
-            <thead>
-            <tr>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th>E-mail</th>
-<!--                <th>Função</th>-->
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>{{ usuario.nome }}</td>
-                <td>{{ usuario.cpf }}</td>
-                <td>{{ usuario.email }}</td>
-<!--                <td>{{ usuario.funcao_ocupacao }}</td>-->
-            </tr>
-            </tbody>
-        </table>
+<main class="perfil-page">
+    <div class="container perfil-container">
 
-        <!-- Botão para exibir o formulário de edição -->
-        <button class="btn btn-warning" id="btn-editar">Editar Perfil</button>
+        <section class="perfil-cabecalho mb-4">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div class="perfil-cabecalho-conteudo">
+                    <div class="perfil-avatar" aria-hidden="true">
+                        {{ (usuario.nome or 'U')[0] | upper }}
+                    </div>
 
-        <!-- Formulário de edição do usuário (inicialmente oculto) -->
-        <div id="form-editar" style="display:none;">
-            <form method="POST" action="">
-                {{ form.hidden_tag() }}
-                <div class="row gy-2 overflow-hidden">
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.nome.label(class="form-control-label") }}
-                                {% if form.nome.errors %}
-                                {{ form.nome(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.nome.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.nome(class="form-control", readonly=True) }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.email.label(class="form-control-label") }}
-                                {% if form.email.errors %}
-                                {{ form.email(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.email.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.email(class="form-control") }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.cpf.label(class="form-control-label") }}
-                                {% if form.cpf.errors %}
-                                {{ form.cpf(class="form-control is-invalid", readonly=True) }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.cpf.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.cpf(class="form-control", readonly=True) }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-<!--                    <div class="col-12">-->
-<!--                        <div class="form-floating mb-3">-->
-<!--                            <div class="form-group">-->
-<!--                                {{ form.funcao_user_id.label(class="form-control-label") }}-->
-<!--                                {% if form.funcao_user_id.errors %}-->
-<!--                                {{ form.funcao_user_id(class="form-control is-invalid", readonly=True) }}-->
-<!--                                <div class="invalid-feedback">-->
-<!--                                    {% for erro in form.funcao_user_id.errors %}-->
-<!--                                    {{ erro }}-->
-<!--                                    {% endfor %}-->
-<!--                                </div>-->
-<!--                                {% else %}-->
-<!--                                {{ form.funcao_user_id(class="form-control", readonly=True) }}-->
-<!--                                {% endif %}-->
-<!--                            </div>-->
-<!--                        </div>-->
-<!--                    </div>-->
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.obm_id_1.label(class="form-control-label") }}
-                                {% if form.obm_id_1.errors %}
-                                {{ form.obm_id_1(class="form-control is-invalid", disabled=True) }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.obm_id_1.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.obm_id_1(class="form-control", disabled=True) }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.obm_id_2.label(class="form-control-label") }}
-                                {% if form.obm_id_2.errors %}
-                                {{ form.obm_id_2(class="form-control is-invalid", disabled=True) }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.obm_id_2.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.obm_id_2(class="form-control", disabled=True) }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.senha.label(class="form-control-label") }}
-                                {% if form.senha.errors %}
-                                {{ form.senha(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.senha.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.senha(class="form-control") }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating mb-3">
-                            <div class="form-group">
-                                {{ form.confirmar_senha.label(class="form-control-label") }}
-                                {% if form.confirmar_senha.errors %}
-                                {{ form.confirmar_senha(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.confirmar_senha.errors %}
-                                    {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.confirmar_senha(class="form-control") }}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="d-grid my-3">
-                            {{ form.botao_submit_criar_conta(class="btn btn-outline-primary mt-2") }}
-                        </div>
+                    <div>
+                        <h1 class="perfil-titulo">Meu Perfil</h1>
+                        <p class="perfil-subtitulo">
+                            Consulte suas informações e atualize seu e-mail ou senha de acesso.
+                        </p>
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
-</section>
 
-<!-- Modal -->
-<div class="modal fade" id="excluirPost" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Excluir Usuário?</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <a href="{{ url_for('home') }}" class="btn perfil-voltar">
+                    ← Voltar ao início
+                </a>
             </div>
-            <div class="modal-body">
-                <p>Essa ação não poderá ser desfeita e o usuário será excluído permanentemente do sistema.</p>
+        </section>
+
+        <div class="row g-4">
+
+            <div class="col-12 col-lg-4">
+                <aside class="perfil-card">
+                    <div class="perfil-card-header">
+                        <h2>Informações da conta</h2>
+                        <p>Dados vinculados ao seu usuário no SIGDP.</p>
+                    </div>
+
+                    <div class="perfil-card-body">
+                        <div class="perfil-info-item">
+                            <span class="perfil-info-label">Nome completo</span>
+                            <div class="perfil-info-valor">{{ usuario.nome }}</div>
+                        </div>
+
+                        <div class="perfil-info-item">
+                            <span class="perfil-info-label">CPF</span>
+                            <div class="perfil-info-valor">{{ usuario.cpf }}</div>
+                        </div>
+
+                        <div class="perfil-info-item">
+                            <span class="perfil-info-label">E-mail</span>
+                            <div class="perfil-info-valor">{{ usuario.email }}</div>
+                        </div>
+
+                        <div class="perfil-alerta">
+                            <span class="perfil-alerta-icone">ℹ</span>
+                            <span>
+                                Alguns dados desta conta são definidos pela administração do sistema.
+                                Para solicitar alteração, procure a 6ª sessão.
+                            </span>
+                        </div>
+                    </div>
+                </aside>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('excluir_usuario', usuario_id=usuario.id) }}">
-                    <button type="submit" class="botaoExcluir">Excluir</button>
-                </form>
+
+            <div class="col-12 col-lg-8">
+                <section class="perfil-card">
+                    <div class="perfil-card-header">
+                        <h2>Atualizar informações</h2>
+                        <p>Altere somente os dados que precisam ser atualizados.</p>
+                    </div>
+
+                    <div class="perfil-card-body">
+                        <form method="POST" action="" novalidate>
+                            {{ form.hidden_tag() }}
+
+                            <div class="row g-3">
+
+                                <div class="col-12">
+                                    <label for="{{ form.nome.id }}" class="perfil-label">
+                                        {{ form.nome.label.text }}
+                                    </label>
+
+                                    {{ form.nome(
+                                    class="form-control perfil-input" + (" is-invalid" if form.nome.errors else ""),
+                                    readonly=True,
+                                    autocomplete="name"
+                                    ) }}
+
+                                    {% if form.nome.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for erro in form.nome.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="{{ form.cpf.id }}" class="perfil-label">
+                                        {{ form.cpf.label.text }}
+                                    </label>
+
+                                    {{ form.cpf(
+                                    class="form-control perfil-input" + (" is-invalid" if form.cpf.errors else ""),
+                                    readonly=True,
+                                    inputmode="numeric"
+                                    ) }}
+
+                                    {% if form.cpf.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for erro in form.cpf.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="{{ form.email.id }}" class="perfil-label">
+                                        {{ form.email.label.text }}
+                                    </label>
+
+                                    {{ form.email(
+                                    class="form-control perfil-input" + (" is-invalid" if form.email.errors else ""),
+                                    autocomplete="email",
+                                    inputmode="email",
+                                    placeholder="exemplo@cbm.am.gov.br"
+                                    ) }}
+
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for erro in form.email.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="{{ form.obm_id_1.id }}" class="perfil-label">
+                                        {{ form.obm_id_1.label.text }}
+                                    </label>
+
+                                    {{ form.obm_id_1(
+                                    class="form-select perfil-select",
+                                    disabled=True
+                                    ) }}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="{{ form.obm_id_2.id }}" class="perfil-label">
+                                        {{ form.obm_id_2.label.text }}
+                                    </label>
+
+                                    {{ form.obm_id_2(
+                                    class="form-select perfil-select",
+                                    disabled=True
+                                    ) }}
+                                </div>
+
+                                <div class="col-12">
+                                    <hr class="my-2">
+                                    <h3 class="h6 fw-bold mb-1">Alterar senha</h3>
+                                    <p class="text-muted small mb-0">
+                                        Deixe os campos abaixo vazios caso não queira trocar sua senha.
+                                    </p>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="{{ form.senha.id }}" class="perfil-label">
+                                        {{ form.senha.label.text }}
+                                    </label>
+
+                                    <div class="perfil-password-wrapper">
+                                        {{ form.senha(
+                                        class="form-control perfil-input" + (" is-invalid" if form.senha.errors else
+                                        ""),
+                                        autocomplete="new-password",
+                                        placeholder="Digite uma nova senha"
+                                        ) }}
+
+                                        <button type="button" class="perfil-toggle-password"
+                                            data-password-toggle="{{ form.senha.id }}"
+                                            aria-label="Mostrar ou ocultar senha">
+                                            Mostrar
+                                        </button>
+                                    </div>
+
+                                    {% if form.senha.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for erro in form.senha.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="{{ form.confirmar_senha.id }}" class="perfil-label">
+                                        {{ form.confirmar_senha.label.text }}
+                                    </label>
+
+                                    <div class="perfil-password-wrapper">
+                                        {{ form.confirmar_senha(
+                                        class="form-control perfil-input" + (" is-invalid" if
+                                        form.confirmar_senha.errors else ""),
+                                        autocomplete="new-password",
+                                        placeholder="Repita a nova senha"
+                                        ) }}
+
+                                        <button type="button" class="perfil-toggle-password"
+                                            data-password-toggle="{{ form.confirmar_senha.id }}"
+                                            aria-label="Mostrar ou ocultar confirmação de senha">
+                                            Mostrar
+                                        </button>
+                                    </div>
+
+                                    {% if form.confirmar_senha.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for erro in form.confirmar_senha.errors %}
+                                        {{ erro }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12">
+                                    <p class="perfil-campo-ajuda">
+                                        Use uma senha forte, evitando dados pessoais e sequências fáceis de adivinhar.
+                                    </p>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="perfil-acoes">
+                                        <a href="{{ url_for('home') }}" class="perfil-botao-cancelar">
+                                            Cancelar
+                                        </a>
+
+                                        <button type="submit" class="perfil-botao-salvar">
+                                            Salvar alterações
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </form>
+                    </div>
+                </section>
             </div>
+
         </div>
     </div>
-</div>
-<script src="{{ url_for('static', filename='js/usuario_detalhes_down.js') }}"></script>
+</main>
+
+<script>
+    document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.passwordToggle);
+
+            if (!input) {
+                return;
+            }
+
+            const mostrarSenha = input.type === 'password';
+
+            input.type = mostrarSenha ? 'text' : 'password';
+            this.textContent = mostrarSenha ? 'Ocultar' : 'Mostrar';
+            this.setAttribute(
+                'aria-label',
+                mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'
+            );
+        });
+    });
+</script>
 {% endblock %}

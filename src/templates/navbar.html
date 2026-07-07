@@ -45,10 +45,28 @@
             <div class="offcanvas-body">
                 <ul class="navbar-nav menu-root">
 
-                    {# Menu gerado no backend #}
+                    <li class="nav-item mb-3">
+                        <a class="nav-link nav-perfil-destaque"
+                            href="{{ url_for('perfil', id_usuario=current_user.id) }}">
+                            <span class="nav-perfil-icone">
+                                <i class="bi bi-person-gear"></i>
+                            </span>
+
+                            <span class="d-flex flex-column">
+                                <strong>Meu perfil</strong>
+                                <small>Alterar e-mail e senha</small>
+                            </span>
+
+                            <i class="bi bi-chevron-right ms-auto nav-perfil-seta"></i>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <hr class="nav-menu-divisor">
+                    </li>
+
                     {{ render_menu(nav_items or []) }}
 
-                    {# Sair #}
                     {% if current_user.is_authenticated %}
                     <li class="nav-item mt-3">
                         <a class="btn btn-danger w-100" href="{{ url_for('sair') }}">
@@ -154,6 +172,63 @@
         background: rgba(255, 255, 255, .08);
         border: 1px solid var(--glass-brd);
         font-weight: 700;
+    }
+
+    .nav-perfil-destaque {
+        display: flex !important;
+        align-items: center;
+        gap: .75rem;
+        padding: .85rem !important;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 14px !important;
+        color: #ffffff !important;
+        background: linear-gradient(135deg,
+                rgba(31, 120, 187, .46),
+                rgba(15, 76, 129, .52));
+        box-shadow: 0 8px 18px rgba(0, 0, 0, .15);
+        transition: transform .2s ease, background .2s ease;
+    }
+
+    .nav-perfil-destaque:hover,
+    .nav-perfil-destaque:focus {
+        color: #ffffff !important;
+        background: linear-gradient(135deg,
+                rgba(38, 139, 214, .65),
+                rgba(15, 76, 129, .72)) !important;
+        transform: translateY(-1px);
+    }
+
+    .nav-perfil-destaque::before {
+        display: none !important;
+    }
+
+    .nav-perfil-icone {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 1.2rem;
+        background: rgba(255, 255, 255, .12);
+    }
+
+    .nav-perfil-destaque small {
+        margin-top: 2px;
+        color: rgba(255, 255, 255, .72);
+        font-size: .76rem;
+    }
+
+    .nav-perfil-seta {
+        color: rgba(255, 255, 255, .72);
+        font-size: .9rem;
+    }
+
+    .nav-menu-divisor {
+        margin: 0 0 12px;
+        border-color: rgba(255, 255, 255, .12);
+        opacity: 1;
     }
 </style>
 
