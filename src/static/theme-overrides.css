@@ -1,0 +1,228 @@
+/* ==========================================================================
+   SIGDP — OVERRIDES GLOBAIS DE TEMA
+   Carregado após os estilos específicos de cada página.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   BASE / BOOTSTRAP
+   ========================================================================== */
+
+html[data-theme="dark"] body {
+    color: #edf4fa;
+    background-color: #0b1723;
+}
+
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .offcanvas,
+html[data-theme="dark"] .list-group-item {
+    color: #edf4fa;
+    border-color: #2a455c;
+    background-color: #122334;
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select {
+    color: #edf4fa;
+    border-color: #2a455c;
+    background-color: #0d1d2c;
+}
+
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .form-select:focus {
+    color: #edf4fa;
+    border-color: #4c96c9;
+    background-color: #0d1d2c;
+    box-shadow: 0 0 0 .20rem rgba(76, 150, 201, .18);
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+    color: #8aa0b2;
+}
+
+html[data-theme="dark"] .text-muted {
+    color: #a7b8c8 !important;
+}
+
+html[data-theme="dark"] .bg-light {
+    background-color: #172c40 !important;
+}
+
+html[data-theme="dark"] hr {
+    border-color: #2a455c;
+    opacity: 1;
+}
+
+html[data-theme="dark"] .table {
+    --bs-table-color: #edf4fa;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: #2a455c;
+    --bs-table-striped-color: #edf4fa;
+    --bs-table-striped-bg: rgba(255, 255, 255, .035);
+    --bs-table-hover-color: #edf4fa;
+    --bs-table-hover-bg: rgba(255, 255, 255, .06);
+}
+
+
+/* ==========================================================================
+   HOME ATUALIZAÇÃO
+   Classes da home_atualizacao.html: hua-*
+   ========================================================================== */
+
+html[data-theme="dark"] {
+    --hua-navy: #0a2947;
+    --hua-blue: #72c2f6;
+    --hua-blue-soft: #14324a;
+    --hua-ink: #edf4fa;
+    --hua-muted: #aabaca;
+    --hua-border: #2b465d;
+
+    --hua-success: #75dda1;
+    --hua-success-bg: #143b2a;
+
+    --hua-warning: #f3c46b;
+    --hua-warning-bg: #3b2d10;
+
+    --hua-danger: #ffa2aa;
+    --hua-danger-bg: #441d25;
+}
+
+html[data-theme="dark"] body:has(.hua-page) {
+    background:
+        radial-gradient(circle at top right, rgba(42, 122, 184, .20), transparent 32%),
+        linear-gradient(135deg, #08131e 0%, #0b1d2d 48%, #10283b 100%) fixed;
+}
+
+html[data-theme="dark"] .hua-page {
+    color: var(--hua-ink);
+}
+
+html[data-theme="dark"] .hua-hero {
+    background:
+        radial-gradient(circle at top right, rgba(113, 189, 242, .14), transparent 30%),
+        linear-gradient(135deg, #071d31 0%, #0b3559 55%, #125b91 100%);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, .34);
+}
+
+html[data-theme="dark"] .hua-status-row,
+html[data-theme="dark"] .hua-kpi-card,
+html[data-theme="dark"] .hua-panel {
+    border-color: var(--hua-border);
+    background: rgba(17, 37, 55, .98);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .24);
+}
+
+html[data-theme="dark"] .hua-panel-header,
+html[data-theme="dark"] .hua-data-item,
+html[data-theme="dark"] .hua-document-item,
+html[data-theme="dark"] .hua-activity-item {
+    border-color: rgba(159, 188, 211, .14);
+}
+
+html[data-theme="dark"] .hua-action-card {
+    border-color: #2b4961;
+    color: var(--hua-ink);
+    background: #10263a;
+}
+
+html[data-theme="dark"] .hua-action-card:hover,
+html[data-theme="dark"] .hua-action-card:focus {
+    border-color: #4d8bb6;
+    color: var(--hua-ink);
+    background: #16364f;
+    box-shadow: 0 9px 18px rgba(0, 0, 0, .20);
+}
+
+html[data-theme="dark"] .hua-action-card-disabled,
+html[data-theme="dark"] .hua-action-card-disabled:hover,
+html[data-theme="dark"] .hua-action-card-disabled:focus {
+    border-color: #2b465d;
+    color: var(--hua-muted);
+    background: #0d2133;
+}
+
+html[data-theme="dark"] .hua-security-box {
+    border-color: #2b4a63;
+    background: linear-gradient(135deg, #10283d, #0d2032);
+}
+
+html[data-theme="dark"] .hua-panel-button-outline {
+    border-color: #426b88;
+    color: #dceefa;
+    background: #122c42;
+}
+
+html[data-theme="dark"] .hua-panel-button-outline:hover,
+html[data-theme="dark"] .hua-panel-button-outline:focus {
+    border-color: #65a8d5;
+    color: #ffffff;
+    background: #1a3b55;
+}
+
+html[data-theme="dark"] .hua-status-default {
+    border-color: #415d73;
+    color: #b7c9d9;
+    background: #1a3144;
+}
+
+html[data-theme="dark"] .hua-status-pendente {
+    border-color: #725826;
+    color: #f4ca76;
+    background: #3c2d11;
+}
+
+html[data-theme="dark"] .hua-status-validado {
+    border-color: #2c704a;
+    color: #75dda1;
+    background: #143b2a;
+}
+
+html[data-theme="dark"] .hua-status-inconforme {
+    border-color: #743d46;
+    color: #ffa2aa;
+    background: #441d25;
+}
+
+html[data-theme="dark"] .hua-deadline-open {
+    border-color: #2d704a;
+    color: #75dda1;
+    background: #143b2a;
+}
+
+html[data-theme="dark"] .hua-deadline-closed {
+    border-color: #725826;
+    color: #f3c46b;
+    background: #3b2d10;
+}
+
+html[data-theme="dark"] .hua-inline-warning {
+    border-color: #73414a;
+    color: #ffc0c5;
+    background: #3a1d24;
+}
+
+html[data-theme="dark"] .hua-kpi-total .hua-kpi-icon {
+    color: #7cc3f5;
+    background: #123552;
+}
+
+html[data-theme="dark"] .hua-kpi-pendente .hua-kpi-icon {
+    color: #f4ca76;
+    background: #3c2d11;
+}
+
+html[data-theme="dark"] .hua-kpi-validada .hua-kpi-icon {
+    color: #75dda1;
+    background: #143b2a;
+}
+
+html[data-theme="dark"] .hua-kpi-inconforme .hua-kpi-icon {
+    color: #ffa2aa;
+    background: #441d25;
+}
+
+html[data-theme="dark"] .hua-footer-note {
+    color: #9fb3c4;
+}

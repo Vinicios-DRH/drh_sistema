@@ -4,6 +4,88 @@
    dentro do próprio template ou em arquivos CSS específicos.
    ========================================================================== */
 
+:root {
+    --app-bg: #eef5fa;
+    --app-surface: #ffffff;
+    --app-surface-soft: #f7fafc;
+    --app-text: #172033;
+    --app-muted: #637286;
+    --app-border: #dbe6ef;
+    --app-link: #0f4c81;
+    --app-input-bg: #ffffff;
+    --app-input-text: #172033;
+    --app-shadow: 0 10px 24px rgba(16, 59, 91, .08);
+}
+
+html[data-theme="dark"] {
+    --app-bg: #0b1723;
+    --app-surface: #122334;
+    --app-surface-soft: #172c40;
+    --app-text: #edf4fa;
+    --app-muted: #a7b8c8;
+    --app-border: #2a455c;
+    --app-link: #7cc3f5;
+    --app-input-bg: #0d1d2c;
+    --app-input-text: #edf4fa;
+    --app-shadow: 0 10px 24px rgba(0, 0, 0, .28);
+}
+
+body {
+    color: var(--app-text);
+    background-color: var(--app-bg);
+}
+
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .list-group-item {
+    color: var(--app-text);
+    border-color: var(--app-border);
+    background-color: var(--app-surface);
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select {
+    color: var(--app-input-text);
+    border-color: var(--app-border);
+    background-color: var(--app-input-bg);
+}
+
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .form-select:focus {
+    color: var(--app-input-text);
+    border-color: #4c96c9;
+    background-color: var(--app-input-bg);
+    box-shadow: 0 0 0 .20rem rgba(76, 150, 201, .18);
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+    color: #8497aa;
+}
+
+html[data-theme="dark"] .table {
+    --bs-table-color: var(--app-text);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--app-border);
+    --bs-table-striped-color: var(--app-text);
+    --bs-table-striped-bg: rgba(255, 255, 255, .035);
+    --bs-table-hover-color: var(--app-text);
+    --bs-table-hover-bg: rgba(255, 255, 255, .06);
+}
+
+html[data-theme="dark"] .bg-light {
+    background-color: var(--app-surface-soft) !important;
+}
+
+html[data-theme="dark"] .text-muted {
+    color: var(--app-muted) !important;
+}
+
+html[data-theme="dark"] hr {
+    border-color: var(--app-border);
+    opacity: 1;
+}
+
 html,
 body {
     margin: 0;

@@ -10,12 +10,21 @@
             <span class="brand-title d-none d-sm-inline">SIGDP</span>
         </a>
 
-        <!-- Toggler -->
-        <button id="buttonNav" class="navbar-toggler shadow-0" type="button" data-bs-toggle="offcanvas"
-            data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Abrir menu">
-            <img class="img-responsive" style="width:40px;max-width:100% !important"
-                src="{{ url_for('static', filename='img/menu.png') }}" alt="Menu">
-        </button>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+
+            <!-- <button id="themeToggle" class="theme-toggle" type="button" aria-label="Ativar modo escuro"
+                title="Alternar modo claro e escuro">
+                <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+                <span class="visually-hidden">Alternar modo claro e escuro</span>
+            </button> -->
+
+            <button id="buttonNav" class="navbar-toggler shadow-0" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Abrir menu">
+                <img class="img-responsive" style="width:40px;max-width:100% !important"
+                    src="{{ url_for('static', filename='img/menu.png') }}" alt="Menu">
+            </button>
+
+        </div>
 
         <!-- Offcanvas -->
         <div class="offcanvas offcanvas-end offcanvas-glass" tabindex="-1" id="offcanvasNavbar" data-bs-scroll="false">
@@ -260,5 +269,43 @@
 
     .offcanvas-glass .menu-root {
         max-height: none;
+    }
+
+    .theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 42px;
+        height: 42px;
+
+        border: 1px solid var(--glass-brd);
+        border-radius: 10px;
+
+        color: #ffffff;
+        font-size: 1.05rem;
+
+        background: rgba(255, 255, 255, .06);
+    }
+
+    .theme-toggle:hover,
+    .theme-toggle:focus-visible {
+        border-color: rgba(255, 255, 255, .55);
+        color: #ffffff;
+        background: rgba(255, 255, 255, .16);
+        outline: none;
+    }
+
+    html[data-theme="dark"] .navbar-glass {
+        border-bottom-color: rgba(148, 184, 214, .16);
+        background: linear-gradient(180deg,
+                rgba(8, 18, 32, .92),
+                rgba(8, 18, 32, .78));
+    }
+
+    html[data-theme="dark"] .navbar-toggler,
+    html[data-theme="dark"] .theme-toggle {
+        border-color: rgba(148, 184, 214, .22);
+        background: rgba(148, 184, 214, .08);
     }
 </style>
