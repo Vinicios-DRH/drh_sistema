@@ -152,7 +152,7 @@ COORDENADAS_CIDADES = {
 
 @mapa_bp.route('/mapa-efetivo-teste')
 @login_required
-@checar_ocupacao(*PERFIS_MAPA)
+# @checar_ocupacao(*PERFIS_MAPA)
 def renderizar_mapa():
     return render_template('mapa_amazonas_copy.html')
 
@@ -196,7 +196,7 @@ def api_estatisticas_gerais():
 
 @mapa_bp.route('/api/mapa-dados-teste')
 @login_required
-@checar_ocupacao(*PERFIS_MAPA)
+# @checar_ocupacao(*PERFIS_MAPA)
 def api_dados_mapa():
     base_efetivo = (
         database.session.query(
@@ -393,7 +393,7 @@ def api_media_idade_posto():
 
 @mapa_bp.route('/api-teste/militares-obm/<int:obm_id>')
 @login_required
-@checar_ocupacao(*PERFIS_MAPA)
+# @checar_ocupacao(*PERFIS_MAPA)
 def api_militares_obm(obm_id):
     ordem_hierarquica = case(
         PESOS_POSTOS,
