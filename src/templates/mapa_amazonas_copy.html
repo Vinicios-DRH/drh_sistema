@@ -697,13 +697,53 @@
                 font-size: 10px;
             }
         }
+
+        .badge-situacao {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-situacao.pronto {
+            background: #1b5e20;
+            color: #d9ffd9;
+            border: 1px solid #2e7d32;
+        }
+
+        .badge-situacao.licenca {
+            background: #ffb300;
+            color: #121212;
+            border: 1px solid #ffca28;
+        }
+
+        .badge-situacao.fora {
+            background: #263238;
+            color: #90caf9;
+            border: 1px solid #546e7a;
+        }
+
+        .card-militar.status-pronto {
+            border-left-color: #2e7d32;
+        }
+
+        .card-militar.status-licenca {
+            border-left-color: #ffb300;
+        }
+
+        .card-militar.status-fora {
+            border-left-color: #90caf9;
+        }
     </style>
 </head>
 
 <body>
 
     <div id="header">
-        <img src="{{ url_for('static', filename='img/corpo_de_bombeiros_am_logo_circular.png') }}" alt="Logo" class="header-logo">
+        <img src="{{ url_for('static', filename='img/corpo_de_bombeiros_am_logo_circular.png') }}" alt="Logo"
+            class="header-logo">
         <div>
             <h1>Painel Estratégico - DIRETORIA DE PESSOAL</h1>
             <p>Distribuição Operacional - Amazonas</p>
@@ -960,9 +1000,19 @@
                     const conteudoTooltip = `
                         <div class="popup-title">${dado.obm}</div>
                         <p class="popup-info"><strong>Base:</strong> ${dado.cidade}</p>
-                        <p class="popup-info" style="color: #ffb300; margin-top: 6px;"><strong>Comando:</strong> ${dado.comandante}</p>
-                        <p class="popup-info"><strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span></p>
-                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Clique para ficha completa</p>
+                        <p class="popup-info" style="color: #ffb300; margin-top: 6px;">
+                            <strong>Comando:</strong> ${dado.comandante}
+                        </p>
+                        <p class="popup-info">
+                            <strong>Efetivo:</strong> <span class="efetivo-badge">${dado.efetivo}</span>
+                        </p>
+                        <p class="popup-info">✅ Prontos: <strong>${dado.prontos}</strong></p>
+                        <p class="popup-info">🟡 Licença/Afastamento: <strong>${dado.em_licenca}</strong></p>
+                        <p class="popup-info">📍 Fora da OBM: <strong>${dado.fora_obm}</strong></p>
+                        <p class="popup-info">🚒 Em viatura hoje: <strong>${dado.dirigindo_hoje}</strong></p>
+                        <p style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">
+                            Clique para ficha completa
+                        </p>
                     `;
 
                     marcador.bindTooltip(conteudoTooltip, {
@@ -1077,14 +1127,14 @@
 
                     containerViaturas.style.display = 'block';
                     if (viaturas && viaturas.length > 0) {
-                        let viaturasHtml = `<div class="viatura-titulo">🚒 Frota Operacional (${viaturas.length})</div>`;
+                        let viaturasHtml = `<div class="viatura-titulo">🚒 Escala de Viaturas do Dia (${viaturas.length})</div>`;
 
                         viaturas.forEach(v => {
                             let motoristasHtml = '';
                             if (v.motoristas.length > 0) {
                                 motoristasHtml = v.motoristas.map(mot => `<span class="badge-motorista">👨‍🚒 ${mot}</span>`).join('');
                             } else {
-                                motoristasHtml = `<span style="color: #ff5252; font-size: 10px; font-style: italic;">Nenhum motorista vinculado</span>`;
+                                motoristasHtml = `<span style="color: #ff5252; font-size: 10px; font-style: italic;">Nenhum motorista escalado hoje</span>`;
                             }
 
                             viaturasHtml += `
@@ -1120,8 +1170,45 @@
                             cursosHTML = '<span style="color: #666; font-size: 11px; font-style: italic;">Nenhum registro</span>';
                         }
 
+                        let periodoHTML = '';
+                        if (m.inicio_periodo || m.fim_periodo) {
+                            periodoHTML = `
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">📅 Período</div>
+                                <div class="tooltip-value">${m.inicio_periodo || '--'} até ${m.fim_periodo || '--'}</div>
+                            `;
+                        }
+
+                        let localHTML = '';
+                        if (m.local_disposicao) {
+                            localHTML = `
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">📍 Local/Observação</div>
+                                <div class="tooltip-value">${m.local_disposicao}</div>
+                            `;
+                        }
+
+                        let viaturaHTML = '';
+                        if (m.viatura_diaria) {
+                            viaturaHTML = `
+                                <hr class="tooltip-divider">
+                                <div class="tooltip-header">🚒 Viatura do dia</div>
+                                <div class="tooltip-value">
+                                    ${m.viatura_diaria.prefixo} - ${m.viatura_diaria.marca_modelo}
+                                    <br>
+                                    Placa: ${m.viatura_diaria.placa}
+                                </div>
+                            `;
+                        }
+
                         const tooltipHTML = `
                             <div class="tooltip-content">
+                                <div class="tooltip-header">📌 Situação diária</div>
+                                <div class="tooltip-value">${m.situacao}</div>
+                                ${periodoHTML}
+                                ${localHTML}
+                                ${viaturaHTML}
+                                <hr class="tooltip-divider">
                                 <div class="tooltip-header">📞 Contato Pessoal</div>
                                 <div class="tooltip-value">${m.celular}</div>
                                 <hr class="tooltip-divider">
@@ -1135,19 +1222,23 @@
 
                         const quadroFormatado = m.quadro ? ` ${m.quadro}` : '';
                         const rgFormatado = `<span style="color: #888; font-size: 11px; margin-left: 4px; white-space: nowrap;">| RG: ${m.rg}</span>`;
+                        const badgeSituacao = `<span class="badge-situacao ${m.situacao_classe}">${m.situacao}</span>`;
+                        const classeSituacaoCard = `status-${m.situacao_classe}`;
 
                         if (m.is_comandante) {
                             html += `
-                                <div class="card-militar card-comandante tooltip-container">
+                                <div class="card-militar card-comandante ${classeSituacaoCard} tooltip-container">
                                     <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
+                                    <div style="margin-top: 6px;">${badgeSituacao}</div>
                                     <span class="badge-funcao">${m.funcao}</span>
                                     ${tooltipHTML}
                                 </div>
                             `;
                         } else {
                             html += `
-                                <div class="card-militar tooltip-container">
+                                <div class="card-militar ${classeSituacaoCard} tooltip-container">
                                     <strong>${m.posto}${quadroFormatado}</strong> ${m.nome} ${rgFormatado}
+                                    <div style="margin-top: 6px;">${badgeSituacao}</div>
                                     ${tooltipHTML}
                                 </div>
                             `;
