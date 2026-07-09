@@ -731,16 +731,27 @@ class Motoristas(database.Model):
 
 class Viaturas(database.Model):
     __tablename__ = 'viaturas'
+
     id = database.Column(database.Integer, primary_key=True)
     marca_modelo = database.Column(database.String(100))
     placa = database.Column(database.String(20))
     prefixo = database.Column(database.String(20))
     obm_id = database.Column(database.Integer, database.ForeignKey('obm.id'))
-    created_at = database.Column(database.DateTime, default=now_manaus_naive)
-    updated_at = database.Column(database.DateTime, onupdate=now_manaus_naive)
+
+    created_at = database.Column(
+        database.DateTime,
+        default=now_manaus_naive,
+        nullable=False
+    )
+
+    updated_at = database.Column(
+        database.DateTime,
+        default=now_manaus_naive,
+        onupdate=now_manaus_naive,
+        nullable=False
+    )
 
     obm = database.relationship("Obm", backref="viaturas_obm")
-
     militares = database.relationship(
         "ViaturaMilitar",
         back_populates="viatura",
