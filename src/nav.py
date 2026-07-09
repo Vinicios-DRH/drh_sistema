@@ -233,7 +233,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     )
 
     # DRH / SUPER (Documentação, Militares, Motoristas, Pagadoria, Convocação e afins) — regra antiga: funcao in {5,6,7,12}
-    rule_drh_like = (lambda: is_super or _rule_funcao_in([5, 6, 7, 12]))
+    rule_drh_like = (lambda: is_super or _rule_funcao_in([1, 2, 5, 6, 7, 12]))
 
     nav.append(
         _mk_group(
@@ -324,7 +324,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
 
     nav.append(
         _mk_group(
-            "Motoristas",
+            "CSM",
             icon="fas fa-id-card",
             perm="NAV_MOTORISTAS",
             rule=rule_drh_like,
