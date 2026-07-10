@@ -519,10 +519,12 @@
                 | length > 0
                 and militar.especialidade_id == 12
                 %}
+                {% set direito_dias = 40 if pode_ter_40 else 30 %}
 
                 <tr id="militar-{{ militar.id }}" data-militar-id="{{ militar.id }}"
                     data-pode-ter-40="{{ 'true' if pode_ter_40 else 'false' }}"
-                    data-excecao="{{ 'true' if paf and paf.excecao_virada_ano else 'false' }}">
+                    data-excecao="{{ 'true' if paf and paf.excecao_virada_ano else 'false' }}"
+                    data-direito-dias="{{ direito_dias }}">
 
                     <td data-label="Posto/Grad" class="paf-nowrap paf-rank">
                         {{ militar.posto_grad.sigla if militar.posto_grad else '—' }}

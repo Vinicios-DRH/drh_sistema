@@ -737,8 +737,7 @@
     const fmtISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const firstDayNextMonth = () => new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
 
-    function getLimiteAno(row) {
-      if (row && row.dataset.excecao === 'true') return new Date(ANO_ATUAL + 1, 11, 31);
+    function getLimiteAno() {
       return new Date(ANO_ATUAL, 11, 31);
     }
 
@@ -882,45 +881,139 @@
     }
 
     // === VALIDAÇÕES INSTANTÂNEAS (Corrigida a lógica dos meses passados) ===
-    function validarRegrasInstantaneas(row, mid, teto) {
-      const temExcecaoAno = (row.dataset.excecao === 'true');
+    function obterDireitoDias(row) {
+      const direito = Number(row.dataset.direitoDias);
 
-      const i1Input = row.querySelector(`[name="inicio_1_${mid}"]`);
-      const i2Input = row.querySelector(`[name="inicio_2_${mid}"]`);
-      const i3Input = row.querySelector(`[name="inicio_3_${mid}"]`);
-
-      const i1 = parseInputDate(i1Input?.value);
-      const f1 = parseInputDate(row.querySelector(`[name="fim_1_${mid}"]`)?.value);
-      const i2 = parseInputDate(i2Input?.value);
-      const f2 = parseInputDate(row.querySelector(`[name="fim_2_${mid}"]`)?.value);
-      const i3 = parseInputDate(i3Input?.value);
-      const f3 = parseInputDate(row.querySelector(`[name="fim_3_${mid}"]`)?.value);
-      const d1 = getNum(row, `qtd_dias_1_${mid}`);
-
-      // Checagem retroativa estrita: Só grita se o input ESTIVER ABERTO (editável) e violar a data mínima
-      if (i1 && i1Input?.min && (i1Input.disabled === false) && fmtISO(i1) < i1Input.min) return `MÊS BLOQUEADO: O 1º período retrocede a uma data restrita.`;
-      if (i2 && i2Input?.min && (i2Input.disabled === false) && fmtISO(i2) < i2Input.min) return `MÊS BLOQUEADO: O 2º período retrocede a uma data restrita.`;
-      if (i3 && i3Input?.min && (i3Input.disabled === false) && fmtISO(i3) < i3Input.min) return `MÊS BLOQUEADO: O 3º período retrocede a uma data restrita.`;
-
-      // Limite Máximo do Ano
-      const limiteAno = getLimiteAno(row);
-      if ((f1 && f1 > limiteAno) || (f2 && f2 > limiteAno) || (f3 && f3 > limiteAno)) {
-        if (!temExcecaoAno) return `DATA FORA DO LIMITE: O término ultrapassa 31/12. Se o militar possui autorização, marque "Exceção".`;
-        else return `LIMITE DE EXCEÇÃO EXCEDIDO: O término ultrapassa o limite máximo de exceção (31/12 do ano seguinte).`;
+      if (direito === 30 || direito === 40) {
+        return direito;
       }
 
-      // Regra Dezembro Cota Única
-      if (!temExcecaoAno && i1 && i1.getMonth() === 11 && d1 > 0 && d1 < teto) {
-        return `REGRA DE DEZEMBRO: Férias iniciadas em Dezembro requerem cota única. Marque ${teto} dias no 1º período.`;
+      return row.dataset.podeTer40 === 'true' ? 40 : 30;
+    }
+
+    function lerPeriodo(row, militarId, numero) {
+      return {
+        numero,
+        dias: getNum(row, `qtd_dias_${numero}_${militarId}`),
+        inicio: parseInputDate(
+          row.querySelector(`[name="inicio_${numero}_${militarId}"]`)?.value
+        ),
+        fim: parseInputDate(
+          row.querySelector(`[name="fim_${numero}_${militarId}"]`)?.value
+        )
+      };
+    }
+
+    function adicionarDias(data, quantidade) {
+      return new Date(
+        data.getFullYear(),
+        data.getMonth(),
+        data.getDate() + quantidade
+      );
+    }
+
+    function validarRegrasInstantaneas(row) {
+      const militarId = row.dataset.militarId;
+      const direitoDias = obterDireitoDias(row);
+
+      const periodos = [
+        lerPeriodo(row, militarId, 1),
+        lerPeriodo(row, militarId, 2),
+        lerPeriodo(row, militarId, 3)
+      ];
+
+      const existeAlgumPreenchimento = periodos.some(periodo =>
+        periodo.dias > 0 || periodo.inicio || periodo.fim
+      );
+
+      // Um PAF completamente vazio não é necessariamente inconsistente.
+      if (!existeAlgumPreenchimento) {
+        return null;
       }
 
-      // Conflitos de Cronologia (Sobreposição de datas)
-      if (i2 && (f1 || i1) && i2 <= (f1 || i1)) {
-        return `CONFLITO DE DATAS: O 2º período NÃO PODE iniciar antes do término do 1º período.`;
+      let totalDias = 0;
+      const periodosPreenchidos = [];
+
+      for (const periodo of periodos) {
+        const temAlgumDado =
+          periodo.dias > 0 ||
+          periodo.inicio !== null ||
+          periodo.fim !== null;
+
+        if (!temAlgumDado) {
+          continue;
+        }
+
+        if (!periodo.dias) {
+          return `PERÍODO INCOMPLETO: informe a quantidade de dias do ${periodo.numero}º período.`;
+        }
+
+        if (!periodo.inicio) {
+          return `PERÍODO INCOMPLETO: informe a data inicial do ${periodo.numero}º período.`;
+        }
+
+        if (!periodo.fim) {
+          return `PERÍODO INCOMPLETO: informe a data final do ${periodo.numero}º período.`;
+        }
+
+        /*
+         * A validade é pelo ano do PAF, e não pela data atual,
+         * pelo usuário ou pela OBM do chefe.
+         */
+        if (
+          periodo.inicio.getFullYear() !== ANO_ATUAL ||
+          periodo.fim.getFullYear() !== ANO_ATUAL
+        ) {
+          return `ANO INVÁLIDO: o ${periodo.numero}º período deve começar e terminar dentro de ${ANO_ATUAL}.`;
+        }
+
+        const fimEsperado = adicionarDias(
+          periodo.inicio,
+          periodo.dias - 1
+        );
+
+        if (fmtISO(periodo.fim) !== fmtISO(fimEsperado)) {
+          return `DATA FINAL INCORRETA: o término do ${periodo.numero}º período deveria ser ${fmtISO(fimEsperado)}.`;
+        }
+
+        totalDias += periodo.dias;
+        periodosPreenchidos.push(periodo);
       }
-      const base3 = f2 || i2 || f1 || i1;
-      if (i3 && base3 && i3 <= base3) {
-        return `CONFLITO DE DATAS: O 3º período NÃO PODE iniciar antes do término dos períodos anteriores.`;
+
+      /*
+       * Impede preencher o 2º sem o 1º ou o 3º sem o 2º.
+       */
+      if (
+        periodos[1].dias > 0 &&
+        periodos[0].dias === 0
+      ) {
+        return `ORDEM INVÁLIDA: o 2º período não pode existir sem o 1º período.`;
+      }
+
+      if (
+        periodos[2].dias > 0 &&
+        periodos[1].dias === 0
+      ) {
+        return `ORDEM INVÁLIDA: o 3º período não pode existir sem o 2º período.`;
+      }
+
+      /*
+       * Verifica sobreposição e ordem cronológica.
+       */
+      for (let indice = 1; indice < periodosPreenchidos.length; indice++) {
+        const anterior = periodosPreenchidos[indice - 1];
+        const atual = periodosPreenchidos[indice];
+
+        if (atual.inicio <= anterior.fim) {
+          return `CONFLITO DE DATAS: o ${atual.numero}º período deve iniciar depois do término do ${anterior.numero}º período.`;
+        }
+      }
+
+      /*
+       * O saldo deve ser exatamente igual ao direito do militar.
+       */
+      if (totalDias !== direitoDias) {
+        return `SALDO INCORRETO: o militar possui direito a ${direitoDias} dias, mas foram distribuídos ${totalDias} dias.`;
       }
 
       return null;
@@ -972,7 +1065,7 @@
             calcularFim(row, mid, p);
             refreshRow(row);
 
-            const erro = validarRegrasInstantaneas(row, mid, teto);
+            const erro = validarRegrasInstantaneas(row);
             if (erro) dispararModalInconsistencia(erro);
 
             auditarLinha(row);
@@ -984,7 +1077,7 @@
             else calcularFim(row, mid, p);
             refreshRow(row);
 
-            const erro = validarRegrasInstantaneas(row, mid, teto);
+            const erro = validarRegrasInstantaneas(row);
             if (erro) dispararModalInconsistencia(erro);
 
             auditarLinha(row);
@@ -994,12 +1087,11 @@
 
       row.querySelectorAll('.botao-salvar').forEach(btn => {
         btn.addEventListener('click', () => {
-          let erroBloqueante = validarRegrasInstantaneas(row, mid, teto);
-          if (!erroBloqueante) {
-            const { total123 } = totals(row, mid);
-            if (total123 > 0 && total123 < teto) {
-              erroBloqueante = `SALDO INCOMPLETO: O militar possui direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
-            }
+          const erroBloqueante = validarRegrasInstantaneas(row);
+
+          if (erroBloqueante) {
+            dispararModalInconsistencia(erroBloqueante);
+            return;
           }
 
           if (erroBloqueante) {
@@ -1031,29 +1123,17 @@
     }
 
     function auditarLinha(row) {
-      const mid = row.dataset.militarId;
-      const teto = ((row.dataset.podeTer40 === 'true') || (window.MILITARES_40 || []).includes(Number(mid))) ? 40 : 30;
-
-      let erro = validarRegrasInstantaneas(row, mid, teto);
-
-      // Se não bateu em nenhuma regra de data, checa a regra matemática do Saldo Obrigatório
-      if (!erro) {
-        const { total123 } = totals(row, mid);
-        if (total123 > 0 && total123 < teto) {
-          erro = `SALDO INCOMPLETO: O sistema entende que este militar tem direito a ${teto} dias, mas apenas ${total123} foram distribuídos.`;
-        }
-      }
+      const erro = validarRegrasInstantaneas(row);
 
       if (erro) {
         row.classList.add('table-danger');
-        // Injeta o motivo exato no title para o usuário ver ao passar o mouse
         row.title = erro;
         return true;
-      } else {
-        row.classList.remove('table-danger');
-        row.title = "";
-        return false;
       }
+
+      row.classList.remove('table-danger');
+      row.title = '';
+      return false;
     }
 
     function auditarTabelaCarregada() {
