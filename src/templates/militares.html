@@ -498,6 +498,7 @@
 {% for v in request.args.getlist('especialidade_ids') %}{% set _ = params.append('especialidade_ids=' ~ v) %}{% endfor
 %}
 {% for v in request.args.getlist('localidade_ids') %}{% set _ = params.append('localidade_ids=' ~ v) %}{% endfor %}
+{% for v in request.args.getlist('situacoes') %}{% set _ = params.append('situacoes=' ~ (v|urlencode)) %}{% endfor %}
 {% for v in request.args.getlist('modalidade_ids') %}{% set _ = params.append('modalidade_ids=' ~ v) %}{% endfor %}
 {% for v in request.args.getlist('destino_ids') %}{% set _ = params.append('destino_ids=' ~ v) %}{% endfor %}
 {% if request.args.get('sexo') %}{% set _ = params.append('sexo=' ~ request.args.get('sexo')) %}{% endif %}
@@ -797,6 +798,9 @@
             </div>
             <div class="modal-body p-3 p-md-4 p-xl-5">
                 <form class="row g-3" id="formFiltros" method="get" action="{{ url_for('tabela_militares') }}">
+                    {% if request.args.get('search') %}
+                    <input type="hidden" name="search" value="{{ request.args.get('search') }}">
+                    {% endif %}
                     <div class="col-12">
                         <div class="filter-modal-actions">
                             <div class="filter-modal-actions-info">
@@ -970,6 +974,28 @@
                     <div class="col-md-4">
                         <div class="filter-card">
                             <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="filter-title">Situação</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-select-all="situacoes">Selecionar tudo</button>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        data-clear="situacoes">Limpar</button>
+                                </div>
+                            </div>
+                            <select id="filtro-situacao" name="situacoes" class="form-select js-multi" multiple
+                                data-placeholder="Pesquisar e selecionar situações">
+                                {% for val, label in form_militar.situacao.choices if val != '' %}
+                                {% set sel = (val|string) in request.args.getlist('situacoes') %}
+                                <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Modalidade -->
+                    <div class="col-md-4">
+                        <div class="filter-card">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="filter-title">Modalidade</span>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" type="button"
@@ -979,7 +1005,7 @@
                                 </div>
                             </div>
                             <select id="filtro-modalidade" name="modalidade_ids" class="form-select js-multi" multiple
-                                data-placeholder="Pesquisar e selecionar situações">
+                                data-placeholder="Pesquisar e selecionar modalidades">
                                 {% for val, label in form_militar.modalidade_id.choices if val != '' %}
                                 {% set sel = (val|string) in request.args.getlist('modalidade_ids') %}
                                 <option value="{{ val }}" {{ 'selected' if sel else '' }}>{{ label }}</option>

@@ -320,6 +320,15 @@
         <div class="rel-panel p-3 p-md-4">
 
             <form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('tabela_militares') }}">
+                {# Mantém todos os filtros avançados ao pesquisar nesta tela. #}
+                {% for key, values in request.args.lists() %}
+                {% if key not in ['page', 'search', 'sexo'] %}
+                {% for value in values %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
+
                 <div class="col-12 col-lg-5">
                     <label class="form-label">Busca no servidor</label>
                     <input class="form-control" type="text" name="search" placeholder="Ex.: Maria, João..."
@@ -384,6 +393,7 @@
                                     <th>Inclusão</th>
                                     <th>Especialidade</th>
                                     <th>Localidade</th>
+                                    <th>Situação</th>
                                     <th>Modalidade</th>
                                     <th>Destino</th>
                                     <th>OBM 1</th>
@@ -401,7 +411,7 @@
 
                             <tbody>
                                 {% for militar in militares %}
-                                {% set sit = militar.modalidade|upper %}
+                                {% set sit = militar.situacao|upper %}
                                 <tr>
                                     <td>
                                         <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"
@@ -422,13 +432,16 @@
                                     <td>{{ militar.localidade }}</td>
                                     <td>
                                         {% if sit == 'AGREGADO' %}
-                                        <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
+                                        <span class="badge bg-warning text-dark">{{ militar.situacao }}</span>
                                         {% elif sit == 'À DISPOSIÇÃO' %}
-                                        <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
+                                        <span class="badge bg-info text-dark">{{ militar.situacao }}</span>
+                                        {% elif sit == 'PRONTO' %}
+                                        <span class="badge bg-success">{{ militar.situacao }}</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">{{ militar.modalidade }}</span>
+                                        <span class="badge bg-secondary">{{ militar.situacao }}</span>
                                         {% endif %}
                                     </td>
+                                    <td>{{ militar.modalidade }}</td>
                                     <td>{{ militar.destino }}</td>
                                     <td>{{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}</td>
                                     <td>{{ militar.funcoes[0] if militar.funcoes|length > 0 else 'N/A' }}</td>
@@ -451,7 +464,7 @@
             <div class="rel-mobile-list">
                 {% if militares %}
                 {% for militar in militares %}
-                {% set sit = militar.modalidade|upper %}
+                {% set sit = militar.situacao|upper %}
 
                 <article class="rel-mobile-card">
                     <div class="rel-mobile-top">
@@ -471,11 +484,13 @@
 
                     <div class="rel-mobile-badges">
                         {% if sit == 'AGREGADO' %}
-                        <span class="badge bg-warning text-dark">{{ militar.modalidade }}</span>
+                        <span class="badge bg-warning text-dark">{{ militar.situacao }}</span>
                         {% elif sit == 'À DISPOSIÇÃO' %}
-                        <span class="badge bg-info text-dark">{{ militar.modalidade }}</span>
+                        <span class="badge bg-info text-dark">{{ militar.situacao }}</span>
+                        {% elif sit == 'PRONTO' %}
+                        <span class="badge bg-success">{{ militar.situacao }}</span>
                         {% else %}
-                        <span class="badge bg-secondary">{{ militar.modalidade }}</span>
+                        <span class="badge bg-secondary">{{ militar.situacao }}</span>
                         {% endif %}
                     </div>
 
@@ -498,6 +513,11 @@
                         <div>
                             <span class="rel-mobile-label">Destino</span>
                             <span class="rel-mobile-value">{{ militar.destino }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">Modalidade</span>
+                            <span class="rel-mobile-value">{{ militar.modalidade }}</span>
                         </div>
 
                         <div>
@@ -680,8 +700,8 @@
                         <div class="row g-2">
                             {% set colunas_disponiveis = [
                             'Nome Completo', 'Nome de Guerra', 'Posto/Graduação', 'Quadro', 'Sexo', 'Raça/Cor',
-                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Modalidade',
-                            'Destino', 'OBM 1', 'Função 1', 'OBM 2', 'Função 2', 'Data de Nascimento',
+                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Situação',
+                            'Modalidade', 'Destino', 'OBM 1', 'Função 1', 'OBM 2', 'Função 2', 'Data de Nascimento',
                             'Graduação', 'Grau de Instrução', 'Pós-Graduação', 'Mestrado', 'Doutorado'
                             ] %}
 

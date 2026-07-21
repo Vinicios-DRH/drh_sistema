@@ -231,21 +231,53 @@ def _coerce_int(v):
 
 class FormFiltroMilitar(FlaskForm):
     obm_id_1 = SelectMultipleField(
-        'OBMs', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'OBMs', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
     funcao_id = SelectMultipleField(
-        'Funções', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Funções', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
     posto_grad_id = SelectMultipleField(
-        'Posto/Grad', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Posto/Grad', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
     quadro_id = SelectMultipleField(
-        'Quadro', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Quadro', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
     especialidade_id = SelectMultipleField(
-        'Especialidade', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Especialidade', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
     localidade_id = SelectMultipleField(
-        'Localidade', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Localidade', choices=[], coerce=_coerce_int, validators=[Optional()]
+    )
+
+    # NOVO FILTRO
+    situacao = SelectMultipleField(
+        'Situação',
+        choices=[
+            ('PRONTO', 'PRONTO'),
+            ('AGREGADO', 'AGREGADO'),
+            ('À DISPOSIÇÃO', 'À DISPOSIÇÃO'),
+        ],
+        validators=[Optional()]
+    )
+
     modalidade_id = SelectMultipleField(
-        'Situação', choices=[], coerce=_coerce_int, validators=[Optional()])
+        'Modalidade',
+        choices=[],
+        coerce=_coerce_int,
+        validators=[Optional()]
+    )
+
     destino_id = SelectMultipleField(
-        'Destino', coerce=_coerce_int, choices=[], validators=[Optional()])
+        'Destino',
+        choices=[],
+        coerce=_coerce_int,
+        validators=[Optional()]
+    )
 
 
 class FormLogin(FlaskForm):
