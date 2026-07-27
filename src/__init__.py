@@ -2,7 +2,6 @@ from flask import Flask, abort, flash, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
-from supabase import create_client  # ← importa aqui
 from dotenv import load_dotenv
 import os, pathlib
 from sqlalchemy import event, text
@@ -10,13 +9,15 @@ import time, logging
 from sqlalchemy.pool import Pool
 import threading
 
+from supabase_utils import create_supabase_client
+
 # Carrega variáveis do .env
 load_dotenv()
 
 # Dados do Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_supabase_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
