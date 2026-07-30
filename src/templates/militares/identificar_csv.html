@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h4 class="mb-0">Identificar militares por CSV</h4>
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted">
+                O arquivo deve possuir uma coluna com o nome completo
+                e outra com o posto/graduação.
+            </p>
+
+            <p class="text-muted">
+                Exemplos de colunas aceitas:
+                <strong>nome_completo</strong> e
+                <strong>posto_grad</strong>.
+            </p>
+
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for(
+                    'militares_importacao.identificar_militares_csv'
+                ) }}">
+                <div class="mb-3">
+                    <label for="arquivo_csv" class="form-label">
+                        Arquivo CSV
+                    </label>
+
+                    <input type="file" class="form-control" id="arquivo_csv" name="arquivo_csv" accept=".csv,text/csv"
+                        required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Processar e baixar Excel
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
