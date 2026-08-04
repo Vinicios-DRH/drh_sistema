@@ -4094,7 +4094,11 @@ def export_excel():
 
         today = date.today()
 
-        query = build_tabela_militares_query().order_by(Militar.nome_completo.asc())
+        query = (
+            build_tabela_militares_query()
+            .order_by(Militar.nome_completo.asc())
+        )
+
         militares_filtrados = query.all()
 
         agregados_ids, adisposicao_ids = get_status_sets(query, today)
@@ -4127,12 +4131,39 @@ def export_excel():
             inclusao_fmt = militar.inclusao.strftime(
                 '%d/%m/%Y') if militar.inclusao else 'N/A'
 
-            if militar.id in adisposicao_ids:
-                modalidade_exibe = 'À DISPOSIÇÃO'
-            elif militar.id in agregados_ids:
-                modalidade_exibe = 'AGREGADO'
-            else:
-                modalidade_exibe = militar.modalidade.descricao if militar.modalidade else 'N/A'
+            situacao = (militar.situacao or "").strip().upper()
+
+            modalidade = (
+                (militar.modalidade.descricao or "").strip().upper()
+                if militar.modalidade
+                else ""
+            )
+
+            destino_txt = (
+                militar.destino.local
+                if militar.destino and militar.destino.local
+                else "N/A"
+            )
+
+            # Agregado
+            agregado_exibe = (
+                "SIM"
+                if situacao == "AGREGADO"
+                else "NÃO"
+            )
+
+            # À disposição
+            adisposicao_exibe = (
+                "SIM"
+                if modalidade == "À DISPOSIÇÃO"
+                else "NÃO"
+            )
+
+            modalidade_exibe = (
+                militar.modalidade.descricao
+                if militar.modalidade
+                else "N/A"
+            )
 
             sexo_raw = (militar.sexo or '').strip().lower()
             sexo_exibe = (
@@ -4141,7 +4172,6 @@ def export_excel():
                 else (militar.sexo or 'N/A')
             )
 
-            # Monta um dicionário com TODOS os dados possíveis do militar
             linha_completa = {
                 'Nome Completo': militar.nome_completo or 'N/A',
                 'Nome de Guerra': militar.nome_guerra or 'N/A',
@@ -4155,12 +4185,19 @@ def export_excel():
                 'Inclusão': inclusao_fmt,
                 'Especialidade': militar.especialidade.ocupacao if militar.especialidade else 'N/A',
                 'Localidade': militar.localidade.sigla if militar.localidade else 'N/A',
+
+                'Situação': militar.situacao or 'N/A',
                 'Modalidade': modalidade_exibe,
+                'Agregado': agregado_exibe,
+                'À Disposição': adisposicao_exibe,
+
                 'Destino': destino_txt,
+
                 'OBM 1': obms[0] if len(obms) > 0 else 'N/A',
                 'Função 1': funcoes[0] if len(funcoes) > 0 else 'N/A',
                 'OBM 2': obms[1] if len(obms) > 1 else 'N/A',
                 'Função 2': funcoes[1] if len(funcoes) > 1 else 'N/A',
+
                 'Data de Nascimento': militar.data_nascimento.strftime('%d/%m/%Y') if militar.data_nascimento else 'N/A',
                 'Graduação': militar.graduacao or 'N/A',
                 'Grau de Instrução': militar.grau_instrucao or 'N/A',
@@ -4199,14 +4236,36 @@ def export_excel():
                 'border': 1
             })
 
-            # Dicionário de larguras mapeado pelo NOME da coluna, não pela letra do Excel
             largura_colunas = {
-                'Nome Completo': 38, 'Nome de Guerra': 24, 'Posto/Graduação': 18,
-                'Quadro': 18, 'Sexo': 14, 'Raça/Cor': 16, 'CPF': 16, 'RG': 16,
-                'Matrícula': 16, 'Inclusão': 14, 'Especialidade': 24, 'Localidade': 14,
-                'Modalidade': 20, 'Destino': 24, 'OBM 1': 16, 'Função 1': 24,
-                'OBM 2': 16, 'Função 2': 24, 'Data de Nascimento': 16, 'Graduação': 18,
-                'Grau de Instrução': 22, 'Pós-Graduação': 20, 'Mestrado': 18, 'Doutorado': 18
+                'Nome Completo': 38,
+                'Nome de Guerra': 24,
+                'Posto/Graduação': 18,
+                'Quadro': 18,
+                'Sexo': 14,
+                'Raça/Cor': 16,
+                'CPF': 16,
+                'RG': 16,
+                'Matrícula': 16,
+                'Inclusão': 14,
+                'Especialidade': 24,
+                'Localidade': 14,
+
+                'Situação': 18,
+                'Modalidade': 18,
+                'Agregado': 14,
+                'À Disposição': 16,
+
+                'Destino': 24,
+                'OBM 1': 16,
+                'Função 1': 24,
+                'OBM 2': 16,
+                'Função 2': 24,
+                'Data de Nascimento': 16,
+                'Graduação': 18,
+                'Grau de Instrução': 22,
+                'Pós-Graduação': 20,
+                'Mestrado': 18,
+                'Doutorado': 18,
             }
 
             for col_num, value in enumerate(df.columns.values):
