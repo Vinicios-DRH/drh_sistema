@@ -3889,10 +3889,19 @@ def tabela_militares():
             .count()
         )
 
-        # Os cards de agregados/à disposição respeitam os filtros aplicados.
-        agregados_ids, adisposicao_ids = get_status_sets(query, today)
-        agregados_count = len(agregados_ids)
-        adisposicao_count = len(adisposicao_ids)
+        militares_filtrados = query.all()
+
+        agregados_count = sum(
+            1
+            for militar in militares_filtrados
+            if (militar.situacao or "").strip().upper() == "AGREGADO"
+        )
+
+        adisposicao_count = sum(
+            1
+            for militar in militares_filtrados
+            if militar.modalidade_id == 2
+        )
 
         militares_paginados = (
             query
@@ -3944,17 +3953,10 @@ def tabela_militares():
                 else "N/A"
             )
 
-            # Situação armazenada diretamente em Militar.situacao.
             situacao_exibe = (militar.situacao or "").strip().upper()
 
-            # Fallback apenas para registros antigos sem o texto preenchido.
             if not situacao_exibe:
-                if militar.id in adisposicao_ids:
-                    situacao_exibe = "À DISPOSIÇÃO"
-                elif militar.id in agregados_ids:
-                    situacao_exibe = "AGREGADO"
-                else:
-                    situacao_exibe = "N/A"
+                situacao_exibe = "N/A"
 
             # Modalidade permanece uma informação separada da situação.
             modalidade_exibe = (
