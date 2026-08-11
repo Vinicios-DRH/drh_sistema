@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import calcular_semana
+from src.routes.helpers import calcular_semana
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])

@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import arred, dias360_europeu
+from src.routes.helpers import arred, dias360_europeu
 
 
 @app.route('/vencimentos/novo', methods=['GET', 'POST'])

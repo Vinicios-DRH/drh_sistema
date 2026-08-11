@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import build_tabela_militares_query
+from src.routes.helpers import build_tabela_militares_query
 
 
 @app.route("/militares", methods=["GET"])

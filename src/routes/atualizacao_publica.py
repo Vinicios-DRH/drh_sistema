@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import _limpa_sessao_validacao
+from src.routes.helpers import _limpa_sessao_validacao
 
 
 @app.route('/atualizacao-cadastral', methods=['GET', 'POST'])

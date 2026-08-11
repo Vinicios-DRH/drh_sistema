@@ -198,45 +198,29 @@ def inject_nav():
 
 
 # Importa rotas depois
-# routes.py foi dividido em módulos por sessão (importação apenas por efeito
-# colateral: cada um registra suas rotas via @app.route no import).
-from src import routes_helpers
-from src import routes_militares_importacao
-from src import routes_painel_publico
-from src import routes_home
-from src import routes_auth
-from src import routes_militares_cadastro
-from src import routes_militares_listagem
-from src import routes_exportacoes
-from src import routes_usuarios
-from src import routes_ferias_pafs
-from src import routes_motoristas_viaturas
-from src import routes_vencimentos_impacto
-from src import routes_convocacao
-from src import routes_fichas_alunos
-from src import routes_atualizacao_publica
-from src import routes_documentos_gerados
-from src import routes_auditoria
-from src import routes_gestao_chefia
-from src.routes_acumulo import bp_acumulo
-from src.routes_paf import bp_paf
-from src.bp_paf_auto import bp_paf_auto
-from src.routes_dependentes import bp_dep
-from src.route_ferias import bp_ferias
-from src.admin_permissoes import bp_admin_permissoes
-from src.admin_obm_gestao import bp_admin_obm_gestao
-from src.api_taf import bp_api_taf
-from src.routes_taf import taf_admin_bp
-from src.routes_historico import bp_historico
-from src.routes_atualizacao_cadastral import bp_atualizacao_cadastral
-from src.routes_junta import junta_bp
-from src.routes_remove_bg import remove_bg_bp
-from src import routes_mapa_funcional
+# src/routes/ é um pacote com TODOS os módulos que definem rotas Flask do
+# projeto: tanto os que registram via @app.route diretamente (importados por
+# efeito colateral em cadeia por src/routes/__init__.py) quanto os que definem
+# Blueprints (importados aqui para registro explícito com app.register_blueprint).
+from src import routes
+from src.routes.acumulo import bp_acumulo
+from src.routes.paf import bp_paf
+from src.routes.bp_paf_auto import bp_paf_auto
+from src.routes.dependentes import bp_dep
+from src.routes.route_ferias import bp_ferias
+from src.routes.admin_permissoes import bp_admin_permissoes
+from src.routes.admin_obm_gestao import bp_admin_obm_gestao
+from src.routes.api_taf import bp_api_taf
+from src.routes.taf import taf_admin_bp
+from src.routes.historico import bp_historico
+from src.routes.atualizacao_cadastral import bp_atualizacao_cadastral
+from src.routes.junta import junta_bp
+from src.routes.remove_bg import remove_bg_bp
 
-from src.routes_conferencia_pagadoria import bp_conferencia_pagadoria
-from src.routes_mapa_amazonas import mapa_bp
-from src.routes_mapa_amazonas_copy import mapa_bp as mapa_copy_bp
-from src.militares_csv import militares_bp
+from src.routes.conferencia_pagadoria import bp_conferencia_pagadoria
+from src.routes.mapa_amazonas import mapa_bp
+from src.routes.mapa_amazonas_copy import mapa_bp as mapa_copy_bp
+from src.routes.militares_csv import militares_bp
 
 app.register_blueprint(militares_bp)
 app.register_blueprint(mapa_copy_bp)

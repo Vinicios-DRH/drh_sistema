@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import calcular_comportamento
+from src.routes.helpers import calcular_comportamento
 
 
 @app.route('/ficha-alunos-soldados', methods=['GET', 'POST'])

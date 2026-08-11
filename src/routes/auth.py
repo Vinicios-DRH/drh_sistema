@@ -90,7 +90,7 @@ import time
 from src.utils.utils import registrar_log_download
 from dateutil.relativedelta import relativedelta
 
-from src.routes_helpers import (
+from src.routes.helpers import (
     get_user_ip,
     _somente_numeros,
     _obms_do_militar_por_vinculos,

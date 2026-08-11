@@ -25,7 +25,7 @@ from src.services.militar_situacao_service import (
     sincronizar_blocos_funcionais,
 )
 
-from src.routes_helpers import (
+from src.routes.helpers import (
     somente_numeros,
     calcular_datas_servico,
     _to_manaus,
