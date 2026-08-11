@@ -1,0 +1,105 @@
+{# ==========================================================================
+Macros de campo compartilhadas pelas telas de cadastro de militar
+(exibir_militar.html e adicionar_militar.html). Usam `can_edit` do contexto
+de quem importa este arquivo — sempre importar com `with context`.
+========================================================================== #}
+
+{% macro render_field(field, col='col-md-4', extra_class='', placeholder='', readonly=False) %}
+<div class="{{ col }}">
+  {{ field.label(class="mp-field-label") }}
+
+  {% set classes =
+  "form-control" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else "") +
+  (" mp-readonly-control" if readonly else "")
+  %}
+
+  {% if can_edit and not readonly %}
+  {{ field(class=classes, placeholder=placeholder) }}
+  {% else %}
+  {{ field(
+  class=classes + " mp-readonly-control",
+  placeholder=placeholder,
+  readonly=True
+  ) }}
+  {% endif %}
+
+  {% if field.errors %}
+  <div class="invalid-feedback d-block">
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro render_select(field, col='col-md-4', extra_class='') %}
+<div class="{{ col }}">
+  {{ field.label(class="mp-field-label") }}
+
+  {% set classes =
+  "form-select" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else "")
+  %}
+
+  {% if can_edit %}
+  {{ field(class=classes) }}
+  {% else %}
+  {{ field(class=classes + " mp-readonly-control", disabled=True) }}
+  {% endif %}
+
+  {% if field.errors %}
+  <div class="invalid-feedback d-block">
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro render_readonly_field(field, col='col-md-3', extra_class='') %}
+<div class="{{ col }}">
+  {{ field.label(class="mp-field-label") }}
+
+  {{ field(
+  class="form-control mp-readonly-control" +
+  (" is-invalid" if field.errors else "") +
+  (" " + extra_class if extra_class else ""),
+  readonly=True
+  ) }}
+
+  {% if field.errors %}
+  <div class="invalid-feedback d-block">
+    {% for error in field.errors %}
+    {{ error }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro text_input(name, label, value='', col='col-md-4', type='text', extra_class='', placeholder='') %}
+<div class="{{ col }}">
+  <label class="mp-field-label" for="{{ name|replace('[]', '') }}">{{ label }}</label>
+
+  <input type="{{ type }}" name="{{ name }}" value="{{ value }}" id="{{ name|replace('[]', '') }}"
+    class="form-control {{ extra_class }}" placeholder="{{ placeholder }}" {% if not can_edit %}readonly{% endif %}>
+</div>
+{% endmacro %}
+
+
+{% macro textarea_input(name, label, value='', col='col-12', rows='3', extra_class='', placeholder='') %}
+<div class="{{ col }}">
+  <label class="mp-field-label" for="{{ name|replace('[]', '') }}">{{ label }}</label>
+
+  <textarea name="{{ name }}" id="{{ name|replace('[]', '') }}" rows="{{ rows }}" class="form-control {{ extra_class }}"
+    placeholder="{{ placeholder }}" {% if not can_edit %}readonly{% endif %}>{{ value }}</textarea>
+</div>
+{% endmacro %}

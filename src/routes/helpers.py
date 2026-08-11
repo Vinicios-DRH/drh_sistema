@@ -616,48 +616,6 @@ def somente_numeros(valor):
     return re.sub(r"\D", "", valor or "")
 
 
-def normalizar_date(valor):
-    if not valor:
-        return None
-    if isinstance(valor, datetime):
-        return valor.date()
-    return valor
-
-
-def calcular_datas_servico(efetivo_servico):
-    efetivo = normalizar_date(efetivo_servico)
-
-    if not efetivo:
-        return {
-            "completa_25_anos_sv": None,
-            "completa_30_anos_sv": None,
-            "anos": None,
-            "meses": None,
-            "dias": None,
-            "total_dias": None,
-        }
-
-    hoje = date.today()
-
-    if efetivo > hoje:
-        anos = meses = dias = total_dias = 0
-    else:
-        diff = relativedelta(hoje, efetivo)
-        anos = diff.years
-        meses = diff.months
-        dias = diff.days
-        total_dias = (hoje - efetivo).days
-
-    return {
-        "completa_25_anos_sv": efetivo + relativedelta(years=25),
-        "completa_30_anos_sv": efetivo + relativedelta(years=30),
-        "anos": anos,
-        "meses": meses,
-        "dias": dias,
-        "total_dias": total_dias,
-    }
-
-
 def _to_manaus(dt):
     """Converte dt (naive/aware/None) para aware em America/Manaus."""
     if dt is None:
