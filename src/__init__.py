@@ -198,7 +198,26 @@ def inject_nav():
 
 
 # Importa rotas depois
-from src import routes
+# routes.py foi dividido em módulos por sessão (importação apenas por efeito
+# colateral: cada um registra suas rotas via @app.route no import).
+from src import routes_helpers
+from src import routes_militares_importacao
+from src import routes_painel_publico
+from src import routes_home
+from src import routes_auth
+from src import routes_militares_cadastro
+from src import routes_militares_listagem
+from src import routes_exportacoes
+from src import routes_usuarios
+from src import routes_ferias_pafs
+from src import routes_motoristas_viaturas
+from src import routes_vencimentos_impacto
+from src import routes_convocacao
+from src import routes_fichas_alunos
+from src import routes_atualizacao_publica
+from src import routes_documentos_gerados
+from src import routes_auditoria
+from src import routes_gestao_chefia
 from src.routes_acumulo import bp_acumulo
 from src.routes_paf import bp_paf
 from src.bp_paf_auto import bp_paf_auto
