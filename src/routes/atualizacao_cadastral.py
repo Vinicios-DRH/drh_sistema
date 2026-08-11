@@ -20,7 +20,6 @@ from src.models import (
 )
 from src.forms import AtualizacaoCadastralForm
 from src.utils.cadastro_status import (
-    cadastro_esta_completo,
     get_campos_pendentes_cadastro,
 )
 from io import BytesIO

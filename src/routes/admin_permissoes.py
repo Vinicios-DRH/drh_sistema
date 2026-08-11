@@ -1,12 +1,12 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, request, jsonify
+from flask_login import login_required
 from sqlalchemy import or_
 
 from src import database as db
-from src.models import ObmGestao, User, UserPermissao, FuncaoUser, UserObmAcesso, Obm
+from src.models import User, UserPermissao, FuncaoUser, UserObmAcesso, Obm
 from src.decorators.control import checar_ocupacao
 from src.permissoes import PERMISSOES_CATALOGO
 

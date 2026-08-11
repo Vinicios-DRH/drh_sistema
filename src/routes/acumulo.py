@@ -6,12 +6,12 @@ from flask_login import login_required, current_user
 from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
 from src.formatar_cpf import get_militar_por_user
-from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, b2_check, b2_put_test, build_prefix
+from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, build_prefix
 from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
-from src.decorators.control import USERS_ANALISE_VINCULO, checar_ocupacao, _is_super_user, _is_drh_like, _user_obm_ids, _militar_permitido, _can_analise_vinculo, _can_editar_declaracao, _prazo_envio_ate, _prazo_fechado, ANO_ATUAL, _is_privilegiado, _parse_date, _parse_time, require_analise_vinculo, _usuario_ja_tem_declaracao, _is_auditor_vinculo
+from src.decorators.control import USERS_ANALISE_VINCULO, checar_ocupacao, _is_super_user, _is_drh_like, _user_obm_ids, _militar_permitido, _can_editar_declaracao, _prazo_envio_ate, _prazo_fechado, ANO_ATUAL, _is_privilegiado, require_analise_vinculo, _usuario_ja_tem_declaracao
 from sqlalchemy.orm import joinedload, selectinload
-from datetime import datetime, date, time
-from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
+from datetime import datetime, date
+from src.decorators.formatar_datas import formatar_data_sem_zero
 from src.decorators.helpers_docx import render_docx_from_template
 from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased
