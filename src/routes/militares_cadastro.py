@@ -9,15 +9,14 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, m
     Response, stream_with_context
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from src import app, database, bcrypt
-from src.forms import (FormMilitarInativo, FormMilitar, FormCriarUsuario)
-from src.models import (DocumentoMilitar, Militar, MilitaresInativos, PostoGrad, Quadro, Obm, Localidade, Funcao, User, FuncaoUser, PublicacaoBg,
+from src import app, database
+from src.forms import (FormMilitarInativo, FormMilitar)
+from src.models import (DocumentoMilitar, Militar, MilitaresInativos, PostoGrad, Quadro, Obm, Localidade, Funcao, PublicacaoBg,
                         EstadoCivil, Especialidade, Destino, Motivo, Modalidade, Punicao, Comportamento, MilitarObmFuncao,
                         FuncaoGratificada,
                         MilitarGraduacao, MilitarContatoEmergencia, MilitarConjuge, Curso, MilitarCurso, AuditoriaAtualizacaoCadastral, now_manaus_naive)
 from src.decorators.control import checar_ocupacao
 from datetime import datetime, date, timedelta
-from sqlalchemy import or_
 from src.security.perms import has_perm
 from src.authz import is_super_or_perm
 from src.services.militar_situacao_service import (
@@ -26,110 +25,10 @@ from src.services.militar_situacao_service import (
 )
 
 from src.routes.helpers import (
-    somente_numeros,
     calcular_datas_servico,
     _to_manaus,
     _pode_pegar_doc,
 )
-
-
-@app.route("/criar-conta", methods=['GET', 'POST'])
-@login_required
-def criar_conta():
-    if current_user.id != 1:
-        abort(403)
-
-    form_criar_usuario = FormCriarUsuario()
-
-    choices = [(funcao_user.id, funcao_user.ocupacao)
-               for funcao_user in FuncaoUser.query.all()]
-    choices.insert(0, ('', '-- Selecione uma opção --'))
-
-    form_criar_usuario.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [
-        (obm.id, obm.sigla) for obm in Obm.query.all()
-    ]
-    form_criar_usuario.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [
-        (obm.id, obm.sigla) for obm in Obm.query.all()
-    ]
-    form_criar_usuario.localidade_id.choices = [('', '-- Selecione uma opção --')] + [
-        (localidade.id, localidade.sigla) for localidade in Localidade.query.all()
-    ]
-    form_criar_usuario.funcao_user_id.choices = choices
-
-    if form_criar_usuario.validate_on_submit():
-        cpf_limpo = somente_numeros(form_criar_usuario.cpf.data)
-
-        militar = Militar.query.filter(
-            or_(
-                Militar.cpf == cpf_limpo,
-                Militar.cpf == form_criar_usuario.cpf.data
-            )
-        ).first()
-
-        usuario_existente = User.query.filter(
-            or_(
-                User.cpf == cpf_limpo,
-                User.cpf == form_criar_usuario.cpf.data,
-                User.cpf_norm == cpf_limpo
-            )
-        ).first()
-
-        if usuario_existente:
-            # Atualiza o usuário já existente
-            usuario_existente.nome = form_criar_usuario.nome.data
-            usuario_existente.email = form_criar_usuario.email.data
-            usuario_existente.cpf = form_criar_usuario.cpf.data
-            usuario_existente.cpf_norm = cpf_limpo
-            usuario_existente.funcao_user_id = form_criar_usuario.funcao_user_id.data
-            usuario_existente.obm_id_1 = form_criar_usuario.obm_id_1.data or None
-            usuario_existente.obm_id_2 = form_criar_usuario.obm_id_2.data or None
-            usuario_existente.localidade_id = form_criar_usuario.localidade_id.data or None
-
-            if militar:
-                usuario_existente.militar_id = militar.id
-                militar.usuario_id = usuario_existente.id
-
-            # só atualiza senha se tiver sido preenchida
-            if form_criar_usuario.senha.data:
-                senha_cript = bcrypt.generate_password_hash(
-                    form_criar_usuario.senha.data
-                ).decode('utf-8')
-                usuario_existente.senha = senha_cript
-
-            database.session.commit()
-            flash("Usuário já existia. Dados atualizados com sucesso!",
-                  "alert-warning")
-            return redirect(url_for('home'))
-
-        # cria novo usuário se não existir
-        senha_cript = bcrypt.generate_password_hash(
-            form_criar_usuario.senha.data
-        ).decode('utf-8')
-
-        novo_usuario = User(
-            nome=form_criar_usuario.nome.data,
-            email=form_criar_usuario.email.data,
-            cpf=cpf_limpo,
-            cpf_norm=cpf_limpo,
-            funcao_user_id=form_criar_usuario.funcao_user_id.data,
-            obm_id_1=form_criar_usuario.obm_id_1.data or None,
-            obm_id_2=form_criar_usuario.obm_id_2.data or None,
-            localidade_id=form_criar_usuario.localidade_id.data or None,
-            senha=senha_cript,
-            militar_id=militar.id if militar else None
-        )
-
-        database.session.add(novo_usuario)
-        database.session.flush()
-
-        if militar:
-            militar.usuario_id = novo_usuario.id
-
-        database.session.commit()
-        flash("Usuário cadastrado com sucesso!", "alert-success")
-        return redirect(url_for('home'))
-
-    return render_template('criar_conta.html', form_criar_usuario=form_criar_usuario)
 
 
 # @app.route("/adicionar-militar", methods=['GET', 'POST'])
