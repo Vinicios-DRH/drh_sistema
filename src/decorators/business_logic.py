@@ -2,7 +2,7 @@ from datetime import datetime
 from src import database
 from src.models import (
     MilitaresAgregados, MilitaresADisposicao,
-    LicencaEspecial, LicencaParaTratamentoDeSaude
+    LicencaEspecial
 )
 
 
@@ -111,29 +111,6 @@ def atualizar_status_le(m):
         m.status = 'Término da Licença Especial'
 
 
-# -------------------------
-# LTS
-# -------------------------
-def atualizar_status_lts(m):
-    hoje = _hoje()
-    ini = m.inicio_periodo_lts
-    fim = m.fim_periodo_lts
-
-    if not ini or not fim:
-        m.status = 'Dados incompletos'
-        return
-
-    if hoje < ini:
-        m.status = 'A iniciar'
-    elif ini <= hoje <= fim:
-        m.status = 'Vigente'
-        # (se quiser avisos por e-mail, use flags equivalentes às de LE)
-        # dias = _dias_restantes(fim)
-        # ...
-    else:
-        m.status = 'Término da Licença para Tratamento de Saúde'
-
-
 def processar_militares_agregados():
     itens = MilitaresAgregados.query.all()
     for m in itens:
@@ -153,7 +130,6 @@ def processar_militares_le():
     database.session.commit()
 
 def processar_militares_lts():
-    itens = LicencaParaTratamentoDeSaude.query.all()
-    for m in itens:
-        atualizar_status_lts(m)
+    from src.services.militar_situacao_service import processar_fim_de_lts
+    processar_fim_de_lts()
     database.session.commit()

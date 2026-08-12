@@ -389,12 +389,13 @@ def exportar_excel(tabela):
             'Quadro': getattr(item.quadro, 'quadro', 'N/A'),
             'Nome Completo': getattr(item.militar, 'nome_completo', 'N/A'),
             'Destino': getattr(item.destino, 'local', 'N/A'),
-            'Situação': getattr(item.situacao, 'condicao', 'N/A'),
+            'Situação': getattr(item.modalidade, 'descricao', 'N/A'),
             'A contar de': item.inicio_periodo.strftime('%d/%m/%Y') if item.inicio_periodo else 'N/A',
             'Término': (
-                item.fim_periodo_agregacao.strftime('%d/%m/%Y') if tabela == 'militares_agregados' else
-                item.fim_periodo_disposicao.strftime(
-                    '%d/%m/%Y') if item.fim_periodo_disposicao else 'N/A'
+                item.fim_periodo_agregacao.strftime('%d/%m/%Y')
+                if tabela == 'militares_agregados' and item.fim_periodo_agregacao else
+                item.fim_periodo_disposicao.strftime('%d/%m/%Y')
+                if tabela == 'militares_a_disposicao' and item.fim_periodo_disposicao else 'N/A'
             ),
             'Status': item.status,
             'Documento Autorizador': getattr(item.publicacao_bg, 'boletim_geral', 'N/A')

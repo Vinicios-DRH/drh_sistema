@@ -4,10 +4,9 @@ from flask_login import login_required
 from flask import request, jsonify, current_app
 from flask import render_template, request, jsonify
 from flask_login import login_required
-from src import app
+from src import app, database
 from src.forms import (FormFiltroMilitar)
-from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Especialidade, Destino, Modalidade, MilitarObmFuncao,
-                        MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude)
+from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Especialidade, Destino, Modalidade, MilitarObmFuncao)
 from src.decorators.control import checar_ocupacao
 from datetime import datetime, date
 from sqlalchemy.orm import joinedload, selectinload
@@ -15,6 +14,25 @@ from sqlalchemy import func, or_
 import re
 
 from src.routes.helpers import build_tabela_militares_query
+from src.services.militares_listagem_service import (
+    PER_PAGE,
+    montar_choices_filtro_militar,
+    extrair_filtros_militares,
+    construir_query_militares,
+    serializar_militar_linha,
+)
+from src.services.lts_service import listar_militares_lts
+from src.services.militar_situacao_service import processar_fim_de_lts
+from src.services.situacoes_militares_service import (
+    listar_militares_agregados,
+    listar_militares_a_disposicao,
+    listar_licencas_especiais,
+)
+from src.decorators.business_logic import (
+    processar_militares_agregados,
+    processar_militares_a_disposicao,
+    processar_militares_le,
+)
 
 
 @app.route("/militares", methods=["GET"])
@@ -29,433 +47,38 @@ from src.routes.helpers import build_tabela_militares_query
     "ATUALIZACAO CADASTRAL",
 )
 def militares():
-    f = FormFiltroMilitar()
+    form_filtro = FormFiltroMilitar()
+    montar_choices_filtro_militar(form_filtro)
 
-    # ================================================================
-    # CHOICES DOS FILTROS
-    # ================================================================
+    filtros = extrair_filtros_militares(request.args)
 
-    f.obm_id_1.choices = [
-        (obm.id, obm.sigla)
-        for obm in Obm.query.order_by(Obm.sigla.asc()).all()
-    ]
-
-    f.funcao_id.choices = [
-        (funcao_item.id, funcao_item.ocupacao)
-        for funcao_item in Funcao.query.order_by(Funcao.ocupacao.asc()).all()
-    ]
-
-    f.posto_grad_id.choices = [
-        (posto.id, posto.sigla)
-        for posto in PostoGrad.query.order_by(PostoGrad.sigla.asc()).all()
-    ]
-
-    f.quadro_id.choices = [
-        (quadro.id, quadro.quadro)
-        for quadro in Quadro.query.order_by(Quadro.quadro.asc()).all()
-    ]
-
-    f.especialidade_id.choices = [
-        (especialidade.id, especialidade.ocupacao)
-        for especialidade in Especialidade.query.order_by(
-            Especialidade.ocupacao.asc()
-        ).all()
-    ]
-
-    f.localidade_id.choices = [
-        (localidade.id, localidade.sigla)
-        for localidade in Localidade.query.order_by(
-            Localidade.sigla.asc()
-        ).all()
-    ]
-
-    f.modalidade_id.choices = [
-        (modalidade.id, modalidade.descricao)
-        for modalidade in Modalidade.query.order_by(
-            Modalidade.descricao.asc()
-        ).all()
-    ]
-
-    f.destino_id.choices = [
-        (destino.id, destino.local)
-        for destino in Destino.query.order_by(Destino.local.asc()).all()
-    ]
-
-    # ================================================================
-    # PARÂMETROS DA REQUISIÇÃO
-    # ================================================================
-
-    page = request.args.get("page", 1, type=int)
-    search = (request.args.get("search") or "").strip()
-
-    obm_ids = request.args.getlist("obm_ids", type=int)
-    funcao_ids = request.args.getlist("funcao_ids", type=int)
-    posto_grad_ids = request.args.getlist("posto_grad_ids", type=int)
-    quadro_ids = request.args.getlist("quadro_ids", type=int)
-    especialidade_ids = request.args.getlist(
-        "especialidade_ids",
-        type=int,
-    )
-    localidade_ids = request.args.getlist(
-        "localidade_ids",
-        type=int,
-    )
-    modalidade_ids = request.args.getlist(
-        "modalidade_ids",
-        type=int,
-    )
-    destino_ids = request.args.getlist(
-        "destino_ids",
-        type=int,
-    )
-
-    # Situação é texto, portanto não utiliza type=int.
-    situacoes = [
-        situacao.strip().upper()
-        for situacao in request.args.getlist("situacoes")
-        if situacao and situacao.strip()
-    ]
-
-    sexo_filtro = (
-        request.args.get("sexo") or ""
-    ).strip().upper()
-
-    # ================================================================
-    # CONSULTA BASE
-    # ================================================================
-
-    query = (
-        Militar.query
-        .options(
-            selectinload(Militar.obm_funcoes).selectinload(
-                MilitarObmFuncao.obm
-            ),
-            selectinload(Militar.obm_funcoes).selectinload(
-                MilitarObmFuncao.funcao
-            ),
-            selectinload(Militar.posto_grad),
-            selectinload(Militar.quadro),
-            selectinload(Militar.destino),
-        )
-        .filter(Militar.inativo.is_(False))
-    )
-
-    # ================================================================
-    # PESQUISA POR TEXTO
-    # ================================================================
-
-    if search:
-        search_text = search.strip()
-        search_like = f"%{search_text}%"
-
-        # Remove caracteres não numéricos para buscar CPF, RG e matrícula.
-        search_digits = re.sub(r"\D", "", search_text)
-        digits_like = (
-            f"%{search_digits}%"
-            if search_digits
-            else None
-        )
-
-        def norm_text(column):
-            return func.lower(
-                func.unaccent(
-                    func.coalesce(column, "")
-                )
-            )
-
-        filtros_busca = [
-            norm_text(Militar.nome_completo).like(
-                func.lower(
-                    func.unaccent(search_like)
-                )
-            ),
-            norm_text(Militar.nome_guerra).like(
-                func.lower(
-                    func.unaccent(search_like)
-                )
-            ),
-            func.coalesce(
-                Militar.cpf,
-                "",
-            ).ilike(search_like),
-            func.coalesce(
-                Militar.rg,
-                "",
-            ).ilike(search_like),
-            func.coalesce(
-                Militar.matricula,
-                "",
-            ).ilike(search_like),
-        ]
-
-        if digits_like:
-            filtros_busca.extend([
-                func.regexp_replace(
-                    func.coalesce(Militar.cpf, ""),
-                    r"[^0-9]",
-                    "",
-                    "g",
-                ).like(digits_like),
-
-                func.regexp_replace(
-                    func.coalesce(Militar.rg, ""),
-                    r"[^0-9]",
-                    "",
-                    "g",
-                ).like(digits_like),
-
-                func.regexp_replace(
-                    func.coalesce(Militar.matricula, ""),
-                    r"[^0-9]",
-                    "",
-                    "g",
-                ).like(digits_like),
-            ])
-
-        query = query.filter(
-            or_(*filtros_busca)
-        )
-
-    # ================================================================
-    # FILTROS DIRETOS DA TABELA MILITAR
-    # ================================================================
-
-    if posto_grad_ids:
-        query = query.filter(
-            Militar.posto_grad_id.in_(posto_grad_ids)
-        )
-
-    if quadro_ids:
-        query = query.filter(
-            Militar.quadro_id.in_(quadro_ids)
-        )
-
-    if especialidade_ids:
-        query = query.filter(
-            Militar.especialidade_id.in_(
-                especialidade_ids
-            )
-        )
-
-    if localidade_ids:
-        query = query.filter(
-            Militar.localidade_id.in_(
-                localidade_ids
-            )
-        )
-
-    if situacoes:
-        query = query.filter(
-            func.upper(
-                func.trim(
-                    func.coalesce(
-                        Militar.situacao,
-                        "",
-                    )
-                )
-            ).in_(situacoes)
-        )
-
-    if modalidade_ids:
-        query = query.filter(
-            Militar.modalidade_id.in_(
-                modalidade_ids
-            )
-        )
-
-    if destino_ids:
-        query = query.filter(
-            Militar.destino_id.in_(
-                destino_ids
-            )
-        )
-
-    # ================================================================
-    # FILTROS DE OBM E FUNÇÃO ATIVAS
-    # ================================================================
-
-    if obm_ids or funcao_ids:
-        query = (
-            query
-            .join(
-                MilitarObmFuncao,
-                MilitarObmFuncao.militar_id == Militar.id,
-            )
-            .filter(
-                MilitarObmFuncao.data_fim.is_(None)
-            )
-        )
-
-        if obm_ids:
-            query = query.filter(
-                MilitarObmFuncao.obm_id.in_(
-                    obm_ids
-                )
-            )
-
-        if funcao_ids:
-            query = query.filter(
-                MilitarObmFuncao.funcao_id.in_(
-                    funcao_ids
-                )
-            )
-
-        query = query.distinct()
-
-    # ================================================================
-    # FILTRO DE SEXO
-    # ================================================================
-
-    sexo_normalizado = func.lower(
-        func.trim(
-            func.coalesce(
-                Militar.sexo,
-                "",
-            )
-        )
-    )
-
-    if sexo_filtro == "M":
-        query = query.filter(
-            sexo_normalizado.like("m%")
-        )
-
-    elif sexo_filtro == "F":
-        query = query.filter(
-            sexo_normalizado.like("f%")
-        )
-
-    # ================================================================
-    # ORDENAÇÃO E PAGINAÇÃO
-    # ================================================================
-
-    per_page = 50
-
-    query = query.order_by(
-        Militar.nome_completo.asc()
-    )
+    query = construir_query_militares(filtros)
+    query = query.order_by(Militar.nome_completo.asc())
 
     militares_paginados = query.paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False,
+        page=filtros.page, per_page=PER_PAGE, error_out=False
     )
 
-    # ================================================================
-    # FUNÇÕES AUXILIARES
-    # ================================================================
-
-    def fmt_cpf(cpf):
-        digitos = re.sub(
-            r"\D",
-            "",
-            cpf or "",
-        )
-
-        if len(digitos) == 11:
-            return (
-                f"{digitos[:3]}."
-                f"{digitos[3:6]}."
-                f"{digitos[6:9]}-"
-                f"{digitos[9:11]}"
-            )
-
-        return cpf or ""
-
-    # ================================================================
-    # MONTAGEM DOS DADOS PARA O TEMPLATE
-    # ================================================================
-
-    militares = []
-
-    for militar in militares_paginados.items:
-        obm_funcoes_ativas = [
-            vinculo
-            for vinculo in militar.obm_funcoes
-            if vinculo.data_fim is None
-        ]
-
-        obm_funcoes_ativas = sorted(
-            obm_funcoes_ativas,
-            key=lambda vinculo: (
-                vinculo.data_criacao
-                or datetime.min
-            ),
-            reverse=True,
-        )
-
-        obms_recentes = [
-            vinculo.obm.sigla
-            if vinculo.obm
-            else "OBM não encontrada"
-            for vinculo in obm_funcoes_ativas
-        ]
-
-        funcoes_recentes = [
-            vinculo.funcao.ocupacao
-            if vinculo.funcao
-            else "Função não encontrada"
-            for vinculo in obm_funcoes_ativas
-        ]
-
-        militares.append({
-            "id": militar.id,
-            "nome_completo": militar.nome_completo,
-            "nome_guerra": militar.nome_guerra,
-            "cpf": militar.cpf,
-            "cpf_fmt": fmt_cpf(militar.cpf),
-            "rg": militar.rg,
-            "matricula": militar.matricula,
-            "obms": obms_recentes,
-            "funcoes": funcoes_recentes,
-            "posto_grad": (
-                militar.posto_grad.sigla
-                if militar.posto_grad
-                else ""
-            ),
-            "quadro": (
-                militar.quadro.quadro
-                if militar.quadro
-                else ""
-            ),
-            "situacao": militar.situacao or "",
-            "destino": (
-                militar.destino.local
-                if militar.destino
-                else ""
-            ),
-        })
-
-    # ================================================================
-    # RENDERIZAÇÃO
-    # ================================================================
+    militares_linhas = [
+        serializar_militar_linha(militar) for militar in militares_paginados.items
+    ]
 
     total = militares_paginados.total
 
     return render_template(
         "militares.html",
-        militares=militares,
-        form_militar=f,
-        page=page,
+        militares=militares_linhas,
+        form_militar=form_filtro,
+        page=filtros.page,
         has_next=militares_paginados.has_next,
         has_prev=militares_paginados.has_prev,
         next_page=militares_paginados.next_num,
         prev_page=militares_paginados.prev_num,
         pages=militares_paginados.pages,
         total=total,
-        start=(
-            ((page - 1) * per_page) + 1
-            if total
-            else 0
-        ),
-        end=min(
-            page * per_page,
-            total,
-        ),
-        has_novo_militar=(
-            "novo_militar"
-            in current_app.view_functions
-        ),
+        start=((filtros.page - 1) * PER_PAGE) + 1 if total else 0,
+        end=min(filtros.page * PER_PAGE, total),
+        has_novo_militar=("adicionar_militar" in current_app.view_functions),
     )
 
 
@@ -681,26 +304,31 @@ def tabela_militares():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_a_disposicao():
-    militares_a_disposicao = MilitaresADisposicao.query.all()
+    # Recalcula o status a partir de hoje antes de listar, pra tela nunca
+    # mostrar dado desatualizado.
+    processar_militares_a_disposicao()
 
-    return render_template('militares_a_disposicao.html', militares=militares_a_disposicao)
+    militares = listar_militares_a_disposicao()
+    return render_template('militares_a_disposicao.html', militares=militares)
 
 
 @app.route("/militares-agregados")
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_agregados():
-    militares_agregados = MilitaresAgregados.query.all()
+    processar_militares_agregados()
 
-    return render_template('militares_agregados.html', militares=militares_agregados)
+    militares = listar_militares_agregados()
+    return render_template('militares_agregados.html', militares=militares)
 
 
 @app.route("/licenca-especial")
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def licenca_especial():
-    militares_le = LicencaEspecial.query.all()
+    processar_militares_le()
 
+    militares_le = listar_licencas_especiais()
     return render_template('licenca_especial.html', militares_le=militares_le)
 
 
@@ -708,6 +336,12 @@ def licenca_especial():
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def lts():
-    militares_lts = LicencaParaTratamentoDeSaude.query.all()
+    # Recalcula o status de todas as LTS a partir de hoje (e devolve pra
+    # PRONTO quem já terminou a licença) antes de listar, pra tela nunca
+    # mostrar dado desatualizado.
+    processar_fim_de_lts()
+    database.session.commit()
+
+    militares_lts = listar_militares_lts()
 
     return render_template('licenca_para_tratamento_de_saude.html', militares_lts=militares_lts)

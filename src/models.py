@@ -167,6 +167,12 @@ class MilitaresADisposicao(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
+        # Prioridade para "já venceu": mesmo que o início nunca tenha sido
+        # preenchido direito, um término no passado encerra a disposição.
+        if self.fim_periodo_disposicao and self.fim_periodo_disposicao < hoje:
+            self.status = 'Venceu'
+            return
+
         if not self.inicio_periodo:
             self.status = 'Inativo'
             return
@@ -174,8 +180,6 @@ class MilitaresADisposicao(database.Model):
         if self.fim_periodo_disposicao:
             if self.inicio_periodo <= hoje <= self.fim_periodo_disposicao:
                 self.status = 'Vigente'
-            elif self.fim_periodo_disposicao < hoje:
-                self.status = 'Venceu'
             else:
                 self.status = 'A iniciar'
         else:
@@ -214,6 +218,12 @@ class MilitaresAgregados(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
+        # Prioridade para "já terminou": mesmo que o início nunca tenha sido
+        # preenchido direito, um término no passado encerra a agregação.
+        if self.fim_periodo_agregacao and self.fim_periodo_agregacao < hoje:
+            self.status = 'Término de Agregação'
+            return
+
         if not self.inicio_periodo:
             self.status = 'Inativo'
             return
@@ -221,12 +231,20 @@ class MilitaresAgregados(database.Model):
         if self.fim_periodo_agregacao:
             if self.inicio_periodo <= hoje <= self.fim_periodo_agregacao:
                 self.status = 'Vigente'
-            elif self.fim_periodo_agregacao < hoje:
-                self.status = 'Término de Agregação'
             else:
                 self.status = 'A iniciar'
         else:
             self.status = 'Vigente'
+
+
+@listens_for(MilitaresAgregados, 'before_insert')
+def militares_agregados_before_insert(mapper, connection, target):
+    target.atualizar_status()
+
+
+@listens_for(MilitaresAgregados, 'before_update')
+def militares_agregados_before_update(mapper, connection, target):
+    target.atualizar_status()
 
 
 class LicencaEspecial(database.Model):
@@ -318,12 +336,33 @@ class LicencaParaTratamentoDeSaude(database.Model):
     publicacao_bg = database.relationship('PublicacaoBg')
 
     def atualizar_status(self):
-        today = datetime.today().date()
-        if self.inicio_periodo_lts and self.fim_periodo_lts:
-            if self.inicio_periodo_lts <= today <= self.fim_periodo_lts:
-                self.status = 'Vigente'
-            else:
-                self.status = 'Término da Licença para Tratamento de Saúde'
+        today = date.today()
+
+        # Prioridade para "já terminou": mesmo que o início nunca tenha sido
+        # preenchido direito, um término no passado encerra a licença.
+        if self.fim_periodo_lts and today > self.fim_periodo_lts:
+            self.status = "Término da Licença para Tratamento de Saúde"
+            return
+
+        if not self.inicio_periodo_lts:
+            self.status = "A iniciar"
+            return
+
+        if today < self.inicio_periodo_lts:
+            self.status = "A iniciar"
+            return
+
+        self.status = "Vigente"
+
+
+@listens_for(LicencaParaTratamentoDeSaude, "before_insert")
+def licenca_lts_before_insert(mapper, connection, target):
+    target.atualizar_status()
+
+
+@listens_for(LicencaParaTratamentoDeSaude, "before_update")
+def licenca_lts_before_update(mapper, connection, target):
+    target.atualizar_status()
 
 
 class FuncaoUser(database.Model):

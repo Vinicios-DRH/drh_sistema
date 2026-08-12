@@ -125,6 +125,51 @@ def encerrar_lts_vigente(militar_id):
             reg.atualizar_status()
 
 
+# Modalidade "PRONTO" e motivo "SEM AGREGAÇÕES" — para onde o militar volta
+# automaticamente quando a LTS dele termina.
+MODALIDADE_PRONTO_ID = 8
+MOTIVO_SEM_AGREGACOES_ID = 1
+
+
+def processar_fim_de_lts():
+    """Atualiza o status de todas as LTS (recalculado a partir de hoje) e,
+    para as que acabaram de virar "Término" nesta chamada, devolve o militar
+    para PRONTO — mas só se ele ainda estiver com a modalidade de LTS, ou
+    seja, só se ninguém já tiver alterado a situação dele manualmente nesse
+    meio-tempo (evita sobrescrever uma mudança de situação mais recente).
+
+    Não comita a sessão — quem chama decide o commit.
+    Retorna a lista de militares que foram promovidos de volta a PRONTO.
+    """
+    todas = LicencaParaTratamentoDeSaude.query.all()
+
+    militares_promovidos = []
+    for lts in todas:
+        status_anterior = lts.status
+        lts.atualizar_status()
+
+        virou_termino_agora = (
+            lts.status == "Término da Licença para Tratamento de Saúde"
+            and status_anterior != lts.status
+        )
+        if not virou_termino_agora:
+            continue
+
+        militar = lts.militar
+        ainda_em_lts = (
+            militar is not None
+            and lts.modalidade_id is not None
+            and militar.modalidade_id == lts.modalidade_id
+        )
+        if ainda_em_lts:
+            militar.situacao = "PRONTO"
+            militar.modalidade_id = MODALIDADE_PRONTO_ID
+            militar.motivo_id = MOTIVO_SEM_AGREGACOES_ID
+            militares_promovidos.append(militar)
+
+    return militares_promovidos
+
+
 def sincronizar_blocos_funcionais(militar, form_militar):
     hoje = date.today()
 
@@ -152,7 +197,7 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_agregado.posto_grad_id = form_militar.posto_grad_id.data
         militar_agregado.quadro_id = form_militar.quadro_id.data
         militar_agregado.destino_id = form_militar.destino_id.data
-        militar_agregado.situacao_id = modalidade_obj.id if modalidade_obj else None
+        militar_agregado.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_agregado.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
         militar_agregado.fim_periodo_agregacao = parse_date_flex(
@@ -179,7 +224,7 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_a_disposicao.posto_grad_id = form_militar.posto_grad_id.data
         militar_a_disposicao.quadro_id = form_militar.quadro_id.data
         militar_a_disposicao.destino_id = form_militar.destino_id.data
-        militar_a_disposicao.situacao_id = modalidade_obj.id if modalidade_obj else None
+        militar_a_disposicao.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_a_disposicao.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
         militar_a_disposicao.fim_periodo_disposicao = parse_date_flex(
@@ -226,7 +271,7 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_lts.posto_grad_id = form_militar.posto_grad_id.data
         militar_lts.quadro_id = form_militar.quadro_id.data
         militar_lts.destino_id = form_militar.destino_id.data
-        militar_lts.situacao_id = modalidade_obj.id if modalidade_obj else None
+        militar_lts.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_lts.inicio_periodo_lts = parse_date_flex(
             form_militar.inicio_periodo.data)
         militar_lts.fim_periodo_lts = parse_date_flex(

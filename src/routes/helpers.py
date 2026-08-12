@@ -21,12 +21,6 @@ MANAUS_TZ = ZoneInfo("America/Manaus")
 OBMS_OPERACIONAIS_CAPITAL = [2, 5, 7, 15, 26, 35, 59, 60, 61, 62, 63, 65, 86]
 LOCALIDADE_CAPITAL_ID = 1
 
-def parse_date(date_string):
-    try:
-        return datetime.strptime(date_string, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
-
 
 # def now_manaus_naive() -> datetime:
 #     # pega agora em Manaus e remove tzinfo pra armazenar em coluna DateTime (sem timezone)
@@ -831,28 +825,6 @@ def get_status_sets(base_query, today):
     }
 
     return agregados_ids, adisposicao_ids
-
-
-def validate_vacation_period(start_date, days):
-    next_year = date.today().year + 1
-    end_date = start_date + timedelta(days=days - 1)
-    # if start_date.year != next_year or end_date.year != next_year:
-    #     raise ValueError("As férias devem ocorrer apenas no próximo ano.")
-    if end_date > date(next_year, 12, 31):
-        raise ValueError("As férias não podem ultrapassar 31 de dezembro.")
-
-
-def paf_ano_vigente():
-    return current_app.config.get('PAF_ANO_VIGENTE', datetime.now().year)
-
-
-def first_day_next_month(d: date) -> date:
-    if d.month == 12:
-        return date(d.year + 1, 1, 1)
-    return date(d.year, d.month + 1, 1)
-
-
-# 1. ATUALIZE SUA ROTA carregar_tabela_obm PARA ESTA:
 
 
 def arred(valor):
