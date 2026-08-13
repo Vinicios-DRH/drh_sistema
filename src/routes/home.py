@@ -5,11 +5,12 @@ from flask import abort, jsonify, current_app
 from src.formatar_cpf import get_militar_por_user
 from flask import render_template, redirect, url_for, jsonify, send_file
 from flask_login import login_required, current_user
-from src import app
+from src import app, database
 from src.querys import obter_estatisticas_militares
 from src.decorators.control import checar_ocupacao
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
+from src.services.militar_situacao_service import processar_inicio_situacoes_extras
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -195,6 +196,8 @@ def reprocessar_vigencias():
         processar_militares_a_disposicao()
         processar_militares_le()
         processar_militares_lts()
+        processar_inicio_situacoes_extras()
+        database.session.commit()
         return jsonify({"ok": True, "message": "Vigências reprocessadas com sucesso."})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

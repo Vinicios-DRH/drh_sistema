@@ -577,62 +577,109 @@ MACROS
                 </div>
 
                 <div class="mp-dynamic-card mt-3">
+                  <div class="mp-field-label mb-2">
+                    Situações extras
+                  </div>
+                  <p class="mp-muted-note mt-0 mb-3">
+                    Para registrar uma Agregação, À Disposição, Licença Especial ou LTS que
+                    coexiste com a situação principal acima — por exemplo, uma Licença Especial
+                    futura enquanto o militar ainda está de LTS. Cada situação extra vira seu
+                    próprio registro, com sua própria publicação; nada aqui encerra ou
+                    sobrescreve a situação principal nem outra situação extra já registrada.
+                  </p>
+
+                  {% if situacoes_extras %}
+                  <div class="row g-2 mb-3">
+                    {% for item in situacoes_extras %}
+                    <div class="col-12">
+                      <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge text-bg-secondary">{{ item.label }}</span>
+                        <span class="mp-muted-note mb-0">
+                          {{ item.inicio.strftime('%d/%m/%Y') if item.inicio else '—' }}
+                          –
+                          {{ item.fim.strftime('%d/%m/%Y') if item.fim else '?' }}
+                          {% if item.status %} · {{ item.status }}{% endif %}
+                          {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
+                          {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                        </span>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="mp-muted-note mb-3">Nenhuma situação extra registrada.</p>
+                  {% endif %}
+
+                  {% if can_edit %}
                   <div class="row g-3">
-                    <div class="col-md-4">
-                      <label for="situacao2_id" class="mp-field-label">Situação extra</label>
+                    <div class="col-md-3">
+                      <label for="tipo_situacao_extra" class="mp-field-label">Tipo</label>
 
-                      <select id="situacao2_id" name="situacao2_id" class="form-select" {% if not can_edit %}disabled{%
-                        endif %}>
+                      <select id="tipo_situacao_extra" name="tipo_situacao_extra" class="form-select">
                         <option value="">-- Selecione --</option>
-
-                        {% for val, label in form_militar.modalidade_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.situacao2_id|string==val|string else '' }}>
-                          {{ label }}
-                        </option>
-                        {% endfor %}
+                        <option value="AGREGACAO">Agregação</option>
+                        <option value="A_DISPOSICAO">À Disposição</option>
+                        <option value="LICENCA_ESPECIAL">Licença Especial</option>
+                        <option value="LTS">LTS</option>
                       </select>
                     </div>
 
-                    <div class="col-md-4">
-                      <label for="agregacoes2_id" class="mp-field-label">Agregação extra</label>
+                    <div class="col-md-3">
+                      <label for="destino_situacao_extra" class="mp-field-label">Destino</label>
 
-                      <select id="agregacoes2_id" name="agregacoes2_id" class="form-select" {% if not can_edit
-                        %}disabled{% endif %}>
+                      <select id="destino_situacao_extra" name="destino_situacao_extra" class="form-select">
                         <option value="">-- Selecione --</option>
-
-                        {% for val, label in form_militar.motivo_id.choices %}
-                        <option value="{{ val }}" {{ 'selected' if militar.agregacoes2_id|string==val|string else '' }}>
-                          {{ label }}
-                        </option>
+                        {% for val, label in form_militar.destino_id.choices %}
+                        <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}
                       </select>
                     </div>
 
                     <div class="col-md-3">
-                      <label for="inicio_situacao2" class="mp-field-label">Início</label>
-
-                      <input type="date" id="inicio_situacao2" name="inicio_situacao2" class="form-control"
-                        value="{{ militar.inicio_situacao2.strftime('%Y-%m-%d') if militar.inicio_situacao2 else '' }}"
-                        {% if not can_edit %}readonly{% endif %}>
+                      <label for="inicio_situacao_extra" class="mp-field-label">Início</label>
+                      <input type="date" id="inicio_situacao_extra" name="inicio_situacao_extra"
+                        class="form-control">
                     </div>
 
                     <div class="col-md-3">
-                      <label for="fim_situacao2" class="mp-field-label">Término</label>
-
-                      <input type="date" id="fim_situacao2" name="fim_situacao2" class="form-control"
-                        value="{{ militar.fim_situacao2.strftime('%Y-%m-%d') if militar.fim_situacao2 else '' }}" {% if
-                        not can_edit %}readonly{% endif %}>
+                      <label for="fim_situacao_extra" class="mp-field-label">Término</label>
+                      <input type="date" id="fim_situacao_extra" name="fim_situacao_extra" class="form-control">
                     </div>
 
-                    <div class="col-md-6">
-                      <label for="situacao_militar_2" class="mp-field-label">
-                        Publicação (BG) — Situação extra
+                    <div class="col-md-8">
+                      <label for="publicacao_situacao_extra" class="mp-field-label">
+                        Publicação (BG)
                       </label>
+                      <input type="text" id="publicacao_situacao_extra" name="publicacao_situacao_extra"
+                        class="form-control" placeholder="Ex.: BG nº 1234/2025, p. 45">
+                    </div>
 
-                      <input type="text" id="situacao_militar_2" name="situacao_militar_2" class="form-control"
-                        placeholder="Ex.: BG nº 1234/2025, p. 45"
-                        value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}" {% if not can_edit %}readonly{%
-                        endif %}>
+                    <div class="col-md-4 d-flex align-items-end">
+                      <button type="submit" class="btn mp-btn-outline w-100"
+                        formaction="{{ url_for('adicionar_situacao_extra', militar_id=militar.id) }}"
+                        formmethod="post">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Adicionar situação extra
+                      </button>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="mp-dynamic-card mt-3">
+                  <div class="col-md-6">
+                    <label for="situacao_militar_2" class="mp-field-label">
+                      Nota avulsa (texto livre)
+                    </label>
+
+                    <input type="text" id="situacao_militar_2" name="situacao_militar_2" class="form-control"
+                      placeholder="Ex.: BG nº 1234/2025, p. 45"
+                      value="{{ bg_sit2_val if bg_sit2_val is defined else '' }}" {% if not can_edit %}readonly{%
+                      endif %}>
+
+                    <div class="mp-muted-note mt-2">
+                      Campo antigo, sem tabela própria — prefira "Situações extras" acima, que fica
+                      registrado corretamente no histórico do militar.
                     </div>
                   </div>
                 </div>
@@ -1048,6 +1095,109 @@ MACROS
                   </div>
                   {% endif %}
                 </div>
+              </div>
+            </section>
+
+            <section id="elogios_section" class="mp-section">
+              <div class="mp-section-header">
+                <div class="mp-section-title-area">
+                  <div class="mp-section-icon">
+                    <i class="bi bi-award"></i>
+                  </div>
+
+                  <div>
+                    <h2 class="mp-section-title">Elogios</h2>
+                    <p class="mp-section-description">
+                      Reconhecimentos recebidos, cada um com sua publicação (BG).
+                    </p>
+                  </div>
+                </div>
+
+                <span class="mp-section-tag">{{ elogios|length }} registro(s)</span>
+              </div>
+
+              <div class="mp-section-body">
+                {% if elogios %}
+                <div class="row g-3 mb-3">
+                  {% for elogio in elogios %}
+                  <div class="col-12">
+                    <div class="mp-dynamic-card">
+                      <div class="row g-3 align-items-start">
+                        <div class="col-md-5">
+                          <div class="mp-field-label">Assunto</div>
+                          <div>{{ elogio.assunto }}</div>
+                        </div>
+
+                        <div class="col-md-3">
+                          <div class="mp-field-label">Publicação</div>
+                          <div>{{ elogio.publicacao }}</div>
+                        </div>
+
+                        <div class="col-md-3">
+                          <div class="mp-field-label">Registrado</div>
+                          <div class="mp-muted-note">
+                            {{ elogio.criado_em.strftime('%d/%m/%Y') if elogio.criado_em else '—' }}
+                            {% if elogio.criado_por %}por {{ elogio.criado_por.nome }}{% endif %}
+                          </div>
+                        </div>
+
+                        {% if can_edit %}
+                        <div class="col-md-1 d-flex align-items-start justify-content-end">
+                          <button type="submit" class="btn btn-outline-danger btn-sm"
+                            formaction="{{ url_for('remover_elogio_militar', elogio_id=elogio.id) }}"
+                            formmethod="post" onclick="return confirm('Remover este elogio?');"
+                            aria-label="Remover elogio">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                        {% endif %}
+
+                        {% if elogio.observacao %}
+                        <div class="col-12">
+                          <div class="mp-field-label">Observação</div>
+                          <div class="mp-muted-note">{{ elogio.observacao }}</div>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <p class="mp-muted-note mb-3">Nenhum elogio registrado até o momento.</p>
+                {% endif %}
+
+                {% if can_edit %}
+                <div class="mp-dynamic-card">
+                  <div class="row g-3">
+                    <div class="col-md-5">
+                      <label class="mp-field-label" for="elogio_assunto">Assunto</label>
+                      <input type="text" id="elogio_assunto" name="assunto" class="form-control" maxlength="255"
+                        placeholder="Ex.: Atuação destacada em ocorrência de resgate">
+                    </div>
+
+                    <div class="col-md-4">
+                      <label class="mp-field-label" for="elogio_publicacao">Publicação</label>
+                      <input type="text" id="elogio_publicacao" name="publicacao" class="form-control"
+                        maxlength="100" placeholder="Ex.: BG nº 123 de 05/03/2026">
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end">
+                      <button type="submit" class="btn mp-btn-outline w-100"
+                        formaction="{{ url_for('adicionar_elogio', militar_id=militar.id) }}" formmethod="post">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Adicionar elogio
+                      </button>
+                    </div>
+
+                    <div class="col-12">
+                      <label class="mp-field-label" for="elogio_observacao">Observação (opcional)</label>
+                      <textarea id="elogio_observacao" name="observacao" class="form-control" rows="2"
+                        maxlength="1000"></textarea>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
               </div>
             </section>
 

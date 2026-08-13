@@ -277,6 +277,26 @@ def listar_pafs_do_militar(militar_id: int):
     )
 
 
+def status_periodo_ferias(inicio, fim) -> Optional[str]:
+    """Situação de um período de férias (1º/2º/3º) a partir de hoje:
+    - None: período não preenchido (militar não marcou férias nesse slot)
+    - "A iniciar": ainda não chegou a data de início
+    - "Vigente": o militar está de férias agora (dentro do período)
+    - "Usufruída": o período já passou
+    """
+    if not inicio:
+        return None
+
+    hoje = date.today()
+    fim_efetivo = fim or inicio
+
+    if hoje < inicio:
+        return "A iniciar"
+    if inicio <= hoje <= fim_efetivo:
+        return "Vigente"
+    return "Usufruída"
+
+
 # ---------------------------------------------------------------------------
 # Exportação Excel dos PAFs de uma OBM
 # ---------------------------------------------------------------------------

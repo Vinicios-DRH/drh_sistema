@@ -509,6 +509,18 @@
         background: #441d25;
     }
 
+    .hm-badge-usufruida {
+        border-color: #33587a;
+        color: #2f567a;
+        background: #dfeaf7;
+    }
+
+    html[data-theme="dark"] .hm-badge-usufruida {
+        border-color: #33587a;
+        color: #9ec4ec;
+        background: #1a2c3f;
+    }
+
     .hm-badge-tipo {
         border-color: color-mix(in srgb, var(--app-primary) 30%, var(--app-border));
         color: var(--app-primary);
@@ -527,6 +539,25 @@
     }
 </style>
 {% endblock %}
+
+{% macro periodo_ferias_cell(p) %}
+{% if p.inicio %}
+<div>
+    {{ p.inicio.strftime('%d/%m/%Y') }} –
+    {{ p.fim.strftime('%d/%m/%Y') if p.fim else '?' }}
+    ({{ p.qtd_dias or 0 }}d)
+</div>
+<span class="hm-badge
+    {% if p.status == 'Vigente' %}hm-badge-vigente
+    {% elif p.status == 'A iniciar' %}hm-badge-a-iniciar
+    {% elif p.status == 'Usufruída' %}hm-badge-usufruida
+    {% endif %}">
+    {{ p.status }}
+</span>
+{% else %}
+—
+{% endif %}
+{% endmacro %}
 
 {% block body %}
 <main class="hm-page">
@@ -600,6 +631,7 @@
                 <a href="#hm-agregacoes"><i class="bi bi-arrow-left-right me-1"></i>Agregações ({{ historico.agregacoes|length }})</a>
                 <a href="#hm-disposicoes"><i class="bi bi-signpost me-1"></i>À disposição ({{ historico.disposicoes|length }})</a>
                 <a href="#hm-formacao"><i class="bi bi-mortarboard me-1"></i>Formação ({{ (historico.graduacoes|length) + (historico.cursos|length) }})</a>
+                <a href="#hm-elogios"><i class="bi bi-award me-1"></i>Elogios ({{ historico.elogios|length }})</a>
                 <a href="#hm-progressao"><i class="bi bi-bar-chart-steps me-1"></i>Progressão de carreira ({{ historico.progressao_carreira | selectattr('alcancado') | list | length }})</a>
                 <a href="#hm-auditoria"><i class="bi bi-clock-history me-1"></i>Alterações ({{ historico.auditorias|length }})</a>
             </div>
@@ -735,37 +767,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for paf in historico.ferias %}
+                            {% for item in historico.ferias %}
+                            {% set paf = item.paf %}
                             <tr>
                                 <td><strong>{{ paf.ano_referencia }}</strong></td>
                                 <td>{{ paf.mes_usufruto or '—' }}</td>
-                                <td>
-                                    {% if paf.primeiro_periodo_ferias %}
-                                    {{ paf.primeiro_periodo_ferias.strftime('%d/%m/%Y') }} –
-                                    {{ paf.fim_primeiro_periodo.strftime('%d/%m/%Y') if paf.fim_primeiro_periodo else '?' }}
-                                    ({{ paf.qtd_dias_primeiro_periodo or 0 }}d)
-                                    {% else %}
-                                    —
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if paf.segundo_periodo_ferias %}
-                                    {{ paf.segundo_periodo_ferias.strftime('%d/%m/%Y') }} –
-                                    {{ paf.fim_segundo_periodo.strftime('%d/%m/%Y') if paf.fim_segundo_periodo else '?' }}
-                                    ({{ paf.qtd_dias_segundo_periodo or 0 }}d)
-                                    {% else %}
-                                    —
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if paf.terceiro_periodo_ferias %}
-                                    {{ paf.terceiro_periodo_ferias.strftime('%d/%m/%Y') }} –
-                                    {{ paf.fim_terceiro_periodo.strftime('%d/%m/%Y') if paf.fim_terceiro_periodo else '?' }}
-                                    ({{ paf.qtd_dias_terceiro_periodo or 0 }}d)
-                                    {% else %}
-                                    —
-                                    {% endif %}
-                                </td>
+                                <td>{{ periodo_ferias_cell(item.periodos[0]) }}</td>
+                                <td>{{ periodo_ferias_cell(item.periodos[1]) }}</td>
+                                <td>{{ periodo_ferias_cell(item.periodos[2]) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1006,6 +1015,45 @@
                 </div>
                 {% else %}
                 <p class="hm-empty">Nenhuma graduação ou curso de especialização registrado.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        ELOGIOS
+        ================================================================== #}
+        <section id="hm-elogios" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-award"></i></div>
+                    <h2 class="hm-section-title">Elogios</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.elogios|length }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.elogios %}
+                <div class="hm-item-list">
+                    {% for elogio in historico.elogios %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">{{ elogio.assunto }}</div>
+                            <div class="hm-item-sub">
+                                {{ elogio.criado_em.strftime('%d/%m/%Y') if elogio.criado_em else '—' }}
+                                {% if elogio.criado_por %} · Registrado por {{ elogio.criado_por.nome }}{% endif %}
+                            </div>
+                            <div class="hm-item-publicacao">
+                                <i class="bi bi-file-earmark-text"></i>
+                                Publicação: {{ elogio.publicacao }}
+                            </div>
+                            {% if elogio.observacao %}
+                            <div class="hm-item-sub">{{ elogio.observacao }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhum elogio registrado.</p>
                 {% endif %}
             </div>
         </section>

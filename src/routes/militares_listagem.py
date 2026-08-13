@@ -20,7 +20,10 @@ from src.services.militares_listagem_service import (
     serializar_militar_linha,
 )
 from src.services.lts_service import listar_militares_lts
-from src.services.militar_situacao_service import processar_fim_de_lts
+from src.services.militar_situacao_service import (
+    processar_fim_de_lts,
+    processar_inicio_situacoes_extras,
+)
 from src.services.situacoes_militares_service import (
     listar_militares_agregados,
     listar_militares_a_disposicao,
@@ -305,6 +308,8 @@ def militares_a_disposicao():
     # Recalcula o status a partir de hoje antes de listar, pra tela nunca
     # mostrar dado desatualizado.
     processar_militares_a_disposicao()
+    processar_inicio_situacoes_extras()
+    database.session.commit()
 
     militares = listar_militares_a_disposicao()
     return render_template('militares_a_disposicao.html', militares=militares)
@@ -315,6 +320,8 @@ def militares_a_disposicao():
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def militares_agregados():
     processar_militares_agregados()
+    processar_inicio_situacoes_extras()
+    database.session.commit()
 
     militares = listar_militares_agregados()
     return render_template('militares_agregados.html', militares=militares)
@@ -325,6 +332,8 @@ def militares_agregados():
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def licenca_especial():
     processar_militares_le()
+    processar_inicio_situacoes_extras()
+    database.session.commit()
 
     militares_le = listar_licencas_especiais()
     return render_template('licenca_especial.html', militares_le=militares_le)
@@ -338,6 +347,7 @@ def lts():
     # PRONTO quem já terminou a licença) antes de listar, pra tela nunca
     # mostrar dado desatualizado.
     processar_fim_de_lts()
+    processar_inicio_situacoes_extras()
     database.session.commit()
 
     militares_lts = listar_militares_lts()

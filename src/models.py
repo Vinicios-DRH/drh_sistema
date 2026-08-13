@@ -151,6 +151,12 @@ class MilitaresADisposicao(database.Model):
     publicacao_bg_id = database.Column(
         database.Integer, database.ForeignKey('publicacaobg.id'))
 
+    # True quando este registro foi criado como "situação extra" (fora da
+    # situação principal, ver src.services.militar_situacao_service). Marca
+    # quem é candidato à promoção automática quando o início chegar.
+    situacao_extra = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+
     email_30_dias_enviado_disposicao = database.Column(
         database.Boolean, default=False)
     email_15_dias_enviado_disposicao = database.Column(
@@ -204,6 +210,12 @@ class MilitaresAgregados(database.Model):
     status = database.Column(database.String(50))
     publicacao_bg_id = database.Column(
         database.Integer, database.ForeignKey('publicacaobg.id'))
+
+    # True quando este registro foi criado como "situação extra" (fora da
+    # situação principal, ver src.services.militar_situacao_service). Marca
+    # quem é candidato à promoção automática quando o início chegar.
+    situacao_extra = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
 
     email_30_dias_enviado = database.Column(database.Boolean, default=False)
     email_15_dias_enviado = database.Column(database.Boolean, default=False)
@@ -266,6 +278,12 @@ class LicencaEspecial(database.Model):
     publicacao_bg_id = database.Column(
         database.Integer, database.ForeignKey('publicacaobg.id'))
 
+    # True quando este registro foi criado como "situação extra" (fora da
+    # situação principal, ver src.services.militar_situacao_service). Marca
+    # quem é candidato à promoção automática quando o início chegar.
+    situacao_extra = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+
     email_30_dias_enviado_le = database.Column(database.Boolean, default=False)
     email_15_dias_enviado_le = database.Column(database.Boolean, default=False)
 
@@ -322,6 +340,12 @@ class LicencaParaTratamentoDeSaude(database.Model):
     status = database.Column(database.String(50))
     publicacao_bg_id = database.Column(
         database.Integer, database.ForeignKey('publicacaobg.id'))
+
+    # True quando este registro foi criado como "situação extra" (fora da
+    # situação principal, ver src.services.militar_situacao_service). Marca
+    # quem é candidato à promoção automática quando o início chegar.
+    situacao_extra = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
 
     email_30_dias_enviado_lts = database.Column(
         database.Boolean, default=False)
@@ -1347,6 +1371,29 @@ class DocumentoMilitar(database.Model):
     observacao = database.Column(database.Text)
 
     militar = database.relationship('Militar', backref='documentos_enviados')
+    criado_por = database.relationship(
+        'User', foreign_keys=[criado_por_user_id])
+
+
+class MilitarElogio(database.Model):
+    __tablename__ = "militar_elogio"
+    id = database.Column(database.Integer, primary_key=True)
+
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False, index=True)
+    assunto = database.Column(database.String(255), nullable=False)
+    publicacao = database.Column(database.String(100), nullable=False)
+    observacao = database.Column(database.Text)
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+    criado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    militar = database.relationship('Militar', backref='elogios')
     criado_por = database.relationship(
         'User', foreign_keys=[criado_por_user_id])
 

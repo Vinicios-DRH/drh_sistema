@@ -17,8 +17,9 @@ from src.models import (
     MilitarObmFuncao,
     PublicacaoBg,
 )
+from src.services.elogios_service import listar_elogios
 from src.services.lts_service import listar_militares_lts
-from src.services.paf_service import listar_pafs_do_militar
+from src.services.paf_service import listar_pafs_do_militar, status_periodo_ferias
 from src.services.situacoes_militares_service import (
     listar_licencas_especiais,
     listar_militares_a_disposicao,
@@ -80,6 +81,42 @@ def listar_lotacoes(militar_id: int):
         .order_by(MilitarObmFuncao.data_criacao.desc())
         .all()
     )
+
+
+def listar_ferias_com_status(militar_id: int):
+    """PAFs do militar (um por ano) com cada período (1º/2º/3º) já marcado
+    como "A iniciar", "Vigente" ou "Usufruída" — pra tela de histórico
+    distinguir o que já passou do que ainda vem."""
+    pafs = listar_pafs_do_militar(militar_id)
+
+    resultado = []
+    for paf in pafs:
+        periodos = [
+            {
+                "numero": 1,
+                "qtd_dias": paf.qtd_dias_primeiro_periodo,
+                "inicio": paf.primeiro_periodo_ferias,
+                "fim": paf.fim_primeiro_periodo,
+                "status": status_periodo_ferias(paf.primeiro_periodo_ferias, paf.fim_primeiro_periodo),
+            },
+            {
+                "numero": 2,
+                "qtd_dias": paf.qtd_dias_segundo_periodo,
+                "inicio": paf.segundo_periodo_ferias,
+                "fim": paf.fim_segundo_periodo,
+                "status": status_periodo_ferias(paf.segundo_periodo_ferias, paf.fim_segundo_periodo),
+            },
+            {
+                "numero": 3,
+                "qtd_dias": paf.qtd_dias_terceiro_periodo,
+                "inicio": paf.terceiro_periodo_ferias,
+                "fim": paf.fim_terceiro_periodo,
+                "status": status_periodo_ferias(paf.terceiro_periodo_ferias, paf.fim_terceiro_periodo),
+            },
+        ]
+        resultado.append({"paf": paf, "periodos": periodos})
+
+    return resultado
 
 
 def listar_graduacoes(militar_id: int):
@@ -169,7 +206,8 @@ def montar_historico_militar(militar_id: int):
         "militar": militar,
         "publicacao_situacao_atual": obter_publicacao_situacao_atual(militar_id),
         "lotacoes": listar_lotacoes(militar_id),
-        "ferias": listar_pafs_do_militar(militar_id),
+        "elogios": listar_elogios(militar_id),
+        "ferias": listar_ferias_com_status(militar_id),
         "licencas_especiais": listar_licencas_especiais(militar_id=militar_id),
         "lts": listar_militares_lts(militar_id=militar_id),
         "agregacoes": listar_militares_agregados(militar_id=militar_id),

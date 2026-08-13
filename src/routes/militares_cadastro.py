@@ -13,7 +13,7 @@ from src import app, database
 from src.forms import (FormMilitarInativo, FormMilitar)
 from src.models import (DocumentoMilitar, Militar, MilitaresInativos, PostoGrad, Quadro,
                         EstadoCivil, MilitarObmFuncao, MilitarGraduacao,
-                        MilitarContatoEmergencia, MilitarConjuge)
+                        MilitarContatoEmergencia, MilitarConjuge, MilitarElogio)
 from src.decorators.control import checar_ocupacao
 from datetime import datetime, date, timedelta
 from src.security.perms import has_perm
@@ -30,6 +30,13 @@ from src.services.militar_cadastro_service import (
     salvar_dados_militar,
     flashar_erros_formulario,
     obter_info_auditoria_situacao,
+)
+from src.services.elogios_service import criar_elogio, listar_elogios, remover_elogio
+from src.services.militar_situacao_service import (
+    criar_situacao_extra,
+    listar_situacoes_extras,
+    parse_date_flex,
+    processar_inicio_situacoes_extras,
 )
 
 
@@ -209,6 +216,12 @@ def exibir_militar(militar_id):
     militar = Militar.query.get_or_404(militar_id)
     database.session.expire_all()
 
+    if request.method == "GET":
+        # Se alguma situação extra chegou na data de início desde a última
+        # visita, ela assume a situação principal antes de montar a tela.
+        processar_inicio_situacoes_extras(militar_id=militar_id)
+        database.session.commit()
+
     graduacoes = (
         MilitarGraduacao.query
         .filter_by(militar_id=militar.id)
@@ -224,6 +237,9 @@ def exibir_militar(militar_id):
     )
 
     conjuge = MilitarConjuge.query.filter_by(militar_id=militar.id).first()
+
+    elogios = listar_elogios(militar.id)
+    situacoes_extras = listar_situacoes_extras(militar.id, limite=8)
 
     obm_funcao_tipo_1 = (
         MilitarObmFuncao.query
@@ -275,6 +291,8 @@ def exibir_militar(militar_id):
         graduacoes=graduacoes,
         contatos_emergencia=contatos_emergencia,
         conjuge=conjuge,
+        elogios=elogios,
+        situacoes_extras=situacoes_extras,
         can_edit=can_edit,
         can_delete=can_delete,
         bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get(
@@ -395,6 +413,89 @@ def revogar_documento_militar(doc_id):
     database.session.commit()
     flash("Documento revogado e removido do Backblaze.", "alert-success")
     return redirect(url_for('exibir_militar', militar_id=doc.militar_id))
+
+
+@app.post("/exibir-militar/<int:militar_id>/adicionar-elogio")
+@login_required
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
+def adicionar_elogio(militar_id):
+    if not has_perm("MILITAR_UPDATE"):
+        abort(403)
+
+    militar = Militar.query.get_or_404(militar_id)
+
+    try:
+        criar_elogio(
+            militar_id=militar.id,
+            assunto=request.form.get("assunto"),
+            publicacao=request.form.get("publicacao"),
+            observacao=request.form.get("observacao"),
+            criado_por_user_id=current_user.id,
+        )
+        database.session.commit()
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Erro ao adicionar elogio")
+        flash(f"Erro ao adicionar elogio: {str(e)}", "alert-danger")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    flash("Elogio registrado com sucesso!", "alert-success")
+    return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+
+@app.post("/elogios/<int:elogio_id>/remover")
+@login_required
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
+def remover_elogio_militar(elogio_id):
+    if not has_perm("MILITAR_UPDATE"):
+        abort(403)
+
+    elogio = MilitarElogio.query.get_or_404(elogio_id)
+    militar_id = elogio.militar_id
+
+    remover_elogio(elogio.id)
+    database.session.commit()
+    flash("Elogio removido.", "alert-success")
+    return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+
+@app.post("/exibir-militar/<int:militar_id>/adicionar-situacao-extra")
+@login_required
+@checar_ocupacao('DRH', 'MAPA DA FORÇA', 'SUPER USER', 'DIRETOR DRH')
+def adicionar_situacao_extra(militar_id):
+    if not has_perm("MILITAR_UPDATE"):
+        abort(403)
+
+    militar = Militar.query.get_or_404(militar_id)
+
+    destino_raw = request.form.get("destino_situacao_extra")
+
+    try:
+        criar_situacao_extra(
+            militar=militar,
+            tipo=request.form.get("tipo_situacao_extra"),
+            destino_id=int(destino_raw) if destino_raw else None,
+            inicio=parse_date_flex(request.form.get("inicio_situacao_extra")),
+            fim=parse_date_flex(request.form.get("fim_situacao_extra")),
+            publicacao_texto=request.form.get("publicacao_situacao_extra"),
+        )
+        database.session.commit()
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Erro ao adicionar situação extra")
+        flash(f"Erro ao adicionar situação extra: {str(e)}", "alert-danger")
+        return redirect(url_for('exibir_militar', militar_id=militar_id))
+
+    flash("Situação extra registrada com sucesso!", "alert-success")
+    return redirect(url_for('exibir_militar', militar_id=militar_id))
 
 
 TZ_MANAUS = pytz.timezone('America/Manaus')

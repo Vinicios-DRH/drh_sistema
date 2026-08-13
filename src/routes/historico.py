@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, render_template, request
 
+from src import database
 from src.authz import require_perm
 from src.services.historico_militar_service import (
     buscar_militares_por_texto,
     montar_historico_militar,
 )
+from src.services.militar_situacao_service import processar_inicio_situacoes_extras
 
 bp_historico = Blueprint("historico_militar", __name__, url_prefix="/historico")
 
@@ -29,6 +31,10 @@ def pagina_historico():
     /historico/api/search). Com `militar_id`, já renderiza tudo.
     """
     militar_id = _to_int(request.args.get("militar_id"))
+
+    if militar_id:
+        processar_inicio_situacoes_extras(militar_id=militar_id)
+        database.session.commit()
 
     historico = montar_historico_militar(militar_id) if militar_id else None
 
