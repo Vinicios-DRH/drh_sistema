@@ -357,6 +357,110 @@
         font-size: .78rem;
     }
 
+    .hm-item-publicacao {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        margin-top: .45rem;
+        padding-top: .45rem;
+        border-top: 1px dashed var(--app-border);
+        color: var(--app-text);
+        font-size: .8rem;
+        font-weight: 650;
+    }
+
+    .hm-item-publicacao i {
+        color: var(--app-muted);
+    }
+
+    .hm-section-sub {
+        margin: .1rem 0 0;
+        color: var(--app-muted);
+        font-size: .78rem;
+    }
+
+    .hm-step-list {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+    }
+
+    .hm-step {
+        display: flex;
+        align-items: flex-start;
+        gap: .75rem;
+        padding: .7rem .85rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface-soft);
+    }
+
+    .hm-step-marker {
+        display: grid;
+        flex: 0 0 24px;
+        place-items: center;
+        font-size: 1.1rem;
+        color: var(--app-border);
+    }
+
+    .hm-step-alcancado .hm-step-marker {
+        color: #1c6b3f;
+    }
+
+    html[data-theme="dark"] .hm-step-alcancado .hm-step-marker {
+        color: #75dda1;
+    }
+
+    .hm-step-title {
+        font-size: .88rem;
+        font-weight: 750;
+        color: var(--app-text);
+    }
+
+    .hm-step-pendente {
+        opacity: .55;
+    }
+
+    .hm-step-pendente .hm-step-title {
+        color: var(--app-muted);
+        font-weight: 650;
+    }
+
+    .hm-summary-table-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .hm-summary-cell {
+        min-width: 0;
+        padding: .75rem .9rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface-soft);
+    }
+
+    .hm-summary-cell-wide {
+        grid-column: 1 / -1;
+    }
+
+    .hm-summary-cell-label {
+        display: block;
+        margin-bottom: .25rem;
+        color: var(--app-muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+
+    .hm-summary-cell-value {
+        color: var(--app-text);
+        font-size: .86rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
     .hm-badge {
         display: inline-flex;
         align-items: center;
@@ -412,7 +516,8 @@
     }
 
     @media (max-width: 767.98px) {
-        .hm-summary-grid {
+        .hm-summary-grid,
+        .hm-summary-table-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
@@ -488,15 +593,73 @@
             <select id="buscaMilitar" class="form-select" style="width:100%"></select>
 
             <div class="hm-jump">
+                <a href="#hm-situacao-atual"><i class="bi bi-info-circle me-1"></i>Situação atual</a>
                 <a href="#hm-lotacoes"><i class="bi bi-signpost-2 me-1"></i>OBMs ({{ historico.lotacoes|length }})</a>
                 <a href="#hm-ferias"><i class="bi bi-sun me-1"></i>Férias ({{ historico.ferias|length }})</a>
                 <a href="#hm-licencas"><i class="bi bi-heart-pulse me-1"></i>Licenças ({{ (historico.licencas_especiais|length) + (historico.lts|length) }})</a>
                 <a href="#hm-agregacoes"><i class="bi bi-arrow-left-right me-1"></i>Agregações ({{ historico.agregacoes|length }})</a>
                 <a href="#hm-disposicoes"><i class="bi bi-signpost me-1"></i>À disposição ({{ historico.disposicoes|length }})</a>
                 <a href="#hm-formacao"><i class="bi bi-mortarboard me-1"></i>Formação ({{ (historico.graduacoes|length) + (historico.cursos|length) }})</a>
+                <a href="#hm-progressao"><i class="bi bi-bar-chart-steps me-1"></i>Progressão de carreira ({{ historico.progressao_carreira | selectattr('alcancado') | list | length }})</a>
                 <a href="#hm-auditoria"><i class="bi bi-clock-history me-1"></i>Alterações ({{ historico.auditorias|length }})</a>
             </div>
         </div>
+
+        {# ==================================================================
+        SITUAÇÃO FUNCIONAL ATUAL (com publicação)
+        ================================================================== #}
+        <section id="hm-situacao-atual" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-info-circle"></i></div>
+                    <div>
+                        <h2 class="hm-section-title">Situação funcional atual</h2>
+                        <p class="hm-section-sub">
+                            Inclui modalidades sem tabela própria de histórico, como Licença Maternidade —
+                            aqui é a única publicação registrada pra elas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="hm-section-body">
+                <div class="hm-summary-table-grid">
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Situação</span>
+                        <span class="hm-summary-cell-value">{{ militar.situacao or '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Modalidade</span>
+                        <span class="hm-summary-cell-value">{{ militar.modalidade.descricao if militar.modalidade else '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Motivo</span>
+                        <span class="hm-summary-cell-value">{{ militar.motivo.descricao if militar.motivo else '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Destino</span>
+                        <span class="hm-summary-cell-value">{{ militar.destino.local if militar.destino else '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Início</span>
+                        <span class="hm-summary-cell-value">{{ militar.inicio_periodo.strftime('%d/%m/%Y') if militar.inicio_periodo else '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell">
+                        <span class="hm-summary-cell-label">Término</span>
+                        <span class="hm-summary-cell-value">{{ militar.fim_periodo.strftime('%d/%m/%Y') if militar.fim_periodo else '—' }}</span>
+                    </div>
+                    <div class="hm-summary-cell hm-summary-cell-wide">
+                        <span class="hm-summary-cell-label">Publicação</span>
+                        <span class="hm-summary-cell-value">
+                            {% if historico.publicacao_situacao_atual %}
+                            {{ historico.publicacao_situacao_atual }}
+                            {% else %}
+                            <span class="hm-badge hm-badge-a-iniciar">Sem publicação registrada</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         {# ==================================================================
         OBMs / LOTAÇÕES
@@ -639,7 +802,14 @@
                             </div>
                             <div class="hm-item-sub">
                                 Destino: {{ le.destino.local if le.destino else '—' }}
-                                {% if le.publicacao_bg %} · BG: {{ le.publicacao_bg.boletim_geral }}{% endif %}
+                            </div>
+                            <div class="hm-item-publicacao">
+                                <i class="bi bi-file-earmark-text"></i>
+                                {% if le.publicacao_bg and le.publicacao_bg.boletim_geral %}
+                                Publicação: {{ le.publicacao_bg.boletim_geral }}
+                                {% else %}
+                                <span class="hm-badge hm-badge-a-iniciar">Sem publicação registrada</span>
+                                {% endif %}
                             </div>
                         </div>
                         {% set s = le.status or '' %}
@@ -664,7 +834,14 @@
                             </div>
                             <div class="hm-item-sub">
                                 Destino: {{ lts.destino.local if lts.destino else '—' }}
-                                {% if lts.publicacao_bg %} · BG: {{ lts.publicacao_bg.boletim_geral }}{% endif %}
+                            </div>
+                            <div class="hm-item-publicacao">
+                                <i class="bi bi-file-earmark-text"></i>
+                                {% if lts.publicacao_bg and lts.publicacao_bg.boletim_geral %}
+                                Publicação: {{ lts.publicacao_bg.boletim_geral }}
+                                {% else %}
+                                <span class="hm-badge hm-badge-a-iniciar">Sem publicação registrada</span>
+                                {% endif %}
                             </div>
                         </div>
                         {% set s = lts.status or '' %}
@@ -710,6 +887,14 @@
                                 Destino: {{ ag.destino.local if ag.destino else '—' }}
                                 {% if ag.modalidade %} · {{ ag.modalidade.descricao }}{% endif %}
                             </div>
+                            <div class="hm-item-publicacao">
+                                <i class="bi bi-file-earmark-text"></i>
+                                {% if ag.publicacao_bg and ag.publicacao_bg.boletim_geral %}
+                                Publicação: {{ ag.publicacao_bg.boletim_geral }}
+                                {% else %}
+                                <span class="hm-badge hm-badge-a-iniciar">Sem publicação registrada</span>
+                                {% endif %}
+                            </div>
                         </div>
                         {% set s = ag.status or '' %}
                         <span class="hm-badge
@@ -753,6 +938,14 @@
                             <div class="hm-item-sub">
                                 Destino: {{ disp.destino.local if disp.destino else '—' }}
                                 {% if disp.modalidade %} · {{ disp.modalidade.descricao }}{% endif %}
+                            </div>
+                            <div class="hm-item-publicacao">
+                                <i class="bi bi-file-earmark-text"></i>
+                                {% if disp.publicacao_bg and disp.publicacao_bg.boletim_geral %}
+                                Publicação: {{ disp.publicacao_bg.boletim_geral }}
+                                {% else %}
+                                <span class="hm-badge hm-badge-a-iniciar">Sem publicação registrada</span>
+                                {% endif %}
                             </div>
                         </div>
                         {% set s = disp.status or '' %}
@@ -814,6 +1007,49 @@
                 {% else %}
                 <p class="hm-empty">Nenhuma graduação ou curso de especialização registrado.</p>
                 {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        PROGRESSÃO DE CARREIRA (POSTO/GRADUAÇÃO)
+        ================================================================== #}
+        <section id="hm-progressao" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-bar-chart-steps"></i></div>
+                    <div>
+                        <h2 class="hm-section-title">Progressão de carreira</h2>
+                        <p class="hm-section-sub">Posto/graduação atual: {{ militar.posto_grad.sigla if militar.posto_grad else '—' }}</p>
+                    </div>
+                </div>
+                <span class="hm-section-count">
+                    {{ historico.progressao_carreira | selectattr('alcancado') | list | length }} de
+                    {{ historico.progressao_carreira|length }} degraus com publicação
+                </span>
+            </div>
+            <div class="hm-section-body">
+                <div class="hm-step-list">
+                    {% for degrau in historico.progressao_carreira %}
+                    <div class="hm-step {{ 'hm-step-alcancado' if degrau.alcancado else 'hm-step-pendente' }}">
+                        <div class="hm-step-marker">
+                            <i class="bi {{ 'bi-check-circle-fill' if degrau.alcancado else 'bi-circle' }}"></i>
+                        </div>
+                        <div class="hm-step-main">
+                            <div class="hm-step-title">{{ degrau.rotulo }}</div>
+                            {% if degrau.alcancado %}
+                            <div class="hm-item-sub">
+                                {% if degrau.publicacao %}Publicação: {{ degrau.publicacao }}{% endif %}
+                                {% if degrau.publicidade %}
+                                {% if degrau.publicacao %} · {% endif %}Publicidade: {{ degrau.publicidade }}
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="hm-item-sub">Sem publicação registrada</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </section>
 

@@ -15,6 +15,7 @@ from src.models import (
     MilitarCurso,
     MilitarGraduacao,
     MilitarObmFuncao,
+    PublicacaoBg,
 )
 from src.services.lts_service import listar_militares_lts
 from src.services.paf_service import listar_pafs_do_militar
@@ -23,6 +24,28 @@ from src.services.situacoes_militares_service import (
     listar_militares_a_disposicao,
     listar_militares_agregados,
 )
+
+# Escada de posto/graduação (do soldado ao coronel) na ordem em que a
+# progressão de carreira realmente acontece. `campo_militar` é a coluna em
+# Militar que guarda a publicação (BG) daquela promoção; `campo_publicidade`
+# é o tipo_bg correspondente em PublicacaoBg — só oficiais têm uma
+# "publicidade" complementar, e ela nunca virou coluna direta em Militar.
+PROGRESSAO_CARREIRA = [
+    ("soldado_tres", "Soldado 3ª Classe", None),
+    ("soldado_dois", "Soldado 2ª Classe", None),
+    ("soldado_um", "Soldado 1ª Classe", None),
+    ("cabo", "Cabo", None),
+    ("terceiro_sgt", "3º Sargento", None),
+    ("segundo_sgt", "2º Sargento", None),
+    ("primeiro_sgt", "1º Sargento", None),
+    ("subtenente", "Subtenente", None),
+    ("segundo_tenente", "2º Tenente", "publicidade_segundo_tenente"),
+    ("primeiro_tenente", "1º Tenente", "publicidade_primeiro_tenente"),
+    ("cap", "Capitão", "pub_cap"),
+    ("maj", "Major", "pub_maj"),
+    ("tc", "Tenente-Coronel", "pub_tc"),
+    ("cel", "Coronel", "pub_cel"),
+]
 
 
 def buscar_militar_para_historico(militar_id: int):
@@ -81,6 +104,48 @@ def listar_cursos_especializacao(militar_id: int):
     )
 
 
+def listar_progressao_carreira(militar: Militar):
+    """Monta a escada de progressão de posto/graduação do militar (Soldado 3ª
+    Classe até Coronel), com a publicação (BG) de cada promoção. Os postos de
+    oficial ganham também a "publicidade" complementar, que só existe em
+    PublicacaoBg (nunca foi coluna direta em Militar)."""
+    campos_publicidade = [c for _, _, c in PROGRESSAO_CARREIRA if c]
+    publicidades = {
+        pb.tipo_bg: pb.boletim_geral
+        for pb in PublicacaoBg.query.filter(
+            PublicacaoBg.militar_id == militar.id,
+            PublicacaoBg.tipo_bg.in_(campos_publicidade),
+        ).all()
+    }
+
+    degraus = []
+    for campo_militar, rotulo, campo_publicidade in PROGRESSAO_CARREIRA:
+        publicacao = getattr(militar, campo_militar, None)
+        publicidade = publicidades.get(campo_publicidade) if campo_publicidade else None
+        degraus.append({
+            "rotulo": rotulo,
+            "publicacao": publicacao,
+            "publicidade": publicidade,
+            "alcancado": bool(publicacao or publicidade),
+        })
+    return degraus
+
+
+def obter_publicacao_situacao_atual(militar_id: int):
+    """Publicação (BG) da situação funcional atual — o mesmo campo
+    "Publicação" da aba Situação Funcional em Exibir Militar.
+
+    Existem modalidades (Agregação, À Disposição, Licença Especial, LTS) com
+    tabela própria de histórico, cada registro já com sua publicação. Mas
+    outras — Licença Maternidade é o principal exemplo — não têm tabela
+    dedicada: a única publicação registrada é essa, presa à situação atual
+    do militar. É por isso que ela precisa aparecer aqui à parte."""
+    pb = PublicacaoBg.query.filter_by(
+        militar_id=militar_id, tipo_bg="situacao_militar"
+    ).first()
+    return pb.boletim_geral if pb else None
+
+
 def listar_auditoria_situacao(militar_id: int):
     """Trilha de alterações de situação feitas pela chefia (Gestão de
     Chefia / Mapa da Força), com quem alterou."""
@@ -102,6 +167,7 @@ def montar_historico_militar(militar_id: int):
 
     return {
         "militar": militar,
+        "publicacao_situacao_atual": obter_publicacao_situacao_atual(militar_id),
         "lotacoes": listar_lotacoes(militar_id),
         "ferias": listar_pafs_do_militar(militar_id),
         "licencas_especiais": listar_licencas_especiais(militar_id=militar_id),
@@ -110,6 +176,7 @@ def montar_historico_militar(militar_id: int):
         "disposicoes": listar_militares_a_disposicao(militar_id=militar_id),
         "graduacoes": listar_graduacoes(militar_id),
         "cursos": listar_cursos_especializacao(militar_id),
+        "progressao_carreira": listar_progressao_carreira(militar),
         "auditorias": listar_auditoria_situacao(militar_id),
     }
 
