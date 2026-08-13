@@ -1,837 +1,914 @@
-{% extends "base.html" %}
-{% block body %}
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 
 <style>
-    :root {
-        --bg0: #0b1220;
-        --bg1: #0f1830;
-        --glass: rgba(255, 255, 255, .06);
-        --glass2: rgba(255, 255, 255, .08);
-        --b1: rgba(255, 255, 255, .10);
-        --b2: rgba(255, 255, 255, .14);
-        --txt: rgba(255, 255, 255, .92);
-        --muted: rgba(255, 255, 255, .68);
-        --muted2: rgba(255, 255, 255, .50);
-        --blue: #0d6efd;
-        --green: #22c55e;
-        --red: #ef4444;
-    }
-
-    body {
-        background: linear-gradient(180deg, var(--bg0) 0%, var(--bg0) 20%, #0a1020 100%) !important;
-        color: var(--txt);
-    }
-
-    .container-xxl {
-        color: var(--txt);
-    }
-
-    /* HERO */
-    .dash-hero {
-        border-radius: 18px;
-        padding: 18px 18px;
+    .hm-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
         background:
-            radial-gradient(900px circle at 20% 0%, rgba(13, 110, 253, .18), transparent 55%),
-            radial-gradient(700px circle at 90% 10%, rgba(34, 197, 94, .14), transparent 55%),
-            linear-gradient(180deg, #0b1220 0%, #111b2f 100%);
-        border: 1px solid rgba(255, 255, 255, .08);
-        color: #fff;
+            radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 20%),
+            radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 28%),
+            linear-gradient(135deg,
+                var(--app-page-bg) 0%,
+                var(--app-page-bg-alt) 52%,
+                var(--app-surface-muted) 100%);
     }
 
-    .dash-hero .hero-sub {
-        color: rgba(255, 255, 255, .75);
+    .hm-container {
+        max-width: 1200px;
     }
 
-    .btn-soft {
-        background: rgba(255, 255, 255, .12);
-        border: 1px solid rgba(255, 255, 255, .20);
-        color: #fff;
+    .hm-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.35rem;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 20px;
+        color: var(--app-hero-text, #fff);
+        background: linear-gradient(135deg,
+            var(--app-hero-start, #071b2c) 0%,
+            var(--app-hero-middle, #0b385e) 50%,
+            var(--app-hero-end, #145883) 100%);
+        box-shadow: var(--app-shadow-hero);
     }
 
-    .btn-soft:hover {
-        background: rgba(255, 255, 255, .18);
-        color: #fff;
+    .hm-hero-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
 
-    /* CARDS */
-    .glass-card,
-    .kpi-card,
-    .card.glass-card {
-        background: var(--glass) !important;
-        border: 1px solid var(--b1) !important;
-        border-radius: 16px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, .25);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+    .hm-hero-title-area {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        min-width: 0;
     }
 
-    .kpi-label {
-        color: var(--muted) !important;
-        font-size: .78rem;
+    .hm-logo-box {
+        display: grid;
+        flex: 0 0 60px;
+        width: 60px;
+        height: 60px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, .2);
+        border-radius: 17px;
+        background: rgba(255, 255, 255, .09);
     }
 
-    .kpi-value {
-        color: var(--txt);
-        font-weight: 900;
-        font-size: 1.35rem;
-        letter-spacing: -0.02em;
+    .hm-logo-box img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
     }
 
-    .kpi-badge {
+    .hm-eyebrow {
+        display: block;
+        margin-bottom: .25rem;
+        color: var(--app-hero-muted, rgba(255, 255, 255, .72));
         font-size: .72rem;
-    }
-
-    .text-muted,
-    .muted-hint,
-    .form-text {
-        color: var(--muted) !important;
-    }
-
-    .mini-sep {
-        height: 1px;
-        background: var(--b1) !important;
-    }
-
-    /* INPUTS */
-    .form-control,
-    .form-select,
-    .input-group-text {
-        background: var(--glass) !important;
-        border: 1px solid var(--b2) !important;
-        color: var(--txt) !important;
-    }
-
-    .form-control::placeholder {
-        color: var(--muted2) !important;
-    }
-
-    .input-group-text {
-        color: var(--txt) !important;
-    }
-
-    /* BADGES/CHIPS */
-    .badge.text-bg-light {
-        background: var(--glass2) !important;
-        color: var(--txt) !important;
-        border: 1px solid var(--b1);
-    }
-
-    .id-chip {
-        font-size: .72rem;
-        border-radius: 999px;
-        padding: 4px 10px;
-        background: var(--glass2);
-        border: 1px solid var(--b1);
-        color: rgba(255, 255, 255, .75);
-    }
-
-    .type-chip {
-        font-size: .72rem;
-        border-radius: 999px;
-        padding: 4px 10px;
-        background: rgba(13, 110, 253, .18);
-        border: 1px solid rgba(13, 110, 253, .30);
-        color: #fff;
         font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
     }
 
-    .badge-status {
-        padding: 7px 12px;
-        border-radius: 999px;
-        font-weight: 900;
-        letter-spacing: .02em;
+    .hm-title {
+        margin: 0;
+        color: var(--app-hero-text, #fff);
+        font-size: clamp(1.15rem, 2vw, 1.55rem);
+        font-weight: 850;
     }
 
-    .badge-status.ativo {
-        background: rgba(34, 197, 94, .16);
-        border: 1px solid rgba(34, 197, 94, .30);
-        color: #b8f7cf;
+    .hm-subtitle {
+        margin: .3rem 0 0;
+        color: var(--app-hero-muted, rgba(255, 255, 255, .78));
+        font-size: .87rem;
     }
 
-    .badge-status.inativo {
-        background: rgba(239, 68, 68, .16);
-        border: 1px solid rgba(239, 68, 68, .30);
-        color: #ffc7c7;
+    .hm-hero-actions {
+        display: flex;
+        gap: .55rem;
+        flex-wrap: wrap;
     }
 
-    /* TIMELINE */
-    .timeline-wrap {
-        position: relative;
+    .hm-btn-hero,
+    .hm-btn-hero-outline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 42px;
+        padding: 0 .9rem;
+        border-radius: 10px;
+        font-size: .84rem;
+        font-weight: 750;
+        text-decoration: none;
     }
 
-    .timeline-wrap::before {
-        content: "";
-        position: absolute;
-        left: 18px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: rgba(13, 110, 253, .25);
-        border-radius: 2px;
+    .hm-btn-hero {
+        border: 1px solid #fff;
+        color: #0a2c49;
+        background: #fff;
     }
 
-    .timeline-item {
-        position: relative;
-        padding-left: 48px;
-        margin-bottom: 12px;
+    .hm-btn-hero-outline {
+        border: 1px solid rgba(255, 255, 255, .34);
+        color: #fff;
+        background: rgba(255, 255, 255, .08);
     }
 
-    .timeline-dot {
-        position: absolute;
-        left: 10px;
-        top: 18px;
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        background: var(--blue);
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, .18);
+    .hm-btn-hero-outline:hover {
+        border-color: #fff;
+        background: rgba(255, 255, 255, .16);
     }
 
-    /* BUTTON OUTLINE */
-    .btn-outline-secondary {
-        color: rgba(255, 255, 255, .85) !important;
-        border-color: rgba(255, 255, 255, .22) !important;
+    .hm-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+        margin-top: 1rem;
     }
 
-    .btn-outline-secondary:hover {
-        background: rgba(255, 255, 255, .10) !important;
-        border-color: rgba(255, 255, 255, .30) !important;
+    .hm-summary-item {
+        min-width: 0;
+        padding: .8rem .9rem;
+        border: 1px solid rgba(255, 255, 255, .13);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .07);
     }
 
-    /* SELECT2 */
+    .hm-summary-label {
+        display: block;
+        margin-bottom: .25rem;
+        color: rgba(255, 255, 255, .64);
+        font-size: .64rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .hm-summary-value {
+        color: #fff;
+        font-size: .86rem;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    .hm-search-panel {
+        margin-top: 1rem;
+        padding: 1.1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 20px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
+    }
+
+    .hm-search-panel .select2-container {
+        width: 100% !important;
+    }
+
     .select2-container--default .select2-selection--single {
-        background: var(--glass) !important;
-        border: 1px solid var(--b2) !important;
+        height: 46px;
+        border: 1px solid var(--app-border);
         border-radius: 12px;
-        height: 42px;
+        background: var(--app-input-bg, var(--app-surface));
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: var(--txt) !important;
-        line-height: 28px;
+        line-height: 44px;
+        color: var(--app-input-text, var(--app-text));
+        padding-left: .9rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 44px;
     }
 
     .select2-dropdown {
-        background: var(--bg1) !important;
-        color: var(--txt) !important;
-        border: 1px solid var(--b2) !important;
+        border: 1px solid var(--app-border);
+        color: var(--app-text);
+        background: var(--app-surface);
     }
 
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background: rgba(13, 110, 253, .35) !important;
+        color: var(--app-primary-contrast, #fff);
+        background: var(--app-primary);
     }
 
-
-    ::selection {
-        background: rgba(13, 110, 253, .35);
-        color: #fff;
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid var(--app-border);
+        color: var(--app-text);
+        background: var(--app-surface);
     }
 
-    /* MODAL */
-    .modal-content {
-        background: var(--bg1) !important;
-        border: 1px solid var(--b2) !important;
-        color: var(--txt) !important;
+    .hm-jump {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: 1rem;
     }
 
-    .modal-header {
-        background: rgba(255, 255, 255, .04) !important;
-        border-bottom: 1px solid var(--b1) !important;
+    .hm-jump a {
+        padding: .4rem .8rem;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        color: var(--app-muted);
+        font-size: .78rem;
+        font-weight: 750;
+        text-decoration: none;
+        background: var(--app-surface-soft);
     }
 
-    .nav-pills .nav-link {
-        background: rgba(255, 255, 255, .06);
-        color: rgba(255, 255, 255, .80);
-        border: 1px solid var(--b1);
+    .hm-jump a:hover {
+        border-color: var(--app-primary);
+        color: var(--app-primary);
     }
 
-    .nav-pills .nav-link.active {
-        background: rgba(13, 110, 253, .30);
-        border-color: rgba(13, 110, 253, .35);
-        color: #fff;
+    .hm-section {
+        overflow: hidden;
+        margin-top: 1rem;
+        border: 1px solid var(--app-border);
+        border-radius: 18px;
+        color: var(--app-text);
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
+        scroll-margin-top: calc(var(--nav-h, 64px) + 12px);
     }
 
-    #mdlJson {
-        background: rgba(255, 255, 255, .06) !important;
-        color: var(--txt) !important;
-        border: 1px solid var(--b1);
+    .hm-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--app-border);
+        background: var(--app-surface-soft);
     }
 
-    /* ===== FIX: texto do resumo no modal (Bootstrap table) ===== */
-    #modalDetalhe,
-    #modalDetalhe * {
-        color: var(--txt);
+    .hm-section-title-area {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        min-width: 0;
     }
 
-    #modalDetalhe .text-muted {
-        color: var(--muted) !important;
+    .hm-section-icon {
+        display: grid;
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        border: 1px solid color-mix(in srgb, var(--app-primary) 20%, var(--app-border));
+        border-radius: 12px;
+        color: var(--app-primary);
+        font-size: 1rem;
+        background: color-mix(in srgb, var(--app-primary) 8%, var(--app-surface));
     }
 
-    /* tabela do resumo */
-    #modalDetalhe .table {
-        color: var(--txt) !important;
+    .hm-section-title {
+        margin: 0;
+        font-size: .95rem;
+        font-weight: 850;
     }
 
-    #modalDetalhe .table td,
-    #modalDetalhe .table th {
-        color: var(--txt) !important;
-        border-color: rgba(255, 255, 255, .12) !important;
+    .hm-section-count {
+        flex: 0 0 auto;
+        padding: .3rem .6rem;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        color: var(--app-muted);
+        font-size: .72rem;
+        font-weight: 800;
+        white-space: nowrap;
     }
 
-    /* linhas (se tiver) */
-    #modalDetalhe .table> :not(caption)>*>* {
-        background: transparent !important;
+    .hm-section-body {
+        padding: 1.1rem;
     }
 
-    /* separadores horizontais */
-    #modalDetalhe hr {
-        border-color: rgba(255, 255, 255, .12) !important;
+    .hm-empty {
+        padding: 1.2rem;
+        color: var(--app-muted);
+        font-size: .85rem;
+        text-align: center;
     }
 
-    /* botão X ficar visível no dark */
-    #modalDetalhe .btn-close {
-        filter: invert(1) grayscale(1);
-        opacity: .85;
+    .hm-table {
+        --bs-table-color: var(--app-text);
+        --bs-table-bg: transparent;
+        --bs-table-striped-color: var(--app-text);
+        --bs-table-striped-bg: rgba(127, 155, 180, .07);
+        --bs-table-border-color: var(--app-border);
+        margin-bottom: 0;
     }
 
-    #modalDetalhe .btn-close:hover {
-        opacity: 1;
+    .hm-table th {
+        color: var(--app-muted);
+        font-size: .72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
     }
 
-    /* tabs do modal (se tiver alguma cor estranha) */
-    #modalDetalhe .nav-link {
-        color: rgba(255, 255, 255, .85) !important;
+    .hm-table td {
+        font-size: .86rem;
+        vertical-align: middle;
+    }
+
+    .hm-item-list {
+        display: flex;
+        flex-direction: column;
+        gap: .65rem;
+    }
+
+    .hm-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .8rem .95rem;
+        border: 1px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface-soft);
+        flex-wrap: wrap;
+    }
+
+    .hm-item-main {
+        min-width: 0;
+    }
+
+    .hm-item-title {
+        font-size: .88rem;
+        font-weight: 750;
+        color: var(--app-text);
+    }
+
+    .hm-item-sub {
+        margin-top: .15rem;
+        color: var(--app-muted);
+        font-size: .78rem;
+    }
+
+    .hm-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .28rem .6rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 750;
+        border: 1px solid var(--app-border);
+        background: var(--app-surface);
+        white-space: nowrap;
+    }
+
+    .hm-badge-vigente {
+        border-color: #2c704a;
+        color: #1c6b3f;
+        background: #d9f7df;
+    }
+
+    html[data-theme="dark"] .hm-badge-vigente {
+        border-color: #2c704a;
+        color: #75dda1;
+        background: #143b2a;
+    }
+
+    .hm-badge-a-iniciar {
+        border-color: #8a6d1f;
+        color: #7a5d0a;
+        background: #fff3cd;
+    }
+
+    html[data-theme="dark"] .hm-badge-a-iniciar {
+        border-color: #6d5723;
+        color: #f3d37d;
+        background: #382f15;
+    }
+
+    .hm-badge-termino {
+        border-color: #743d46;
+        color: #a1303c;
+        background: #ffd9d9;
+    }
+
+    html[data-theme="dark"] .hm-badge-termino {
+        border-color: #743d46;
+        color: #ffa2aa;
+        background: #441d25;
+    }
+
+    .hm-badge-tipo {
+        border-color: color-mix(in srgb, var(--app-primary) 30%, var(--app-border));
+        color: var(--app-primary);
+        background: color-mix(in srgb, var(--app-primary) 8%, var(--app-surface));
+    }
+
+    @media (max-width: 767.98px) {
+        .hm-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .hm-item {
+            flex-direction: column;
+        }
     }
 </style>
-<div class="container-xxl py-3">
-    <div class="dash-hero mb-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-                <h3 class="mb-1">Histórico do Militar</h3>
-                <div class="hero-sub small">Selecione um militar e navegue na linha do tempo com filtros, busca e
-                    detalhes.</div>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button class="btn btn-soft btn-sm" id="btnPrint" disabled>
-                    <i class="bi bi-printer"></i> Imprimir
-                </button>
-                <button class="btn btn-soft btn-sm" id="btnExportJson" disabled>
-                    <i class="bi bi-braces"></i> Exportar JSON
-                </button>
-            </div>
-        </div>
-    </div>
-    <!-- TOP: Seletor + KPIs -->
-    <div class="row g-3 mb-3">
-        <div class="col-lg-8">
-            <div class="card glass-card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:38px;height:38px;background:rgba(13,110,253,.12);color:#0d6efd;">
-                            <i class="bi bi-search"></i>
-                        </div>
-                        <div>
-                            <div class="fw-bold">Buscar militar</div>
-                            <div class="small muted-hint">Digite nome, nome de guerra, matrícula ou CPF.</div>
-                        </div>
-                    </div>
-
-                    <select id="militarSelect" class="form-select"></select>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="card kpi-card shadow-sm">
-                        <div class="card-body">
-                            <div class="kpi-label">Eventos (filtro atual)</div>
-                            <div class="kpi-value" id="kpiTotal">—</div>
-                            <span class="badge text-bg-light kpi-badge">timeline</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card kpi-card shadow-sm">
-                        <div class="card-body">
-                            <div class="kpi-label">Página</div>
-                            <div class="kpi-value" id="kpiPage">—</div>
-                            <span class="badge text-bg-light kpi-badge">paginação</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Header do militar -->
-    <div class="card glass-card shadow-sm border-0 mb-3 d-none" id="militarHeaderCard">
-        <div class="card-body">
-            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                        style="width:48px;height:48px;background:rgba(25,135,84,.12);color:#198754;">
-                        <i class="bi bi-person-badge"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold fs-5" id="hdrNome"></div>
-                        <div class="text-muted" id="hdrSub"></div>
-                    </div>
-                </div>
-                <span class="badge-status" id="hdrStatus"></span>
-            </div>
-
-            <div class="mini-sep my-3"></div>
-
-            <div class="row g-2 small">
-                <div class="col-md-3"><span class="text-muted">Matrícula:</span> <span class="fw-semibold"
-                        id="hdrMat"></span></div>
-                <div class="col-md-3"><span class="text-muted">CPF:</span> <span class="fw-semibold" id="hdrCpf"></span>
-                </div>
-                <div class="col-md-3"><span class="text-muted">RG:</span> <span class="fw-semibold" id="hdrRg"></span>
-                </div>
-                <div class="col-md-3"><span class="text-muted">Sexo:</span> <span class="fw-semibold"
-                        id="hdrSexo"></span></div>
-
-                <div class="col-md-3"><span class="text-muted">Quadro:</span> <span class="fw-semibold"
-                        id="hdrQuadro"></span></div>
-                <div class="col-md-3"><span class="text-muted">Especialidade:</span> <span class="fw-semibold"
-                        id="hdrEsp"></span></div>
-                <div class="col-md-3"><span class="text-muted">Situação:</span> <span class="fw-semibold"
-                        id="hdrSit1"></span></div>
-                <div class="col-md-3"><span class="text-muted">Situação 2:</span> <span class="fw-semibold"
-                        id="hdrSit2"></span></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main -->
-    <div class="row g-3">
-        <!-- Filters -->
-        <div class="col-lg-3">
-            <div class="card glass-card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="filters-title">Filtros</div>
-                        <span class="badge text-bg-light">opcional</span>
-                    </div>
-                    <div class="small muted-hint mt-1">
-                        Use a busca/tipos. Datas só se quiser restringir por período.
-                    </div>
-
-                    <div class="mini-sep my-3"></div>
-
-                    <label class="form-label small">Busca</label>
-                    <div class="input-group input-group-sm mb-2">
-                        <span class="input-group-text"><i class="bi bi-funnel"></i></span>
-                        <input class="form-control" id="fltQ" placeholder="Ex.: boletim, férias, normal...">
-                    </div>
-
-                    <label class="form-label small">Tipos</label>
-                    <select class="form-select form-select-sm mb-2" id="fltTipos" multiple style="height: 180px;">
-                        <option>BG</option>
-                        <option>OBM_FUNCAO</option>
-                        <option>DISPOSICAO</option>
-                        <option>AGREGACAO</option>
-                        <option>LICENCA_ESPECIAL</option>
-                        <option>LTS</option>
-                        <option>PAF</option>
-                        <option>NOVO_PAF</option>
-                        <option>PAF_PLANO</option>
-                        <option>MOTORISTA</option>
-                        <option>VIATURA</option>
-                        <option>DECLARACAO</option>
-                        <option>DOC</option>
-                        <option>TAF</option>
-                        <option>MILITAR</option>
-                        <option>USER</option>
-                        <option>USER_PERMISSAO</option>
-                        <option>USER_OBM_ACESSO</option>
-                        <option>OBM_GESTAO</option>
-                        <option>SEGUNDO_VINCULO</option>
-                        <option>VINCULO_EXTERNO</option>
-                        <option>AUDITORIA_DECLARACAO</option>
-                        <option>DRAFT_DECLARACAO</option>
-                        <option>DEPENDENTE_PROCESSO</option>
-                        <option>DEPENDENTE_ARQUIVO</option>
-                        <option>DEPENDENTE_ACAO</option>
-                    </select>
-
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label small">De</label>
-                            <input type="date" class="form-control form-control-sm" id="fltDe" autocomplete="off">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">Até</label>
-                            <input type="date" class="form-control form-control-sm" id="fltAte" autocomplete="off">
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2 mt-3">
-                        <button class="btn btn-primary btn-sm" id="btnAplicar" disabled>
-                            <i class="bi bi-check2-circle"></i> Aplicar filtros
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" id="btnLimpar" disabled>
-                            <i class="bi bi-eraser"></i> Limpar
-                        </button>
-                    </div>
-
-                    <div class="mini-sep my-3"></div>
-
-                    <div class="small muted-hint">
-                        Dica: clique em um evento para abrir detalhes em linguagem simples.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timeline -->
-        <div class="col-lg-9">
-            <div class="card glass-card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                        <div>
-                            <div class="fw-bold">Timeline</div>
-                            <div class="text-muted small" id="metaTotal"></div>
-                        </div>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-outline-secondary btn-sm" id="btnPrev" disabled>
-                                <i class="bi bi-chevron-left"></i> Anterior
-                            </button>
-                            <span class="badge text-bg-light" id="metaPage">—</span>
-                            <button class="btn btn-outline-secondary btn-sm" id="btnNext" disabled>
-                                Próxima <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mini-sep my-2"></div>
-
-                    <div class="timeline-wrap" id="timeline"></div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal detalhes -->
-<div class="modal fade" id="modalDetalhe" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content border-0">
-            <div class="modal-header" style="background: rgba(13,110,253,.06);">
-                <div>
-                    <div class="fw-bold" id="mdlTitulo"></div>
-                    <div class="text-muted small" id="mdlSub"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                <ul class="nav nav-pills gap-2" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-resumo" type="button"
-                            role="tab">
-                            <i class="bi bi-card-text"></i> Resumo
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-json" type="button"
-                            role="tab">
-                            <i class="bi bi-braces"></i> JSON (técnico)
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content pt-3">
-                    <div class="tab-pane fade show active" id="tab-resumo" role="tabpanel">
-                        <div id="mdlResumo"></div>
-                    </div>
-
-                    <div class="tab-pane fade" id="tab-json" role="tabpanel">
-                        <pre class="bg-light p-3 rounded small mb-0" id="mdlJson"></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
-{% block scripts %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% block body %}
+<main class="hm-page">
+    <div class="container-fluid px-2 px-md-3 hm-container">
+
+        {% if historico %}
+        {% set militar = historico.militar %}
+        <section class="hm-hero">
+            <div class="hm-hero-main">
+                <div class="hm-hero-title-area">
+                    <div class="hm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                    </div>
+                    <div>
+                        <span class="hm-eyebrow">Histórico do militar</span>
+                        <h1 class="hm-title">{{ militar.nome_completo }}</h1>
+                        <p class="hm-subtitle">
+                            {{ militar.posto_grad.sigla if militar.posto_grad else '—' }} ·
+                            Matrícula {{ militar.matricula or '—' }} ·
+                            {{ 'Inativo' if militar.inativo else 'Ativo' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="hm-hero-actions">
+                    <a href="{{ url_for('militares') }}" class="hm-btn-hero-outline">
+                        <i class="bi bi-arrow-left"></i> Militares
+                    </a>
+                    <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}" class="hm-btn-hero">
+                        <i class="bi bi-person-vcard"></i> Ver perfil completo
+                    </a>
+                </div>
+            </div>
+
+            <div class="hm-summary-grid">
+                <div class="hm-summary-item">
+                    <span class="hm-summary-label">Quadro</span>
+                    <span class="hm-summary-value">{{ militar.quadro.quadro if militar.quadro else '—' }}</span>
+                </div>
+                <div class="hm-summary-item">
+                    <span class="hm-summary-label">Situação atual</span>
+                    <span class="hm-summary-value">{{ militar.situacao or '—' }}</span>
+                </div>
+                <div class="hm-summary-item">
+                    <span class="hm-summary-label">Modalidade</span>
+                    <span class="hm-summary-value">{{ militar.modalidade.descricao if militar.modalidade else '—' }}</span>
+                </div>
+                <div class="hm-summary-item">
+                    <span class="hm-summary-label">Lotação atual</span>
+                    <span class="hm-summary-value">
+                        {% set atual = historico.lotacoes | selectattr('data_fim', 'none') | list %}
+                        {% if atual %}
+                        {{ atual[0].obm.sigla if atual[0].obm else '—' }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <div class="hm-search-panel">
+            <label class="form-label">Trocar de militar</label>
+            <select id="buscaMilitar" class="form-select" style="width:100%"></select>
+
+            <div class="hm-jump">
+                <a href="#hm-lotacoes"><i class="bi bi-signpost-2 me-1"></i>OBMs ({{ historico.lotacoes|length }})</a>
+                <a href="#hm-ferias"><i class="bi bi-sun me-1"></i>Férias ({{ historico.ferias|length }})</a>
+                <a href="#hm-licencas"><i class="bi bi-heart-pulse me-1"></i>Licenças ({{ (historico.licencas_especiais|length) + (historico.lts|length) }})</a>
+                <a href="#hm-agregacoes"><i class="bi bi-arrow-left-right me-1"></i>Agregações ({{ historico.agregacoes|length }})</a>
+                <a href="#hm-disposicoes"><i class="bi bi-signpost me-1"></i>À disposição ({{ historico.disposicoes|length }})</a>
+                <a href="#hm-formacao"><i class="bi bi-mortarboard me-1"></i>Formação ({{ (historico.graduacoes|length) + (historico.cursos|length) }})</a>
+                <a href="#hm-auditoria"><i class="bi bi-clock-history me-1"></i>Alterações ({{ historico.auditorias|length }})</a>
+            </div>
+        </div>
+
+        {# ==================================================================
+        OBMs / LOTAÇÕES
+        ================================================================== #}
+        <section id="hm-lotacoes" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-signpost-2"></i></div>
+                    <h2 class="hm-section-title">OBMs por onde passou</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.lotacoes|length }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.lotacoes %}
+                <div class="table-responsive">
+                    <table class="table hm-table">
+                        <thead>
+                            <tr>
+                                <th>OBM</th>
+                                <th>Função</th>
+                                <th>Vínculo</th>
+                                <th>Início</th>
+                                <th>Fim</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for l in historico.lotacoes %}
+                            <tr>
+                                <td>{{ l.obm.sigla if l.obm else '—' }}</td>
+                                <td>{{ l.funcao.ocupacao if l.funcao else '—' }}</td>
+                                <td>{{ 'Principal' if l.tipo == 1 else 'Secundário' if l.tipo == 2 else '—' }}</td>
+                                <td>{{ l.data_criacao.strftime('%d/%m/%Y') if l.data_criacao else '—' }}</td>
+                                <td>
+                                    {% if l.data_fim %}
+                                    {{ l.data_fim.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                    <span class="hm-badge hm-badge-vigente">Atual</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma passagem por OBM registrada.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        FÉRIAS (PAF) POR ANO
+        ================================================================== #}
+        <section id="hm-ferias" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-sun"></i></div>
+                    <h2 class="hm-section-title">Férias por ano (PAF)</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.ferias|length }} ano(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.ferias %}
+                <div class="table-responsive">
+                    <table class="table hm-table">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th>Mês usufruto</th>
+                                <th>1º período</th>
+                                <th>2º período</th>
+                                <th>3º período</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paf in historico.ferias %}
+                            <tr>
+                                <td><strong>{{ paf.ano_referencia }}</strong></td>
+                                <td>{{ paf.mes_usufruto or '—' }}</td>
+                                <td>
+                                    {% if paf.primeiro_periodo_ferias %}
+                                    {{ paf.primeiro_periodo_ferias.strftime('%d/%m/%Y') }} –
+                                    {{ paf.fim_primeiro_periodo.strftime('%d/%m/%Y') if paf.fim_primeiro_periodo else '?' }}
+                                    ({{ paf.qtd_dias_primeiro_periodo or 0 }}d)
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paf.segundo_periodo_ferias %}
+                                    {{ paf.segundo_periodo_ferias.strftime('%d/%m/%Y') }} –
+                                    {{ paf.fim_segundo_periodo.strftime('%d/%m/%Y') if paf.fim_segundo_periodo else '?' }}
+                                    ({{ paf.qtd_dias_segundo_periodo or 0 }}d)
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paf.terceiro_periodo_ferias %}
+                                    {{ paf.terceiro_periodo_ferias.strftime('%d/%m/%Y') }} –
+                                    {{ paf.fim_terceiro_periodo.strftime('%d/%m/%Y') if paf.fim_terceiro_periodo else '?' }}
+                                    ({{ paf.qtd_dias_terceiro_periodo or 0 }}d)
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhum PAF (plano de férias) registrado.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        LICENÇAS (ESPECIAL + LTS)
+        ================================================================== #}
+        <section id="hm-licencas" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-heart-pulse"></i></div>
+                    <h2 class="hm-section-title">Licenças</h2>
+                </div>
+                <span class="hm-section-count">{{ (historico.licencas_especiais|length) + (historico.lts|length) }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.licencas_especiais or historico.lts %}
+                <div class="hm-item-list">
+                    {% for le in historico.licencas_especiais %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">
+                                <span class="hm-badge hm-badge-tipo">Licença Especial</span>
+                                {{ le.inicio_periodo_le.strftime('%d/%m/%Y') if le.inicio_periodo_le else '—' }}
+                                –
+                                {{ le.fim_periodo_le.strftime('%d/%m/%Y') if le.fim_periodo_le else '—' }}
+                            </div>
+                            <div class="hm-item-sub">
+                                Destino: {{ le.destino.local if le.destino else '—' }}
+                                {% if le.publicacao_bg %} · BG: {{ le.publicacao_bg.boletim_geral }}{% endif %}
+                            </div>
+                        </div>
+                        {% set s = le.status or '' %}
+                        <span class="hm-badge
+                            {% if s == 'Vigente' %}hm-badge-vigente
+                            {% elif s == 'A iniciar' %}hm-badge-a-iniciar
+                            {% elif s == 'Término da Licença Especial' %}hm-badge-termino
+                            {% endif %}">
+                            {{ s or 'Dados incompletos' }}
+                        </span>
+                    </div>
+                    {% endfor %}
+
+                    {% for lts in historico.lts %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">
+                                <span class="hm-badge hm-badge-tipo">LTS</span>
+                                {{ lts.inicio_periodo_lts.strftime('%d/%m/%Y') if lts.inicio_periodo_lts else '—' }}
+                                –
+                                {{ lts.fim_periodo_lts.strftime('%d/%m/%Y') if lts.fim_periodo_lts else '—' }}
+                            </div>
+                            <div class="hm-item-sub">
+                                Destino: {{ lts.destino.local if lts.destino else '—' }}
+                                {% if lts.publicacao_bg %} · BG: {{ lts.publicacao_bg.boletim_geral }}{% endif %}
+                            </div>
+                        </div>
+                        {% set s = lts.status or '' %}
+                        <span class="hm-badge
+                            {% if s == 'Vigente' %}hm-badge-vigente
+                            {% elif s == 'A iniciar' %}hm-badge-a-iniciar
+                            {% elif s == 'Término da Licença para Tratamento de Saúde' %}hm-badge-termino
+                            {% endif %}">
+                            {{ s or 'Dados incompletos' }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma licença (especial ou LTS) registrada.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        AGREGAÇÕES
+        ================================================================== #}
+        <section id="hm-agregacoes" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-arrow-left-right"></i></div>
+                    <h2 class="hm-section-title">Agregações</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.agregacoes|length }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.agregacoes %}
+                <div class="hm-item-list">
+                    {% for ag in historico.agregacoes %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">
+                                {{ ag.inicio_periodo.strftime('%d/%m/%Y') if ag.inicio_periodo else '—' }}
+                                –
+                                {{ ag.fim_periodo_agregacao.strftime('%d/%m/%Y') if ag.fim_periodo_agregacao else '—' }}
+                            </div>
+                            <div class="hm-item-sub">
+                                Destino: {{ ag.destino.local if ag.destino else '—' }}
+                                {% if ag.modalidade %} · {{ ag.modalidade.descricao }}{% endif %}
+                            </div>
+                        </div>
+                        {% set s = ag.status or '' %}
+                        <span class="hm-badge
+                            {% if s == 'Vigente' %}hm-badge-vigente
+                            {% elif s == 'A iniciar' %}hm-badge-a-iniciar
+                            {% elif s == 'Término de Agregação' %}hm-badge-termino
+                            {% endif %}">
+                            {{ s or 'Dados incompletos' }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma agregação registrada.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        À DISPOSIÇÃO
+        ================================================================== #}
+        <section id="hm-disposicoes" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-signpost"></i></div>
+                    <h2 class="hm-section-title">À disposição</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.disposicoes|length }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.disposicoes %}
+                <div class="hm-item-list">
+                    {% for disp in historico.disposicoes %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">
+                                {{ disp.inicio_periodo.strftime('%d/%m/%Y') if disp.inicio_periodo else '—' }}
+                                –
+                                {{ disp.fim_periodo_disposicao.strftime('%d/%m/%Y') if disp.fim_periodo_disposicao else '—' }}
+                            </div>
+                            <div class="hm-item-sub">
+                                Destino: {{ disp.destino.local if disp.destino else '—' }}
+                                {% if disp.modalidade %} · {{ disp.modalidade.descricao }}{% endif %}
+                            </div>
+                        </div>
+                        {% set s = disp.status or '' %}
+                        <span class="hm-badge
+                            {% if s == 'Vigente' %}hm-badge-vigente
+                            {% elif s == 'A iniciar' %}hm-badge-a-iniciar
+                            {% elif s == 'Venceu' %}hm-badge-termino
+                            {% endif %}">
+                            {{ s or 'Dados incompletos' }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma disposição em outro local registrada.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        FORMAÇÃO
+        ================================================================== #}
+        <section id="hm-formacao" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-mortarboard"></i></div>
+                    <h2 class="hm-section-title">Formação e cursos</h2>
+                </div>
+                <span class="hm-section-count">{{ (historico.graduacoes|length) + (historico.cursos|length) }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.graduacoes or historico.cursos %}
+                <div class="hm-item-list">
+                    {% for g in historico.graduacoes %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">{{ g.curso }}</div>
+                            <div class="hm-item-sub">
+                                {{ g.instituicao or 'Instituição não informada' }}
+                                {% if g.ano_conclusao %} · Conclusão em {{ g.ano_conclusao }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% for c in historico.cursos %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">{{ c.curso.nome if c.curso else '—' }}</div>
+                            <div class="hm-item-sub">
+                                Especialização
+                                {% if c.data_conclusao %} · Conclusão em {{ c.data_conclusao.strftime('%d/%m/%Y') }}{% endif %}
+                            </div>
+                        </div>
+                        <span class="hm-badge hm-badge-vigente">Especialização</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma graduação ou curso de especialização registrado.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ==================================================================
+        AUDITORIA DE ALTERAÇÕES DE SITUAÇÃO
+        ================================================================== #}
+        <section id="hm-auditoria" class="hm-section">
+            <div class="hm-section-header">
+                <div class="hm-section-title-area">
+                    <div class="hm-section-icon"><i class="bi bi-clock-history"></i></div>
+                    <h2 class="hm-section-title">Alterações de situação (chefia)</h2>
+                </div>
+                <span class="hm-section-count">{{ historico.auditorias|length }} registro(s)</span>
+            </div>
+            <div class="hm-section-body">
+                {% if historico.auditorias %}
+                <div class="hm-item-list">
+                    {% for a in historico.auditorias %}
+                    <div class="hm-item">
+                        <div class="hm-item-main">
+                            <div class="hm-item-title">{{ a.acao }}</div>
+                            <div class="hm-item-sub">
+                                {{ a.criado_em.strftime('%d/%m/%Y às %H:%M') if a.criado_em else '—' }}
+                                por {{ a.user.nome if a.user and a.user.nome else (a.user.email if a.user else 'Sistema') }}
+                                {% if a.observacao %} · {{ a.observacao }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="hm-empty">Nenhuma alteração de situação registrada pela chefia.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {% elif militar_id %}
+        <section class="hm-search-panel mt-3">
+            <p class="hm-empty mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Militar não encontrado (id {{ militar_id }}).
+            </p>
+        </section>
+        <div class="hm-search-panel mt-3">
+            <label class="form-label">Buscar militar</label>
+            <select id="buscaMilitar" class="form-select" style="width:100%"></select>
+        </div>
+
+        {% else %}
+        <section class="hm-hero">
+            <div class="hm-hero-title-area">
+                <div class="hm-logo-box">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                </div>
+                <div>
+                    <span class="hm-eyebrow">Histórico do militar</span>
+                    <h1 class="hm-title">Buscar militar</h1>
+                    <p class="hm-subtitle">
+                        Encontre um militar pra ver tudo que já passou na vida funcional
+                        dele: OBMs, férias por ano, licenças, agregações, disposições e mais.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <div class="hm-search-panel">
+            <label class="form-label">Nome, nome de guerra, matrícula ou CPF</label>
+            <select id="buscaMilitar" class="form-select" style="width:100%"></select>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    (() => {
-        let militarId = {{ militar_id or "null" }};
-    let page = 1;
-    const perPage = 20;
-
-    const $sel = $("#militarSelect");
-    const $hdr = $("#militarHeaderCard");
-
-    function setButtonsEnabled(on) {
-        $("#btnAplicar, #btnLimpar, #btnPrint, #btnExportJson").prop("disabled", !on);
-    }
-
-    function renderHeader(m) {
-        $hdr.removeClass("d-none");
-        $("#hdrNome").text(`${m.posto_grad || ""} ${m.nome_completo || ""}`.trim());
-        $("#hdrSub").text(`${m.nome_guerra ? ("Nome de guerra: " + m.nome_guerra + " • ") : ""}ID ${m.id}`);
-
-        // badge premium
-        const $st = $("#hdrStatus");
-        if (m.inativo) {
-            $st.text("INATIVO").removeClass("ativo").addClass("inativo");
-        } else {
-            $st.text("ATIVO").removeClass("inativo").addClass("ativo");
-        }
-
-        $("#hdrMat").text(m.matricula || "-");
-        $("#hdrCpf").text(m.cpf || "-");
-        $("#hdrRg").text(m.rg || "-");
-        $("#hdrSexo").text(m.sexo || "-");
-
-        $("#hdrQuadro").text(m.quadro || "-");
-        $("#hdrEsp").text(m.especialidade || "-");
-        $("#hdrSit1").text(m.situacao1 || "-");
-        $("#hdrSit2").text(m.situacao2 || "-");
-    }
-
-    function escapeHtml(s) {
-        return (s ?? "").toString().replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    /* ======= resumo humano (mantive as tuas funcs) ======= */
-    function fmtDateBR(v) { if (!v) return "-"; try { const d = new Date(v); if (isNaN(d.getTime())) return String(v); return d.toLocaleDateString("pt-BR"); } catch { return String(v); } }
-    function fmtBool(v) { if (v === true) return "Sim"; if (v === false) return "Não"; return "-"; }
-    function fmtVal(v) { if (v === null || v === undefined || v === "") return "-"; return String(v); }
-
-    function kvTable(rows) {
-        const html = rows.map(r => `
-      <tr>
-        <td class="text-muted" style="width: 35%">${escapeHtml(r.k)}</td>
-        <td class="fw-semibold">${escapeHtml(r.v)}</td>
-      </tr>
-    `).join("");
-        return `
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <tbody>${html}</tbody>
-        </table>
-      </div>
-    `;
-    }
-
-    function renderResumoHumano(ev) {
-        const p = ev.payload || {};
-        const tipo = (ev.tipo || "").toUpperCase();
-        const generic = () => kvTable([
-            { k: "Tipo", v: fmtVal(ev.tipo) },
-            { k: "Título", v: fmtVal(ev.titulo) },
-            { k: "Período", v: `${fmtDateBR(ev.data_inicio)} → ${fmtDateBR(ev.data_fim)}` },
-            { k: "Referência", v: fmtVal(ev.id_evento) },
-        ]);
-
-        if (tipo === "PAF") {
-            return kvTable([
-                { k: "Ano referência", v: fmtVal(p.ano_referencia) },
-                { k: "Mês de usufruto", v: fmtVal(p.mes_usufruto) },
-                { k: "1º período", v: `${fmtDateBR(p.primeiro_periodo_ferias)} → ${fmtDateBR(p.fim_primeiro_periodo)} (${fmtVal(p.qtd_dias_primeiro_periodo)} dias)` },
-                { k: "2º período", v: `${fmtDateBR(p.segundo_periodo_ferias)} → ${fmtDateBR(p.fim_segundo_periodo)} (${fmtVal(p.qtd_dias_segundo_periodo)} dias)` },
-                { k: "3º período", v: `${fmtDateBR(p.terceiro_periodo_ferias)} → ${fmtDateBR(p.fim_terceiro_periodo)} (${fmtVal(p.qtd_dias_terceiro_periodo)} dias)` },
-                { k: "Usuário responsável (ID)", v: fmtVal(p.usuario_id) },
-                { k: "Última alteração", v: fmtVal(p.data_alteracao) },
-            ]);
-        }
-
-        return generic();
-    }
-
-    function renderTimeline(items) {
-        const $t = $("#timeline");
-        if (!items || !items.length) {
-            $t.html(`<div class="text-muted small py-3">Nenhum evento encontrado com os filtros atuais.</div>`);
-            return;
-        }
-
-        const html = items.map(ev => {
-            const di = ev.data_inicio ? new Date(ev.data_inicio).toLocaleDateString("pt-BR") : "";
-            const df = ev.data_fim ? new Date(ev.data_fim).toLocaleDateString("pt-BR") : "";
-            const periodo = (di && df) ? `${di} → ${df}` : (di || df || "—");
-            const desc = ev.descricao ? `<div class="text-muted small mt-1">${escapeHtml(ev.descricao)}</div>` : "";
-
-            return `
-                <div class="timeline-item"
-                    role="button"
-                    data-tipo="${escapeHtml(ev.tipo || '')}"
-                    data-titulo="${escapeHtml(ev.titulo || ev.tipo)}"
-                    data-sub="${escapeHtml((ev.tipo || '') + ' • ' + periodo)}"
-                    data-di="${escapeHtml(ev.data_inicio || '')}"
-                    data-df="${escapeHtml(ev.data_fim || '')}"
-                    data-json="${escapeHtml(JSON.stringify(ev.payload ?? {}, null, 2))}">
-                    <div class="timeline-dot"></div>
-
-                    <div class="card glass-card shadow-sm border-0">
-                    <div class="card-body py-3">
-                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-                        <div>
-                            <div class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="type-chip">${escapeHtml(ev.tipo || '')}</span>
-                            <span class="fw-bold">${escapeHtml(ev.titulo || "Evento")}</span>
-                            </div>
-                            <div class="text-muted small mt-1">${escapeHtml(periodo)}</div>
-                            ${desc}
-                        </div>
-                        <span class="id-chip">${escapeHtml(ev.id_evento || "")}</span>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-            `;
-        }).join("");
-
-        $t.html(html);
-
-        $("#timeline .timeline-item").on("click", function () {
-            $("#mdlTitulo").text($(this).attr("data-titulo"));
-            $("#mdlSub").text($(this).attr("data-sub"));
-
-            const raw = $(this).attr("data-json") || "{}";
-            let payloadObj = {};
-            try { payloadObj = JSON.parse(raw); } catch { }
-
-            const ev = {
-                tipo: $(this).attr("data-tipo"),
-                titulo: $(this).attr("data-titulo"),
-                data_inicio: $(this).attr("data-di") || null,
-                data_fim: $(this).attr("data-df") || null,
-                id_evento: $(this).find(".id-chip").text().trim(),
-                payload: payloadObj
-            };
-
-            $("#mdlResumo").html(renderResumoHumano(ev));
-            $("#mdlJson").text(JSON.stringify(payloadObj, null, 2));
-            document.querySelector('[data-bs-target="#tab-resumo"]').click();
-
-            new bootstrap.Modal(document.getElementById("modalDetalhe")).show();
+    $(function () {
+        $('#buscaMilitar').select2({
+            placeholder: 'Digite ao menos 2 letras...',
+            minimumInputLength: 2,
+            width: '100%',
+            ajax: {
+                url: '{{ url_for("historico_militar.api_search_militares") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data) { return data; }
+            }
         });
-    }
 
-    async function loadHeader() {
-        const r = await fetch(`/historico/api/${militarId}/header`);
-        const j = await r.json();
-        if (j.ok) renderHeader(j.militar);
-    }
-
-    function buildQuery() {
-        const tipos = ($("#fltTipos").val() || []).join(",");
-        const q = ($("#fltQ").val() || "").trim();
-        const de = ($("#fltDe").val() || "").trim();
-        const ate = ($("#fltAte").val() || "").trim();
-
-        const params = new URLSearchParams();
-        params.set("page", page);
-        params.set("per_page", perPage);
-        if (tipos) params.set("tipos", tipos);
-        if (q) params.set("q", q);
-        if (de) params.set("de", de);
-        if (ate) params.set("ate", ate);
-        return params.toString();
-    }
-
-    async function loadTimeline() {
-        const qs = buildQuery();
-        const r = await fetch(`/historico/api/${militarId}/timeline?` + qs);
-        const j = await r.json();
-        if (!j.ok) return;
-
-        renderTimeline(j.items);
-
-        $("#metaTotal").text(`${j.total} evento(s)`);
-        $("#metaPage").text(`Página ${j.page}`);
-
-        $("#kpiTotal").text(j.total);
-        $("#kpiPage").text(j.page);
-
-        $("#btnPrev").prop("disabled", j.page <= 1);
-        $("#btnNext").prop("disabled", (j.page * j.per_page) >= j.total);
-    }
-
-    // Select2
-    $sel.select2({
-        placeholder: "Digite para buscar...",
-        allowClear: true,
-        ajax: {
-            url: "/historico/api/search",
-            dataType: "json",
-            delay: 250,
-            data: params => ({ q: params.term }),
-            processResults: data => data
-        }
+        $('#buscaMilitar').on('select2:select', function (e) {
+            const militarId = e.params.data.id;
+            window.location.href = '{{ url_for("historico_militar.pagina_historico") }}?militar_id=' + militarId;
+        });
     });
-
-    $sel.on("select2:select", async (e) => {
-        militarId = e.params.data.id;
-        page = 1;
-        setButtonsEnabled(true);
-        await loadHeader();
-        await loadTimeline();
-
-        const url = new URL(window.location.href);
-        url.searchParams.set("militar_id", militarId);
-        history.replaceState(null, "", url.toString());
-    });
-
-    $("#btnAplicar").on("click", async () => {
-        page = 1;
-        await loadTimeline();
-    });
-
-    $("#btnLimpar").on("click", async () => {
-        $("#fltQ").val("");
-        $("#fltDe").val("");
-        $("#fltAte").val("");
-        $("#fltTipos").val([]);
-        page = 1;
-        await loadTimeline();
-    });
-
-    $("#btnPrev").on("click", async () => { if (page > 1) page--; await loadTimeline(); });
-    $("#btnNext").on("click", async () => { page++; await loadTimeline(); });
-
-    $("#btnPrint").on("click", () => window.print());
-
-    $("#btnExportJson").on("click", async () => {
-        const qs = buildQuery();
-        const r = await fetch(`/historico/api/${militarId}/timeline?` + qs);
-        const j = await r.json();
-        const blob = new Blob([JSON.stringify(j, null, 2)], { type: "application/json" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `historico_militar_${militarId}.json`;
-        a.click();
-    });
-
-    async function boot() {
-        if (militarId) {
-            setButtonsEnabled(true);
-            await loadHeader();
-            await loadTimeline();
-            $("#fltDe").val("");
-            $("#fltAte").val("");
-        } else {
-            setButtonsEnabled(false);
-        }
-    }
-    boot();
-}) ();
 </script>
 {% endblock %}

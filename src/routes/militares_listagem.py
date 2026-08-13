@@ -6,12 +6,10 @@ from flask import render_template, request, jsonify
 from flask_login import login_required
 from src import app, database
 from src.forms import (FormFiltroMilitar)
-from src.models import (Militar, PostoGrad, Quadro, Obm, Localidade, Funcao, Especialidade, Destino, Modalidade, MilitarObmFuncao)
+from src.models import (Militar, Modalidade)
 from src.decorators.control import checar_ocupacao
 from datetime import datetime, date
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import func, or_
-import re
+from sqlalchemy.orm import joinedload
 
 from src.routes.helpers import build_tabela_militares_query
 from src.services.militares_listagem_service import (

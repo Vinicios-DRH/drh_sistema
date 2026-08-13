@@ -620,6 +620,10 @@
                                 <a class="mil-name-link" href="{{ url_for('exibir_militar', militar_id=militar.id) }}">
                                     {{ militar.nome_completo }}
                                 </a>
+                                <a href="{{ url_for('historico_militar.pagina_historico', militar_id=militar.id) }}"
+                                    class="ms-1" title="Ver histórico funcional">
+                                    <i class="bi bi-clock-history"></i>
+                                </a>
                             </td>
                             <td>{{ militar.nome_guerra or '—' }}</td>
                             <td>{{ militar.posto_grad or '—' }}</td>
@@ -672,10 +676,16 @@
                             </div>
                         </div>
 
-                        <a class="btn btn-sm btn-outline-primary"
-                            href="{{ url_for('exibir_militar', militar_id=militar.id) }}">
-                            Ver ficha
-                        </a>
+                        <div class="d-flex flex-column gap-1">
+                            <a class="btn btn-sm btn-outline-primary"
+                                href="{{ url_for('exibir_militar', militar_id=militar.id) }}">
+                                Ver ficha
+                            </a>
+                            <a class="btn btn-sm btn-outline-secondary"
+                                href="{{ url_for('historico_militar.pagina_historico', militar_id=militar.id) }}">
+                                <i class="bi bi-clock-history"></i> Histórico
+                            </a>
+                        </div>
                     </div>
 
                     <div class="mil-mobile-grid">

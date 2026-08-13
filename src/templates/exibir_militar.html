@@ -56,6 +56,11 @@ MACROS
               Voltar para militares
             </a>
 
+            <a href="{{ url_for('historico_militar.pagina_historico', militar_id=militar.id) }}" class="mp-btn-hero-outline">
+              <i class="bi bi-clock-history"></i>
+              Ver histórico
+            </a>
+
             {% if can_edit %}
             <a href="#acoes-finais" class="mp-btn-hero">
               <i class="bi bi-save"></i>

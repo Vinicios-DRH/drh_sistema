@@ -266,6 +266,17 @@ def listar_militares_pafs_para_tabela(obm_id: int, ano: int):
     )
 
 
+def listar_pafs_do_militar(militar_id: int):
+    """Todos os PAFs (um por ano de referência) de um único militar, mais
+    recente primeiro — usado no módulo de Histórico do Militar."""
+    return (
+        Paf.query
+        .filter(Paf.militar_id == militar_id)
+        .order_by(Paf.ano_referencia.desc())
+        .all()
+    )
+
+
 # ---------------------------------------------------------------------------
 # Exportação Excel dos PAFs de uma OBM
 # ---------------------------------------------------------------------------
