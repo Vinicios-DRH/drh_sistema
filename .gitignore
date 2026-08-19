@@ -27,6 +27,9 @@ instance/
 *.sqlite3
 *.db
 
+# --- Relatórios gerados (dados pessoais sensíveis, não versionar) ---
+relatorios/
+
 # --- IDE/OS ---
 .vscode/
 .idea/
