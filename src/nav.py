@@ -6,7 +6,13 @@ from typing import Any, Callable, Dict, List, Optional
 from flask import session, url_for
 from flask_login import current_user
 from src.decorators.control import has_perm, _get_pg_id_user
-from src.authz import can_see_taf_panel, is_super, is_super_or_perm
+from src.authz import (
+    can_manage_cursos_cbmam,
+    can_see_taf_panel,
+    is_super,
+    is_super_or_perm,
+    pode_ver_autoatendimento_militar,
+)
 
 
 def _safe_url(endpoint: str, **values) -> str:
@@ -154,6 +160,22 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
+    # Meus Cursos CBMAM (autoatendimento): além do ATUALIZACAO CADASTRAL de
+    # sempre, também quem foi promovido a CHEFE mas continua sendo militar.
+    # Sem `perm` de propósito: teria que ser concedida individualmente pra
+    # cada militar no painel de permissões, o que é inviável em escala. A
+    # regra de negócio (rule) já resolve sozinha quem deve ver o item, e a
+    # rota tem a mesma checagem (pode_ver_autoatendimento_militar) por trás.
+    nav.append(
+        _mk_item(
+            "Meus Cursos CBMAM",
+            "meus_cursos",
+            icon="fas fa-graduation-cap",
+            rule=(lambda: is_super or pode_ver_autoatendimento_militar()) if militar_id_atual else (
+                lambda: False),
+        )
+    )
+
     # Validações
     nav.append(
         _mk_group(
@@ -198,6 +220,15 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                     rule=(lambda: is_super or can_see_taf_panel()),
                 ),
             ],
+        )
+    )
+
+    nav.append(
+        _mk_item(
+            "Cursos CBMAM (BM-3)",
+            "cursos_cbmam_admin",
+            icon="fas fa-graduation-cap",
+            rule=(lambda: is_super or can_manage_cursos_cbmam()),
         )
     )
 

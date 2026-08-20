@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ andamento.curso.nome if andamento.curso else 'Edição' }} | Cursos CBMAM{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    .cc-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
+        background:
+            radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 20%),
+            radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 28%),
+            linear-gradient(135deg, var(--app-page-bg) 0%, var(--app-page-bg-alt) 52%, var(--app-surface-muted) 100%);
+    }
+    .cc-container { max-width: 1300px; }
+
+    .cc-hero {
+        position: relative; overflow: hidden; padding: 1.35rem;
+        border: 1px solid rgba(255, 255, 255, .16); border-radius: 20px;
+        color: var(--app-hero-text, #fff);
+        background: linear-gradient(135deg, var(--app-hero-start, #071b2c) 0%, var(--app-hero-middle, #0b385e) 50%, var(--app-hero-end, #145883) 100%);
+        box-shadow: var(--app-shadow-hero);
+    }
+    .cc-eyebrow { display: block; margin-bottom: .25rem; color: var(--app-hero-muted, rgba(255, 255, 255, .72)); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .cc-title { margin: 0; color: var(--app-hero-text, #fff); font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 850; }
+    .cc-subtitle { margin: .3rem 0 0; color: var(--app-hero-muted, rgba(255, 255, 255, .78)); font-size: .87rem; }
+    .cc-back { color: var(--app-hero-muted, rgba(255,255,255,.8)); text-decoration: none; font-size: .85rem; }
+    .cc-back:hover { color: var(--app-hero-text, #fff); }
+
+    .cc-panel { margin-top: 1rem; padding: 1.1rem; border: 1px solid var(--app-border); border-radius: 20px; color: var(--app-text); background: var(--app-surface); box-shadow: var(--app-shadow-card); }
+    .cc-panel-title { margin: 0 0 .9rem; font-size: 1rem; font-weight: 800; color: var(--app-text); }
+    .cc-panel-title i { margin-right: .4rem; color: var(--app-primary); }
+
+    .cc-panel-title-toggle {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--app-text) !important;
+    }
+    .cc-panel-title-toggle i.bi-clock-history { margin-right: .4rem; color: var(--app-primary); }
+    .cc-panel-title-toggle .cc-chevron { margin-left: auto; transition: transform .15s ease; color: var(--app-muted); }
+    .cc-panel-title-toggle[aria-expanded="true"] .cc-chevron { transform: rotate(180deg); }
+    .cc-field-label { display: block; margin-bottom: .3rem; font-size: .8rem; font-weight: 650; color: var(--app-text); }
+
+    .cc-check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .5rem; padding: .75rem; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface-soft); }
+    .cc-check-grid label { display: flex; align-items: center; gap: .35rem; font-size: .84rem; color: var(--app-text); cursor: pointer; }
+
+    .cc-item-list { display: flex; flex-direction: column; gap: .75rem; }
+    .cc-item { padding: .85rem; border: 1px solid var(--app-border); border-radius: 14px; background: var(--app-surface-soft); }
+    .cc-item-title { font-weight: 700; color: var(--app-text); }
+    .cc-item-sub { margin-top: .15rem; font-size: .82rem; color: var(--app-muted); }
+
+    .status-pill { display: inline-block; padding: .25rem .6rem; border-radius: 999px; color: var(--app-text); font-size: .78rem; font-weight: 700; border: 1px solid var(--app-border); background: var(--app-surface-soft); }
+    .status-vigente { border-color: #2c704a; color: #1c6b3f; background: #d9f7df; }
+    html[data-theme="dark"] .status-vigente { border-color: #2c704a; color: #75dda1; background: #143b2a; }
+    .status-a-iniciar { border-color: #8a6d1f; color: #7a5d0a; background: #fff3cd; }
+    html[data-theme="dark"] .status-a-iniciar { border-color: #6d5723; color: #f3d37d; background: #382f15; }
+    .status-termino { border-color: #743d46; color: #a1303c; background: #ffd9d9; }
+    html[data-theme="dark"] .status-termino { border-color: #743d46; color: #ffa2aa; background: #441d25; }
+    .status-cancelado { border-color: #6b7280; color: #4b5563; background: #e5e7eb; }
+    html[data-theme="dark"] .status-cancelado { border-color: #6b7280; color: #cbd5e1; background: #374151; }
+
+    .cc-historico-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .cc-historico-list li { padding: .55rem .7rem; border: 1px solid var(--app-border); border-radius: 10px; background: var(--app-surface-soft); font-size: .84rem; color: var(--app-text); }
+</style>
+{% endblock %}
+
+{% macro nome_com_posto(militar) %}
+{%- if militar -%}
+{{ (militar.posto_grad.sigla + ' ') if militar.posto_grad else '' }}{{ militar.nome_completo }}
+{%- else -%}
+este militar
+{%- endif -%}
+{% endmacro %}
+
+{% macro nome_com_posto_user(user) %}
+{%- if user -%}
+{{ (user.militar.posto_grad.sigla + ' ') if (user.militar and user.militar.posto_grad) else '' }}{{ user.nome }}
+{%- else -%}
+—
+{%- endif -%}
+{% endmacro %}
+
+{% macro form_analise(s) %}
+<form method="post" action="{{ url_for('cursos_cbmam_analisar_solicitacao', solicitacao_id=s.id) }}"
+    class="mt-2 cc-analise-form" data-militar="{{ nome_com_posto(s.militar) }}"
+    {% if s.deferido is not none %}data-decisao-atual="{{ 'Deferido' if s.deferido else 'Indeferido' }}"{% endif %}>
+    <input type="hidden" name="deferido" value="">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-8">
+            <input type="text" name="observacao_analise" class="form-control form-control-sm"
+                placeholder="Observação (opcional, ex.: motivo do indeferimento)"
+                value="{{ s.observacao_analise or '' }}">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-success flex-fill cc-analise-btn"
+                data-acao="deferir" data-valor="1">
+                <i class="bi bi-check-lg"></i> Deferir
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger flex-fill cc-analise-btn"
+                data-acao="indeferir" data-valor="0">
+                <i class="bi bi-x-lg"></i> Indeferir
+            </button>
+        </div>
+    </div>
+</form>
+{% endmacro %}
+
+{% block body %}
+<main class="cc-page">
+    <div class="container-fluid px-2 px-md-3 cc-container">
+
+        <section class="cc-hero">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <a class="cc-back" href="{{ url_for('cursos_cbmam_admin') }}"><i class="bi bi-arrow-left"></i> Voltar para Cursos CBMAM</a>
+                    <span class="cc-eyebrow mt-2">BM-3 — Ensino</span>
+                    <h1 class="cc-title">{{ andamento.curso.nome if andamento.curso else 'Edição' }}</h1>
+                    <p class="cc-subtitle">
+                        {% if andamento.cancelado %}
+                        <span class="status-pill status-cancelado">Cancelado</span>
+                        {% if andamento.cancelado_em %}
+                        em {{ andamento.cancelado_em.strftime('%d/%m/%Y') }}
+                        {% if andamento.cancelado_por %}por {{ nome_com_posto_user(andamento.cancelado_por) }}{% endif %}
+                        {% endif %}
+                        {% elif andamento.inscricoes_abertas %}
+                        <span class="status-pill status-vigente">Inscrições abertas</span>
+                        {% else %}
+                        <span class="status-pill status-termino">Inscrições encerradas</span>
+                        {% endif %}
+                        — prazo até <strong>{{ andamento.data_limite_inscricao.strftime('%d/%m/%Y') }}</strong>
+                    </p>
+                </div>
+
+                <div>
+                    {% if andamento.cancelado %}
+                    <form method="post" action="{{ url_for('cursos_cbmam_reativar_andamento', andamento_id=andamento.id) }}">
+                        <button type="submit" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reativar edição
+                        </button>
+                    </form>
+                    {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal"
+                        data-bs-target="#confirmarCancelamentoModal">
+                        <i class="bi bi-x-octagon me-1"></i>Cancelar edição
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="row g-3 mt-1">
+            <div class="col-lg-5">
+                <div class="cc-panel h-100">
+                    <h2 class="cc-panel-title"><i class="bi bi-pencil-square"></i>Editar critérios e prazos</h2>
+                    <form method="post" action="{{ url_for('cursos_cbmam_editar_andamento', andamento_id=andamento.id) }}">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="cc-field-label" for="edit_destinado_a">Destinado a</label>
+                                <select id="edit_destinado_a" name="destinado_a" class="form-select" required>
+                                    <option value="AMBOS" {{ 'selected' if andamento.destinado_a == 'AMBOS' }}>Combatente e Saúde</option>
+                                    <option value="COMBATENTE" {{ 'selected' if andamento.destinado_a == 'COMBATENTE' }}>Somente Combatente</option>
+                                    <option value="SAUDE" {{ 'selected' if andamento.destinado_a == 'SAUDE' }}>Somente Saúde</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="edit_data_inicio">Início</label>
+                                <input type="date" id="edit_data_inicio" name="data_inicio" class="form-control"
+                                    value="{{ andamento.data_inicio.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="edit_data_fim">Término</label>
+                                <input type="date" id="edit_data_fim" name="data_fim" class="form-control"
+                                    value="{{ andamento.data_fim.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="edit_data_limite">Prazo de inscrição</label>
+                                <input type="date" id="edit_data_limite" name="data_limite_inscricao" class="form-control"
+                                    value="{{ andamento.data_limite_inscricao.strftime('%Y-%m-%d') }}" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="cc-field-label">Postos/graduações elegíveis</label>
+                                <div class="cc-check-grid">
+                                    {% set atuais = andamento.postos_grad|map(attribute='posto_grad_id')|list %}
+                                    {% for pg in postos_grad %}
+                                    <label>
+                                        <input type="checkbox" name="posto_grad_ids" value="{{ pg.id }}" {{ 'checked' if pg.id in atuais }}>
+                                        {{ pg.sigla }}
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn mp-btn-save">
+                                    <i class="bi bi-check2-circle me-1"></i>Salvar alterações
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="cc-panel">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none cc-panel-title-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#historico-andamento" aria-expanded="false">
+                        <i class="bi bi-clock-history"></i>Histórico desta edição ({{ auditoria_andamento|length }})
+                        <i class="bi bi-chevron-down cc-chevron"></i>
+                    </button>
+                    <div class="collapse" id="historico-andamento">
+                        {% if auditoria_andamento %}
+                        <ul class="cc-historico-list mt-2">
+                            {% for a in auditoria_andamento %}
+                            <li>
+                                {% set rotulos = {'CRIADO': 'Edição criada', 'EDITADO': 'Prazos/critérios editados', 'CANCELADO': 'Edição cancelada', 'REATIVADO': 'Cancelamento desfeito'} %}
+                                <strong>{{ rotulos.get(a.evento, a.evento) }}</strong>
+                                por {{ nome_com_posto_user(a.realizado_por) }}
+                                em {{ a.realizado_em.strftime('%d/%m/%Y às %H:%M') if a.realizado_em else '—' }}
+                                {% if a.detalhes %}<br><span class="cc-item-sub">{{ a.detalhes }}</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="mp-muted-note mb-0 mt-2">Nenhum evento registrado ainda.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="cc-panel h-100">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h2 class="cc-panel-title mb-0"><i class="bi bi-inboxes"></i>Inscrições recebidas ({{ solicitacoes|length }})</h2>
+                        {% if solicitacoes %}
+                        <a class="btn btn-sm btn-outline-success" href="{{ url_for('cursos_cbmam_relatorio_excel', andamento_id=andamento.id) }}">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Baixar relatório em Excel
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% if solicitacoes %}
+                    <div class="cc-item-list">
+                        {% for s in solicitacoes %}
+                        <div class="cc-item">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div>
+                                    <div class="cc-item-title">
+                                        {{ s.militar.posto_grad.sigla if s.militar and s.militar.posto_grad else '' }}
+                                        {{ s.militar.nome_completo if s.militar else 'Militar não encontrado' }}
+                                    </div>
+                                    <div class="cc-item-sub">
+                                        Enviado em {{ s.criado_em.strftime('%d/%m/%Y às %H:%M') if s.criado_em else '—' }}
+                                        · <a href="{{ url_for('cursos_cbmam_admin_arquivo', solicitacao_id=s.id) }}" target="_blank" rel="noopener">
+                                            <i class="bi bi-file-earmark-pdf"></i> {{ s.nome_original }}
+                                        </a>
+                                    </div>
+                                    {% if s.observacao_analise %}
+                                    <div class="cc-item-sub">Parecer: {{ s.observacao_analise }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="text-end">
+                                    {% if s.deferido is none %}
+                                    <span class="status-pill status-a-iniciar">Aguardando análise</span>
+                                    {% elif s.deferido %}
+                                    <span class="status-pill status-vigente">Deferido</span>
+                                    {% else %}
+                                    <span class="status-pill status-termino">Indeferido</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% set auditoria_s = auditoria_solicitacoes.get(s.id, []) %}
+                            {% if auditoria_s %}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none"
+                                    data-bs-toggle="collapse" data-bs-target="#historico-sol-{{ s.id }}">
+                                    <i class="bi bi-clock-history me-1"></i>Ver histórico de análise ({{ auditoria_s|length }})
+                                </button>
+                                <div class="collapse" id="historico-sol-{{ s.id }}">
+                                    <ul class="cc-historico-list mt-2">
+                                        {% for a in auditoria_s %}
+                                        <li>
+                                            <strong>{{ a.de_status or 'Nova inscrição' }} → {{ a.para_status }}</strong>
+                                            por {{ nome_com_posto_user(a.alterado_por) }}
+                                            em {{ a.data_alteracao.strftime('%d/%m/%Y às %H:%M') if a.data_alteracao else '—' }}
+                                            {% if a.observacao %}<br><span class="cc-item-sub">Parecer: {{ a.observacao }}</span>{% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if s.deferido is none %}
+                            {{ form_analise(s) }}
+                            {% else %}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none"
+                                    data-bs-toggle="collapse" data-bs-target="#corrigir-{{ s.id }}">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Corrigir análise
+                                </button>
+                                <div class="collapse" id="corrigir-{{ s.id }}">
+                                    {{ form_analise(s) }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="mp-muted-note">Nenhuma inscrição recebida até o momento.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% if not andamento.cancelado %}
+<form id="formCancelarAndamento" method="post"
+    action="{{ url_for('cursos_cbmam_cancelar_andamento', andamento_id=andamento.id) }}" class="d-none"></form>
+
+<div class="modal fade" id="confirmarCancelamentoModal" tabindex="-1" aria-labelledby="confirmarCancelamentoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-6" id="confirmarCancelamentoLabel">
+                    <i class="bi bi-x-octagon-fill text-danger me-2"></i>
+                    Cancelar esta edição?
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">
+                    As inscrições já recebidas continuam registradas e visíveis — nada é apagado.
+                </p>
+                <p class="mb-0">
+                    O curso deixa de aceitar novas inscrições. Pra oferecer de novo, é só cadastrar
+                    outra edição pra este mesmo curso quando quiser.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                <button type="submit" form="formCancelarAndamento" class="btn btn-danger">
+                    <i class="bi bi-x-octagon me-1"></i>Confirmar cancelamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="confirmarAnaliseModal" tabindex="-1" aria-labelledby="confirmarAnaliseLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-6" id="confirmarAnaliseLabel">
+                    <i id="confirmarAnaliseIcon" class="bi bi-question-circle-fill text-warning me-2"></i>
+                    <span id="confirmarAnaliseTitulo">Confirmar análise</span>
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0" id="confirmarAnaliseTexto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn" id="confirmarAnaliseBotao">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('confirmarAnaliseModal');
+        if (!modalEl || typeof bootstrap === 'undefined') return;
+
+        const modal = new bootstrap.Modal(modalEl);
+        const icone = document.getElementById('confirmarAnaliseIcon');
+        const titulo = document.getElementById('confirmarAnaliseTitulo');
+        const texto = document.getElementById('confirmarAnaliseTexto');
+        const botaoConfirmar = document.getElementById('confirmarAnaliseBotao');
+
+        let formPendente = null;
+        let valorPendente = null;
+
+        document.querySelectorAll('.cc-analise-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const form = btn.closest('form');
+                const militar = form.dataset.militar || 'este militar';
+                const acao = btn.dataset.acao;
+                const decisaoAtual = form.dataset.decisaoAtual;
+                const novaDecisao = acao === 'deferir' ? 'Deferido' : 'Indeferido';
+                const ehCorrecao = decisaoAtual && decisaoAtual !== novaDecisao;
+
+                formPendente = form;
+                valorPendente = btn.dataset.valor;
+
+                if (acao === 'deferir') {
+                    icone.className = 'bi bi-check-circle-fill text-success me-2';
+                    botaoConfirmar.className = 'btn btn-success';
+                } else {
+                    icone.className = 'bi bi-x-circle-fill text-danger me-2';
+                    botaoConfirmar.className = 'btn btn-danger';
+                }
+
+                if (ehCorrecao) {
+                    titulo.textContent = 'Corrigir análise?';
+                    texto.textContent = `A inscrição de ${militar} está como ${decisaoAtual.toUpperCase()}. Confirma trocar para ${novaDecisao.toUpperCase()}?`;
+                } else if (decisaoAtual) {
+                    titulo.textContent = 'Confirmar análise?';
+                    texto.textContent = `A inscrição de ${militar} já está como ${decisaoAtual.toUpperCase()}. Confirma manter essa decisão?`;
+                } else if (acao === 'deferir') {
+                    titulo.textContent = 'Deferir inscrição?';
+                    texto.textContent = `Você vai DEFERIR a inscrição de ${militar}. Confirma?`;
+                } else {
+                    titulo.textContent = 'Indeferir inscrição?';
+                    texto.textContent = `Você vai INDEFERIR a inscrição de ${militar}. Confirma?`;
+                }
+
+                modal.show();
+            });
+        });
+
+        botaoConfirmar.addEventListener('click', function () {
+            if (!formPendente) return;
+            formPendente.querySelector('input[name="deferido"]').value = valorPendente;
+            formPendente.submit();
+        });
+    });
+</script>
+{% endblock %}

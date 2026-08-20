@@ -2118,6 +2118,170 @@ class MilitarCurso(database.Model):
     )
 
 
+# ---------------------------------------------------------------------------
+# CURSOS CBMAM — plataforma de inscrição
+#
+# `Curso` (acima) já guarda o catálogo (nome/descrição) de cursos que um
+# militar pode ter concluído. `CursoAndamento` é uma "edição aberta" desse
+# curso — quando a BM-3 abre inscrições, com data de início/fim do curso em
+# si e prazo de inscrição, pra quem é destinado (combatente/saúde) e quais
+# postos/graduações podem se inscrever. `SolicitacaoInscricaoCurso` é o
+# pedido de inscrição de um militar, com o PDF anexado e o parecer da BM-3.
+# ---------------------------------------------------------------------------
+
+class CursoAndamento(database.Model):
+    __tablename__ = "curso_andamento"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_id = database.Column(
+        database.Integer, database.ForeignKey('curso.id'), nullable=False, index=True)
+
+    data_inicio = database.Column(database.Date, nullable=False)
+    data_fim = database.Column(database.Date, nullable=False)
+    data_limite_inscricao = database.Column(database.Date, nullable=False)
+
+    # 'COMBATENTE' | 'SAUDE' | 'AMBOS' — mesmo critério já usado na home
+    # (Militar.especialidade_id == 3 é combatente, o resto é saúde).
+    destinado_a = database.Column(database.String(20), nullable=False)
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    criado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    # Cancelamento: a edição continua no banco (histórico, solicitações já
+    # recebidas) — só para de aceitar inscrição nova. O mesmo curso do
+    # catálogo pode ganhar uma edição nova depois, normalmente.
+    cancelado = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+    cancelado_em = database.Column(database.DateTime(timezone=True))
+    cancelado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    curso = database.relationship('Curso')
+    criado_por = database.relationship('User', foreign_keys=[criado_por_user_id])
+    cancelado_por = database.relationship('User', foreign_keys=[cancelado_por_user_id])
+    postos_grad = database.relationship(
+        'CursoAndamentoPostoGrad', cascade='all, delete-orphan', backref='curso_andamento')
+    solicitacoes = database.relationship(
+        'SolicitacaoInscricaoCurso', cascade='all, delete-orphan', backref='curso_andamento')
+
+    @property
+    def inscricoes_abertas(self):
+        return not self.cancelado and date.today() <= self.data_limite_inscricao
+
+
+class CursoAndamentoPostoGrad(database.Model):
+    __tablename__ = "curso_andamento_posto_grad"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_andamento_id = database.Column(
+        database.Integer, database.ForeignKey('curso_andamento.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    posto_grad_id = database.Column(
+        database.Integer, database.ForeignKey('posto_grad.id'), nullable=False)
+
+    posto_grad = database.relationship('PostoGrad')
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            'curso_andamento_id', 'posto_grad_id', name='uq_curso_andamento_posto_grad'),
+    )
+
+
+class SolicitacaoInscricaoCurso(database.Model):
+    __tablename__ = "solicitacao_inscricao"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_andamento_id = database.Column(
+        database.Integer, database.ForeignKey('curso_andamento.id'), nullable=False, index=True)
+    militar_id = database.Column(
+        database.Integer, database.ForeignKey('militar.id'), nullable=False, index=True)
+
+    nome_original = database.Column(database.String(255), nullable=False)
+    content_type = database.Column(database.String(100), nullable=False)
+    tamanho_bytes = database.Column(database.Integer)
+    # URL pública do PDF no servidor próprio do CBMAM (ver
+    # src.decorators.utils_pdf_bucket.upload_pdf_para_servidor) — mesma API
+    # já usada por Gestão de Chefia pra comprovantes.
+    url_arquivo = database.Column(database.String(500), nullable=False)
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # None = aguardando análise da BM-3; True = deferido; False = indeferido
+    deferido = database.Column(database.Boolean)
+    analisado_em = database.Column(database.DateTime(timezone=True))
+    analisado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    observacao_analise = database.Column(database.Text)
+
+    militar = database.relationship('Militar')
+    analisado_por = database.relationship('User', foreign_keys=[analisado_por_user_id])
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            'curso_andamento_id', 'militar_id', name='uq_solicitacao_curso_militar'),
+    )
+
+
+# ---------------------------------------------------------------------------
+# CURSOS CBMAM — auditoria
+#
+# `SolicitacaoInscricaoCurso.deferido/analisado_em/analisado_por/observacao`
+# guardam só a decisão ATUAL — quando a BM-3 corrige uma análise (deferiu
+# errado, corrige pra indeferido), esses campos são sobrescritos e a decisão
+# antiga se perde. Pra fins de auditoria isso não pode acontecer: cada
+# análise (a primeira e qualquer correção) vira uma linha aqui, sem apagar
+# nada. O mesmo vale pra CursoAndamento — o mesmo curso do catálogo pode
+# abrir edição em anos diferentes (todas ficam guardadas, nunca apagadas),
+# e cada cancelamento/reativação/edição de uma edição também fica registrado.
+# ---------------------------------------------------------------------------
+
+class AuditoriaSolicitacaoCurso(database.Model):
+    __tablename__ = "auditoria_solicitacao_curso"
+
+    id = database.Column(database.Integer, primary_key=True)
+    solicitacao_id = database.Column(
+        database.Integer, database.ForeignKey('solicitacao_inscricao.id'), nullable=False, index=True)
+
+    de_status = database.Column(database.String(30))
+    para_status = database.Column(database.String(30), nullable=False)
+    observacao = database.Column(database.Text)
+
+    alterado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_alteracao = database.Column(
+        database.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    solicitacao = database.relationship(
+        'SolicitacaoInscricaoCurso',
+        backref=database.backref('auditorias', cascade='all, delete-orphan'))
+    alterado_por = database.relationship('User')
+
+
+class AuditoriaCursoAndamento(database.Model):
+    __tablename__ = "auditoria_curso_andamento"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_andamento_id = database.Column(
+        database.Integer, database.ForeignKey('curso_andamento.id'), nullable=False, index=True)
+
+    # 'CRIADO' | 'EDITADO' | 'CANCELADO' | 'REATIVADO'
+    evento = database.Column(database.String(30), nullable=False)
+    detalhes = database.Column(database.Text)
+
+    realizado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    realizado_em = database.Column(
+        database.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    curso_andamento = database.relationship(
+        'CursoAndamento',
+        backref=database.backref('auditorias', cascade='all, delete-orphan'))
+    realizado_por = database.relationship('User')
+
+
 class EfetivoDiarioOBM(database.Model):
     __tablename__ = 'efetivo_diario_obm'
     

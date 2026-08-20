@@ -17,6 +17,7 @@ from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased
 from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
 from src.utils.utils import registrar_log_download
+from src.services.cursos_cbmam_service import listar_cursos_disponiveis_para_militar
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 
@@ -218,6 +219,23 @@ def home_atualizacao():
     except Exception:
         pass
 
+    # -------- 5b) Cursos CBMAM disponíveis pra esse militar --------
+    cursos_cbmam_disponiveis_qtd = 0
+    cursos_cbmam_pendentes_qtd = 0
+    try:
+        if militar:
+            cursos_cbmam = listar_cursos_disponiveis_para_militar(militar)
+            cursos_cbmam_disponiveis_qtd = sum(
+                1 for item in cursos_cbmam
+                if item["andamento"].inscricoes_abertas and not item["solicitacao"]
+            )
+            cursos_cbmam_pendentes_qtd = sum(
+                1 for item in cursos_cbmam
+                if item["solicitacao"] and item["solicitacao"].deferido is None
+            )
+    except Exception:
+        pass
+
     # ⚠️ Define a variável usada no template/JS
     militar_id_atual = militar_id
     tem_inconforme_no_ano = (kpi_decl_inconformes or 0) > 0
@@ -247,6 +265,8 @@ def home_atualizacao():
         pessoa_id_atual=pessoa_id_atual,
         docs_pendentes=docs_pendentes,
         docs_pendentes_qtd=docs_pendentes_qtd,
+        cursos_cbmam_disponiveis_qtd=cursos_cbmam_disponiveis_qtd,
+        cursos_cbmam_pendentes_qtd=cursos_cbmam_pendentes_qtd,
         prazo_fechado=prazo_fechado,
         prazo_limite=prazo_limite,
         tem_inconforme_no_ano=tem_inconforme_no_ano,

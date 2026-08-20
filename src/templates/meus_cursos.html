@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+
+{% block title %}Meus Cursos CBMAM | SIGDP{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    .cc-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
+        background:
+            radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 20%),
+            radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 28%),
+            linear-gradient(135deg, var(--app-page-bg) 0%, var(--app-page-bg-alt) 52%, var(--app-surface-muted) 100%);
+    }
+    .cc-container { max-width: 1100px; }
+
+    .cc-hero {
+        position: relative; overflow: hidden; padding: 1.35rem;
+        border: 1px solid rgba(255, 255, 255, .16); border-radius: 20px;
+        color: var(--app-hero-text, #fff);
+        background: linear-gradient(135deg, var(--app-hero-start, #071b2c) 0%, var(--app-hero-middle, #0b385e) 50%, var(--app-hero-end, #145883) 100%);
+        box-shadow: var(--app-shadow-hero);
+    }
+    .cc-eyebrow { display: block; margin-bottom: .25rem; color: var(--app-hero-muted, rgba(255, 255, 255, .72)); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .cc-title { margin: 0; color: var(--app-hero-text, #fff); font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 850; }
+    .cc-subtitle { margin: .3rem 0 0; color: var(--app-hero-muted, rgba(255, 255, 255, .78)); font-size: .87rem; }
+
+    .cc-panel { margin-top: 1rem; padding: 1.1rem; border: 1px solid var(--app-border); border-radius: 20px; color: var(--app-text); background: var(--app-surface); box-shadow: var(--app-shadow-card); }
+    .cc-panel-title { margin: 0 0 .9rem; font-size: 1rem; font-weight: 800; color: var(--app-text); }
+    .cc-panel-title i { margin-right: .4rem; color: var(--app-primary); }
+
+    .cc-item-list { display: flex; flex-direction: column; gap: .75rem; }
+    .cc-item { padding: .9rem; border: 1px solid var(--app-border); border-radius: 14px; background: var(--app-surface-soft); }
+    .cc-item-title { font-weight: 750; color: var(--app-text); font-size: 1rem; }
+    .cc-item-sub { margin-top: .15rem; font-size: .82rem; color: var(--app-muted); }
+    .cc-empty { padding: 1rem; text-align: center; color: var(--app-muted); font-size: .88rem; }
+
+    .status-pill { display: inline-block; padding: .25rem .6rem; border-radius: 999px; color: var(--app-text); font-size: .78rem; font-weight: 700; border: 1px solid var(--app-border); background: var(--app-surface-soft); }
+    .status-vigente { border-color: #2c704a; color: #1c6b3f; background: #d9f7df; }
+    html[data-theme="dark"] .status-vigente { border-color: #2c704a; color: #75dda1; background: #143b2a; }
+    .status-a-iniciar { border-color: #8a6d1f; color: #7a5d0a; background: #fff3cd; }
+    html[data-theme="dark"] .status-a-iniciar { border-color: #6d5723; color: #f3d37d; background: #382f15; }
+    .status-termino { border-color: #743d46; color: #a1303c; background: #ffd9d9; }
+    html[data-theme="dark"] .status-termino { border-color: #743d46; color: #ffa2aa; background: #441d25; }
+    .status-cancelado { border-color: #6b7280; color: #4b5563; background: #e5e7eb; }
+    html[data-theme="dark"] .status-cancelado { border-color: #6b7280; color: #cbd5e1; background: #374151; }
+
+    /* Bloco do parecer da BM-3 — precisa ser bem visível, não uma nota
+       discreta: gente com baixa visão ou só passando o olho rápido tem
+       que enxergar isso sem esforço. */
+    .cc-parecer-box {
+        margin-top: .85rem;
+        padding: .9rem 1rem;
+        border: 2px solid var(--app-border);
+        border-radius: 14px;
+        background: var(--app-surface);
+    }
+    .cc-parecer-titulo {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: var(--app-text);
+    }
+    .cc-parecer-titulo i { font-size: 1.2rem; }
+    .cc-parecer-texto {
+        margin-top: .5rem;
+        font-size: .95rem;
+        line-height: 1.5;
+        color: var(--app-text);
+    }
+    .cc-parecer-data {
+        margin-top: .5rem;
+        font-size: .82rem;
+        color: var(--app-muted);
+    }
+
+    .cc-parecer-deferido {
+        border-color: #2c704a;
+        background: #d9f7df;
+    }
+    .cc-parecer-deferido .cc-parecer-titulo,
+    .cc-parecer-deferido .cc-parecer-texto { color: #14532d; }
+    .cc-parecer-deferido .cc-parecer-titulo i { color: #1c6b3f; }
+    html[data-theme="dark"] .cc-parecer-deferido {
+        border-color: #2c704a;
+        background: #143b2a;
+    }
+    html[data-theme="dark"] .cc-parecer-deferido .cc-parecer-titulo,
+    html[data-theme="dark"] .cc-parecer-deferido .cc-parecer-texto { color: #d1fae5; }
+    html[data-theme="dark"] .cc-parecer-deferido .cc-parecer-titulo i { color: #75dda1; }
+
+    .cc-parecer-indeferido {
+        border-color: #743d46;
+        background: #ffd9d9;
+    }
+    .cc-parecer-indeferido .cc-parecer-titulo,
+    .cc-parecer-indeferido .cc-parecer-texto { color: #6b1420; }
+    .cc-parecer-indeferido .cc-parecer-titulo i { color: #a1303c; }
+    html[data-theme="dark"] .cc-parecer-indeferido {
+        border-color: #743d46;
+        background: #441d25;
+    }
+    html[data-theme="dark"] .cc-parecer-indeferido .cc-parecer-titulo,
+    html[data-theme="dark"] .cc-parecer-indeferido .cc-parecer-texto { color: #ffe1e1; }
+    html[data-theme="dark"] .cc-parecer-indeferido .cc-parecer-titulo i { color: #ffa2aa; }
+
+    .cc-btn-arquivo {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        margin-top: .6rem;
+        padding: .4rem .85rem;
+        border: 1px solid var(--app-primary);
+        border-radius: 10px;
+        color: var(--app-primary);
+        font-weight: 700;
+        font-size: .86rem;
+        background: var(--app-surface);
+        text-decoration: none;
+        transition: background .12s ease, color .12s ease;
+    }
+    .cc-btn-arquivo:hover,
+    .cc-btn-arquivo:focus {
+        color: #fff;
+        background: var(--app-primary);
+        text-decoration: none;
+    }
+
+    .cc-upload-form { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--app-border); }
+
+    .cc-btn-inscrever {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        width: 100%;
+        padding: .55rem .9rem;
+        border: none;
+        border-radius: 12px;
+        color: #fff;
+        font-weight: 750;
+        font-size: .92rem;
+        letter-spacing: .01em;
+        background: linear-gradient(135deg, #b5121b 0%, #e0392f 100%);
+        box-shadow: 0 6px 16px rgba(181, 18, 27, .35);
+        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+    }
+    .cc-btn-inscrever:hover,
+    .cc-btn-inscrever:focus {
+        color: #fff;
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(181, 18, 27, .45);
+    }
+    .cc-btn-inscrever i { font-size: 1.05rem; }
+</style>
+{% endblock %}
+
+{% macro nome_com_posto_user(user) %}
+{%- if user -%}
+{{ (user.militar.posto_grad.sigla + ' ') if (user.militar and user.militar.posto_grad) else '' }}{{ user.nome }}
+{%- else -%}
+responsável não identificado
+{%- endif -%}
+{% endmacro %}
+
+{% macro bloco_analise(sol) %}
+<div class="cc-item-sub mt-2">
+    Arquivo enviado em {{ sol.criado_em.strftime('%d/%m/%Y às %H:%M') if sol.criado_em else '—' }}: {{ sol.nome_original }}
+</div>
+<a class="cc-btn-arquivo" href="{{ url_for('meus_cursos_arquivo', solicitacao_id=sol.id) }}"
+    target="_blank" rel="noopener">
+    <i class="bi bi-download"></i>
+    Baixar o arquivo que eu enviei
+</a>
+
+{% if sol.deferido is not none %}
+<div class="cc-parecer-box {{ 'cc-parecer-deferido' if sol.deferido else 'cc-parecer-indeferido' }}">
+    <div class="cc-parecer-titulo">
+        <i class="bi bi-{{ 'check-circle-fill' if sol.deferido else 'x-circle-fill' }}"></i>
+        Sua inscrição foi {{ 'DEFERIDA' if sol.deferido else 'INDEFERIDA' }} pela BM-3
+    </div>
+    <div class="cc-parecer-texto">
+        <strong>Parecer da BM-3:</strong>
+        {% if sol.observacao_analise %}
+        {{ sol.observacao_analise }}
+        {% else %}
+        Nenhuma observação foi registrada.
+        {% endif %}
+    </div>
+    <div class="cc-parecer-data">
+        Analisado por <strong>{{ nome_com_posto_user(sol.analisado_por) }}</strong>
+        {% if sol.analisado_em %}
+        em {{ sol.analisado_em.strftime('%d/%m/%Y às %H:%M') }}
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% block body %}
+<main class="cc-page">
+    <div class="container-fluid px-2 px-md-3 cc-container">
+
+        <section class="cc-hero">
+            <span class="cc-eyebrow">Ensino</span>
+            <h1 class="cc-title">Meus Cursos CBMAM</h1>
+            <p class="cc-subtitle">
+                Cursos abertos para inscrição e o andamento das suas solicitações.
+            </p>
+        </section>
+
+        <div class="cc-panel">
+            <h2 class="cc-panel-title"><i class="bi bi-mortarboard"></i>Cursos disponíveis para você</h2>
+
+            {% if cursos_disponiveis %}
+            <div class="cc-item-list">
+                {% for item in cursos_disponiveis %}
+                {% set andamento = item.andamento %}
+                {% set solicitacao = item.solicitacao %}
+                <div class="cc-item">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <div class="cc-item-title">{{ andamento.curso.nome if andamento.curso else '—' }}</div>
+                            <div class="cc-item-sub">
+                                {{ andamento.data_inicio.strftime('%d/%m/%Y') }} – {{ andamento.data_fim.strftime('%d/%m/%Y') }}
+                                · Inscrições até <strong>{{ andamento.data_limite_inscricao.strftime('%d/%m/%Y') }}</strong>
+                            </div>
+                            {% if andamento.curso and andamento.curso.descricao %}
+                            <div class="cc-item-sub">{{ andamento.curso.descricao }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-end">
+                            {% if solicitacao and solicitacao.deferido is not none %}
+                                {% if solicitacao.deferido %}
+                                <span class="status-pill status-vigente">Deferido</span>
+                                {% else %}
+                                <span class="status-pill status-termino">Indeferido</span>
+                                {% endif %}
+                            {% elif andamento.cancelado %}
+                            <span class="status-pill status-cancelado">Curso cancelado</span>
+                            {% elif solicitacao %}
+                            <span class="status-pill status-a-iniciar">Aguardando análise</span>
+                            {% elif not andamento.inscricoes_abertas %}
+                            <span class="status-pill status-termino">Inscrições encerradas</span>
+                            {% else %}
+                            <span class="status-pill status-vigente">Inscrições abertas</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if solicitacao %}
+                    {{ bloco_analise(solicitacao) }}
+                    {% endif %}
+
+                    {% if andamento.inscricoes_abertas and (not solicitacao or solicitacao.deferido is sameas false) %}
+                    <form class="cc-upload-form cc-inscricao-form" method="post" enctype="multipart/form-data"
+                        action="{{ url_for('meus_cursos_inscrever', andamento_id=andamento.id) }}"
+                        data-curso="{{ andamento.curso.nome if andamento.curso else 'este curso' }}">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label small mb-1">
+                                    {{ 'Reenviar inscrição (PDF, até 10MB)' if solicitacao else 'Enviar inscrição (PDF, até 10MB)' }}
+                                </label>
+                                <input type="file" name="arquivo_inscricao" accept="application/pdf" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="cc-btn-inscrever">
+                                    <i class="bi bi-cloud-upload-fill"></i>
+                                    {{ 'Reenviar inscrição' if solicitacao else 'Inscrever-se agora' }}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="cc-empty">Nenhum curso disponível para você no momento.</div>
+            {% endif %}
+        </div>
+
+        {% if minhas_solicitacoes %}
+        <div class="cc-panel">
+            <h2 class="cc-panel-title"><i class="bi bi-clock-history"></i>Histórico das minhas inscrições</h2>
+            <div class="cc-item-list">
+                {% for s in minhas_solicitacoes %}
+                <div class="cc-item">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <div class="cc-item-title">{{ s.curso_andamento.curso.nome if s.curso_andamento and s.curso_andamento.curso else '—' }}</div>
+                            <div class="cc-item-sub">
+                                Enviado em {{ s.criado_em.strftime('%d/%m/%Y às %H:%M') if s.criado_em else '—' }}: {{ s.nome_original }}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            {% if s.deferido is none %}
+                            <span class="status-pill status-a-iniciar">Aguardando análise</span>
+                            {% elif s.deferido %}
+                            <span class="status-pill status-vigente">Deferido</span>
+                            {% else %}
+                            <span class="status-pill status-termino">Indeferido</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {{ bloco_analise(s) }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<div class="modal fade" id="confirmarInscricaoModal" tabindex="-1" aria-labelledby="confirmarInscricaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-6" id="confirmarInscricaoLabel">
+                    <i class="bi bi-file-earmark-check-fill text-primary me-2"></i>
+                    Conferir antes de enviar
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">Curso: <strong id="confirmarInscricaoCurso"></strong></p>
+                <p class="mb-0">Arquivo selecionado: <strong id="confirmarInscricaoArquivo"></strong></p>
+                <p class="mp-muted-note mt-2 mb-0">Confira se é o PDF correto — depois de enviado, a BM-3 já pode analisar.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="cc-btn-inscrever" style="width: auto;" id="confirmarInscricaoBotao">
+                    <i class="bi bi-cloud-upload-fill"></i>
+                    Confirmar envio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('confirmarInscricaoModal');
+        if (!modalEl || typeof bootstrap === 'undefined') return;
+
+        const modal = new bootstrap.Modal(modalEl);
+        const cursoEl = document.getElementById('confirmarInscricaoCurso');
+        const arquivoEl = document.getElementById('confirmarInscricaoArquivo');
+        const botaoConfirmar = document.getElementById('confirmarInscricaoBotao');
+
+        let formPendente = null;
+
+        document.querySelectorAll('.cc-inscricao-form').forEach(function (form) {
+            form.addEventListener('submit', function (evento) {
+                if (form.dataset.confirmado === '1') {
+                    return; // já confirmado pelo modal, deixa submeter de verdade
+                }
+                evento.preventDefault();
+
+                const input = form.querySelector('input[type="file"]');
+                const arquivo = input && input.files && input.files[0];
+                if (!arquivo) return;
+
+                formPendente = form;
+                cursoEl.textContent = form.dataset.curso || '—';
+                arquivoEl.textContent = arquivo.name;
+                modal.show();
+            });
+        });
+
+        botaoConfirmar.addEventListener('click', function () {
+            if (!formPendente) return;
+            // Não precisa esconder o modal manualmente: o submit navega pra
+            // outra página de qualquer forma. Evita disputa entre a
+            // animação de fechar e o reset do dataset.confirmado.
+            formPendente.dataset.confirmado = '1';
+            formPendente.requestSubmit();
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (formPendente) formPendente.dataset.confirmado = '0';
+        });
+    });
+</script>
+{% endblock %}

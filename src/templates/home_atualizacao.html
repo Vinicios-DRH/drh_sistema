@@ -1290,6 +1290,52 @@ não monta URL e não libera criação de novas declarações. #}
                     </div>
                 </article>
 
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-mortarboard"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Cursos CBMAM</h2>
+                                <p class="hua-panel-subtitle">
+                                    Inscrições abertas e o andamento das suas solicitações.
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if cursos_cbmam_disponiveis_qtd or cursos_cbmam_pendentes_qtd %}
+                        <span class="hua-status-pill hua-status-pendente">
+                            {{ cursos_cbmam_disponiveis_qtd + cursos_cbmam_pendentes_qtd }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="hua-panel-body">
+                        {% if cursos_cbmam_disponiveis_qtd %}
+                        <div class="hua-empty">
+                            {{ cursos_cbmam_disponiveis_qtd }} curso(s) com inscrições abertas para você.
+                        </div>
+                        {% elif cursos_cbmam_pendentes_qtd %}
+                        <div class="hua-empty">
+                            {{ cursos_cbmam_pendentes_qtd }} inscrição(ões) aguardando análise da BM-3.
+                        </div>
+                        {% else %}
+                        <div class="hua-empty">
+                            Nenhum curso disponível para você no momento.
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-3">
+                            <a class="hua-panel-button w-100" href="{{ url_for('meus_cursos') }}">
+                                <i class="bi bi-mortarboard"></i>
+                                Ver meus cursos
+                            </a>
+                        </div>
+                    </div>
+                </article>
+
                 <article class="hua-panel">
                     <div class="hua-panel-header">
                         <div class="hua-panel-heading">

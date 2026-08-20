@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+
+{% block title %}Cursos CBMAM | SIGDP{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
+<style>
+    .cc-page {
+        min-height: calc(100vh - var(--nav-h, 64px));
+        padding: 1rem 0 2.5rem;
+        color: var(--app-text);
+        background:
+            radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 20%),
+            radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 28%),
+            linear-gradient(135deg, var(--app-page-bg) 0%, var(--app-page-bg-alt) 52%, var(--app-surface-muted) 100%);
+    }
+
+    .cc-container { max-width: 1400px; }
+
+    .cc-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 1.35rem;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 20px;
+        color: var(--app-hero-text, #fff);
+        background: linear-gradient(135deg, var(--app-hero-start, #071b2c) 0%, var(--app-hero-middle, #0b385e) 50%, var(--app-hero-end, #145883) 100%);
+        box-shadow: var(--app-shadow-hero);
+    }
+
+    .cc-hero-title-area { display: flex; align-items: center; gap: .9rem; min-width: 0; }
+
+    .cc-logo-box {
+        display: grid; flex: 0 0 60px; width: 60px; height: 60px; place-items: center;
+        border: 1px solid rgba(255, 255, 255, .2); border-radius: 17px; background: rgba(255, 255, 255, .09);
+    }
+    .cc-logo-box img { width: 40px; height: 40px; object-fit: contain; }
+
+    .cc-eyebrow {
+        display: block; margin-bottom: .25rem; color: var(--app-hero-muted, rgba(255, 255, 255, .72));
+        font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .cc-title { margin: 0; color: var(--app-hero-text, #fff); font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 850; }
+    .cc-subtitle { margin: .3rem 0 0; color: var(--app-hero-muted, rgba(255, 255, 255, .78)); font-size: .87rem; }
+    .cc-subtitle strong { color: var(--app-hero-text, #fff); }
+
+    .cc-panel {
+        margin-top: 1rem; padding: 1.1rem; border: 1px solid var(--app-border); border-radius: 20px;
+        color: var(--app-text); background: var(--app-surface); box-shadow: var(--app-shadow-card);
+    }
+
+    .cc-panel-title { margin: 0 0 .9rem; font-size: 1rem; font-weight: 800; color: var(--app-text); }
+    .cc-panel-title i { margin-right: .4rem; color: var(--app-primary); }
+
+    .cc-field-label { display: block; margin-bottom: .3rem; font-size: .8rem; font-weight: 650; color: var(--app-text); }
+
+    .cc-check-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .5rem;
+        padding: .75rem; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface-soft);
+    }
+    .cc-check-grid label {
+        display: flex; align-items: center; gap: .35rem; font-size: .84rem; color: var(--app-text); cursor: pointer;
+    }
+
+    .cc-table-shell { overflow: hidden; border: 1px solid var(--app-border); border-radius: 16px; background: var(--app-surface); }
+
+    #tabela-andamentos {
+        --bs-table-color: var(--app-text); --bs-table-bg: transparent;
+        --bs-table-striped-color: var(--app-text); --bs-table-striped-bg: rgba(127, 155, 180, .07);
+        --bs-table-hover-color: var(--app-text); --bs-table-hover-bg: var(--app-table-row-hover);
+        --bs-table-border-color: var(--app-border);
+    }
+    #tabela-andamentos thead th { position: sticky; top: 0; z-index: 2; color: var(--app-text); white-space: nowrap; background: var(--app-table-head); }
+
+    .cc-link { color: var(--app-link, var(--app-primary)); text-decoration: none; font-weight: 650; }
+    .cc-link:hover { text-decoration: underline; }
+
+    .status-pill { display: inline-block; padding: .25rem .6rem; border-radius: 999px; color: var(--app-text); font-size: .78rem; font-weight: 700; border: 1px solid var(--app-border); background: var(--app-surface-soft); }
+    .status-vigente { border-color: #2c704a; color: #1c6b3f; background: #d9f7df; }
+    html[data-theme="dark"] .status-vigente { border-color: #2c704a; color: #75dda1; background: #143b2a; }
+    .status-termino { border-color: #743d46; color: #a1303c; background: #ffd9d9; }
+    html[data-theme="dark"] .status-termino { border-color: #743d46; color: #ffa2aa; background: #441d25; }
+    .status-cancelado { border-color: #6b7280; color: #4b5563; background: #e5e7eb; }
+    html[data-theme="dark"] .status-cancelado { border-color: #6b7280; color: #cbd5e1; background: #374151; }
+
+    .dataTables_wrapper { color: var(--app-text); }
+    .dataTables_filter, .dataTables_length, .dataTables_info { color: var(--app-muted) !important; font-size: .84rem; }
+    .dataTables_filter input, .dataTables_length select { border: 1px solid var(--app-border) !important; border-radius: 10px !important; color: var(--app-text) !important; background: var(--app-surface) !important; }
+    .page-link { color: var(--app-primary); border-color: var(--app-border); background: var(--app-surface); }
+    .page-item.active .page-link { border-color: var(--app-primary); color: var(--app-primary-contrast); background: var(--app-primary); }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="cc-page">
+    <div class="container-fluid px-2 px-md-3 cc-container">
+
+        <section class="cc-hero">
+            <div class="cc-hero-title-area">
+                <div class="cc-logo-box">
+                    <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                </div>
+                <div>
+                    <span class="cc-eyebrow">BM-3 — Ensino</span>
+                    <h1 class="cc-title">Cursos CBMAM</h1>
+                    <p class="cc-subtitle">
+                        <strong>{{ andamentos|selectattr('inscricoes_abertas')|list|length }}</strong>
+                        edição(ões) com inscrições abertas ·
+                        <strong>{{ solicitacoes_pendentes_qtd }}</strong>
+                        inscrição(ões) aguardando análise
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <div class="row g-3 mt-1">
+            <div class="col-lg-5">
+                <div class="cc-panel h-100">
+                    <h2 class="cc-panel-title"><i class="bi bi-journal-plus"></i>Cadastrar curso no catálogo</h2>
+                    <form method="post" action="{{ url_for('cursos_cbmam_criar_curso') }}">
+                        <div class="mb-3">
+                            <label class="cc-field-label" for="curso_nome">Nome do curso</label>
+                            <input type="text" id="curso_nome" name="nome" class="form-control" maxlength="100" required
+                                placeholder="Ex.: Curso de Mergulho Autônomo">
+                        </div>
+                        <div class="mb-3">
+                            <label class="cc-field-label" for="curso_descricao">Descrição (opcional)</label>
+                            <textarea id="curso_descricao" name="descricao" class="form-control" rows="2" maxlength="255"></textarea>
+                        </div>
+                        <button type="submit" class="btn mp-btn-outline">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar ao catálogo
+                        </button>
+                    </form>
+
+                    {% if cursos_base %}
+                    <hr class="my-3">
+                    <div class="mp-muted-note mb-2">Catálogo atual ({{ cursos_base|length }})</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for c in cursos_base %}
+                        <span class="badge text-bg-secondary">{{ c.nome }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="cc-panel h-100">
+                    <h2 class="cc-panel-title"><i class="bi bi-calendar2-check"></i>Abrir inscrições para uma edição</h2>
+
+                    {% if not cursos_base %}
+                    <p class="mp-muted-note">Cadastre um curso no catálogo ao lado antes de abrir uma edição.</p>
+                    {% else %}
+                    <form method="post" action="{{ url_for('cursos_cbmam_criar_andamento') }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="cc-field-label" for="andamento_curso_id">Curso</label>
+                                <select id="andamento_curso_id" name="curso_id" class="form-select" required>
+                                    <option value="">-- Selecione --</option>
+                                    {% for c in cursos_base %}
+                                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="cc-field-label" for="andamento_destinado_a">Destinado a</label>
+                                <select id="andamento_destinado_a" name="destinado_a" class="form-select" required>
+                                    <option value="AMBOS">Combatente e Saúde</option>
+                                    <option value="COMBATENTE">Somente Combatente</option>
+                                    <option value="SAUDE">Somente Saúde</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="andamento_data_inicio">Início do curso</label>
+                                <input type="date" id="andamento_data_inicio" name="data_inicio" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="andamento_data_fim">Término do curso</label>
+                                <input type="date" id="andamento_data_fim" name="data_fim" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="cc-field-label" for="andamento_data_limite">Prazo de inscrição</label>
+                                <input type="date" id="andamento_data_limite" name="data_limite_inscricao" class="form-control" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="cc-field-label">Postos/graduações elegíveis</label>
+                                <div class="cc-check-grid">
+                                    {% for pg in postos_grad %}
+                                    <label>
+                                        <input type="checkbox" name="posto_grad_ids" value="{{ pg.id }}">
+                                        {{ pg.sigla }}
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn mp-btn-save">
+                                    <i class="bi bi-unlock me-1"></i>Abrir inscrições
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="cc-panel">
+            <h2 class="cc-panel-title"><i class="bi bi-list-check"></i>Edições cadastradas</h2>
+
+            <div class="cc-table-shell">
+                <div class="table-responsive">
+                    <table id="tabela-andamentos" class="table table-hover align-middle nowrap mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Curso</th>
+                                <th>Destinado a</th>
+                                <th>Postos/Grad</th>
+                                <th>Início</th>
+                                <th>Término</th>
+                                <th>Prazo de inscrição</th>
+                                <th>Situação</th>
+                                <th>Inscrições</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in andamentos %}
+                            <tr>
+                                <td>{{ a.curso.nome if a.curso else '—' }}</td>
+                                <td>{{ {'AMBOS': 'Combatente e Saúde', 'COMBATENTE': 'Combatente', 'SAUDE': 'Saúde'}.get(a.destinado_a, a.destinado_a) }}</td>
+                                <td>{{ a.postos_grad|map(attribute='posto_grad')|selectattr('sigla')|map(attribute='sigla')|join(', ') }}</td>
+                                <td>{{ a.data_inicio.strftime('%d/%m/%Y') if a.data_inicio else '—' }}</td>
+                                <td>{{ a.data_fim.strftime('%d/%m/%Y') if a.data_fim else '—' }}</td>
+                                <td>{{ a.data_limite_inscricao.strftime('%d/%m/%Y') if a.data_limite_inscricao else '—' }}</td>
+                                <td>
+                                    {% if a.cancelado %}
+                                    <span class="status-pill status-cancelado">Cancelado</span>
+                                    {% elif a.inscricoes_abertas %}
+                                    <span class="status-pill status-vigente">Inscrições abertas</span>
+                                    {% else %}
+                                    <span class="status-pill status-termino">Encerrado</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ a.solicitacoes|length }}</td>
+                                <td>
+                                    <a class="cc-link" href="{{ url_for('cursos_cbmam_admin_andamento', andamento_id=a.id) }}">
+                                        Ver / analisar <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+    $(function () {
+        $('#tabela-andamentos').DataTable({
+            responsive: true,
+            paging: true,
+            pageLength: 20,
+            ordering: true,
+            info: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
+        });
+    });
+</script>
+{% endblock %}

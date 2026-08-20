@@ -71,6 +71,40 @@ def can_see_taf_panel() -> bool:
     return False
 
 
+def can_manage_cursos_cbmam() -> bool:
+    """BM-3 (Chefe/Diretor da OBM 10) administra o catálogo de cursos CBMAM
+    e analisa as inscrições — mesmo padrão de acesso do painel do TAF.
+
+    Olha obm_id_1 e obm_id_2: tem chefe que responde por duas OBMs (uma
+    principal e uma secundária) — se a BM-3 estiver na segunda, ele ainda
+    precisa ver isso aqui."""
+    if is_super():
+        return True
+
+    if has_perm("CURSOS_CBMAM_ADMIN"):
+        return True
+
+    funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
+    if funcao_id not in FUNCOES_CHEFE_DIRETOR:
+        return False
+
+    obm1 = int(getattr(current_user, "obm_id_1", 0) or 0)
+    obm2 = int(getattr(current_user, "obm_id_2", 0) or 0)
+    return OBM_BM3_ID in (obm1, obm2)
+
+
+# Perfis que enxergam a área de autoatendimento do militar (ex.: Meus Cursos
+# CBMAM): além do ATUALIZACAO CADASTRAL (12) de sempre, também quem foi
+# promovido a CHEFE (2) de alguma OBM mas continua sendo militar e precisa
+# desses mesmos recursos — sem isso, a promoção "sumia" com o acesso.
+FUNCOES_AUTOATENDIMENTO_MILITAR = {12, 2}
+
+
+def pode_ver_autoatendimento_militar() -> bool:
+    funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
+    return funcao_id in FUNCOES_AUTOATENDIMENTO_MILITAR
+
+
 def require_perm(codigo: str):
     def deco(fn):
         @wraps(fn)

@@ -17,3 +17,4 @@ from . import documentos_gerados
 from . import auditoria
 from . import gestao_chefia
 from . import mapa_funcional
+from . import cursos_cbmam
