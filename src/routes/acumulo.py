@@ -1,7 +1,7 @@
 from src.formatar_cpf import get_militar_por_user
 from src import app
 from io import BytesIO
-from flask import Blueprint, abort, flash, redirect, render_template, send_file, session, url_for, request, jsonify
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, send_file, session, url_for, request, jsonify
 from flask_login import login_required, current_user
 from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
@@ -234,7 +234,12 @@ def home_atualizacao():
                 if item["solicitacao"] and item["solicitacao"].deferido is None
             )
     except Exception:
-        pass
+        # Se der erro de banco aqui (ex.: schema desatualizado), a transação
+        # fica "abortada" no Postgres até um rollback explícito — sem isso,
+        # QUALQUER outra query nesta mesma request (até a navbar) quebra
+        # junto, mesmo sendo coisa completamente sem relação.
+        db.session.rollback()
+        current_app.logger.exception("Erro ao carregar cursos CBMAM na home")
 
     # ⚠️ Define a variável usada no template/JS
     militar_id_atual = militar_id
