@@ -47,10 +47,16 @@ def obter_motivo_por_id(motivo_id):
 
 
 def obter_publicacao_bg_id(militar_id, tipo_bg="situacao_militar"):
-    bg = PublicacaoBg.query.filter_by(
-        militar_id=militar_id,
-        tipo_bg=tipo_bg
-    ).first()
+    """A publicação mais recente desse tipo pro militar. Pode haver mais de
+    uma linha (uma por situação já registrada — ver
+    src.services.militar_cadastro_service._salvar_publicacoes_bg), então o
+    order_by garante que é sempre a atual que volta, não uma antiga."""
+    bg = (
+        PublicacaoBg.query
+        .filter_by(militar_id=militar_id, tipo_bg=tipo_bg)
+        .order_by(PublicacaoBg.id.desc())
+        .first()
+    )
     return bg.id if bg else None
 
 
@@ -126,49 +132,182 @@ def encerrar_lts_vigente(militar_id):
             reg.atualizar_status()
 
 
-# Modalidade "PRONTO" e motivo "SEM AGREGAÇÕES" — para onde o militar volta
-# automaticamente quando a LTS dele termina.
+# Modalidade "PRONTO", motivo "SEM AGREGAÇÕES" e destino "CBMAM" — para onde
+# o militar volta automaticamente quando a situação em curso (Agregação, À
+# Disposição, Licença Especial ou LTS) termina.
 MODALIDADE_PRONTO_ID = 8
 MOTIVO_SEM_AGREGACOES_ID = 1
+DESTINO_CBMAM_ID = 6
 
 
-def processar_fim_de_lts():
-    """Atualiza o status de todas as LTS (recalculado a partir de hoje) e,
-    para as que acabaram de virar "Término" nesta chamada, devolve o militar
-    para PRONTO — mas só se ele ainda estiver com a modalidade de LTS, ou
-    seja, só se ninguém já tiver alterado a situação dele manualmente nesse
-    meio-tempo (evita sobrescrever uma mudança de situação mais recente).
+def _reverter_militar_para_pronto(militar):
+    """Devolve o militar pra PRONTO/SEM AGREGAÇÕES/CBMAM, com as datas de
+    início/término e a publicação da Situação Funcional limpas — chamado
+    quando a situação em curso já passou da data de término.
 
+    O registro que estava vigente (Agregação/À Disposição/Licença Especial/
+    LTS), com sua publicação original, não é tocado: continua intacto no
+    banco como histórico. A publicação também não é apagada — pra "limpar"
+    o campo sem perder o texto de quem ainda aponta pra ele, cria uma linha
+    nova vazia (mesma regra de nunca dar UPDATE numa linha já existente, ver
+    _salvar_publicacoes_bg em militar_cadastro_service.py)."""
+    militar.situacao = "PRONTO"
+    militar.modalidade_id = MODALIDADE_PRONTO_ID
+    militar.motivo_id = MOTIVO_SEM_AGREGACOES_ID
+    militar.destino_id = DESTINO_CBMAM_ID
+    militar.inicio_periodo = None
+    militar.fim_periodo = None
+
+    bg_atual = (
+        PublicacaoBg.query
+        .filter_by(militar_id=militar.id, tipo_bg="situacao_militar")
+        .order_by(PublicacaoBg.id.desc())
+        .first()
+    )
+    if bg_atual and bg_atual.boletim_geral:
+        database.session.add(PublicacaoBg(
+            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=None))
+
+
+def processar_fim_de_lts(militar_id=None):
+    """Atualiza o status das LTS (recalculado a partir de hoje) e devolve o
+    militar pra PRONTO em toda LTS já vencida que ainda seja a que o card de
+    Situação Funcional dele reflete como atual — verificado batendo
+    modalidade E as datas espelhadas em `militar.inicio_periodo`/
+    `fim_periodo` com as da LTS (evita reverter por engano quando o militar
+    já está numa LTS *nova*, com modalidade igual mas período diferente, ou
+    quando outra pessoa já mudou a situação dele manualmente).
+
+    Não é "só a que acabou de vencer nesta chamada": qualquer LTS parada há
+    meses sem ninguém ter reaberto a ficha do militar também precisa ser
+    pega aqui — por isso o gatilho é o estado atual (`status == "Término
+    ..."`), não uma transição.
+
+    `militar_id` restringe a varredura a um único militar (usado ao abrir a
+    ficha dele); sem isso, varre todo mundo (usado nas telas de listagem).
     Não comita a sessão — quem chama decide o commit.
     Retorna a lista de militares que foram promovidos de volta a PRONTO.
     """
-    todas = LicencaParaTratamentoDeSaude.query.all()
+    query = LicencaParaTratamentoDeSaude.query
+    if militar_id is not None:
+        query = query.filter_by(militar_id=militar_id)
+    todas = query.all()
 
     militares_promovidos = []
     for lts in todas:
-        status_anterior = lts.status
         lts.atualizar_status()
-
-        virou_termino_agora = (
-            lts.status == "Término da Licença para Tratamento de Saúde"
-            and status_anterior != lts.status
-        )
-        if not virou_termino_agora:
+        if lts.status != "Término da Licença para Tratamento de Saúde":
             continue
 
         militar = lts.militar
-        ainda_em_lts = (
+        eh_a_situacao_atual_do_militar = (
             militar is not None
             and lts.modalidade_id is not None
             and militar.modalidade_id == lts.modalidade_id
+            and militar.inicio_periodo == lts.inicio_periodo_lts
+            and militar.fim_periodo == lts.fim_periodo_lts
         )
-        if ainda_em_lts:
-            militar.situacao = "PRONTO"
-            militar.modalidade_id = MODALIDADE_PRONTO_ID
-            militar.motivo_id = MOTIVO_SEM_AGREGACOES_ID
+        if eh_a_situacao_atual_do_militar:
+            _reverter_militar_para_pronto(militar)
             militares_promovidos.append(militar)
 
     return militares_promovidos
+
+
+def processar_fim_de_agregacao(militar_id=None):
+    """Equivalente a `processar_fim_de_lts`, para Agregação (usa
+    `militar.situacao == "AGREGADO"` em vez de modalidade, porque é assim
+    que `sincronizar_blocos_funcionais` decide se esse bloco se aplica)."""
+    query = MilitaresAgregados.query
+    if militar_id is not None:
+        query = query.filter_by(militar_id=militar_id)
+    todas = query.all()
+
+    militares_promovidos = []
+    for reg in todas:
+        reg.atualizar_status()
+        if reg.status != "Término de Agregação":
+            continue
+
+        militar = reg.militar
+        eh_a_situacao_atual_do_militar = (
+            militar is not None
+            and militar.situacao == "AGREGADO"
+            and militar.inicio_periodo == reg.inicio_periodo
+            and militar.fim_periodo == reg.fim_periodo_agregacao
+        )
+        if eh_a_situacao_atual_do_militar:
+            _reverter_militar_para_pronto(militar)
+            militares_promovidos.append(militar)
+
+    return militares_promovidos
+
+
+def processar_fim_de_disposicao(militar_id=None):
+    """Equivalente a `processar_fim_de_lts`, para À Disposição."""
+    query = MilitaresADisposicao.query
+    if militar_id is not None:
+        query = query.filter_by(militar_id=militar_id)
+    todas = query.all()
+
+    militares_promovidos = []
+    for reg in todas:
+        reg.atualizar_status()
+        if reg.status != "Venceu":
+            continue
+
+        militar = reg.militar
+        eh_a_situacao_atual_do_militar = (
+            militar is not None
+            and reg.modalidade_id is not None
+            and militar.modalidade_id == reg.modalidade_id
+            and militar.inicio_periodo == reg.inicio_periodo
+            and militar.fim_periodo == reg.fim_periodo_disposicao
+        )
+        if eh_a_situacao_atual_do_militar:
+            _reverter_militar_para_pronto(militar)
+            militares_promovidos.append(militar)
+
+    return militares_promovidos
+
+
+def processar_fim_de_le(militar_id=None):
+    """Equivalente a `processar_fim_de_lts`, para Licença Especial."""
+    query = LicencaEspecial.query
+    if militar_id is not None:
+        query = query.filter_by(militar_id=militar_id)
+    todas = query.all()
+
+    militares_promovidos = []
+    for reg in todas:
+        reg.atualizar_status()
+        if reg.status != "Término da Licença Especial":
+            continue
+
+        militar = reg.militar
+        eh_a_situacao_atual_do_militar = (
+            militar is not None
+            and reg.modalidade_id is not None
+            and militar.modalidade_id == reg.modalidade_id
+            and militar.inicio_periodo == reg.inicio_periodo_le
+            and militar.fim_periodo == reg.fim_periodo_le
+        )
+        if eh_a_situacao_atual_do_militar:
+            _reverter_militar_para_pronto(militar)
+            militares_promovidos.append(militar)
+
+    return militares_promovidos
+
+
+def processar_fim_de_situacao_militar(militar_id):
+    """Roda as quatro varreduras de fim de situação (Agregação, À
+    Disposição, Licença Especial, LTS) pra um único militar — chamado ao
+    abrir a ficha dele, pra tela nunca mostrar uma situação já vencida.
+    Não comita a sessão — quem chama decide o commit."""
+    processar_fim_de_agregacao(militar_id=militar_id)
+    processar_fim_de_disposicao(militar_id=militar_id)
+    processar_fim_de_le(militar_id=militar_id)
+    processar_fim_de_lts(militar_id=militar_id)
 
 
 def sincronizar_blocos_funcionais(militar, form_militar):
@@ -179,6 +318,13 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         modalidade_obj.descricao if modalidade_obj else None)
     situacao_principal = normalizar_str(form_militar.situacao.data)
 
+    # Só usado pra LIGAR um registro que ainda não tem publicacao_bg_id (é
+    # novo, ou nunca foi vinculado). Um registro que já está vinculado nunca
+    # é religado aqui, mesmo que bg_id aponte pra uma linha mais nova agora —
+    # senão qualquer save do cadastro (mesmo sem mexer na situação) troca
+    # silenciosamente o que a licença/agregação/disposição/LTS ainda vigente
+    # mostra como sua publicação, só porque o campo "Publicação" da Situação
+    # Funcional foi editado ou limpo por outro motivo.
     bg_id = obter_publicacao_bg_id(militar.id)
 
     # AGREGAÇÃO
@@ -203,7 +349,8 @@ def sincronizar_blocos_funcionais(militar, form_militar):
             form_militar.inicio_periodo.data)
         militar_agregado.fim_periodo_agregacao = parse_date_flex(
             form_militar.fim_periodo.data)
-        militar_agregado.publicacao_bg_id = bg_id
+        if not militar_agregado.publicacao_bg_id:
+            militar_agregado.publicacao_bg_id = bg_id
         militar_agregado.atualizar_status()
     else:
         encerrar_agregacao_vigente(militar.id)
@@ -230,7 +377,8 @@ def sincronizar_blocos_funcionais(militar, form_militar):
             form_militar.inicio_periodo.data)
         militar_a_disposicao.fim_periodo_disposicao = parse_date_flex(
             form_militar.fim_periodo.data)
-        militar_a_disposicao.publicacao_bg_id = bg_id
+        if not militar_a_disposicao.publicacao_bg_id:
+            militar_a_disposicao.publicacao_bg_id = bg_id
         militar_a_disposicao.atualizar_status()
     else:
         encerrar_disposicao_vigente(militar.id)
@@ -256,7 +404,8 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_le.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_le.inicio_periodo_le = inicio_le
         militar_le.fim_periodo_le = fim_le
-        militar_le.publicacao_bg_id = bg_id
+        if not militar_le.publicacao_bg_id:
+            militar_le.publicacao_bg_id = bg_id
         militar_le.atualizar_status()
     else:
         encerrar_le_vigente(militar.id)
@@ -287,7 +436,8 @@ def sincronizar_blocos_funcionais(militar, form_militar):
             form_militar.inicio_periodo.data)
         militar_lts.fim_periodo_lts = parse_date_flex(
             form_militar.fim_periodo.data)
-        militar_lts.publicacao_bg_id = bg_id
+        if not militar_lts.publicacao_bg_id:
+            militar_lts.publicacao_bg_id = bg_id
         militar_lts.atualizar_status()
     else:
         encerrar_lts_vigente(militar.id)

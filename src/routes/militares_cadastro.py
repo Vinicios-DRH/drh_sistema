@@ -37,6 +37,7 @@ from src.services.militar_situacao_service import (
     listar_situacoes_extras,
     parse_date_flex,
     processar_inicio_situacoes_extras,
+    processar_fim_de_situacao_militar,
 )
 
 
@@ -218,8 +219,13 @@ def exibir_militar(militar_id):
 
     if request.method == "GET":
         # Se alguma situação extra chegou na data de início desde a última
-        # visita, ela assume a situação principal antes de montar a tela.
+        # visita, ela assume a situação principal antes de montar a tela. E
+        # se a situação principal (Agregação/À Disposição/Licença Especial/
+        # LTS) já passou da data de término, devolve o militar pra PRONTO
+        # automaticamente — sem tocar no registro histórico, que continua
+        # intacto no banco.
         processar_inicio_situacoes_extras(militar_id=militar_id)
+        processar_fim_de_situacao_militar(militar_id)
         database.session.commit()
 
     graduacoes = (

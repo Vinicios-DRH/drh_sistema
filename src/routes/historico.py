@@ -8,7 +8,10 @@ from src.services.historico_militar_service import (
     buscar_militares_por_texto,
     montar_historico_militar,
 )
-from src.services.militar_situacao_service import processar_inicio_situacoes_extras
+from src.services.militar_situacao_service import (
+    processar_inicio_situacoes_extras,
+    processar_fim_de_situacao_militar,
+)
 
 bp_historico = Blueprint("historico_militar", __name__, url_prefix="/historico")
 
@@ -34,6 +37,7 @@ def pagina_historico():
 
     if militar_id:
         processar_inicio_situacoes_extras(militar_id=militar_id)
+        processar_fim_de_situacao_militar(militar_id)
         database.session.commit()
 
     historico = montar_historico_militar(militar_id) if militar_id else None

@@ -49,6 +49,19 @@ MODALIDADES_VALIDAS = {
     'EM CURSO',
 }
 
+# Campos de progressão de carreira (soldado -> coronel): uma vez
+# preenchidos, ficam travados — não podem ser apagados nem trocados pelo
+# formulário normal de edição (é publicação de promoção já lançada). O
+# template já deixa esses campos readonly quando têm valor; isso aqui é a
+# trava do lado do servidor, pra não depender só do HTML.
+CAMPOS_PROGRESSAO_CARREIRA = {
+    "soldado_tres", "soldado_dois", "soldado_um", "cabo",
+    "terceiro_sgt", "segundo_sgt", "primeiro_sgt", "subtenente",
+    "segundo_tenente", "primeiro_tenente", "cap", "maj", "tc", "cel",
+    "publicidade_segundo_tenente", "publicidade_primeiro_tenente",
+    "pub_cap", "pub_maj", "pub_tc", "pub_cel",
+}
+
 # Campos do FormMilitar que, na verdade, são publicações de Boletim Geral
 # (tabela PublicacaoBg) e não colunas diretas de Militar.
 CAMPOS_BG = [
@@ -212,14 +225,26 @@ def preencher_form_para_exibicao(form_militar, militar, obm_funcao_tipo_1, obm_f
         idade = None
     form_militar.idade_atual.data = idade
 
-    publicacoes_bg = PublicacaoBg.query.filter_by(militar_id=militar.id).all()
+    # Ordenado do mais antigo pro mais novo: como agora pode haver mais de
+    # uma linha pro mesmo tipo_bg (situacao_militar guarda uma por
+    # alteração, nunca sobrescreve — ver _salvar_publicacoes_bg), o loop
+    # abaixo vai sobrescrevendo `.data` na ordem, e a mais recente sempre
+    # vence por último. Sem esse order_by, qual linha "ganha" fica ao sabor
+    # do Postgres.
+    publicacoes_bg = (
+        PublicacaoBg.query
+        .filter_by(militar_id=militar.id)
+        .filter(PublicacaoBg.tipo_bg.in_(CAMPOS_BG))
+        .order_by(PublicacaoBg.id.asc())
+        .all()
+    )
 
     for campo in CAMPOS_BG:
         if hasattr(form_militar, campo):
             getattr(form_militar, campo).data = ""
 
     for pub in publicacoes_bg:
-        if pub.tipo_bg in CAMPOS_BG and hasattr(form_militar, pub.tipo_bg):
+        if hasattr(form_militar, pub.tipo_bg):
             getattr(form_militar, pub.tipo_bg).data = pub.boletim_geral or ""
 
     bg_sit2_ultima = (
@@ -385,23 +410,24 @@ def _aplicar_dados_fisicos(militar, form_militar):
     militar.local_tatuagem = form_militar.local_tatuagem.data if form_militar.tatuagem.data else None
 
 
+_CAMPOS_GRADUACAO_MILITAR = [
+    "soldado_tres", "soldado_dois", "soldado_um", "cabo",
+    "terceiro_sgt", "segundo_sgt", "primeiro_sgt", "subtenente",
+    "segundo_tenente", "primeiro_tenente", "cap", "maj", "tc", "cel",
+]
+
+
 def _aplicar_boletins_promocao(militar, form_militar):
-    """BG de inclusão e o histórico de publicações de graduação (soldado..cel)."""
+    """BG de inclusão e o histórico de publicações de graduação (soldado..cel).
+
+    Cada campo de graduação, uma vez preenchido, fica travado: o que vier do
+    formulário pra ele é ignorado (o template já deixa o campo readonly
+    quando tem valor — isso aqui é a mesma trava do lado do servidor)."""
     militar.inclusao_bg = form_militar.inclusao_bg.data
-    militar.soldado_tres = form_militar.soldado_tres.data
-    militar.soldado_dois = form_militar.soldado_dois.data
-    militar.soldado_um = form_militar.soldado_um.data
-    militar.cabo = form_militar.cabo.data
-    militar.terceiro_sgt = form_militar.terceiro_sgt.data
-    militar.segundo_sgt = form_militar.segundo_sgt.data
-    militar.primeiro_sgt = form_militar.primeiro_sgt.data
-    militar.subtenente = form_militar.subtenente.data
-    militar.segundo_tenente = form_militar.segundo_tenente.data
-    militar.primeiro_tenente = form_militar.primeiro_tenente.data
-    militar.cap = form_militar.cap.data
-    militar.maj = form_militar.maj.data
-    militar.tc = form_militar.tc.data
-    militar.cel = form_militar.cel.data
+    for campo in _CAMPOS_GRADUACAO_MILITAR:
+        if getattr(militar, campo):
+            continue
+        setattr(militar, campo, getattr(form_militar, campo).data)
     militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
     militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
 
@@ -563,7 +589,23 @@ def _salvar_obm_funcao(militar, form_militar):
 
 def _salvar_publicacoes_bg(militar, form_militar):
     """Grava as publicações de BG mapeadas em CAMPOS_BG (situacao_militar_2 já
-    foi tratada manualmente em `_aplicar_situacao_extra_manual`)."""
+    foi tratada manualmente em `_aplicar_situacao_extra_manual`).
+
+    "situacao_militar" (o campo "Publicação" da Situação Funcional) é
+    tratado à parte, porque a mesma linha de PublicacaoBg é reaproveitada
+    como publicacao_bg_id em Agregação/Disposição/Licença Especial/LTS (ver
+    obter_publicacao_bg_id em militar_situacao_service.py) — inclusive por
+    registros já encerrados, que continuam apontando pra ela como histórico.
+    Por isso ela nunca leva UPDATE: o campo continua livre pra digitar
+    (corrigir, atualizar, descrever uma situação nova ao entrar numa
+    licença/agregação/disposição, ou limpar), mas toda vez que o valor muda —
+    inclusive limpar, que também conta como mudança — em vez de sobrescrever
+    a linha atual, cria uma linha NOVA com o valor novo (vazio incluso). A
+    linha anterior fica congelada, intacta, como histórico de quem ainda
+    aponta pra ela: pro usuário parece que "apagou" (o campo volta a
+    aparecer vazio, porque passa a mostrar essa linha nova), mas no banco o
+    texto antigo nunca é tocado."""
+
     for campo in CAMPOS_BG:
         if campo == "situacao_militar_2":
             continue
@@ -572,13 +614,45 @@ def _salvar_publicacoes_bg(militar, form_militar):
             continue
 
         valor = getattr(form_militar, campo).data
-        bg_existente = PublicacaoBg.query.filter_by(militar_id=militar.id, tipo_bg=campo).first()
+        valor = valor.strip() if isinstance(valor, str) else valor
+        # .order_by garante determinismo: sem isso, se existir mais de uma
+        # linha pro mesmo militar_id+tipo_bg (o que agora é esperado pra
+        # "situacao_militar", uma por publicação já registrada), qual delas
+        # o Postgres devolve pro .first() não é garantido — pega sempre a
+        # mais recente.
+        bg_existente = (
+            PublicacaoBg.query
+            .filter_by(militar_id=militar.id, tipo_bg=campo)
+            .order_by(PublicacaoBg.id.desc())
+            .first()
+        )
+
+        if campo in CAMPOS_PROGRESSAO_CARREIRA and bg_existente and bg_existente.boletim_geral:
+            # Publicação de promoção já lançada: trava, ignora o que veio do
+            # form (mesma trava do lado do servidor de _aplicar_boletins_promocao).
+            continue
+
+        if campo == "situacao_militar":
+            # Nunca dá UPDATE no texto de uma linha já existente: só cria
+            # linha nova quando o valor realmente muda — limpar também é
+            # uma mudança (de "tem texto" pra "vazio"), então também gera
+            # linha nova (com boletim_geral vazio), não um DELETE nem um
+            # UPDATE na linha antiga. Só não faz nada se o valor enviado for
+            # exatamente igual ao que já está na linha mais recente (evita
+            # linha nova a cada save que não mexeu no campo).
+            valor_atual = (bg_existente.boletim_geral or None) if bg_existente else None
+            valor_novo = valor or None
+            if valor_novo != valor_atual:
+                database.session.add(PublicacaoBg(militar_id=militar.id, tipo_bg=campo, boletim_geral=valor_novo))
+            continue
 
         if valor:
             if bg_existente:
                 bg_existente.boletim_geral = valor
             else:
                 database.session.add(PublicacaoBg(militar_id=militar.id, tipo_bg=campo, boletim_geral=valor))
+        elif bg_existente:
+            database.session.delete(bg_existente)
 
 
 def criar_militar_em_branco():

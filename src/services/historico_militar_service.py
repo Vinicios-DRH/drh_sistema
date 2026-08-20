@@ -177,9 +177,12 @@ def obter_publicacao_situacao_atual(militar_id: int):
     outras — Licença Maternidade é o principal exemplo — não têm tabela
     dedicada: a única publicação registrada é essa, presa à situação atual
     do militar. É por isso que ela precisa aparecer aqui à parte."""
-    pb = PublicacaoBg.query.filter_by(
-        militar_id=militar_id, tipo_bg="situacao_militar"
-    ).first()
+    pb = (
+        PublicacaoBg.query
+        .filter_by(militar_id=militar_id, tipo_bg="situacao_militar")
+        .order_by(PublicacaoBg.id.desc())
+        .first()
+    )
     return pb.boletim_geral if pb else None
 
 

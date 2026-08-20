@@ -575,6 +575,12 @@ MACROS
                   {{ render_field(form_militar.fim_periodo, 'col-md-3') }}
                   {{ render_field(form_militar.situacao_militar, 'col-md-6') }}
                 </div>
+                {% if (form_militar.situacao_militar.data or '')|trim != '' %}
+                <p class="mp-muted-note mt-0 mb-3">
+                  Mudar o texto acima e salvar registra uma publicação nova no histórico — a anterior não é
+                  apagada nem sobrescrita, continua valendo pra situação em que foi lançada.
+                </p>
+                {% endif %}
 
                 <div class="mp-dynamic-card mt-3">
                   <div class="mp-field-label mb-2">
@@ -732,31 +738,37 @@ MACROS
               </div>
 
               <div class="mp-section-body">
+                <div class="mp-muted-note mb-3">
+                  <i class="bi bi-lock-fill me-1"></i>
+                  Campos já preenchidos ficam bloqueados pra edição — são publicações de
+                  promoção já lançadas e não devem ser apagadas por engano. Se precisar
+                  corrigir algum, fale com o suporte.
+                </div>
                 <div class="row g-3">
-                  {{ render_field(form_militar.soldado_tres, 'col-md-3') }}
-                  {{ render_field(form_militar.soldado_dois, 'col-md-3') }}
-                  {{ render_field(form_militar.soldado_um, 'col-md-3') }}
-                  {{ render_field(form_militar.cabo, 'col-md-3') }}
+                  {{ render_field(form_militar.soldado_tres, 'col-md-3', readonly=((form_militar.soldado_tres.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.soldado_dois, 'col-md-3', readonly=((form_militar.soldado_dois.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.soldado_um, 'col-md-3', readonly=((form_militar.soldado_um.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.cabo, 'col-md-3', readonly=((form_militar.cabo.data or '')|trim != '')) }}
 
-                  {{ render_field(form_militar.terceiro_sgt, 'col-md-3') }}
-                  {{ render_field(form_militar.segundo_sgt, 'col-md-3') }}
-                  {{ render_field(form_militar.primeiro_sgt, 'col-md-3') }}
-                  {{ render_field(form_militar.subtenente, 'col-md-3') }}
+                  {{ render_field(form_militar.terceiro_sgt, 'col-md-3', readonly=((form_militar.terceiro_sgt.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.segundo_sgt, 'col-md-3', readonly=((form_militar.segundo_sgt.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.primeiro_sgt, 'col-md-3', readonly=((form_militar.primeiro_sgt.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.subtenente, 'col-md-3', readonly=((form_militar.subtenente.data or '')|trim != '')) }}
 
-                  {{ render_field(form_militar.segundo_tenente, 'col-md-3') }}
-                  {{ render_field(form_militar.publicidade_segundo_tenente, 'col-md-3') }}
-                  {{ render_field(form_militar.primeiro_tenente, 'col-md-3') }}
-                  {{ render_field(form_militar.publicidade_primeiro_tenente, 'col-md-3') }}
+                  {{ render_field(form_militar.segundo_tenente, 'col-md-3', readonly=((form_militar.segundo_tenente.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.publicidade_segundo_tenente, 'col-md-3', readonly=((form_militar.publicidade_segundo_tenente.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.primeiro_tenente, 'col-md-3', readonly=((form_militar.primeiro_tenente.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.publicidade_primeiro_tenente, 'col-md-3', readonly=((form_militar.publicidade_primeiro_tenente.data or '')|trim != '')) }}
 
-                  {{ render_field(form_militar.cap, 'col-md-3') }}
-                  {{ render_field(form_militar.pub_cap, 'col-md-3') }}
-                  {{ render_field(form_militar.maj, 'col-md-3') }}
-                  {{ render_field(form_militar.pub_maj, 'col-md-3') }}
+                  {{ render_field(form_militar.cap, 'col-md-3', readonly=((form_militar.cap.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.pub_cap, 'col-md-3', readonly=((form_militar.pub_cap.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.maj, 'col-md-3', readonly=((form_militar.maj.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.pub_maj, 'col-md-3', readonly=((form_militar.pub_maj.data or '')|trim != '')) }}
 
-                  {{ render_field(form_militar.tc, 'col-md-3') }}
-                  {{ render_field(form_militar.pub_tc, 'col-md-3') }}
-                  {{ render_field(form_militar.cel, 'col-md-3') }}
-                  {{ render_field(form_militar.pub_cel, 'col-md-3') }}
+                  {{ render_field(form_militar.tc, 'col-md-3', readonly=((form_militar.tc.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.pub_tc, 'col-md-3', readonly=((form_militar.pub_tc.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.cel, 'col-md-3', readonly=((form_militar.cel.data or '')|trim != '')) }}
+                  {{ render_field(form_militar.pub_cel, 'col-md-3', readonly=((form_militar.pub_cel.data or '')|trim != '')) }}
                 </div>
               </div>
             </section>
