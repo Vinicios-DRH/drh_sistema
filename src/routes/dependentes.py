@@ -25,7 +25,7 @@ import urllib.request
 bp_dep = Blueprint("dep", __name__, template_folder="templates")
 
 TEMPLATE_DOCX_PATH = os.path.join(
-    os.path.dirname(__file__),
+    os.path.dirname(os.path.dirname(__file__)),
     "template",
     "formulario_requerimento_inclusao_dependentes.docx"
 )
