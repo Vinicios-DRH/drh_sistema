@@ -111,6 +111,36 @@
   .page-info{ font-size:.9rem; opacity:.8; }
   .page-jump{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .form-mini .form-control, .form-mini .form-select{ height:38px; }
+
+  /* Esta página é um "cartão de papel" branco fixo, independente do tema
+     claro/escuro do resto do site. Sem isso, o texto herdava a cor clara do
+     modo escuro global e ficava ilegível em cima dos fundos claros da
+     página (toolbar, kpi, tabela), e os campos/tabela ficavam com fundo
+     escuro dentro de um cartão claro. */
+  html[data-theme="dark"] .glass-card,
+  html[data-theme="dark"] .toolbar,
+  html[data-theme="dark"] .kpi,
+  html[data-theme="dark"] .kpi .pill,
+  html[data-theme="dark"] .chip {
+    color: #172033;
+  }
+
+  html[data-theme="dark"] .glass-card .form-control,
+  html[data-theme="dark"] .glass-card .form-select {
+    background-color: #fff;
+    color: #172033;
+    border-color: rgba(0, 0, 0, .15);
+  }
+
+  html[data-theme="dark"] .glass-card .table {
+    --bs-table-color: #172033;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(0, 0, 0, .08);
+    --bs-table-striped-color: #172033;
+    --bs-table-striped-bg: rgba(0, 0, 0, .02);
+    --bs-table-hover-color: #172033;
+    --bs-table-hover-bg: rgba(13, 110, 253, .06);
+  }
 </style>
 {% endblock %}
 

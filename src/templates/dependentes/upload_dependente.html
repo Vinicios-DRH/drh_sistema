@@ -140,6 +140,18 @@
     background: var(--brand-red-600);
     border-color: var(--brand-red-600);
   }
+
+  /* Esta página é um "cartão de papel" branco fixo, independente do tema
+     claro/escuro do resto do site. Sem isso, o texto herdava a cor clara do
+     modo escuro global e ficava ilegível em cima dos fundos claros da
+     página (summary-card, pill, dropzone, file-chip). */
+  html[data-theme="dark"] .glass-card,
+  html[data-theme="dark"] .summary-card,
+  html[data-theme="dark"] .pill,
+  html[data-theme="dark"] .dropzone,
+  html[data-theme="dark"] .file-chip {
+    color: #172033;
+  }
 </style>
 {% endblock %}
 
