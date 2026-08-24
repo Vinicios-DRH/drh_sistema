@@ -186,3 +186,31 @@ PERMISSOES_CATALOGO = [
     # ===== Gestão de Chefia (Mapa da Força das OBMs) =====
     {"codigo": "NAV_GESTAO_CHEFIA", "nome": "Menu: Gestão da Chefia (Mapa da Força)"},
 ]
+
+
+# Toda conta de militar precisa nascer já com isso — sem liberação manual do
+# admin, o menu de Inclusão de Dependentes simplesmente não aparece pra ele.
+DEP_NAV_CODIGOS_MILITAR = ["NAV_DEP_SOLICITANTE", "NAV_DEP_REQUERER", "NAV_DEP_ACOMPANHAR"]
+
+
+def conceder_permissoes_dependentes(user_id):
+    """Libera os NAV_* de Inclusão de Dependentes pro usuário (só cria o que
+    ainda não existe — nunca sobrescreve um `ativo` que um admin já tenha
+    mexido manualmente). Usado na criação de conta (src/routes/auth.py) e em
+    scripts de backfill pra quem já tinha conta antes dessa regra existir.
+
+    Não comita a sessão — quem chama decide o commit.
+    """
+    from src.models import UserPermissao, database
+
+    existentes = {
+        p.codigo
+        for p in UserPermissao.query.filter(
+            UserPermissao.user_id == user_id,
+            UserPermissao.codigo.in_(DEP_NAV_CODIGOS_MILITAR),
+        ).all()
+    }
+    for codigo in DEP_NAV_CODIGOS_MILITAR:
+        if codigo in existentes:
+            continue
+        database.session.add(UserPermissao(user_id=user_id, codigo=codigo, ativo=True))

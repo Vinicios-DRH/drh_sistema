@@ -11,6 +11,7 @@ from src.models import (Militar, User, FichaAlunos)
 from src.querys import login_usuario
 from datetime import datetime
 from src.decorators.email_utils import send_reset_password_email, verify_password_reset_token
+from src.permissoes import conceder_permissoes_dependentes
 
 from src.routes.helpers import (
     get_user_ip,
@@ -111,6 +112,12 @@ def criar_senha(cpf):
 
             if pessoa_tipo == 'militar' and hasattr(pessoa, 'usuario_id'):
                 pessoa.usuario_id = novo_usuario.id
+
+            if pessoa_tipo == 'militar':
+                # Já nasce com o menu de Inclusão de Dependentes liberado —
+                # sem isso, só apareceria depois de um admin conceder a
+                # permissão manualmente.
+                conceder_permissoes_dependentes(novo_usuario.id)
 
             database.session.commit()
 
