@@ -277,6 +277,28 @@ def exibir_militar(militar_id):
 
     if form_militar.validate_on_submit():
         salvar_dados_militar(militar, form_militar)
+
+        # Os campos de "Situação extra" vivem dentro deste mesmo formulário
+        # gigante — se o usuário os preencheu mas clicou no "Salvar"
+        # principal (em vez do botão dedicado "+ Adicionar situação extra",
+        # que usa formaction pra ir na rota própria), esse POST cai aqui
+        # também. Sem isso, os dados eram descartados em silêncio: o militar
+        # salvava normalmente e a situação extra simplesmente não existia.
+        tipo_situacao_extra = request.form.get("tipo_situacao_extra")
+        if tipo_situacao_extra:
+            destino_extra_raw = request.form.get("destino_situacao_extra")
+            try:
+                criar_situacao_extra(
+                    militar=militar,
+                    tipo=tipo_situacao_extra,
+                    destino_id=int(destino_extra_raw) if destino_extra_raw else None,
+                    inicio=parse_date_flex(request.form.get("inicio_situacao_extra")),
+                    fim=parse_date_flex(request.form.get("fim_situacao_extra")),
+                    publicacao_texto=request.form.get("publicacao_situacao_extra"),
+                )
+            except ValueError as e:
+                flash(str(e), "alert-warning")
+
         try:
             database.session.commit()
             flash("Militar atualizado com sucesso!", "success")

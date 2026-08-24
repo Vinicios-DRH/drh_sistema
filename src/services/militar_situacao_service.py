@@ -553,14 +553,18 @@ def listar_situacoes_extras(militar_id, limite=None):
             .all()
         )
         for registro in registros:
+            inicio = getattr(registro, config["campo_inicio"])
+            agendada = registro.status == "A iniciar"
             itens.append({
                 "tipo": tipo,
                 "label": config["label"],
-                "inicio": getattr(registro, config["campo_inicio"]),
+                "inicio": inicio,
                 "fim": getattr(registro, config["campo_fim"]),
                 "status": registro.status,
                 "destino": registro.destino.local if registro.destino else None,
                 "publicacao": registro.publicacao_bg.boletim_geral if registro.publicacao_bg else None,
+                "agendada": agendada,
+                "dias_para_iniciar": (inicio - date.today()).days if (agendada and inicio) else None,
             })
 
     itens.sort(key=lambda item: item["inicio"] or date.min, reverse=True)

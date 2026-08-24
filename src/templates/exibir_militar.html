@@ -595,8 +595,42 @@ MACROS
                   </p>
 
                   {% if situacoes_extras %}
+                  {% set agendadas = situacoes_extras|selectattr('agendada')|list %}
+                  {% set demais = situacoes_extras|rejectattr('agendada')|list %}
+
+                  {% for item in agendadas %}
+                  <div class="mp-scheduled-note">
+                    <div class="mp-scheduled-icon">
+                      <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <div>
+                      <span class="mp-scheduled-title">Situação agendada</span>
+                      <span class="mp-scheduled-headline">
+                        {{ item.label }} agendada para {{ item.inicio.strftime('%d/%m/%Y') if item.inicio else '—' }}
+                      </span>
+                      <div class="mp-scheduled-detail">
+                        Até {{ item.fim.strftime('%d/%m/%Y') if item.fim else '—' }}
+                        {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
+                        {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                      </div>
+                      {% if item.dias_para_iniciar is not none %}
+                      <span class="mp-scheduled-countdown">
+                        {% if item.dias_para_iniciar <= 0 %}
+                        Começa hoje
+                        {% elif item.dias_para_iniciar == 1 %}
+                        Começa amanhã
+                        {% else %}
+                        Começa em {{ item.dias_para_iniciar }} dias
+                        {% endif %}
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% endfor %}
+
+                  {% if demais %}
                   <div class="row g-2 mb-3">
-                    {% for item in situacoes_extras %}
+                    {% for item in demais %}
                     <div class="col-12">
                       <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="badge text-bg-secondary">{{ item.label }}</span>
@@ -612,6 +646,7 @@ MACROS
                     </div>
                     {% endfor %}
                   </div>
+                  {% endif %}
                   {% else %}
                   <p class="mp-muted-note mb-3">Nenhuma situação extra registrada.</p>
                   {% endif %}

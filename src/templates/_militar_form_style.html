@@ -447,6 +447,96 @@ adicionar_militar.html). Incluir dentro de {% block head %} com {% include %}.
   }
 
   /* ==========================================================================
+     SITUAÇÃO EXTRA AGENDADA (futura) — precisa saltar aos olhos, é fácil de
+     passar batido no meio da ficha inteira do militar.
+     ========================================================================== */
+
+  .mp-scheduled-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .8rem;
+    margin-bottom: .75rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #ebcf7b;
+    border-radius: var(--mp-radius-md);
+    color: #73540d;
+    background: linear-gradient(135deg, #fff8df 0%, #fdedbc 100%);
+    box-shadow: 0 6px 16px rgba(217, 155, 0, .12);
+  }
+
+  .mp-scheduled-icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    color: #8e6400;
+    background: rgba(255, 183, 3, .22);
+  }
+
+  .mp-scheduled-title {
+    display: block;
+    margin-bottom: .2rem;
+    color: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .85;
+  }
+
+  .mp-scheduled-headline {
+    display: block;
+    margin-bottom: .3rem;
+    color: #5c4308;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.3;
+  }
+
+  .mp-scheduled-detail {
+    font-size: .84rem;
+    line-height: 1.5;
+    color: inherit;
+    opacity: .92;
+  }
+
+  .mp-scheduled-countdown {
+    display: inline-block;
+    margin-top: .45rem;
+    padding: .18rem .6rem;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: #8e6400;
+    background: rgba(255, 183, 3, .22);
+  }
+
+  html[data-theme="dark"] .mp-scheduled-note {
+    border-color: #6d5723;
+    color: #f3d37d;
+    background: linear-gradient(135deg, #382f15 0%, #2c2410 100%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .3);
+  }
+
+  html[data-theme="dark"] .mp-scheduled-icon {
+    color: #f3d37d;
+    background: rgba(255, 183, 3, .16);
+  }
+
+  html[data-theme="dark"] .mp-scheduled-headline {
+    color: #ffe9ad;
+  }
+
+  html[data-theme="dark"] .mp-scheduled-countdown {
+    color: #ffe9ad;
+    background: rgba(255, 183, 3, .16);
+  }
+
+  /* ==========================================================================
      CAMPOS
      ========================================================================== */
 
