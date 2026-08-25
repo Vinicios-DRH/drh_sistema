@@ -33,19 +33,8 @@
     .cc-panel { margin-top: 1rem; padding: 1.1rem; border: 1px solid var(--app-border); border-radius: 20px; color: var(--app-text); background: var(--app-surface); box-shadow: var(--app-shadow-card); }
     .cc-panel-title { margin: 0 0 .9rem; font-size: 1rem; font-weight: 800; color: var(--app-text); }
     .cc-panel-title i { margin-right: .4rem; color: var(--app-primary); }
-
-    .cc-panel-title-toggle {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        font-size: 1rem;
-        font-weight: 800;
-        color: var(--app-text) !important;
-    }
-    .cc-panel-title-toggle i.bi-clock-history { margin-right: .4rem; color: var(--app-primary); }
-    .cc-panel-title-toggle .cc-chevron { margin-left: auto; transition: transform .15s ease; color: var(--app-muted); }
-    .cc-panel-title-toggle[aria-expanded="true"] .cc-chevron { transform: rotate(180deg); }
     .cc-field-label { display: block; margin-bottom: .3rem; font-size: .8rem; font-weight: 650; color: var(--app-text); }
+    .cc-muted-note { color: var(--app-muted); font-size: .8rem; line-height: 1.45; }
 
     .cc-check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .5rem; padding: .75rem; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface-soft); }
     .cc-check-grid label { display: flex; align-items: center; gap: .35rem; font-size: .84rem; color: var(--app-text); cursor: pointer; }
@@ -64,6 +53,11 @@
     html[data-theme="dark"] .status-termino { border-color: #743d46; color: #ffa2aa; background: #441d25; }
     .status-cancelado { border-color: #6b7280; color: #4b5563; background: #e5e7eb; }
     html[data-theme="dark"] .status-cancelado { border-color: #6b7280; color: #cbd5e1; background: #374151; }
+
+    .tipo-badge { border-color: #3d5a80; color: #274060; background: #dfeaf7; }
+    html[data-theme="dark"] .tipo-badge { border-color: #3d5a80; color: #a9c8ec; background: #17263a; }
+    .tipo-badge-externo { border-color: #6b3fa0; color: #522c7a; background: #ede2f8; }
+    html[data-theme="dark"] .tipo-badge-externo { border-color: #6b3fa0; color: #d3b6f5; background: #241a34; }
 
     .cc-historico-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .cc-historico-list li { padding: .55rem .7rem; border: 1px solid var(--app-border); border-radius: 10px; background: var(--app-surface-soft); font-size: .84rem; color: var(--app-text); }
@@ -86,9 +80,12 @@ este militar
 {%- endif -%}
 {% endmacro %}
 
-{% macro form_analise(s) %}
-<form method="post" action="{{ url_for('cursos_cbmam_analisar_solicitacao', solicitacao_id=s.id) }}"
-    class="mt-2 cc-analise-form" data-militar="{{ nome_com_posto(s.militar) }}"
+{% macro form_analise(item) %}
+{% set s = item.s %}
+{% set endpoint = 'cursos_cbmam_analisar_solicitacao' if item.tipo == 'interno' else 'cursos_cbmam_analisar_solicitacao_externo' %}
+{% set nome = nome_com_posto(s.militar) if item.tipo == 'interno' else (s.pessoa_externa.nome_completo if s.pessoa_externa else 'esta pessoa') %}
+<form method="post" action="{{ url_for(endpoint, solicitacao_id=s.id) }}"
+    class="mt-2 cc-analise-form" data-militar="{{ nome }}"
     {% if s.deferido is not none %}data-decisao-atual="{{ 'Deferido' if s.deferido else 'Indeferido' }}"{% endif %}>
     <input type="hidden" name="deferido" value="">
     <div class="row g-2 align-items-end">
@@ -137,7 +134,13 @@ este militar
                     </p>
                 </div>
 
-                <div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-sm btn-outline-light" href="{{ url_for('cursos_cbmam_turma', andamento_id=andamento.id) }}">
+                        <i class="bi bi-mortarboard me-1"></i>Alunos e disciplinas
+                    </a>
+                    <a class="btn btn-sm btn-outline-light" href="{{ url_for('cursos_cbmam_andamento_historico', andamento_id=andamento.id) }}">
+                        <i class="bi bi-clock-history me-1"></i>Histórico
+                    </a>
                     {% if andamento.cancelado %}
                     <form method="post" action="{{ url_for('cursos_cbmam_reativar_andamento', andamento_id=andamento.id) }}">
                         <button type="submit" class="btn btn-sm btn-outline-light">
@@ -198,8 +201,19 @@ este militar
                                 </div>
                             </div>
 
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="edit_publico_externo"
+                                        name="aberto_publico_externo" value="1"
+                                        {{ 'checked' if andamento.aberto_publico_externo }}>
+                                    <label class="form-check-label" for="edit_publico_externo">
+                                        Abrir também para o público externo (civil ou militar de outra força)
+                                    </label>
+                                </div>
+                            </div>
+
                             <div class="col-12 d-flex justify-content-end">
-                                <button type="submit" class="btn mp-btn-save">
+                                <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-check2-circle me-1"></i>Salvar alterações
                                 </button>
                             </div>
@@ -207,56 +221,52 @@ este militar
                     </form>
                 </div>
 
-                <div class="cc-panel">
-                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none cc-panel-title-toggle"
-                        data-bs-toggle="collapse" data-bs-target="#historico-andamento" aria-expanded="false">
-                        <i class="bi bi-clock-history"></i>Histórico desta edição ({{ auditoria_andamento|length }})
-                        <i class="bi bi-chevron-down cc-chevron"></i>
-                    </button>
-                    <div class="collapse" id="historico-andamento">
-                        {% if auditoria_andamento %}
-                        <ul class="cc-historico-list mt-2">
-                            {% for a in auditoria_andamento %}
-                            <li>
-                                {% set rotulos = {'CRIADO': 'Edição criada', 'EDITADO': 'Prazos/critérios editados', 'CANCELADO': 'Edição cancelada', 'REATIVADO': 'Cancelamento desfeito'} %}
-                                <strong>{{ rotulos.get(a.evento, a.evento) }}</strong>
-                                por {{ nome_com_posto_user(a.realizado_por) }}
-                                em {{ a.realizado_em.strftime('%d/%m/%Y às %H:%M') if a.realizado_em else '—' }}
-                                {% if a.detalhes %}<br><span class="cc-item-sub">{{ a.detalhes }}</span>{% endif %}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <p class="mp-muted-note mb-0 mt-2">Nenhum evento registrado ainda.</p>
-                        {% endif %}
-                    </div>
-                </div>
             </div>
 
             <div class="col-lg-7">
                 <div class="cc-panel h-100">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h2 class="cc-panel-title mb-0"><i class="bi bi-inboxes"></i>Inscrições recebidas ({{ solicitacoes|length }})</h2>
-                        {% if solicitacoes %}
+                        <h2 class="cc-panel-title mb-0"><i class="bi bi-inboxes"></i>Inscrições recebidas ({{ inscricoes|length }})</h2>
+                        {% if inscricoes %}
                         <a class="btn btn-sm btn-outline-success" href="{{ url_for('cursos_cbmam_relatorio_excel', andamento_id=andamento.id) }}">
                             <i class="bi bi-file-earmark-excel me-1"></i>Baixar relatório em Excel
                         </a>
                         {% endif %}
                     </div>
 
-                    {% if solicitacoes %}
+                    {% if inscricoes %}
                     <div class="cc-item-list">
-                        {% for s in solicitacoes %}
+                        {% for item in inscricoes %}
+                        {% set s = item.s %}
+                        {% set p = s.pessoa_externa if item.tipo == 'externo' else none %}
                         <div class="cc-item">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                                 <div>
-                                    <div class="cc-item-title">
+                                    <div class="cc-item-title d-flex align-items-center gap-2 flex-wrap">
+                                        {% if item.tipo == 'interno' %}
+                                        <span class="status-pill tipo-badge">Interno</span>
                                         {{ s.militar.posto_grad.sigla if s.militar and s.militar.posto_grad else '' }}
                                         {{ s.militar.nome_completo if s.militar else 'Militar não encontrado' }}
+                                        {% else %}
+                                        <span class="status-pill tipo-badge-externo">Externo</span>
+                                        {{ p.nome_completo if p else 'Pessoa não encontrada' }}
+                                        {% endif %}
+                                    </div>
+                                    {% if item.tipo == 'externo' %}
+                                    <div class="cc-item-sub">
+                                        {{ 'Militar (' ~ (p.forca.nome if p.forca else '—') ~ ') · ' ~ (p.posto_graduacao or '—') if p and p.tipo_pessoa == 'MILITAR' else 'Civil' }}
+                                        {% if p and p.instituicao_origem %} · {{ p.instituicao_origem }}{% endif %}
                                     </div>
                                     <div class="cc-item-sub">
+                                        CPF: {{ p.cpf if p else '—' }}
+                                        · Tel: {{ p.telefone if p else '—' }}
+                                        · {{ p.email if p else '—' }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="cc-item-sub">
                                         Enviado em {{ s.criado_em.strftime('%d/%m/%Y às %H:%M') if s.criado_em else '—' }}
-                                        · <a href="{{ url_for('cursos_cbmam_admin_arquivo', solicitacao_id=s.id) }}" target="_blank" rel="noopener">
+                                        · <a href="{{ url_for('cursos_cbmam_admin_arquivo', solicitacao_id=s.id) if item.tipo == 'interno' else url_for('cursos_cbmam_admin_arquivo_externo', solicitacao_id=s.id) }}"
+                                            target="_blank" rel="noopener">
                                             <i class="bi bi-file-earmark-pdf"></i> {{ s.nome_original }}
                                         </a>
                                     </div>
@@ -276,16 +286,15 @@ este militar
                                 </div>
                             </div>
 
-                            {% set auditoria_s = auditoria_solicitacoes.get(s.id, []) %}
-                            {% if auditoria_s %}
+                            {% if item.auditoria %}
                             <div class="mt-2">
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none"
-                                    data-bs-toggle="collapse" data-bs-target="#historico-sol-{{ s.id }}">
-                                    <i class="bi bi-clock-history me-1"></i>Ver histórico de análise ({{ auditoria_s|length }})
+                                    data-bs-toggle="collapse" data-bs-target="#historico-sol-{{ item.tipo }}-{{ s.id }}">
+                                    <i class="bi bi-clock-history me-1"></i>Ver histórico de análise ({{ item.auditoria|length }})
                                 </button>
-                                <div class="collapse" id="historico-sol-{{ s.id }}">
+                                <div class="collapse" id="historico-sol-{{ item.tipo }}-{{ s.id }}">
                                     <ul class="cc-historico-list mt-2">
-                                        {% for a in auditoria_s %}
+                                        {% for a in item.auditoria %}
                                         <li>
                                             <strong>{{ a.de_status or 'Nova inscrição' }} → {{ a.para_status }}</strong>
                                             por {{ nome_com_posto_user(a.alterado_por) }}
@@ -299,15 +308,15 @@ este militar
                             {% endif %}
 
                             {% if s.deferido is none %}
-                            {{ form_analise(s) }}
+                            {{ form_analise(item) }}
                             {% else %}
                             <div class="mt-2">
                                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none"
-                                    data-bs-toggle="collapse" data-bs-target="#corrigir-{{ s.id }}">
+                                    data-bs-toggle="collapse" data-bs-target="#corrigir-{{ item.tipo }}-{{ s.id }}">
                                     <i class="bi bi-arrow-repeat me-1"></i>Corrigir análise
                                 </button>
-                                <div class="collapse" id="corrigir-{{ s.id }}">
-                                    {{ form_analise(s) }}
+                                <div class="collapse" id="corrigir-{{ item.tipo }}-{{ s.id }}">
+                                    {{ form_analise(item) }}
                                 </div>
                             </div>
                             {% endif %}
@@ -315,13 +324,137 @@ este militar
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="mp-muted-note">Nenhuma inscrição recebida até o momento.</p>
+                    <p class="cc-muted-note">Nenhuma inscrição recebida até o momento.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
+
+        <div class="cc-panel">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="cc-panel-title mb-1"><i class="bi bi-journal-bookmark"></i>Disciplinas desta edição (ementa)</h2>
+                    <p class="cc-muted-note mb-0">
+                        {% if andamento.disciplinas %}
+                        {{ andamento.disciplinas|length }} disciplina(s) cadastrada(s), {{ andamento.disciplinas|sum(attribute='carga_horaria') }}h no total.
+                        {% else %}
+                        Nenhuma disciplina cadastrada ainda nesta edição.
+                        {% endif %}
+                        A grade é própria desta edição, não do curso no catálogo — aparece pro militar e pro
+                        público externo como a ementa do curso.
+                    </p>
+                </div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#disciplinasModal">
+                    <i class="bi bi-pencil-square me-1"></i>Cadastrar disciplinas
+                </button>
+            </div>
+        </div>
     </div>
 </main>
+
+<div class="modal fade" id="disciplinasModal" tabindex="-1" aria-labelledby="disciplinasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="disciplinasModalLabel">
+                    <i class="bi bi-journal-bookmark me-2"></i>Disciplinas — {{ andamento.curso.nome if andamento.curso else 'Edição' }}
+                </h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                {% if andamento.disciplinas %}
+                <div class="cc-item-list mb-3">
+                    {% for d in andamento.disciplinas %}
+                    <div class="cc-item">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <div class="cc-item-title">{{ d.nome }}</div>
+                                <div class="cc-item-sub">{{ d.carga_horaria }}h</div>
+                                {% if d.descricao %}
+                                <div class="cc-item-sub">{{ d.descricao }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+                                    data-bs-target="#editar-disciplina-{{ d.id }}">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </button>
+                                <form method="post"
+                                    action="{{ url_for('cursos_cbmam_remover_disciplina', andamento_id=andamento.id, disciplina_id=d.id) }}"
+                                    onsubmit="return confirm('Remover a disciplina \'{{ d.nome }}\' desta edição?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Remover
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="collapse mt-2" id="editar-disciplina-{{ d.id }}">
+                            <form method="post"
+                                action="{{ url_for('cursos_cbmam_editar_disciplina', andamento_id=andamento.id, disciplina_id=d.id) }}">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="cc-field-label">Nome da disciplina</label>
+                                        <input type="text" name="nome" class="form-control form-control-sm"
+                                            value="{{ d.nome }}" maxlength="150" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="cc-field-label">Carga horária (h)</label>
+                                        <input type="number" name="carga_horaria" class="form-control form-control-sm"
+                                            value="{{ d.carga_horaria }}" min="1" required>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                                            <i class="bi bi-check2-circle me-1"></i>Salvar
+                                        </button>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="cc-field-label">Descrição / conteúdo (opcional)</label>
+                                        <textarea name="descricao" class="form-control form-control-sm" rows="2">{{ d.descricao or '' }}</textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="cc-muted-note">Nenhuma disciplina cadastrada ainda nesta edição.</p>
+                {% endif %}
+
+                <hr class="my-3">
+                <div class="cc-field-label mb-2">Adicionar disciplina</div>
+                <form method="post" action="{{ url_for('cursos_cbmam_criar_disciplina', andamento_id=andamento.id) }}">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="cc-field-label" for="nova_disciplina_nome">Nome da disciplina</label>
+                            <input type="text" id="nova_disciplina_nome" name="nome" class="form-control"
+                                maxlength="150" placeholder="Ex.: Primeiros Socorros" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="cc-field-label" for="nova_disciplina_carga">Carga horária (h)</label>
+                            <input type="number" id="nova_disciplina_carga" name="carga_horaria" class="form-control"
+                                min="1" placeholder="Ex.: 20" required>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Adicionar disciplina
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <label class="cc-field-label" for="nova_disciplina_descricao">Descrição / conteúdo (opcional)</label>
+                            <textarea id="nova_disciplina_descricao" name="descricao" class="form-control" rows="2"
+                                placeholder="O que é abordado nessa disciplina..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if not andamento.cancelado %}
 <form id="formCancelarAndamento" method="post"
@@ -380,6 +513,13 @@ este militar
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Chegando aqui com #disciplinasModal na URL (link "Editar
+        // disciplinas" da tela de Alunos e disciplinas), abre o modal direto.
+        if (window.location.hash === '#disciplinasModal' && typeof bootstrap !== 'undefined') {
+            const disciplinasModalEl = document.getElementById('disciplinasModal');
+            if (disciplinasModalEl) bootstrap.Modal.getOrCreateInstance(disciplinasModalEl).show();
+        }
+
         const modalEl = document.getElementById('confirmarAnaliseModal');
         if (!modalEl || typeof bootstrap === 'undefined') return;
 

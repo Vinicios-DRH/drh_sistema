@@ -630,6 +630,39 @@ class CriarSenhaForm(FlaskForm):
     submit = SubmitField('Criar Conta')
 
 
+class FormCadastroExterno(FlaskForm):
+    """Cadastro de conta pro público externo (civil ou militar de outra
+    força) se inscrever em Cursos CBMAM — passo único, sem matrícula pra
+    confirmar (não existe registro prévio dessa pessoa no sistema)."""
+    nome_completo = StringField('Nome completo', validators=[
+                                DataRequired(), Length(max=150)])
+    cpf = StringField('CPF', validators=[DataRequired()])
+    telefone = StringField('Telefone', validators=[
+                           DataRequired(), Length(max=20)])
+    email = StringField('E-mail', validators=[
+                        DataRequired(), Email(), Length(max=100)])
+    instituicao_origem = StringField('Instituição de origem', validators=[
+                                     DataRequired(), Length(max=150)])
+
+    tipo_pessoa = SelectField('Militar ou civil?', choices=[
+        ('CIVIL', 'Civil'),
+        ('MILITAR', 'Militar de outra força'),
+    ], validators=[DataRequired()])
+
+    # Só obrigatórios quando tipo_pessoa == 'MILITAR' — validados à mão na
+    # rota (WTForms não valida condicionalmente por outro campo sem gambiarra).
+    forca_id = SelectField('Força', choices=[], validators=[Optional()], coerce=str)
+    posto_graduacao = StringField('Posto/Graduação', validators=[
+                                  Optional(), Length(max=80)])
+    quadro = StringField('Quadro', validators=[Optional(), Length(max=80)])
+
+    senha = PasswordField('Senha', validators=[
+                          DataRequired(), Length(min=6, max=20)])
+    confirmar_senha = PasswordField('Confirmar Senha', validators=[
+                                    DataRequired(), EqualTo('senha')])
+    submit = SubmitField('Criar Conta')
+
+
 GRAU_INSTRUCAO_CHOICES = [
     ("", "Selecione"),
     ("ENSINO FUNDAMENTAL INCOMPLETO", "Ensino Fundamental Incompleto"),

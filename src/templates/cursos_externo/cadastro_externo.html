@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro — Cursos CBMAM (Público Externo) | SIGDP{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --overlay-alpha: .18;
+        --card-alpha: .30;
+        --glass-blur: 6px;
+    }
+
+    .hero-bg {
+        min-height: 100vh;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-color: #0b0e14;
+        position: relative;
+        background-image: image-set(url("{{ url_for('static', filename='img/bombeiros_4_1280.webp') }}") 1x,
+            url("{{ url_for('static', filename='img/bombeiros_4_1920.webp') }}") 2x);
+    }
+
+    .hero-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, var(--overlay-alpha));
+        pointer-events: none;
+    }
+
+    .transparent-card {
+        background: rgba(17, 17, 17, var(--card-alpha));
+        backdrop-filter: blur(var(--glass-blur));
+        -webkit-backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, .35);
+        color: #f1f5f9;
+    }
+
+    .transparent-card h2,
+    .transparent-card label,
+    .transparent-card p {
+        color: #f8fafc;
+    }
+
+    .transparent-card .form-control,
+    .transparent-card .form-select {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #f8fafc;
+    }
+
+    .transparent-card .form-control::placeholder {
+        color: rgba(255, 255, 255, .60);
+    }
+
+    .transparent-card .form-control:focus,
+    .transparent-card .form-select:focus {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(99, 102, 241, .8);
+        box-shadow: 0 0 0 .25rem rgba(99, 102, 241, .25);
+        color: #fff;
+    }
+
+    .transparent-card .form-select option {
+        color: #111;
+    }
+
+    /* O modo escuro do site sobrescreveria as regras acima (a regra global
+       de .form-control/.form-select tem mais especificidade que
+       ".transparent-card .form-control" sozinha) — repete aqui com o mesmo
+       prefixo pra sempre vencer, já que este cartão é sempre "vidro escuro"
+       independente do tema do site. */
+    html[data-theme="dark"] .transparent-card .form-control,
+    html[data-theme="dark"] .transparent-card .form-select {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #f8fafc;
+    }
+
+    html[data-theme="dark"] .transparent-card .form-control::placeholder {
+        color: rgba(255, 255, 255, .60);
+    }
+
+    html[data-theme="dark"] .transparent-card .form-control:focus,
+    html[data-theme="dark"] .transparent-card .form-select:focus {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(99, 102, 241, .8);
+        box-shadow: 0 0 0 .25rem rgba(99, 102, 241, .25);
+        color: #fff;
+    }
+
+    .transparent-card .btn.btn-outline-primary {
+        border-color: rgba(99, 102, 241, .8);
+        color: #e2e8f0;
+    }
+
+    .transparent-card .btn.btn-outline-primary:hover {
+        background: rgba(99, 102, 241, .8);
+        color: #0b1020;
+    }
+
+    #camposMilitar {
+        padding-top: .5rem;
+        margin-top: .5rem;
+        border-top: 1px dashed rgba(255, 255, 255, .18);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="py-3 py-md-4 p-xl-5 hero-bg">
+    <div class="container py-3 py-md-4 p-xl-5 mt-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8 col-xl-7">
+                <div class="card border border-light-subtle rounded-3 transparent-card">
+                    <div class="card-body p-3 p-md-4 p-xl-5">
+                        <div class="text-center mb-3">
+                            <img src="{{ url_for('static', filename='img/logobm.png') }}" width="90" height="90"
+                                alt="Logo CBM">
+                        </div>
+                        <h2 class="fs-4 fw-bold text-center mb-1">Crie sua conta</h2>
+                        <p class="text-center small mb-4">
+                            Preencha seus dados pra se cadastrar e se inscrever nos cursos abertos ao público.
+                        </p>
+
+                        <form method="POST" id="formCadastroExterno">
+                            {{ form.csrf_token }}
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">{{ form.nome_completo.label.text }}</label>
+                                    {{ form.nome_completo(class="form-control") }}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.cpf.label.text }}</label>
+                                    {{ form.cpf(class="form-control", placeholder="000.000.000-00",
+                                    id="inputCpfExterno") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.telefone.label.text }}</label>
+                                    {{ form.telefone(class="form-control", placeholder="(00) 00000-0000") }}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.email.label.text }}</label>
+                                    {{ form.email(class="form-control") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.instituicao_origem.label.text }}</label>
+                                    {{ form.instituicao_origem(class="form-control", placeholder="Empresa, órgão,
+                                    unidade...") }}
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">{{ form.tipo_pessoa.label.text }}</label>
+                                    {{ form.tipo_pessoa(class="form-select", id="selectTipoPessoa") }}
+                                </div>
+
+                                <div class="col-12" id="camposMilitar">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">{{ form.forca_id.label.text }}</label>
+                                            {{ form.forca_id(class="form-select") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">{{ form.posto_graduacao.label.text }}</label>
+                                            {{ form.posto_graduacao(class="form-control") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">{{ form.quadro.label.text }}</label>
+                                            {{ form.quadro(class="form-control") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.senha.label.text }}</label>
+                                    {{ form.senha(class="form-control") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ form.confirmar_senha.label.text }}</label>
+                                    {{ form.confirmar_senha(class="form-control") }}
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="d-grid my-2">
+                                        {{ form.submit(class="btn btn-outline-primary") }}
+                                    </div>
+                                    <p class="text-center small mb-0">
+                                        Já tem conta?
+                                        <a href="{{ url_for('login_externo') }}" class="link-light">Fazer login</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://unpkg.com/vanilla-masker/build/vanilla-masker.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const cpfInput = document.getElementById('inputCpfExterno');
+        if (cpfInput) VMasker(cpfInput).maskPattern("999.999.999-99");
+
+        const telInput = document.querySelector('input[name="telefone"]');
+        if (telInput) VMasker(telInput).maskPattern("(99) 99999-9999");
+
+        const selectTipo = document.getElementById('selectTipoPessoa');
+        const camposMilitar = document.getElementById('camposMilitar');
+
+        function atualizarCamposMilitar() {
+            const ehMilitar = selectTipo.value === 'MILITAR';
+            camposMilitar.style.display = ehMilitar ? '' : 'none';
+        }
+
+        if (selectTipo && camposMilitar) {
+            selectTipo.addEventListener('change', atualizarCamposMilitar);
+            atualizarCamposMilitar();
+        }
+    });
+</script>
+{% endblock %}

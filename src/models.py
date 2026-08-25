@@ -2158,6 +2158,12 @@ class CursoAndamento(database.Model):
     cancelado_por_user_id = database.Column(
         database.Integer, database.ForeignKey('user.id'))
 
+    # A BM-3 decide, por edição, se além dos militares do CBMAM ela também
+    # aceita inscrição de público externo (civil ou militar de outra força —
+    # ver PessoaExterna). Sem isso marcado, a edição continua só interna.
+    aberto_publico_externo = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+
     curso = database.relationship('Curso')
     criado_por = database.relationship('User', foreign_keys=[criado_por_user_id])
     cancelado_por = database.relationship('User', foreign_keys=[cancelado_por_user_id])
@@ -2165,6 +2171,11 @@ class CursoAndamento(database.Model):
         'CursoAndamentoPostoGrad', cascade='all, delete-orphan', backref='curso_andamento')
     solicitacoes = database.relationship(
         'SolicitacaoInscricaoCurso', cascade='all, delete-orphan', backref='curso_andamento')
+    solicitacoes_externo = database.relationship(
+        'SolicitacaoInscricaoCursoExterno', cascade='all, delete-orphan', backref='curso_andamento')
+    disciplinas = database.relationship(
+        'CursoAndamentoDisciplina', cascade='all, delete-orphan', backref='curso_andamento',
+        order_by='CursoAndamentoDisciplina.id')
 
     @property
     def inscricoes_abertas(self):
@@ -2187,6 +2198,25 @@ class CursoAndamentoPostoGrad(database.Model):
         database.UniqueConstraint(
             'curso_andamento_id', 'posto_grad_id', name='uq_curso_andamento_posto_grad'),
     )
+
+
+class CursoAndamentoDisciplina(database.Model):
+    """Disciplina de uma edição específica do curso (não do catálogo) —
+    a mesma edição do próximo ano pode ter uma grade totalmente diferente.
+    Vira a "ementa do curso" exibida pro militar e pro público externo."""
+    __tablename__ = "curso_andamento_disciplina"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_andamento_id = database.Column(
+        database.Integer, database.ForeignKey('curso_andamento.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+
+    nome = database.Column(database.String(150), nullable=False)
+    carga_horaria = database.Column(database.Integer, nullable=False)  # em horas
+    descricao = database.Column(database.Text)
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class SolicitacaoInscricaoCurso(database.Model):
@@ -2216,8 +2246,17 @@ class SolicitacaoInscricaoCurso(database.Model):
         database.Integer, database.ForeignKey('user.id'))
     observacao_analise = database.Column(database.Text)
 
+    # Só faz sentido depois de deferido — a BM-3 confirma que o aluno de
+    # fato concluiu esta edição do curso (frequência/prova/o que for).
+    concluido = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+    concluido_em = database.Column(database.DateTime(timezone=True))
+    concluido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
     militar = database.relationship('Militar')
     analisado_por = database.relationship('User', foreign_keys=[analisado_por_user_id])
+    concluido_por = database.relationship('User', foreign_keys=[concluido_por_user_id])
 
     __table_args__ = (
         database.UniqueConstraint(
@@ -2280,6 +2319,123 @@ class AuditoriaCursoAndamento(database.Model):
         'CursoAndamento',
         backref=database.backref('auditorias', cascade='all, delete-orphan'))
     realizado_por = database.relationship('User')
+
+
+# ---------------------------------------------------------------------------
+# CURSOS CBMAM — público externo (civil ou militar de outra força)
+#
+# Caminho paralelo ao de cima, propositalmente sem misturar com Militar: uma
+# pessoa de fora não tem matrícula, posto_grad_id nem especialidade_id do
+# CBMAM, então a elegibilidade dela pra uma edição não pode ser decidida do
+# mesmo jeito (CursoAndamentoPostoGrad) — é só "a edição está marcada como
+# CursoAndamento.aberto_publico_externo e ainda está com inscrição aberta".
+# ---------------------------------------------------------------------------
+
+class Forca(database.Model):
+    __tablename__ = "forca"
+
+    id = database.Column(database.Integer, primary_key=True)
+    sigla = database.Column(database.String(20), nullable=False)
+    nome = database.Column(database.String(60), nullable=False)
+
+
+class PessoaExterna(database.Model):
+    __tablename__ = "pessoa_externa"
+
+    id = database.Column(database.Integer, primary_key=True)
+    user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'), nullable=False, unique=True, index=True)
+
+    nome_completo = database.Column(database.String(150), nullable=False)
+    cpf = database.Column(database.String(50), nullable=False)
+    # Só dígitos, únicos — mesmo padrão de User.cpf_norm. `cpf` guarda a
+    # versão com máscara pra exibição; `cpf_norm` é o que garante unicidade
+    # e o que se usa pra comparar (a máscara pode variar, os dígitos não).
+    cpf_norm = database.Column(database.String(11), nullable=False, unique=True)
+    telefone = database.Column(database.String(20))
+    telefone_norm = database.Column(database.String(11), unique=True)
+    email = database.Column(database.String(100))
+    instituicao_origem = database.Column(database.String(150))
+
+    # 'MILITAR' | 'CIVIL'
+    tipo_pessoa = database.Column(database.String(10), nullable=False)
+
+    # Só preenchido quando tipo_pessoa='MILITAR' — as 4 forças (Exército,
+    # Marinha, Aeronáutica, Polícia Militar). Posto/graduação e quadro são
+    # texto livre porque cada força tem nomenclatura própria de patente.
+    forca_id = database.Column(database.Integer, database.ForeignKey('forca.id'))
+    posto_graduacao = database.Column(database.String(80))
+    quadro = database.Column(database.String(80))
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = database.relationship('User')
+    forca = database.relationship('Forca')
+
+
+class SolicitacaoInscricaoCursoExterno(database.Model):
+    __tablename__ = "solicitacao_inscricao_externo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    curso_andamento_id = database.Column(
+        database.Integer, database.ForeignKey('curso_andamento.id'), nullable=False, index=True)
+    pessoa_externa_id = database.Column(
+        database.Integer, database.ForeignKey('pessoa_externa.id'), nullable=False, index=True)
+
+    nome_original = database.Column(database.String(255), nullable=False)
+    content_type = database.Column(database.String(100), nullable=False)
+    tamanho_bytes = database.Column(database.Integer)
+    url_arquivo = database.Column(database.String(500), nullable=False)
+
+    criado_em = database.Column(
+        database.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # None = aguardando análise da BM-3; True = deferido; False = indeferido
+    deferido = database.Column(database.Boolean)
+    analisado_em = database.Column(database.DateTime(timezone=True))
+    analisado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    observacao_analise = database.Column(database.Text)
+
+    # Só faz sentido depois de deferido — a BM-3 confirma que o aluno de
+    # fato concluiu esta edição do curso.
+    concluido = database.Column(
+        database.Boolean, nullable=False, default=False, server_default=text("false"))
+    concluido_em = database.Column(database.DateTime(timezone=True))
+    concluido_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+
+    pessoa_externa = database.relationship('PessoaExterna')
+    analisado_por = database.relationship('User', foreign_keys=[analisado_por_user_id])
+    concluido_por = database.relationship('User', foreign_keys=[concluido_por_user_id])
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            'curso_andamento_id', 'pessoa_externa_id', name='uq_solicitacao_curso_externo'),
+    )
+
+
+class AuditoriaSolicitacaoCursoExterno(database.Model):
+    __tablename__ = "auditoria_solicitacao_curso_externo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    solicitacao_id = database.Column(
+        database.Integer, database.ForeignKey('solicitacao_inscricao_externo.id'), nullable=False, index=True)
+
+    de_status = database.Column(database.String(30))
+    para_status = database.Column(database.String(30), nullable=False)
+    observacao = database.Column(database.Text)
+
+    alterado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'))
+    data_alteracao = database.Column(
+        database.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    solicitacao = database.relationship(
+        'SolicitacaoInscricaoCursoExterno',
+        backref=database.backref('auditorias', cascade='all, delete-orphan'))
+    alterado_por = database.relationship('User')
 
 
 class EfetivoDiarioOBM(database.Model):

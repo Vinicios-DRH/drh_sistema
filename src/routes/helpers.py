@@ -47,6 +47,17 @@ def _somente_numeros(valor):
     return "".join(filter(str.isdigit, str(valor or "")))
 
 
+def formatar_telefone(numeros):
+    """Aplica a máscara (XX) XXXXX-XXXX (celular, 11 dígitos) ou
+    (XX) XXXX-XXXX (fixo, 10 dígitos) em cima de uma string só de dígitos."""
+    numeros = _somente_numeros(numeros)
+    if len(numeros) == 11:
+        return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
+    if len(numeros) == 10:
+        return f"({numeros[:2]}) {numeros[2:6]}-{numeros[6:]}"
+    return numeros
+
+
 def _obms_do_militar_por_vinculos(militar):
     """
     Retorna até 2 OBMs do militar, priorizando:

@@ -11,6 +11,7 @@ from src.decorators.control import checar_ocupacao
 from src.decorators.business_logic import processar_militares_a_disposicao, processar_militares_agregados, \
     processar_militares_le, processar_militares_lts
 from src.services.militar_situacao_service import processar_inicio_situacoes_extras
+from src.authz import FUNCAO_PUBLICO_EXTERNO_ID
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -54,6 +55,12 @@ def estatisticas():
 @app.route("/")
 @login_required
 def home():
+    # Checado ANTES do funcao_user_id==12: público externo (civil ou
+    # militar de outra força) não tem Militar vinculado, e o branch abaixo
+    # (assim como o autoatendimento militar) tenta resolver/sintetizar um.
+    if current_user.funcao_user_id == FUNCAO_PUBLICO_EXTERNO_ID:
+        return redirect(url_for('home_cursos_externo'))
+
     if current_user.funcao_user_id == 12:
         return redirect(url_for('home_atualizacao'))
 

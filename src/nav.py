@@ -224,11 +224,14 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     )
 
     nav.append(
-        _mk_item(
+        _mk_group(
             "Cursos CBMAM (BM-3)",
-            "cursos_cbmam_admin",
             icon="fas fa-graduation-cap",
             rule=(lambda: is_super or can_manage_cursos_cbmam()),
+            children=[
+                _mk_item("Painel administrativo", "cursos_cbmam_admin"),
+                _mk_item("Histórico", "cursos_cbmam_historico"),
+            ],
         )
     )
 

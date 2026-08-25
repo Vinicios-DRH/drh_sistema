@@ -57,6 +57,7 @@
     .cc-panel-title i { margin-right: .4rem; color: var(--app-primary); }
 
     .cc-field-label { display: block; margin-bottom: .3rem; font-size: .8rem; font-weight: 650; color: var(--app-text); }
+    .cc-muted-note { color: var(--app-muted); font-size: .8rem; line-height: 1.45; }
 
     .cc-check-grid {
         display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .5rem;
@@ -131,14 +132,14 @@
                             <label class="cc-field-label" for="curso_descricao">Descrição (opcional)</label>
                             <textarea id="curso_descricao" name="descricao" class="form-control" rows="2" maxlength="255"></textarea>
                         </div>
-                        <button type="submit" class="btn mp-btn-outline">
+                        <button type="submit" class="btn btn-outline-primary">
                             <i class="bi bi-plus-circle me-1"></i>Adicionar ao catálogo
                         </button>
                     </form>
 
                     {% if cursos_base %}
                     <hr class="my-3">
-                    <div class="mp-muted-note mb-2">Catálogo atual ({{ cursos_base|length }})</div>
+                    <div class="cc-muted-note mb-2">Catálogo atual ({{ cursos_base|length }})</div>
                     <div class="d-flex flex-wrap gap-2">
                         {% for c in cursos_base %}
                         <span class="badge text-bg-secondary">{{ c.nome }}</span>
@@ -153,7 +154,7 @@
                     <h2 class="cc-panel-title"><i class="bi bi-calendar2-check"></i>Abrir inscrições para uma edição</h2>
 
                     {% if not cursos_base %}
-                    <p class="mp-muted-note">Cadastre um curso no catálogo ao lado antes de abrir uma edição.</p>
+                    <p class="cc-muted-note">Cadastre um curso no catálogo ao lado antes de abrir uma edição.</p>
                     {% else %}
                     <form method="post" action="{{ url_for('cursos_cbmam_criar_andamento') }}">
                         <div class="row g-3">
@@ -201,8 +202,18 @@
                                 </div>
                             </div>
 
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="andamento_publico_externo"
+                                        name="aberto_publico_externo" value="1">
+                                    <label class="form-check-label" for="andamento_publico_externo">
+                                        Abrir também para o público externo (civil ou militar de outra força)
+                                    </label>
+                                </div>
+                            </div>
+
                             <div class="col-12 d-flex justify-content-end">
-                                <button type="submit" class="btn mp-btn-save">
+                                <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-unlock me-1"></i>Abrir inscrições
                                 </button>
                             </div>
@@ -229,6 +240,7 @@
                                 <th>Prazo de inscrição</th>
                                 <th>Situação</th>
                                 <th>Inscrições</th>
+                                <th>Público externo</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -251,6 +263,13 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ a.solicitacoes|length }}</td>
+                                <td>
+                                    {% if a.aberto_publico_externo %}
+                                    <span class="status-pill status-vigente">Sim ({{ a.solicitacoes_externo|length }})</span>
+                                    {% else %}
+                                    <span class="status-pill status-cancelado">Não</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <a class="cc-link" href="{{ url_for('cursos_cbmam_admin_andamento', andamento_id=a.id) }}">
                                         Ver / analisar <i class="bi bi-arrow-right"></i>

@@ -20,21 +20,34 @@ from src.models import Militar, PostoGrad
 from src.services.cursos_cbmam_service import (
     analisar_solicitacao,
     atualizar_curso_andamento,
+    atualizar_disciplina,
     cancelar_curso_andamento,
     criar_curso,
     criar_curso_andamento,
+    criar_disciplina,
     criar_solicitacao_inscricao,
     listar_auditoria_andamento,
     listar_auditoria_solicitacoes_do_andamento,
     listar_cursos_andamento,
     listar_cursos_base,
     listar_cursos_disponiveis_para_militar,
+    listar_disciplinas,
     listar_militares_inscritos_para_relatorio,
     listar_minhas_solicitacoes,
     listar_solicitacoes_para_analise,
+    marcar_conclusao,
     obter_curso_andamento,
     obter_solicitacao,
     reativar_curso_andamento,
+    remover_disciplina,
+)
+from src.services.cursos_cbmam_externo_service import (
+    analisar_solicitacao_externo,
+    listar_auditoria_solicitacoes_externo_do_andamento,
+    listar_pessoas_externas_inscritas_para_relatorio,
+    listar_solicitacoes_externas_para_analise,
+    marcar_conclusao_externo,
+    obter_solicitacao_externo,
 )
 from src.services.militar_situacao_service import parse_date_flex
 from src.utils.utils import registrar_log_download
@@ -65,6 +78,38 @@ def cursos_cbmam_admin():
         andamentos=listar_cursos_andamento(),
         postos_grad=PostoGrad.query.order_by(PostoGrad.id.asc()).all(),
         solicitacoes_pendentes_qtd=len(listar_solicitacoes_para_analise(apenas_pendentes=True)),
+    )
+
+
+@app.route("/cursos-cbmam/admin/historico")
+@login_required
+def cursos_cbmam_historico():
+    """Lista todas as edições — ponto de entrada pro histórico de cada uma,
+    que antes ficava sempre visível dentro da tela de detalhe da edição
+    (poluindo a tela) e agora mora na própria página de histórico dela."""
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    return render_template(
+        "cursos_cbmam_historico.html",
+        andamentos=listar_cursos_andamento(),
+    )
+
+
+@app.route("/cursos-cbmam/admin/andamentos/<int:andamento_id>/historico")
+@login_required
+def cursos_cbmam_andamento_historico(andamento_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    andamento = obter_curso_andamento(andamento_id)
+    if not andamento:
+        abort(404)
+
+    return render_template(
+        "cursos_cbmam_andamento_historico.html",
+        andamento=andamento,
+        auditoria_andamento=listar_auditoria_andamento(andamento_id),
     )
 
 
@@ -107,6 +152,7 @@ def cursos_cbmam_criar_andamento():
             destinado_a=request.form.get("destinado_a"),
             posto_grad_ids=request.form.getlist("posto_grad_ids"),
             criado_por_user_id=current_user.id,
+            aberto_publico_externo=request.form.get("aberto_publico_externo") == "1",
         )
         database.session.commit()
         flash("Inscrições abertas! O curso já está disponível para os militares elegíveis.", "alert-success")
@@ -140,6 +186,7 @@ def cursos_cbmam_editar_andamento(andamento_id):
             destinado_a=request.form.get("destinado_a"),
             posto_grad_ids=request.form.getlist("posto_grad_ids"),
             editado_por_user_id=current_user.id,
+            aberto_publico_externo=request.form.get("aberto_publico_externo") == "1",
         )
         database.session.commit()
         flash("Edição do curso atualizada.", "alert-success")
@@ -196,6 +243,85 @@ def cursos_cbmam_reativar_andamento(andamento_id):
     return redirect(url_for("cursos_cbmam_admin_andamento", andamento_id=andamento_id))
 
 
+@app.post("/cursos-cbmam/admin/andamentos/<int:andamento_id>/disciplinas")
+@login_required
+def cursos_cbmam_criar_disciplina(andamento_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    andamento = obter_curso_andamento(andamento_id)
+    if not andamento:
+        abort(404)
+
+    try:
+        criar_disciplina(
+            andamento,
+            nome=request.form.get("nome"),
+            carga_horaria=request.form.get("carga_horaria"),
+            descricao=request.form.get("descricao"),
+        )
+        database.session.commit()
+        flash("Disciplina adicionada à ementa.", "alert-success")
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Erro ao adicionar disciplina")
+        flash(f"Erro ao adicionar disciplina: {str(e)}", "alert-danger")
+
+    return redirect(url_for("cursos_cbmam_admin_andamento", andamento_id=andamento_id))
+
+
+@app.post("/cursos-cbmam/admin/andamentos/<int:andamento_id>/disciplinas/<int:disciplina_id>/editar")
+@login_required
+def cursos_cbmam_editar_disciplina(andamento_id, disciplina_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    disciplina = next(
+        (d for d in listar_disciplinas(andamento_id) if d.id == disciplina_id), None)
+    if not disciplina:
+        abort(404)
+
+    try:
+        atualizar_disciplina(
+            disciplina,
+            nome=request.form.get("nome"),
+            carga_horaria=request.form.get("carga_horaria"),
+            descricao=request.form.get("descricao"),
+        )
+        database.session.commit()
+        flash("Disciplina atualizada.", "alert-success")
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Erro ao editar disciplina")
+        flash(f"Erro ao editar disciplina: {str(e)}", "alert-danger")
+
+    return redirect(url_for("cursos_cbmam_admin_andamento", andamento_id=andamento_id))
+
+
+@app.post("/cursos-cbmam/admin/andamentos/<int:andamento_id>/disciplinas/<int:disciplina_id>/remover")
+@login_required
+def cursos_cbmam_remover_disciplina(andamento_id, disciplina_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    disciplina = next(
+        (d for d in listar_disciplinas(andamento_id) if d.id == disciplina_id), None)
+    if not disciplina:
+        abort(404)
+
+    remover_disciplina(disciplina)
+    database.session.commit()
+    flash("Disciplina removida da ementa.", "alert-success")
+
+    return redirect(url_for("cursos_cbmam_admin_andamento", andamento_id=andamento_id))
+
+
 @app.route("/cursos-cbmam/admin/andamentos/<int:andamento_id>/relatorio-excel")
 @login_required
 def cursos_cbmam_relatorio_excel(andamento_id):
@@ -239,6 +365,33 @@ def cursos_cbmam_relatorio_excel(andamento_id):
         ws.column_dimensions[get_column_letter(col_num)].width = largura
     ws.freeze_panes = "A2"
 
+    if andamento.aberto_publico_externo:
+        linhas_externo = listar_pessoas_externas_inscritas_para_relatorio(andamento_id)
+        headers_externo = [
+            "Nome Completo", "CPF", "Telefone", "E-mail", "Instituição de Origem",
+            "Tipo", "Força", "Posto/Graduação", "Situação da Inscrição",
+        ]
+
+        ws_externo = wb.create_sheet("Público Externo")
+        ws_externo.append(headers_externo)
+        for col_num in range(1, len(headers_externo) + 1):
+            cell = ws_externo.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        for linha in linhas_externo:
+            ws_externo.append([
+                linha["nome_completo"], linha["cpf"], linha["telefone"], linha["email"],
+                linha["instituicao_origem"], linha["tipo_pessoa"], linha["forca"],
+                linha["posto_graduacao"], linha["situacao_inscricao"],
+            ])
+
+        larguras_externo = [32, 18, 16, 26, 28, 14, 14, 18, 18]
+        for col_num, largura in enumerate(larguras_externo, start=1):
+            ws_externo.column_dimensions[get_column_letter(col_num)].width = largura
+        ws_externo.freeze_panes = "A2"
+
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -268,14 +421,107 @@ def cursos_cbmam_admin_andamento(andamento_id):
     if not andamento:
         abort(404)
 
+    solicitacoes = listar_solicitacoes_para_analise(curso_andamento_id=andamento_id)
+    auditoria_solicitacoes = listar_auditoria_solicitacoes_do_andamento(andamento_id)
+    solicitacoes_externo = listar_solicitacoes_externas_para_analise(curso_andamento_id=andamento_id)
+    auditoria_solicitacoes_externo = listar_auditoria_solicitacoes_externo_do_andamento(andamento_id)
+
+    # Uma pessoa só quer ver "quem se inscreveu" numa lista só — militar do
+    # CBMAM e público externo são tabelas separadas por baixo (identidade
+    # bem diferente: um tem posto/grad do CBMAM, o outro tem força/
+    # instituição), mas na tela isso é só uma etiqueta "Interno"/"Externo"
+    # por linha, tudo junto e ordenado por data de envio.
+    inscricoes = (
+        [{"tipo": "interno", "s": s, "auditoria": auditoria_solicitacoes.get(s.id, [])} for s in solicitacoes]
+        + [{"tipo": "externo", "s": s, "auditoria": auditoria_solicitacoes_externo.get(s.id, [])} for s in solicitacoes_externo]
+    )
+    inscricoes.sort(key=lambda item: item["s"].criado_em, reverse=True)
+
     return render_template(
         "cursos_cbmam_admin_andamento.html",
         andamento=andamento,
-        solicitacoes=listar_solicitacoes_para_analise(curso_andamento_id=andamento_id),
+        inscricoes=inscricoes,
         postos_grad=PostoGrad.query.order_by(PostoGrad.id.asc()).all(),
-        auditoria_andamento=listar_auditoria_andamento(andamento_id),
-        auditoria_solicitacoes=listar_auditoria_solicitacoes_do_andamento(andamento_id),
     )
+
+
+@app.route("/cursos-cbmam/admin/andamentos/<int:andamento_id>/turma")
+@login_required
+def cursos_cbmam_turma(andamento_id):
+    """Tela própria pra ver disciplinas e alunos (quem já foi deferido) —
+    separada da tela de análise de inscrições, que já lida com quem ainda
+    está pendente/indeferido."""
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    andamento = obter_curso_andamento(andamento_id)
+    if not andamento:
+        abort(404)
+
+    solicitacoes = listar_solicitacoes_para_analise(curso_andamento_id=andamento_id)
+    solicitacoes_externo = listar_solicitacoes_externas_para_analise(curso_andamento_id=andamento_id)
+
+    alunos = (
+        [{"tipo": "interno", "s": s} for s in solicitacoes if s.deferido]
+        + [{"tipo": "externo", "s": s} for s in solicitacoes_externo if s.deferido]
+    )
+    alunos.sort(key=lambda item: item["s"].criado_em, reverse=True)
+
+    return render_template(
+        "cursos_cbmam_turma.html",
+        andamento=andamento,
+        alunos=alunos,
+    )
+
+
+@app.post("/cursos-cbmam/admin/solicitacoes/<int:solicitacao_id>/concluir")
+@login_required
+def cursos_cbmam_concluir_solicitacao(solicitacao_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    solicitacao = obter_solicitacao(solicitacao_id)
+    if not solicitacao:
+        abort(404)
+
+    concluido = request.form.get("concluido") == "1"
+    try:
+        marcar_conclusao(solicitacao, concluido=concluido, realizado_por_user_id=current_user.id)
+        database.session.commit()
+        flash(
+            "Aluno marcado como concluído." if concluido else "Conclusão desfeita.",
+            "alert-success",
+        )
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+
+    return redirect(url_for("cursos_cbmam_turma", andamento_id=solicitacao.curso_andamento_id))
+
+
+@app.post("/cursos-cbmam/admin/solicitacoes-externo/<int:solicitacao_id>/concluir")
+@login_required
+def cursos_cbmam_concluir_solicitacao_externo(solicitacao_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    solicitacao = obter_solicitacao_externo(solicitacao_id)
+    if not solicitacao:
+        abort(404)
+
+    concluido = request.form.get("concluido") == "1"
+    try:
+        marcar_conclusao_externo(solicitacao, concluido=concluido, realizado_por_user_id=current_user.id)
+        database.session.commit()
+        flash(
+            "Aluno marcado como concluído." if concluido else "Conclusão desfeita.",
+            "alert-success",
+        )
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "alert-warning")
+
+    return redirect(url_for("cursos_cbmam_turma", andamento_id=solicitacao.curso_andamento_id))
 
 
 @app.post("/cursos-cbmam/admin/solicitacoes/<int:solicitacao_id>/analisar")
@@ -311,6 +557,45 @@ def cursos_cbmam_admin_arquivo(solicitacao_id):
         abort(403)
 
     solicitacao = obter_solicitacao(solicitacao_id)
+    if not solicitacao:
+        abort(404)
+
+    return redirect(solicitacao.url_arquivo)
+
+
+@app.post("/cursos-cbmam/admin/solicitacoes-externo/<int:solicitacao_id>/analisar")
+@login_required
+def cursos_cbmam_analisar_solicitacao_externo(solicitacao_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    solicitacao = obter_solicitacao_externo(solicitacao_id)
+    if not solicitacao:
+        abort(404)
+
+    deferido = request.form.get("deferido") == "1"
+    analisar_solicitacao_externo(
+        solicitacao,
+        deferido=deferido,
+        observacao=request.form.get("observacao_analise"),
+        analisado_por_user_id=current_user.id,
+    )
+    database.session.commit()
+
+    flash(
+        "Inscrição deferida." if deferido else "Inscrição indeferida.",
+        "alert-success" if deferido else "alert-warning",
+    )
+    return redirect(url_for("cursos_cbmam_admin_andamento", andamento_id=solicitacao.curso_andamento_id))
+
+
+@app.route("/cursos-cbmam/admin/solicitacoes-externo/<int:solicitacao_id>/arquivo")
+@login_required
+def cursos_cbmam_admin_arquivo_externo(solicitacao_id):
+    if not can_manage_cursos_cbmam():
+        abort(403)
+
+    solicitacao = obter_solicitacao_externo(solicitacao_id)
     if not solicitacao:
         abort(404)
 

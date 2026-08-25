@@ -105,6 +105,20 @@ def pode_ver_autoatendimento_militar() -> bool:
     return funcao_id in FUNCOES_AUTOATENDIMENTO_MILITAR
 
 
+# Papel dedicado do público externo (civil ou militar de outra força) que se
+# cadastra sozinho pra se inscrever em Cursos CBMAM — precisa ser um
+# funcao_user_id PRÓPRIO, diferente do 12 (ATUALIZACAO CADASTRAL) usado pelo
+# autoatendimento militar/aluno: o dispatcher de home() e o autoatendimento
+# militar tentam resolver/sintetizar um Militar pro usuário quando veem
+# funcao_user_id==12, e uma pessoa externa não tem (nem deve ganhar) um
+# registro de Militar.
+FUNCAO_PUBLICO_EXTERNO_ID = 14
+
+
+def eh_publico_externo() -> bool:
+    return getattr(current_user, "funcao_user_id", None) == FUNCAO_PUBLICO_EXTERNO_ID
+
+
 def require_perm(codigo: str):
     def deco(fn):
         @wraps(fn)

@@ -19,6 +19,7 @@ from src.models import (
     AuditoriaSolicitacaoCurso,
     Curso,
     CursoAndamento,
+    CursoAndamentoDisciplina,
     CursoAndamentoPostoGrad,
     Militar,
     SolicitacaoInscricaoCurso,
@@ -80,6 +81,7 @@ def obter_curso_andamento(curso_andamento_id):
             joinedload(CursoAndamento.curso),
             joinedload(CursoAndamento.postos_grad).joinedload(CursoAndamentoPostoGrad.posto_grad),
             joinedload(CursoAndamento.cancelado_por).joinedload(User.militar).joinedload(Militar.posto_grad),
+            joinedload(CursoAndamento.disciplinas),
         )
         .filter(CursoAndamento.id == curso_andamento_id)
         .first()
@@ -105,7 +107,8 @@ def _log_evento_andamento(andamento, evento, detalhes=None, user_id=None):
 
 
 def criar_curso_andamento(curso_id, data_inicio, data_fim, data_limite_inscricao,
-                           destinado_a, posto_grad_ids, criado_por_user_id=None):
+                           destinado_a, posto_grad_ids, criado_por_user_id=None,
+                           aberto_publico_externo=False):
     """Abre uma nova edição de inscrição pro curso — a partir daqui já fica
     disponível pros militares elegíveis em /meus-cursos. O mesmo curso pode
     ganhar quantas edições forem precisas ao longo dos anos: nenhuma edição
@@ -131,6 +134,7 @@ def criar_curso_andamento(curso_id, data_inicio, data_fim, data_limite_inscricao
         data_limite_inscricao=data_limite_inscricao,
         destinado_a=destinado_a,
         criado_por_user_id=criado_por_user_id,
+        aberto_publico_externo=bool(aberto_publico_externo),
     )
     database.session.add(andamento)
     database.session.flush()
@@ -139,20 +143,21 @@ def criar_curso_andamento(curso_id, data_inicio, data_fim, data_limite_inscricao
         database.session.add(
             CursoAndamentoPostoGrad(curso_andamento_id=andamento.id, posto_grad_id=pg_id))
 
-    _log_evento_andamento(
-        andamento, "CRIADO",
-        detalhes=(
-            f"Edição aberta: {data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}, "
-            f"inscrições até {data_limite_inscricao.strftime('%d/%m/%Y')}, destinado a {destinado_a}."
-        ),
-        user_id=criado_por_user_id,
+    detalhes = (
+        f"Edição aberta: {data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}, "
+        f"inscrições até {data_limite_inscricao.strftime('%d/%m/%Y')}, destinado a {destinado_a}."
     )
+    if andamento.aberto_publico_externo:
+        detalhes += " Aberta também ao público externo."
+
+    _log_evento_andamento(andamento, "CRIADO", detalhes=detalhes, user_id=criado_por_user_id)
 
     return andamento
 
 
 def atualizar_curso_andamento(andamento, data_inicio, data_fim, data_limite_inscricao,
-                               destinado_a, posto_grad_ids, editado_por_user_id=None):
+                               destinado_a, posto_grad_ids, editado_por_user_id=None,
+                               aberto_publico_externo=False):
     """A BM-3 pode reajustar prazos e critérios de uma edição já aberta."""
     destinado_a = (destinado_a or "").strip().upper()
     if destinado_a not in DESTINOS_VALIDOS:
@@ -163,6 +168,8 @@ def atualizar_curso_andamento(andamento, data_inicio, data_fim, data_limite_insc
     posto_grad_ids = sorted({int(p) for p in (posto_grad_ids or []) if p})
     if not posto_grad_ids:
         raise ValueError("Selecione ao menos um posto/graduação elegível.")
+
+    aberto_publico_externo = bool(aberto_publico_externo)
 
     mudancas = []
     if andamento.data_inicio != data_inicio:
@@ -182,10 +189,15 @@ def atualizar_curso_andamento(andamento, data_inicio, data_fim, data_limite_insc
     if postos_atuais != posto_grad_ids:
         mudancas.append("Postos/graduações elegíveis alterados")
 
+    if andamento.aberto_publico_externo != aberto_publico_externo:
+        mudancas.append(
+            f"Público externo: {'aberto' if aberto_publico_externo else 'fechado'}")
+
     andamento.data_inicio = data_inicio
     andamento.data_fim = data_fim
     andamento.data_limite_inscricao = data_limite_inscricao
     andamento.destinado_a = destinado_a
+    andamento.aberto_publico_externo = aberto_publico_externo
 
     CursoAndamentoPostoGrad.query.filter_by(curso_andamento_id=andamento.id).delete()
     for pg_id in posto_grad_ids:
@@ -233,6 +245,68 @@ def reativar_curso_andamento(andamento, reativado_por_user_id=None):
 
 
 # ---------------------------------------------------------------------------
+# Disciplinas (ementa) de uma edição — grade própria de cada edição, não do
+# catálogo: o mesmo curso pode ter disciplinas diferentes ano a ano.
+# ---------------------------------------------------------------------------
+
+def listar_disciplinas(curso_andamento_id):
+    return (
+        CursoAndamentoDisciplina.query
+        .filter_by(curso_andamento_id=curso_andamento_id)
+        .order_by(CursoAndamentoDisciplina.id.asc())
+        .all()
+    )
+
+
+def carga_horaria_total(andamento):
+    return sum(d.carga_horaria or 0 for d in andamento.disciplinas)
+
+
+def criar_disciplina(andamento, nome, carga_horaria, descricao=None):
+    nome = (nome or "").strip()
+    if not nome:
+        raise ValueError("Informe o nome da disciplina.")
+
+    try:
+        carga_horaria = int(carga_horaria)
+    except (TypeError, ValueError):
+        raise ValueError("Informe a carga horária em horas (número inteiro).")
+    if carga_horaria <= 0:
+        raise ValueError("A carga horária precisa ser maior que zero.")
+
+    disciplina = CursoAndamentoDisciplina(
+        curso_andamento_id=andamento.id,
+        nome=nome,
+        carga_horaria=carga_horaria,
+        descricao=(descricao or "").strip() or None,
+    )
+    database.session.add(disciplina)
+    return disciplina
+
+
+def atualizar_disciplina(disciplina, nome, carga_horaria, descricao=None):
+    nome = (nome or "").strip()
+    if not nome:
+        raise ValueError("Informe o nome da disciplina.")
+
+    try:
+        carga_horaria = int(carga_horaria)
+    except (TypeError, ValueError):
+        raise ValueError("Informe a carga horária em horas (número inteiro).")
+    if carga_horaria <= 0:
+        raise ValueError("A carga horária precisa ser maior que zero.")
+
+    disciplina.nome = nome
+    disciplina.carga_horaria = carga_horaria
+    disciplina.descricao = (descricao or "").strip() or None
+    return disciplina
+
+
+def remover_disciplina(disciplina):
+    database.session.delete(disciplina)
+
+
+# ---------------------------------------------------------------------------
 # Elegibilidade e visão do militar
 # ---------------------------------------------------------------------------
 
@@ -249,16 +323,18 @@ def militar_elegivel(militar, andamento):
 
 
 def listar_cursos_disponiveis_para_militar(militar):
-    """Edições com inscrição aberta e elegíveis pro militar — cada item já
-    vem com a solicitação dele, se houver, pra tela mostrar o status certo.
-    Uma edição encerrada ou pra qual ele não é elegível só some da lista se
-    ele nunca chegou a se inscrever (senão ele perderia o rastro do próprio
-    pedido)."""
+    """Edições que ainda fazem sentido pro militar AGIR: pra quem nunca se
+    inscreveu, é aberta+elegível; pra quem já foi indeferido, é a chance de
+    reenviar (enquanto o prazo não fechou). Uma vez que ele já está inscrito
+    — aguardando análise ou já deferido — a edição some daqui, porque não
+    sobra nada pra fazer; ela continua visível em "Meus cursos", sem
+    duplicar a mesma edição nas duas listas."""
     todas = (
         CursoAndamento.query
         .options(
             joinedload(CursoAndamento.curso),
             joinedload(CursoAndamento.postos_grad),
+            joinedload(CursoAndamento.disciplinas),
         )
         .order_by(CursoAndamento.data_limite_inscricao.asc())
         .all()
@@ -281,8 +357,16 @@ def listar_cursos_disponiveis_para_militar(militar):
     for andamento in todas:
         solicitacao = minhas_solicitacoes.get(andamento.id)
         elegivel = militar_elegivel(militar, andamento)
-        if not solicitacao and (not andamento.inscricoes_abertas or not elegivel):
+
+        if solicitacao is not None:
+            # Já tem solicitação: só continua aparecendo aqui se foi
+            # indeferida e ainda dá pra reenviar. Pendente ou deferida já
+            # está resolvida — o rastro dela mora só em "Meus cursos".
+            if solicitacao.deferido is not False or not andamento.inscricoes_abertas:
+                continue
+        elif not andamento.inscricoes_abertas or not elegivel:
             continue
+
         disponiveis.append({
             "andamento": andamento,
             "solicitacao": solicitacao,
@@ -503,6 +587,32 @@ def analisar_solicitacao(solicitacao, deferido, observacao=None, analisado_por_u
         para_status=para_status,
         observacao=solicitacao.observacao_analise,
         alterado_por_user_id=analisado_por_user_id,
+    ))
+
+    return solicitacao
+
+
+def marcar_conclusao(solicitacao, concluido, realizado_por_user_id=None):
+    """Confirma (ou desfaz, pra corrigir um clique errado) que o aluno
+    concluiu esta edição do curso — só faz sentido pra quem já foi deferido.
+    Mesmo padrão de auditoria de analisar_solicitacao: cada mudança vira uma
+    linha em AuditoriaSolicitacaoCurso."""
+    if not solicitacao.deferido:
+        raise ValueError("Só é possível marcar conclusão de uma inscrição já deferida.")
+
+    de_status = "Concluído" if solicitacao.concluido else "Deferido"
+
+    solicitacao.concluido = bool(concluido)
+    solicitacao.concluido_em = func.now() if solicitacao.concluido else None
+    solicitacao.concluido_por_user_id = realizado_por_user_id if solicitacao.concluido else None
+
+    para_status = "Concluído" if solicitacao.concluido else "Deferido"
+
+    database.session.add(AuditoriaSolicitacaoCurso(
+        solicitacao_id=solicitacao.id,
+        de_status=de_status,
+        para_status=para_status,
+        alterado_por_user_id=realizado_por_user_id,
     ))
 
     return solicitacao

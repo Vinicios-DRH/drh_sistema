@@ -18,3 +18,5 @@ from . import auditoria
 from . import gestao_chefia
 from . import mapa_funcional
 from . import cursos_cbmam
+from . import cadastro_externo
+from . import cursos_cbmam_externo
