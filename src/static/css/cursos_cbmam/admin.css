@@ -1,0 +1,28 @@
+/* cursos_cbmam_admin.html — catálogo de cursos + abertura de edições +
+   tabela DataTables de edições cadastradas. Depende de base.css. */
+
+.cc-container { max-width: 1400px; }
+
+.cc-hero-title-area { display: flex; align-items: center; gap: .9rem; min-width: 0; }
+.cc-logo-box {
+    display: grid; flex: 0 0 60px; width: 60px; height: 60px; place-items: center;
+    border: 1px solid rgba(255, 255, 255, .2); border-radius: 17px; background: rgba(255, 255, 255, .09);
+}
+.cc-logo-box img { width: 40px; height: 40px; object-fit: contain; }
+.cc-subtitle strong { color: var(--app-hero-text, #fff); }
+
+.cc-table-shell { overflow: hidden; border: 1px solid var(--app-border); border-radius: 16px; background: var(--app-surface); }
+
+#tabela-andamentos {
+    --bs-table-color: var(--app-text); --bs-table-bg: transparent;
+    --bs-table-striped-color: var(--app-text); --bs-table-striped-bg: rgba(127, 155, 180, .07);
+    --bs-table-hover-color: var(--app-text); --bs-table-hover-bg: var(--app-table-row-hover);
+    --bs-table-border-color: var(--app-border);
+}
+#tabela-andamentos thead th { position: sticky; top: 0; z-index: 2; color: var(--app-text); white-space: nowrap; background: var(--app-table-head); }
+
+.dataTables_wrapper { color: var(--app-text); }
+.dataTables_filter, .dataTables_length, .dataTables_info { color: var(--app-muted) !important; font-size: .84rem; }
+.dataTables_filter input, .dataTables_length select { border: 1px solid var(--app-border) !important; border-radius: 10px !important; color: var(--app-text) !important; background: var(--app-surface) !important; }
+.page-link { color: var(--app-primary); border-color: var(--app-border); background: var(--app-surface); }
+.page-item.active .page-link { border-color: var(--app-primary); color: var(--app-primary-contrast); background: var(--app-primary); }

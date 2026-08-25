@@ -1,0 +1,7 @@
+/* login_externo.html — login do público externo. Depende de auth_base.css. */
+
+@media (max-width: 768px) {
+    .hero-bg {
+        background-image: image-set(url("../../img/bombeiros_4_768.webp") 1x);
+    }
+}

@@ -1,0 +1,8 @@
+/* cadastro_externo.html — formulário de cadastro do público externo.
+   Depende de auth_base.css. */
+
+#camposMilitar {
+    padding-top: .5rem;
+    margin-top: .5rem;
+    border-top: 1px dashed rgba(255, 255, 255, .18);
+}

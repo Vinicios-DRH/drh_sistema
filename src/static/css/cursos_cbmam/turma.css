@@ -1,0 +1,12 @@
+/* cursos_cbmam_turma.html — alunos e disciplinas de uma edição.
+   Depende de base.css. */
+
+.cc-container { max-width: 1200px; }
+
+.cc-btn-concluir {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .35rem .8rem; border: none; border-radius: 10px;
+    color: #fff; font-weight: 700; font-size: .84rem;
+    background: linear-gradient(135deg, #1c6b3f 0%, #2c9a5c 100%);
+}
+.cc-btn-concluir:hover { color: #fff; filter: brightness(1.08); }

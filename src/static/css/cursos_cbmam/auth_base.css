@@ -1,0 +1,102 @@
+/* Cadastro/login do público externo — cartão "vidro escuro" sobre foto de
+   fundo. Compartilhado entre cadastro_externo.html e login_externo.html;
+   cada um carrega, além deste arquivo, seu próprio CSS de página. */
+
+:root {
+    --overlay-alpha: .18;
+    --card-alpha: .30;
+    --glass-blur: 6px;
+}
+
+.hero-bg {
+    min-height: 100vh;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    background-color: #0b0e14;
+    position: relative;
+    /* Caminho relativo à localização deste arquivo CSS
+       (static/css/cursos_cbmam/ -> static/img/), não à página — por isso
+       não depende de url_for() e pode viver num .css estático de verdade. */
+    background-image: image-set(url("../../img/bombeiros_4_1280.webp") 1x, url("../../img/bombeiros_4_1920.webp") 2x);
+}
+
+.hero-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--overlay-alpha));
+    pointer-events: none;
+}
+
+.transparent-card {
+    background: rgba(17, 17, 17, var(--card-alpha));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .35);
+    color: #f1f5f9;
+}
+
+.transparent-card h2,
+.transparent-card label,
+.transparent-card p {
+    color: #f8fafc;
+}
+
+.transparent-card .form-control,
+.transparent-card .form-select {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f8fafc;
+}
+
+.transparent-card .form-control::placeholder {
+    color: rgba(255, 255, 255, .60);
+}
+
+.transparent-card .form-control:focus,
+.transparent-card .form-select:focus {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(99, 102, 241, .8);
+    box-shadow: 0 0 0 .25rem rgba(99, 102, 241, .25);
+    color: #fff;
+}
+
+.transparent-card .form-select option {
+    color: #111;
+}
+
+/* O modo escuro do site sobrescreveria as regras acima (a regra global de
+   .form-control/.form-select tem mais especificidade que
+   ".transparent-card .form-control" sozinha) — repete aqui com o mesmo
+   prefixo pra sempre vencer, já que este cartão é sempre "vidro escuro"
+   independente do tema do site. */
+html[data-theme="dark"] .transparent-card .form-control,
+html[data-theme="dark"] .transparent-card .form-select {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .transparent-card .form-control::placeholder {
+    color: rgba(255, 255, 255, .60);
+}
+
+html[data-theme="dark"] .transparent-card .form-control:focus,
+html[data-theme="dark"] .transparent-card .form-select:focus {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(99, 102, 241, .8);
+    box-shadow: 0 0 0 .25rem rgba(99, 102, 241, .25);
+    color: #fff;
+}
+
+.transparent-card .btn.btn-outline-primary {
+    border-color: rgba(99, 102, 241, .8);
+    color: #e2e8f0;
+}
+
+.transparent-card .btn.btn-outline-primary:hover {
+    background: rgba(99, 102, 241, .8);
+    color: #0b1020;
+}

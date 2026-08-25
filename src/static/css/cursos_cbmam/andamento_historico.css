@@ -1,0 +1,8 @@
+/* cursos_cbmam_andamento_historico.html — linha do tempo de uma edição.
+   Depende de base.css. */
+
+.cc-container { max-width: 900px; }
+
+/* Nesta tela a lista de eventos usa um respiro um pouco maior que o padrão
+   de base.css — mantido igual ao que já estava em produção. */
+.cc-historico-list li { padding: .65rem .8rem; font-size: .87rem; }

@@ -1,0 +1,9 @@
+/* meus_cursos.html — autoatendimento do militar (cursos disponíveis +
+   histórico de inscrições). Depende de base.css. */
+
+.cc-container { max-width: 1100px; }
+
+/* Nesta tela o item da lista tem título mais destacado e respiro maior que
+   o padrão de base.css — mantido igual ao que já estava em produção. */
+.cc-item { padding: .9rem; }
+.cc-item-title { font-weight: 750; font-size: 1rem; }

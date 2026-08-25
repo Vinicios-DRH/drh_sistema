@@ -1,0 +1,8 @@
+/* cursos_cbmam_historico.html — lista de edições com link pro histórico de
+   cada uma. Depende de base.css. */
+
+.cc-container { max-width: 1100px; }
+
+/* Nesta tela o item da lista tem respiro horizontal maior que o padrão de
+   base.css — mantido igual ao que já estava em produção. */
+.cc-item { padding: .85rem 1rem; }
