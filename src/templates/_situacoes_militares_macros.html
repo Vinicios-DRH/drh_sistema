@@ -1,0 +1,111 @@
+{# ==========================================================================
+Macros compartilhadas pelas telas de listagem "Militares a Disposição" e
+"Militares Agregados" (dashboard de resumo + badge de dias + ranking de
+destinos). Sempre importar com `with context` não é necessário aqui — os
+macros só usam o que recebem por parâmetro.
+========================================================================== #}
+
+{% macro dias_badge(status, inicio, fim, hoje, status_vencido='Venceu') %}
+{% if status == 'Vigente' and fim %}
+{% set dias = (fim - hoje).days %}
+<span class="dias-pill {{ 'dias-urgente' if dias <= 15 else 'dias-ok' }}">
+    <i class="bi bi-hourglass-bottom"></i> Faltam {{ dias }} dia{{ 's' if dias != 1 else '' }}
+</span>
+{% elif status == status_vencido and fim %}
+{% set dias = (hoje - fim).days %}
+<span class="dias-pill dias-vencido">
+    <i class="bi bi-exclamation-triangle-fill"></i> Vencido há {{ dias }} dia{{ 's' if dias != 1 else '' }}
+</span>
+{% elif status == 'A iniciar' and inicio %}
+{% set dias = (inicio - hoje).days %}
+<span class="dias-pill dias-a-iniciar">
+    <i class="bi bi-calendar-event"></i> Inicia em {{ dias }} dia{{ 's' if dias != 1 else '' }}
+</span>
+{% else %}
+<span class="dias-pill dias-indefinido">
+    <i class="bi bi-question-circle"></i> Sem data de início
+</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro linha_classe(status, status_vencido='Venceu') %}
+{%- if status == 'Vigente' -%}linha-vigente
+{%- elif status == status_vencido -%}linha-vencido
+{%- elif status == 'A iniciar' -%}linha-a-iniciar
+{%- else -%}linha-indefinido
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro stat_tiles(resumo) %}
+<div class="lts-stats-row">
+    <div class="lts-stat-tile lts-stat-tile-clicavel" data-filtro="" role="button" tabindex="0"
+        aria-label="Mostrar todos os registros" title="Mostrar todos">
+        <div class="lts-stat-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="lts-stat-body">
+            <div class="lts-stat-value">{{ resumo.total }}</div>
+            <div class="lts-stat-label">Militares na lista</div>
+        </div>
+    </div>
+
+    <div class="lts-stat-tile lts-stat-good lts-stat-tile-clicavel" data-filtro="vigente" role="button" tabindex="0"
+        aria-label="Filtrar pelos vigentes" title="Filtrar pelos vigentes">
+        <div class="lts-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="lts-stat-body">
+            <div class="lts-stat-value">{{ resumo.vigentes }}</div>
+            <div class="lts-stat-label">Vigentes</div>
+            {% if resumo.vencendo_em_breve %}
+            <div class="lts-stat-sublabel lts-stat-sublabel-warning">
+                <i class="bi bi-alarm-fill"></i>
+                {{ resumo.vencendo_em_breve }} vence{{ 'm' if resumo.vencendo_em_breve != 1 else '' }} em até 30 dias
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="lts-stat-tile lts-stat-warning lts-stat-tile-clicavel" data-filtro="a-iniciar" role="button" tabindex="0"
+        aria-label="Filtrar pelos que ainda vão iniciar" title="Filtrar pelos que ainda vão iniciar">
+        <div class="lts-stat-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="lts-stat-body">
+            <div class="lts-stat-value">{{ resumo.a_iniciar }}</div>
+            <div class="lts-stat-label">A iniciar</div>
+        </div>
+    </div>
+
+    <div class="lts-stat-tile lts-stat-critical lts-stat-tile-clicavel" data-filtro="vencido" role="button" tabindex="0"
+        aria-label="Filtrar pelos vencidos" title="Filtrar pelos vencidos">
+        <div class="lts-stat-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+        <div class="lts-stat-body">
+            <div class="lts-stat-value">{{ resumo.vencidos }}</div>
+            <div class="lts-stat-label">Vencidos — precisam de regularização</div>
+        </div>
+    </div>
+
+    {% if resumo.sem_dados %}
+    <div class="lts-stat-tile lts-stat-neutro lts-stat-tile-clicavel" data-filtro="sem-dados" role="button" tabindex="0"
+        aria-label="Filtrar pelos sem data de início" title="Filtrar pelos sem data de início">
+        <div class="lts-stat-icon"><i class="bi bi-question-circle-fill"></i></div>
+        <div class="lts-stat-body">
+            <div class="lts-stat-value">{{ resumo.sem_dados }}</div>
+            <div class="lts-stat-label">Sem data de início — cadastro incompleto</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro destino_breakdown(destinos) %}
+<div class="lts-bar-list">
+    {% for d in destinos %}
+    <div class="lts-bar-row">
+        <div class="lts-bar-label" title="{{ d.nome }}">{{ d.nome }}</div>
+        <div class="lts-bar-track">
+            <div class="lts-bar-fill" style="width: {{ d.largura_pct }}%;"></div>
+        </div>
+        <div class="lts-bar-value">{{ d.qtd }} <span class="lts-bar-pct">({{ d.pct }}%)</span></div>
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}

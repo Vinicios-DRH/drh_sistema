@@ -199,6 +199,229 @@
         background: #441d25;
     }
 
+    /* ---- Cards de resumo (dashboard) ---- */
+    .lts-stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: .85rem;
+        margin-top: 1rem;
+    }
+
+    .lts-stat-tile {
+        display: flex;
+        align-items: flex-start;
+        gap: .75rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--app-border);
+        border-left: 4px solid var(--app-border);
+        border-radius: 16px;
+        background: var(--app-surface);
+        box-shadow: var(--app-shadow-card);
+    }
+
+    .lts-stat-tile-clicavel {
+        cursor: pointer;
+        user-select: none;
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    .lts-stat-tile-clicavel:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--app-shadow-hero, var(--app-shadow-card));
+    }
+
+    .lts-stat-tile-clicavel:focus-visible {
+        outline: 2px solid var(--app-primary);
+        outline-offset: 2px;
+    }
+
+    .lts-stat-tile-ativo {
+        border-color: var(--app-primary);
+        box-shadow: 0 0 0 2px var(--app-primary) inset;
+    }
+
+    .lts-stat-icon {
+        display: grid;
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        color: var(--app-muted);
+        background: var(--app-surface-soft);
+    }
+
+    .lts-stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1.15;
+        color: var(--app-text);
+    }
+
+    .lts-stat-label {
+        margin-top: .1rem;
+        font-size: .8rem;
+        color: var(--app-muted);
+        line-height: 1.3;
+    }
+
+    .lts-stat-sublabel {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .35rem;
+        font-size: .76rem;
+        font-weight: 650;
+    }
+
+    .lts-stat-sublabel-warning {
+        color: #7a5d0a;
+    }
+
+    html[data-theme="dark"] .lts-stat-sublabel-warning {
+        color: #f3d37d;
+    }
+
+    .lts-stat-good { border-left-color: #2c704a; }
+    .lts-stat-good .lts-stat-icon { color: #1c6b3f; background: #d9f7df; }
+    html[data-theme="dark"] .lts-stat-good .lts-stat-icon { color: #75dda1; background: #143b2a; }
+
+    .lts-stat-warning { border-left-color: #8a6d1f; }
+    .lts-stat-warning .lts-stat-icon { color: #7a5d0a; background: #fff3cd; }
+    html[data-theme="dark"] .lts-stat-warning .lts-stat-icon { color: #f3d37d; background: #382f15; }
+
+    .lts-stat-critical { border-left-color: #743d46; }
+    .lts-stat-critical .lts-stat-icon { color: #a1303c; background: #ffd9d9; }
+    html[data-theme="dark"] .lts-stat-critical .lts-stat-icon { color: #ffa2aa; background: #441d25; }
+
+    .lts-stat-neutro { border-left-color: #6b7280; }
+    .lts-stat-neutro .lts-stat-icon { color: #4b5563; background: #e5e7eb; }
+    html[data-theme="dark"] .lts-stat-neutro .lts-stat-icon { color: #cbd5e1; background: #374151; }
+
+    /* ---- Ranking de destinos ---- */
+    .lts-panel-title {
+        margin: 0 0 .9rem;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--app-text);
+    }
+
+    .lts-panel-title i {
+        margin-right: .4rem;
+        color: var(--app-primary);
+    }
+
+    .lts-bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+    }
+
+    .lts-bar-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 200px) 1fr auto;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .lts-bar-label {
+        overflow: hidden;
+        font-size: .85rem;
+        font-weight: 600;
+        color: var(--app-text);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .lts-bar-track {
+        height: 10px;
+        border-radius: 999px;
+        background: var(--app-surface-soft);
+        overflow: hidden;
+    }
+
+    .lts-bar-fill {
+        height: 100%;
+        min-width: 4px;
+        border-radius: 999px;
+        background: var(--app-primary);
+    }
+
+    .lts-bar-value {
+        min-width: 78px;
+        font-size: .82rem;
+        font-weight: 700;
+        color: var(--app-text);
+        text-align: right;
+    }
+
+    .lts-bar-pct {
+        font-weight: 500;
+        color: var(--app-muted);
+    }
+
+    /* ---- Badge "Dias" da tabela ---- */
+    .dias-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .25rem .6rem;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 700;
+        white-space: nowrap;
+        border: 1px solid var(--app-border);
+        background: var(--app-surface-soft);
+        color: var(--app-text);
+    }
+
+    .dias-ok { border-color: #2c704a; color: #1c6b3f; background: #d9f7df; }
+    html[data-theme="dark"] .dias-ok { border-color: #2c704a; color: #75dda1; background: #143b2a; }
+
+    .dias-urgente,
+    .dias-a-iniciar { border-color: #8a6d1f; color: #7a5d0a; background: #fff3cd; }
+    html[data-theme="dark"] .dias-urgente,
+    html[data-theme="dark"] .dias-a-iniciar { border-color: #6d5723; color: #f3d37d; background: #382f15; }
+
+    .dias-vencido { border-color: #743d46; color: #a1303c; background: #ffd9d9; }
+    html[data-theme="dark"] .dias-vencido { border-color: #743d46; color: #ffa2aa; background: #441d25; }
+
+    .dias-indefinido { color: var(--app-muted); }
+
+    /* ---- Acabamento visual da tabela: badge de posto + faixa colorida por linha ---- */
+    .posto-badge {
+        display: inline-block;
+        padding: .2rem .55rem;
+        border-radius: 8px;
+        font-size: .78rem;
+        font-weight: 750;
+        letter-spacing: .01em;
+        color: var(--app-text);
+        background: var(--app-surface-soft);
+        border: 1px solid var(--app-border);
+    }
+
+    /* Borda em <tr> não é confiável entre navegadores em tabelas — aplica
+       na primeira célula de cada linha, que é o jeito que funciona. */
+    #tabela-agregados tbody td:first-child {
+        border-left: 3px solid transparent;
+    }
+
+    #tabela-agregados tbody tr.linha-vigente td:first-child { border-left-color: #2c704a; }
+    #tabela-agregados tbody tr.linha-vencido td:first-child { border-left-color: #743d46; }
+    #tabela-agregados tbody tr.linha-a-iniciar td:first-child { border-left-color: #8a6d1f; }
+    #tabela-agregados tbody tr.linha-indefinido td:first-child { border-left-color: #6b7280; }
+
+    #tabela-agregados tbody td {
+        padding-top: .65rem;
+        padding-bottom: .65rem;
+    }
+
+    #tabela-agregados tbody tr .lts-link {
+        font-weight: 700;
+    }
+
     .dataTables_wrapper {
         color: var(--app-text);
     }
@@ -244,6 +467,8 @@
 </style>
 {% endblock %}
 
+{% import '_situacoes_militares_macros.html' as sm %}
+
 {% block body %}
 <main class="lts-page">
     <div class="container-fluid px-2 px-md-3 lts-container">
@@ -258,14 +483,22 @@
                         <span class="lts-eyebrow">Situação funcional</span>
                         <h1 class="lts-title">Militares Agregados</h1>
                         <p class="lts-subtitle">
-                            Vigentes agora: <strong>{{ militares|selectattr('status', 'equalto', 'Vigente')|list|length }}</strong>
-                            de <strong>{{ militares|length }}</strong> registros.
-                            Status recalculado na hora — toda vez que esta página é aberta.
+                            Um registro por militar — sempre o mais recente.
+                            Status recalculado na hora, toda vez que esta página é aberta.
                         </p>
                     </div>
                 </div>
             </div>
         </section>
+
+        {{ sm.stat_tiles(resumo) }}
+
+        {% if resumo.destinos %}
+        <div class="lts-panel">
+            <h2 class="lts-panel-title"><i class="bi bi-signpost-split-fill"></i>Por destino</h2>
+            {{ sm.destino_breakdown(resumo.destinos) }}
+        </div>
+        {% endif %}
 
         <div class="lts-panel">
             <div class="row g-2 align-items-end mb-3 lts-search">
@@ -273,35 +506,42 @@
                     <label class="form-label">Busca rápida (todas as colunas)</label>
                     <input id="searchTable" class="form-control" placeholder="Digite para filtrar">
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label class="form-label">OBM / Destino</label>
                     <select id="obmFilter" class="form-select">
                         <option value="">Todas</option>
                     </select>
                 </div>
+                <div class="col-12 col-md-3 d-flex justify-content-md-end">
+                    <a class="btn btn-outline-success btn-sm" href="{{ url_for('exportar_militares_agregados') }}">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Baixar Excel
+                    </a>
+                </div>
             </div>
 
             <div class="lts-table-shell">
                 <div class="table-responsive">
-                    <table id="tabela-agregados" class="table table-hover align-middle nowrap mb-0" style="width:100%">
+                    <table id="tabela-agregados" class="table table-hover table-striped align-middle nowrap mb-0" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Posto/Graduação</th>
-                                <th>Quadro</th>
+                                <th>Matrícula</th>
                                 <th>Nome do Servidor</th>
+                                <th>Quadro</th>
                                 <th>Destino</th>
                                 <th>Situação atual do militar</th>
                                 <th>A contar de</th>
                                 <th>Término</th>
+                                <th>Dias</th>
                                 <th>Status da Agregação</th>
                                 <th>Documento Autorizador</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for ag in militares %}
-                            <tr>
-                                <td>{{ ag.posto_grad.sigla if ag.posto_grad else '—' }}</td>
-                                <td>{{ ag.quadro.quadro if ag.quadro else '—' }}</td>
+                            <tr class="{{ sm.linha_classe(ag.status, status_vencido='Término de Agregação') }}">
+                                <td><span class="posto-badge">{{ ag.posto_grad.sigla if ag.posto_grad else '—' }}</span></td>
+                                <td>{{ ag.militar.matricula if ag.militar and ag.militar.matricula else '—' }}</td>
                                 <td>
                                     {% if ag.militar %}
                                     <a class="lts-link" href="{{ url_for('exibir_militar', militar_id=ag.militar_id) }}">
@@ -311,10 +551,14 @@
                                     —
                                     {% endif %}
                                 </td>
+                                <td>{{ ag.quadro.quadro if ag.quadro else '—' }}</td>
                                 <td>{{ ag.destino.local if ag.destino else '—' }}</td>
                                 <td>{{ ag.militar.situacao if ag.militar and ag.militar.situacao else '—' }}</td>
                                 <td>{{ ag.inicio_periodo.strftime('%d/%m/%Y') if ag.inicio_periodo else 'Data não informada' }}</td>
                                 <td>{{ ag.fim_periodo_agregacao.strftime('%d/%m/%Y') if ag.fim_periodo_agregacao else 'Data não informada' }}</td>
+                                <td data-order="{{ (ag.fim_periodo_agregacao - resumo.hoje).days if ag.fim_periodo_agregacao else 999999 }}">
+                                    {{ sm.dias_badge(ag.status, ag.inicio_periodo, ag.fim_periodo_agregacao, resumo.hoje, status_vencido='Término de Agregação') }}
+                                </td>
                                 <td>
                                     {% set s = ag.status or '' %}
                                     <span class="status-pill
@@ -351,7 +595,7 @@
 
 <script>
     $(function () {
-        const DESTINO_COL = 3; // índice da coluna "Destino" (OBM)
+        const DESTINO_COL = 4; // índice da coluna "Destino" (OBM)
 
         const dt = $('#tabela-agregados').DataTable({
             responsive: true,
@@ -364,15 +608,35 @@
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/pt-BR.json' },
             dom: '<"dt-toolbar d-flex flex-wrap gap-2 align-items-center"Bf>rt<"d-flex justify-content-between align-items-center mt-2"lip>',
             buttons: [
-                { extend: 'excelHtml5', title: 'militares_agregados', text: '<i class="bi bi-file-earmark-excel"></i> Excel', className: 'btn btn-outline-success btn-sm' },
                 { extend: 'csvHtml5', title: 'militares_agregados', text: '<i class="bi bi-filetype-csv"></i> CSV', className: 'btn btn-outline-secondary btn-sm' },
                 { extend: 'print', text: '<i class="bi bi-printer"></i> Imprimir', className: 'btn btn-outline-secondary btn-sm' },
                 { extend: 'colvis', text: '<i class="bi bi-view-list"></i> Colunas', className: 'btn btn-outline-primary btn-sm' }
             ],
+            // Ordena por padrão pela coluna "Dias" (menor primeiro): quem já
+            // venceu há mais tempo e quem está mais perto de vencer aparece
+            // no topo — é o que mais precisa de atenção do operador.
+            order: [[8, 'asc']],
             columnDefs: [
                 { targets: 2, responsivePriority: 1 },
                 { targets: 0, responsivePriority: 2 },
-                { targets: [5, 6, 7, 8], responsivePriority: 3 }
+                {
+                    // Sem isso, busca/ordenação nessa coluna comparam o HTML
+                    // bruto da célula (com a tag <span> e a indentação do
+                    // template) em vez do texto do status — o filtro dos
+                    // cards nunca batia com nada por causa disso.
+                    //
+                    // Fica escondida por padrão: o badge "Dias" já conta a
+                    // mesma história (cor + texto) sem duplicar um segundo
+                    // selo igual do lado — só polui a tabela. Continua
+                    // pesquisável/ordenável e dá pra religar em "Colunas".
+                    targets: 9,
+                    visible: false,
+                    render: function (data, type) {
+                        return type === 'display' ? data : $('<div>').html(data).text().trim();
+                    }
+                },
+                { targets: 8, responsivePriority: 4 },
+                { targets: [1, 3, 4, 5, 6, 7, 10], responsivePriority: 5 }
             ]
         });
 
@@ -402,6 +666,41 @@
 
         dt.on('draw.dt', populateObmFilter);
         populateObmFilter();
+
+        // ---- Cards de resumo clicáveis: filtram a tabela pela coluna "Status" ----
+        const STATUS_COL = 9;
+        const STATUS_VENCIDO = {{ resumo.status_vencido | tojson }};
+        const escapeRegex = $.fn.dataTable.util.escapeRegex;
+        const FILTROS_STATUS = {
+            'vigente': '^' + escapeRegex('Vigente') + '$',
+            'a-iniciar': '^' + escapeRegex('A iniciar') + '$',
+            'vencido': '^' + escapeRegex(STATUS_VENCIDO) + '$',
+            'sem-dados': '^(?!' + escapeRegex('Vigente') + '$|' + escapeRegex('A iniciar') + '$|' + escapeRegex(STATUS_VENCIDO) + '$).+$',
+        };
+
+        let filtroAtivo = null;
+
+        function aplicarFiltroStatus(tile) {
+            const chave = tile.data('filtro');
+            if (filtroAtivo === chave) {
+                dt.column(STATUS_COL).search('').draw();
+                $('.lts-stat-tile-clicavel').removeClass('lts-stat-tile-ativo');
+                filtroAtivo = null;
+                return;
+            }
+            dt.column(STATUS_COL).search(chave ? FILTROS_STATUS[chave] : '', true, false).draw();
+            $('.lts-stat-tile-clicavel').removeClass('lts-stat-tile-ativo');
+            tile.addClass('lts-stat-tile-ativo');
+            filtroAtivo = chave;
+        }
+
+        $('.lts-stat-tile-clicavel').on('click', function () { aplicarFiltroStatus($(this)); });
+        $('.lts-stat-tile-clicavel').on('keydown', function (evento) {
+            if (evento.key === 'Enter' || evento.key === ' ') {
+                evento.preventDefault();
+                aplicarFiltroStatus($(this));
+            }
+        });
     });
 </script>
 {% endblock %}

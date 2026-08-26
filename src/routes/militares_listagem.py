@@ -1,7 +1,7 @@
 
 from flask import current_app
 from flask_login import login_required
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, make_response
 from flask import render_template, request, jsonify
 from flask_login import login_required
 from src import app, database
@@ -28,12 +28,16 @@ from src.services.situacoes_militares_service import (
     listar_militares_agregados,
     listar_militares_a_disposicao,
     listar_licencas_especiais,
+    montar_resumo_dashboard,
+    gerar_planilha_situacao,
+    COLUNAS_EXPORTACAO_SITUACAO,
 )
 from src.decorators.business_logic import (
     processar_militares_agregados,
     processar_militares_a_disposicao,
     processar_militares_le,
 )
+from src.utils.utils import registrar_log_download
 
 
 @app.route("/militares", methods=["GET"])
@@ -312,7 +316,8 @@ def militares_a_disposicao():
     database.session.commit()
 
     militares = listar_militares_a_disposicao()
-    return render_template('militares_a_disposicao.html', militares=militares)
+    resumo = montar_resumo_dashboard(militares, campo_fim="fim_periodo_disposicao")
+    return render_template('militares_a_disposicao.html', militares=militares, resumo=resumo)
 
 
 @app.route("/militares-agregados")
@@ -324,7 +329,49 @@ def militares_agregados():
     database.session.commit()
 
     militares = listar_militares_agregados()
-    return render_template('militares_agregados.html', militares=militares)
+    resumo = montar_resumo_dashboard(
+        militares, campo_fim="fim_periodo_agregacao", status_vencido="Término de Agregação")
+    return render_template('militares_agregados.html', militares=militares, resumo=resumo)
+
+
+@app.route("/exportar-militares-a-disposicao")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def exportar_militares_a_disposicao():
+    militares = listar_militares_a_disposicao()
+    output = gerar_planilha_situacao(
+        "Militares a Disposição", militares, campo_fim="fim_periodo_disposicao", status_vencido="Venceu")
+
+    registrar_log_download(
+        nome_relatorio="Militares a Disposição",
+        colunas_lista=COLUNAS_EXPORTACAO_SITUACAO,
+        filtros_dict="Nenhum filtro aplicado — um registro por militar (o mais recente)",
+    )
+
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = "attachment; filename=militares_a_disposicao.xlsx"
+    response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return response
+
+
+@app.route("/exportar-militares-agregados")
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def exportar_militares_agregados():
+    militares = listar_militares_agregados()
+    output = gerar_planilha_situacao(
+        "Militares Agregados", militares, campo_fim="fim_periodo_agregacao", status_vencido="Término de Agregação")
+
+    registrar_log_download(
+        nome_relatorio="Militares Agregados",
+        colunas_lista=COLUNAS_EXPORTACAO_SITUACAO,
+        filtros_dict="Nenhum filtro aplicado — um registro por militar (o mais recente)",
+    )
+
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = "attachment; filename=militares_agregados.xlsx"
+    response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return response
 
 
 @app.route("/licenca-especial")
