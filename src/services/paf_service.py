@@ -64,6 +64,37 @@ def validate_vacation_period(start_date, days):
         raise ValueError("As férias não podem ultrapassar 31 de dezembro.")
 
 
+OBM_DIREITO_40_DIAS_ID = 48
+ESPECIALIDADE_DIREITO_40_DIAS_ID = 12
+
+
+def pode_ter_40_dias(militar) -> bool:
+    """Mesma regra usada na tela da chefia (ver template
+    partial_tabela_obm.html): vínculo ativo na OBM 48 + especialidade 12 dá
+    direito a 40 dias de férias em vez dos 30 padrão. Existia só no
+    template — precisa estar aqui também porque é o servidor, não o HTML,
+    quem decide o que é salvo."""
+    tem_vinculo = any(
+        f.obm_id == OBM_DIREITO_40_DIAS_ID and f.data_fim is None
+        for f in (militar.obm_funcoes or [])
+    )
+    return tem_vinculo and militar.especialidade_id == ESPECIALIDADE_DIREITO_40_DIAS_ID
+
+
+def calcular_direito_dias_ferias(militar) -> int:
+    return 40 if pode_ter_40_dias(militar) else 30
+
+
+# Valores possíveis por período — mesmo conjunto oferecido nos <select> da
+# tela da chefia (partial_tabela_obm.html). Uma requisição direta ao
+# endpoint (fora da tela) não pode conseguir gravar um valor fora disso.
+OPCOES_QTD_DIAS_POR_PERIODO = {
+    1: {0, 10, 20, 30, 40},
+    2: {0, 10, 15, 20},
+    3: {0, 10},
+}
+
+
 NOMES_MESES = {
     "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4, "Maio": 5, "Junho": 6,
     "Julho": 7, "Agosto": 8, "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12,
@@ -479,35 +510,61 @@ class PeriodoFerias:
 
 
 def extrair_periodos_ferias(form) -> list:
-    """Lê os 3 períodos de férias enviados pelo formulário de lançamento do PAF."""
-    return [
-        PeriodoFerias(
-            numero=1,
-            qtd_dias=int(form.get('qtd_dias_1') or 0),
-            inicio=parse_date(form.get('inicio_1')),
-            fim=parse_date(form.get('fim_1')),
-        ),
-        PeriodoFerias(
-            numero=2,
-            qtd_dias=int(form.get('qtd_dias_2') or 0),
-            inicio=parse_date(form.get('inicio_2')),
-            fim=parse_date(form.get('fim_2')),
-        ),
-        PeriodoFerias(
-            numero=3,
-            qtd_dias=int(form.get('qtd_dias_3') or 0),
-            inicio=parse_date(form.get('inicio_3')),
-            fim=parse_date(form.get('fim_3')),
-        ),
-    ]
+    """Lê os 3 períodos de férias enviados pelo formulário de lançamento do
+    PAF. O "fim" de cada período NUNCA vem do formulário — é sempre
+    calculado aqui a partir de início + quantidade de dias. O front-end
+    calcula e mostra um "fim" pro usuário conferir, mas ele viaja no mesmo
+    POST que o início/quantidade; se a gente confiasse nesse valor,
+    bastaria forjar um "fim" qualquer, sem relação nenhuma com as outras
+    duas informações, pra gravar um período inconsistente."""
+    periodos = []
+    for numero in (1, 2, 3):
+        qtd_dias = int(form.get(f'qtd_dias_{numero}') or 0)
+        inicio = parse_date(form.get(f'inicio_{numero}'))
+        fim = inicio + timedelta(days=qtd_dias - 1) if (inicio and qtd_dias) else None
+        periodos.append(PeriodoFerias(numero=numero, qtd_dias=qtd_dias, inicio=inicio, fim=fim))
+    return periodos
 
 
-def validar_periodos_ferias(periodos: list) -> None:
+def validar_periodos_ferias(periodos: list, *, direito_dias: int, excecao_virada_ano: bool) -> None:
     """Levanta ValueError no primeiro período inválido (mesmo comportamento
-    de curto-circuito da validação original: para na primeira falha)."""
+    de curto-circuito da validação original: para na primeira falha).
+
+    Além do teto de 31/12 do ano seguinte (regra antiga), agora também
+    trava aqui — não só no JavaScript da tela — o que sempre foi a regra
+    de negócio real: quantidade de dias só pode ser um dos valores
+    oferecidos na tela, a soma dos períodos não pode passar do direito de
+    férias do militar (30 ou 40 dias), e nenhum período pode virar de um
+    ano pro outro sem a exceção de virada de ano estar ligada pra esse
+    militar/ano."""
+    total_dias = 0
+
     for periodo in periodos:
+        opcoes_validas = OPCOES_QTD_DIAS_POR_PERIODO.get(periodo.numero, {0})
+        if periodo.qtd_dias not in opcoes_validas:
+            raise ValueError(f"Quantidade de dias inválida para o {periodo.numero}º período.")
+
+        if periodo.qtd_dias and not periodo.inicio:
+            raise ValueError(f"Informe a data de início do {periodo.numero}º período.")
+        if periodo.inicio and not periodo.qtd_dias:
+            raise ValueError(f"Informe a quantidade de dias do {periodo.numero}º período.")
+
         if periodo.inicio:
             validate_vacation_period(periodo.inicio, periodo.qtd_dias)
+
+            if periodo.fim and periodo.fim.year != periodo.inicio.year and not excecao_virada_ano:
+                raise ValueError(
+                    f"O {periodo.numero}º período não pode virar de um ano para o outro "
+                    "sem a exceção de virada de ano habilitada para este militar."
+                )
+
+        total_dias += periodo.qtd_dias
+
+    if total_dias > direito_dias:
+        raise ValueError(
+            f"A soma dos períodos ({total_dias} dias) ultrapassa o direito de férias "
+            f"deste militar ({direito_dias} dias)."
+        )
 
 
 def salvar_paf(militar_id: int, ano: int, mes_usufruto, periodos: list, usuario_id: int) -> Paf:
@@ -555,3 +612,16 @@ def usuario_tem_escopo_sobre_militar(militar_id: int) -> bool:
         return True
     permitidas = obms_permitidas_para_usuario(current_user)
     return militar_esta_no_escopo(militar_id, permitidas)
+
+
+def usuario_pode_salvar_apesar_da_excecao(paf_existente: Optional["Paf"]) -> bool:
+    """Uma vez que o PAF de um militar/ano está marcado com "exceção de
+    virada de ano" (ligada via /pafs/toggle_excecao, inclusive por um
+    CHEFE), só o Super User pode continuar salvando férias pra esse
+    militar/ano — é um controle de dois responsáveis: o chefe sinaliza a
+    necessidade da exceção, mas só o Super User efetivamente lança um
+    período que atravessa o ano. Isso só existia como botão desabilitado
+    no JavaScript da tela (ver `blockForChief` em ferias_chefe2.html)."""
+    if not paf_existente or not paf_existente.excecao_virada_ano:
+        return True
+    return is_super() or is_super_or_perm("FERIAS_SUPER")

@@ -663,6 +663,43 @@ class FormCadastroExterno(FlaskForm):
     submit = SubmitField('Criar Conta')
 
 
+class FormPerfilExterno(FlaskForm):
+    """Edição do próprio perfil pelo público externo (Cursos CBMAM).
+
+    De propósito NÃO tem campo de CPF, função, OBM ou tipo_pessoa — essa
+    pessoa não tem (nem deve ganhar) função/OBM, e se ela é civil ou
+    militar de outra força é definido no cadastro e não muda depois (afeta
+    elegibilidade de curso e relatório da BM-3). Só existe aqui o que ela
+    pode mesmo editar; o servidor nunca lê nada além dos campos declarados
+    nesta classe, então não tem "campo extra escondido no POST" que faça
+    diferença."""
+    nome_completo = StringField('Nome completo', validators=[
+                                DataRequired(), Length(max=150)])
+    telefone = StringField('Telefone', validators=[
+                           DataRequired(), Length(max=20)])
+    email = StringField('E-mail', validators=[
+                        DataRequired(), Email(), Length(max=100)])
+    instituicao_origem = StringField('Instituição de origem', validators=[
+                                     DataRequired(), Length(max=150)])
+
+    forca_id = SelectField('Força', choices=[], validators=[Optional()], coerce=str)
+    posto_graduacao = StringField('Posto/Graduação', validators=[
+                                  Optional(), Length(max=80)])
+    quadro = StringField('Quadro', validators=[Optional(), Length(max=80)])
+
+    # Trocar de senha é opcional — só exigidos entre si quando a pessoa
+    # realmente preenche algum dos três. senha_atual existe pra impedir que
+    # uma sessão comprometida (ex.: cookie roubado) troque a senha sem
+    # conhecer a senha de verdade.
+    senha_atual = PasswordField('Senha atual', validators=[Optional()])
+    nova_senha = PasswordField('Nova senha', validators=[
+                               Optional(), Length(min=6, max=20)])
+    confirmar_nova_senha = PasswordField('Confirmar nova senha', validators=[
+                                         Optional(), EqualTo('nova_senha')])
+
+    submit = SubmitField('Salvar alterações')
+
+
 GRAU_INSTRUCAO_CHOICES = [
     ("", "Selecione"),
     ("ENSINO FUNDAMENTAL INCOMPLETO", "Ensino Fundamental Incompleto"),

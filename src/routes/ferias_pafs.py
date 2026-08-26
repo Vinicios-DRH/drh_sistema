@@ -5,7 +5,7 @@ from flask import render_template, request, jsonify, make_response, \
     Response
 from flask_login import login_required, current_user
 from src import app, database
-from src.models import Militar, Obm
+from src.models import Militar, Obm, Paf
 from src.decorators.control import checar_ocupacao, obms_permitidas_para_usuario
 from datetime import datetime
 from sqlalchemy.orm import selectinload
@@ -35,6 +35,8 @@ from src.services.paf_service import (
     dentro_da_janela_de_edicao_mensal,
     usuario_pode_atualizar_paf,
     usuario_tem_escopo_sobre_militar,
+    calcular_direito_dias_ferias,
+    usuario_pode_salvar_apesar_da_excecao,
 )
 from src.authz import is_super_or_perm, can_ferias_bypass_janela
 
@@ -243,10 +245,25 @@ def update_paf():
     if not usuario_tem_escopo_sobre_militar(militar_id):
         return jsonify({"error": "Sem permissão para alterar PAF deste militar."}), 403
 
+    militar = Militar.query.get(militar_id)
+    if not militar:
+        return jsonify({"error": "Militar não encontrado."}), 404
+
+    paf_existente = Paf.query.filter_by(militar_id=militar_id, ano_referencia=ano).first()
+    if not usuario_pode_salvar_apesar_da_excecao(paf_existente):
+        return jsonify({
+            "error": "Este militar está marcado com exceção de virada de ano — "
+                     "só o Super User pode salvar as férias dele."
+        }), 403
+
     periodos = extrair_periodos_ferias(request.form)
 
     try:
-        validar_periodos_ferias(periodos)
+        validar_periodos_ferias(
+            periodos,
+            direito_dias=calcular_direito_dias_ferias(militar),
+            excecao_virada_ano=bool(paf_existente and paf_existente.excecao_virada_ano),
+        )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 

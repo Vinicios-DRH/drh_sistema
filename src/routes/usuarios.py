@@ -8,7 +8,8 @@ from src.routes.helpers import somente_numeros
 from src import app, database, bcrypt
 from src.forms import (FormCriarUsuario)
 from src.models import (Militar, Obm, Localidade, User, FuncaoUser)
-from src.decorators.control import checar_ocupacao
+from src.decorators.control import checar_ocupacao, _is_super_user
+from src.authz import eh_publico_externo
 
 
 @app.route("/criar-conta", methods=['GET', 'POST'])
@@ -191,6 +192,12 @@ def perfil(id_usuario):
         flash('Você não tem permissão para acessar este perfil.', 'alert-danger')
         return redirect(url_for('home'))
 
+    # Público externo tem a própria home/perfil em Cursos CBMAM — essa tela
+    # é do autoatendimento militar (mexe em OBM/função, que não fazem
+    # sentido pra ele).
+    if eh_publico_externo():
+        return redirect(url_for('home_cursos_externo'))
+
     usuario = User.query.get_or_404(id_usuario)
 
     usuario_info = User.query \
@@ -217,10 +224,20 @@ def perfil(id_usuario):
         usuario.nome = form.nome.data
         usuario.email = form.email.data
         usuario.cpf = form.cpf.data
-        usuario.funcao_user_id = form.funcao_user_id.data
-        usuario.obm_id_1 = form.obm_id_1.data
-        usuario.obm_id_2 = form.obm_id_2.data
         usuario.localidade_id = form.localidade_id.data
+
+        # Função e OBM 1/2 aparecem desabilitados nesta tela de propósito —
+        # não são autoatendimento, são atribuições administrativas. O campo
+        # "disabled" é só visual (o navegador não impede alguém de remover
+        # o atributo e submeter mesmo assim), então quem decide se esses
+        # valores realmente mudam é o servidor, não o HTML: só SUPER
+        # USUÁRIO pode alterar a própria função/OBM por aqui — qualquer
+        # outra pessoa tem esses campos preservados, não importa o que
+        # tenha vindo no POST.
+        if _is_super_user():
+            usuario.funcao_user_id = form.funcao_user_id.data
+            usuario.obm_id_1 = form.obm_id_1.data
+            usuario.obm_id_2 = form.obm_id_2.data
 
         if form.senha.data:
             usuario.senha = bcrypt.generate_password_hash(

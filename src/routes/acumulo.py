@@ -18,6 +18,7 @@ from sqlalchemy.orm import aliased
 from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
 from src.utils.utils import registrar_log_download
 from src.services.cursos_cbmam_service import listar_cursos_disponiveis_para_militar
+from src.authz import eh_publico_externo
 
 bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 
@@ -25,6 +26,14 @@ bp_acumulo = Blueprint("acumulo", __name__, url_prefix="/acumulo")
 @app.route("/home-atualizacao", methods=["GET"])
 @login_required
 def home_atualizacao():
+    # Público externo (civil ou militar de outra força cadastrado só pra
+    # Cursos CBMAM) não tem Militar aqui dentro — essa home é da
+    # atualização cadastral/acúmulo de cargo, área exclusiva de quem é do
+    # CBMAM. Sem essa trava ele cai numa tela que não é dele (e de lá
+    # alcança /perfil, que mexe em OBM/função).
+    if eh_publico_externo():
+        return redirect(url_for('home_cursos_externo'))
+
     M, PG, O, MOF = Militar, PostoGrad, Obm, MilitarObmFuncao
     D = DeclaracaoAcumulo
     DM = DocumentoMilitar
@@ -819,28 +828,40 @@ def prepara_geracao():
         # 1) atualizar USER (email vindo da sessão / OBMs / localidade)
         email_sess = session.get('email_atualizacao')
 
+        # A sincronização de obm_id_1/obm_id_2/localidade abaixo é do
+        # PRÓPRIO usuário logado, a partir do PRÓPRIO militar dele — nunca
+        # do `militar`/`militar_id` acima, que é o alvo desta declaração e
+        # pode ser outra pessoa (ex.: um CHEFE gerando/editando a
+        # declaração de um subordinado). Usar o militar errado aqui deixava
+        # a pessoa logada "herdar" o escopo de OBM de quem quer que fosse o
+        # militar_id enviado no formulário.
         MOF = MilitarObmFuncao
-        rows = (db.session.query(MOF.obm_id)
-                .filter(and_(MOF.militar_id == militar.id, MOF.data_fim.is_(None)))
-                .order_by(MOF.id.asc()).all())
-        ids = [r.obm_id for r in rows]
-        obm_id_1 = ids[0] if len(ids) > 0 else None
-        obm_id_2 = ids[1] if len(ids) > 1 else None
-        localidade_id = getattr(militar, 'localidade_id', None)
+        militar_proprio = get_militar_por_user(current_user)
 
         changed = False
         if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
             current_user.email = email_sess
             changed = True
-        if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
-            current_user.obm_id_1 = obm_id_1
-            changed = True
-        if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
-            current_user.obm_id_2 = obm_id_2
-            changed = True
-        if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
-            current_user.localidade_id = localidade_id
-            changed = True
+
+        if militar_proprio:
+            rows = (db.session.query(MOF.obm_id)
+                    .filter(and_(MOF.militar_id == militar_proprio.id, MOF.data_fim.is_(None)))
+                    .order_by(MOF.id.asc()).all())
+            ids = [r.obm_id for r in rows]
+            obm_id_1 = ids[0] if len(ids) > 0 else None
+            obm_id_2 = ids[1] if len(ids) > 1 else None
+            localidade_id = getattr(militar_proprio, 'localidade_id', None)
+
+            if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
+                current_user.obm_id_1 = obm_id_1
+                changed = True
+            if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
+                current_user.obm_id_2 = obm_id_2
+                changed = True
+            if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
+                current_user.localidade_id = localidade_id
+                changed = True
+
         if changed:
             db.session.add(current_user)
             db.session.commit()
@@ -1173,30 +1194,39 @@ def editar(decl_id):
     observacoes = (request.form.get("observacoes") or "").strip()
 
     # === Atualiza User (igual ao prepara_geracao) — não bloqueia fluxo ===
+    # A sincronização de obm_id_1/obm_id_2/localidade é do PRÓPRIO usuário
+    # logado, a partir do PRÓPRIO militar dele — nunca de `militar`
+    # (o militar DESTA declaração, que pode ser de outra pessoa quando quem
+    # está editando não é o dono, ex.: um CHEFE). Usar `militar` aqui
+    # deixava quem editasse "herdar" o escopo de OBM de quem quer que fosse
+    # o dono da declaração aberta.
     try:
         email_sess = session.get('email_atualizacao')
-
-        rows = (db.session.query(MOF.obm_id)
-                .filter(and_(MOF.militar_id == militar.id, MOF.data_fim.is_(None)))
-                .order_by(MOF.id.asc()).all())
-        ids = [r.obm_id for r in rows]
-        obm_id_1 = ids[0] if len(ids) > 0 else None
-        obm_id_2 = ids[1] if len(ids) > 1 else None
-        localidade_id = getattr(militar, 'localidade_id', None)
+        militar_proprio = get_militar_por_user(current_user)
 
         changed = False
         if hasattr(current_user, 'email') and email_sess and current_user.email != email_sess:
             current_user.email = email_sess
             changed = True
-        if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
-            current_user.obm_id_1 = obm_id_1
-            changed = True
-        if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
-            current_user.obm_id_2 = obm_id_2
-            changed = True
-        if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
-            current_user.localidade_id = localidade_id
-            changed = True
+
+        if militar_proprio:
+            rows = (db.session.query(MOF.obm_id)
+                    .filter(and_(MOF.militar_id == militar_proprio.id, MOF.data_fim.is_(None)))
+                    .order_by(MOF.id.asc()).all())
+            ids = [r.obm_id for r in rows]
+            obm_id_1 = ids[0] if len(ids) > 0 else None
+            obm_id_2 = ids[1] if len(ids) > 1 else None
+            localidade_id = getattr(militar_proprio, 'localidade_id', None)
+
+            if hasattr(current_user, 'obm_id_1') and current_user.obm_id_1 != obm_id_1:
+                current_user.obm_id_1 = obm_id_1
+                changed = True
+            if hasattr(current_user, 'obm_id_2') and current_user.obm_id_2 != obm_id_2:
+                current_user.obm_id_2 = obm_id_2
+                changed = True
+            if hasattr(current_user, 'localidade_id') and current_user.localidade_id != localidade_id:
+                current_user.localidade_id = localidade_id
+                changed = True
         if changed:
             db.session.add(current_user)
             db.session.commit()

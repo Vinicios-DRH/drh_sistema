@@ -1,0 +1,12 @@
+/* perfil_externo.html — edição do próprio cadastro pelo público externo.
+   Depende de base.css. */
+
+.cc-container { max-width: 900px; }
+
+#camposMilitar {
+    padding-top: .75rem;
+    margin-top: .75rem;
+    border-top: 1px dashed var(--app-border);
+}
+
+.cc-perfil-hint { color: var(--app-muted); font-size: .8rem; line-height: 1.45; }
