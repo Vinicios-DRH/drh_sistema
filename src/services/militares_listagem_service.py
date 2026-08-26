@@ -18,6 +18,7 @@ from src.models import (
     PostoGrad,
     Quadro,
 )
+from src.services.militar_situacao_service import militares_com_doe_contendo
 
 PER_PAGE = 50
 
@@ -111,7 +112,8 @@ def _query_base_militares_ativos():
 
 
 def _aplicar_busca_texto(query, search: str):
-    """Busca por nome (sem acento), CPF, RG e matrícula (com ou sem pontuação)."""
+    """Busca por nome (sem acento), CPF, RG, matrícula (com ou sem pontuação)
+    e DOE (qualquer entrada do histórico, não só o atual)."""
     if not search:
         return query
 
@@ -136,6 +138,10 @@ def _aplicar_busca_texto(query, search: str):
             func.regexp_replace(func.coalesce(Militar.rg, ""), r"[^0-9]", "", "g").like(digits_like),
             func.regexp_replace(func.coalesce(Militar.matricula, ""), r"[^0-9]", "", "g").like(digits_like),
         ])
+
+    ids_por_doe = militares_com_doe_contendo(search)
+    if ids_por_doe:
+        filtros_busca.append(Militar.id.in_(ids_por_doe))
 
     return query.filter(or_(*filtros_busca))
 

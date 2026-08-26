@@ -8,6 +8,7 @@ from src import database
 from src.models import (DocumentoMilitar, Militar, PostoGrad, Quadro, Obm, MilitarObmFuncao,
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude)
 from src.decorators.control import checar_ocupacao
+from src.services.militar_situacao_service import militares_com_doe_contendo
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import distinct, func, or_, and_
@@ -720,6 +721,10 @@ def build_tabela_militares_query():
                     "g",
                 ).like(digits_like),
             ])
+
+        ids_por_doe = militares_com_doe_contendo(search)
+        if ids_por_doe:
+            filtros_busca.append(Militar.id.in_(ids_por_doe))
 
         query = query.filter(or_(*filtros_busca))
 

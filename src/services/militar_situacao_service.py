@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from src import database
@@ -58,6 +58,55 @@ def obter_publicacao_bg_id(militar_id, tipo_bg="situacao_militar"):
         .first()
     )
     return bg.id if bg else None
+
+
+def mapa_doe_atual(militar_ids) -> dict:
+    """DOE atual (texto do PublicacaoBg mais recente com tipo_bg='doe') de
+    cada militar em `militar_ids`, numa consulta só — pras telas de listagem
+    (/militares, /tabela-militares, exportação) mostrarem/filtrarem o DOE
+    sem um SELECT por militar. Maior id vence, mesmo critério usado em todo
+    lugar que resolve "qual é o valor atual" de um PublicacaoBg."""
+    ids = [mid for mid in (militar_ids or []) if mid]
+    if not ids:
+        return {}
+
+    linhas = (
+        database.session.query(
+            PublicacaoBg.militar_id,
+            PublicacaoBg.boletim_geral,
+            func.row_number().over(
+                partition_by=PublicacaoBg.militar_id,
+                order_by=PublicacaoBg.id.desc(),
+            ).label("linha"),
+        )
+        .filter(PublicacaoBg.tipo_bg == "doe", PublicacaoBg.militar_id.in_(ids))
+        .subquery()
+    )
+
+    linhas_mais_recentes = (
+        database.session.query(linhas.c.militar_id, linhas.c.boletim_geral)
+        .filter(linhas.c.linha == 1)
+        .all()
+    )
+
+    return {militar_id: (boletim_geral or "") for militar_id, boletim_geral in linhas_mais_recentes}
+
+
+def militares_com_doe_contendo(texto: str):
+    """Ids de militares cujo DOE (qualquer entrada do histórico, não só a
+    atual) contém `texto` — usado pra busca textual em /militares e
+    /tabela-militares achar alguém pelo número do Diário Oficial, mesmo que
+    já tenha sido substituído por uma publicação mais nova."""
+    if not (texto or "").strip():
+        return []
+    termo = f"%{texto.strip()}%"
+    linhas = (
+        database.session.query(PublicacaoBg.militar_id)
+        .filter(PublicacaoBg.tipo_bg == "doe", PublicacaoBg.boletim_geral.ilike(termo))
+        .distinct()
+        .all()
+    )
+    return [militar_id for (militar_id,) in linhas]
 
 
 def encerrar_agregacao_vigente(militar_id):
@@ -215,94 +264,56 @@ def processar_fim_de_lts(militar_id=None):
 
 
 def processar_fim_de_agregacao(militar_id=None):
-    """Equivalente a `processar_fim_de_lts`, para Agregação (usa
-    `militar.situacao == "AGREGADO"` em vez de modalidade, porque é assim
-    que `sincronizar_blocos_funcionais` decide se esse bloco se aplica)."""
+    """Recalcula o status ("Término de Agregação" etc.) dos registros de
+    Agregação. NÃO reverte o militar pra PRONTO — a reversão automática de
+    situação só se aplica à LTS (ver `processar_fim_de_lts`); em Agregação e
+    À Disposição ela atrapalhava o serviço, então foi desativada aqui."""
     query = MilitaresAgregados.query
     if militar_id is not None:
         query = query.filter_by(militar_id=militar_id)
     todas = query.all()
 
-    militares_promovidos = []
     for reg in todas:
         reg.atualizar_status()
-        if reg.status != "Término de Agregação":
-            continue
 
-        militar = reg.militar
-        eh_a_situacao_atual_do_militar = (
-            militar is not None
-            and militar.situacao == "AGREGADO"
-            and militar.inicio_periodo == reg.inicio_periodo
-            and militar.fim_periodo == reg.fim_periodo_agregacao
-        )
-        if eh_a_situacao_atual_do_militar:
-            _reverter_militar_para_pronto(militar)
-            militares_promovidos.append(militar)
-
-    return militares_promovidos
+    return []
 
 
 def processar_fim_de_disposicao(militar_id=None):
-    """Equivalente a `processar_fim_de_lts`, para À Disposição."""
+    """Recalcula o status ("Venceu" etc.) dos registros de À Disposição. NÃO
+    reverte o militar pra PRONTO — ver nota em `processar_fim_de_agregacao`."""
     query = MilitaresADisposicao.query
     if militar_id is not None:
         query = query.filter_by(militar_id=militar_id)
     todas = query.all()
 
-    militares_promovidos = []
     for reg in todas:
         reg.atualizar_status()
-        if reg.status != "Venceu":
-            continue
 
-        militar = reg.militar
-        eh_a_situacao_atual_do_militar = (
-            militar is not None
-            and reg.modalidade_id is not None
-            and militar.modalidade_id == reg.modalidade_id
-            and militar.inicio_periodo == reg.inicio_periodo
-            and militar.fim_periodo == reg.fim_periodo_disposicao
-        )
-        if eh_a_situacao_atual_do_militar:
-            _reverter_militar_para_pronto(militar)
-            militares_promovidos.append(militar)
-
-    return militares_promovidos
+    return []
 
 
 def processar_fim_de_le(militar_id=None):
-    """Equivalente a `processar_fim_de_lts`, para Licença Especial."""
+    """Recalcula o status ("Término da Licença Especial" etc.) dos registros
+    de Licença Especial. NÃO reverte o militar pra PRONTO — a reversão
+    automática ficou restrita à LTS (ver `processar_fim_de_lts`)."""
     query = LicencaEspecial.query
     if militar_id is not None:
         query = query.filter_by(militar_id=militar_id)
     todas = query.all()
 
-    militares_promovidos = []
     for reg in todas:
         reg.atualizar_status()
-        if reg.status != "Término da Licença Especial":
-            continue
 
-        militar = reg.militar
-        eh_a_situacao_atual_do_militar = (
-            militar is not None
-            and reg.modalidade_id is not None
-            and militar.modalidade_id == reg.modalidade_id
-            and militar.inicio_periodo == reg.inicio_periodo_le
-            and militar.fim_periodo == reg.fim_periodo_le
-        )
-        if eh_a_situacao_atual_do_militar:
-            _reverter_militar_para_pronto(militar)
-            militares_promovidos.append(militar)
-
-    return militares_promovidos
+    return []
 
 
 def processar_fim_de_situacao_militar(militar_id):
     """Roda as quatro varreduras de fim de situação (Agregação, À
     Disposição, Licença Especial, LTS) pra um único militar — chamado ao
-    abrir a ficha dele, pra tela nunca mostrar uma situação já vencida.
+    abrir a ficha dele. Só a varredura de LTS reverte o militar pra PRONTO
+    automaticamente; as outras três só atualizam o status do próprio
+    registro (ex.: "Venceu"), sem mexer na situação do militar.
     Não comita a sessão — quem chama decide o commit."""
     processar_fim_de_agregacao(militar_id=militar_id)
     processar_fim_de_disposicao(militar_id=militar_id)

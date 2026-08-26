@@ -20,6 +20,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from src.utils.utils import registrar_log_download
 
 from src.routes.helpers import build_tabela_militares_query, get_status_sets
+from src.services.militar_situacao_service import mapa_doe_atual
 
 
 @app.route("/export-excel", methods=["POST"])
@@ -44,6 +45,7 @@ def export_excel():
         militares_filtrados = query.all()
 
         agregados_ids, adisposicao_ids = get_status_sets(query, today)
+        doe_por_militar = mapa_doe_atual([militar.id for militar in militares_filtrados])
 
         rows = []
         for militar in militares_filtrados:
@@ -129,6 +131,7 @@ def export_excel():
                 'Localidade': militar.localidade.sigla if militar.localidade else 'N/A',
 
                 'Situação': militar.situacao or 'N/A',
+                'DOE': doe_por_militar.get(militar.id) or 'N/A',
                 'Modalidade': modalidade_exibe,
                 'Agregado': agregado_exibe,
                 'À Disposição': adisposicao_exibe,
@@ -193,6 +196,7 @@ def export_excel():
                 'Localidade': 14,
 
                 'Situação': 18,
+                'DOE': 26,
                 'Modalidade': 18,
                 'Agregado': 14,
                 'À Disposição': 16,

@@ -52,7 +52,7 @@ MODALIDADES_VALIDAS = {
 # Campos do FormMilitar que, na verdade, são publicações de Boletim Geral
 # (tabela PublicacaoBg) e não colunas diretas de Militar.
 CAMPOS_BG = [
-    "transferencia", "situacao_militar", "cfsd", "cfc", "cfs", "cas",
+    "transferencia", "situacao_militar", "doe", "cfsd", "cfc", "cfs", "cas",
     "choa", "cfo", "cbo", "cao", "csbm", "soldado_tres",
     "soldado_dois", "soldado_um", "cabo", "terceiro_sgt",
     "segundo_sgt", "primeiro_sgt", "subtenente",
@@ -60,6 +60,11 @@ CAMPOS_BG = [
     "pub_cap", "pub_maj", "pub_tc", "pub_cel", "pub_alteracao",
     "situacao_militar_2",
 ]
+
+# Campos de CAMPOS_BG que seguem a mesma regra de "nunca UPDATE" de
+# situacao_militar (ver _salvar_publicacoes_bg) — cada mudança de valor vira
+# uma linha NOVA em PublicacaoBg, preservando as anteriores como histórico.
+CAMPOS_BG_SEMPRE_HISTORICO = {"situacao_militar", "doe"}
 
 
 # ---------------------------------------------------------------------------
@@ -572,20 +577,24 @@ def _salvar_publicacoes_bg(militar, form_militar):
     """Grava as publicações de BG mapeadas em CAMPOS_BG (situacao_militar_2 já
     foi tratada manualmente em `_aplicar_situacao_extra_manual`).
 
-    "situacao_militar" (o campo "Publicação" da Situação Funcional) é
-    tratado à parte, porque a mesma linha de PublicacaoBg é reaproveitada
-    como publicacao_bg_id em Agregação/Disposição/Licença Especial/LTS (ver
-    obter_publicacao_bg_id em militar_situacao_service.py) — inclusive por
-    registros já encerrados, que continuam apontando pra ela como histórico.
-    Por isso ela nunca leva UPDATE: o campo continua livre pra digitar
-    (corrigir, atualizar, descrever uma situação nova ao entrar numa
-    licença/agregação/disposição, ou limpar), mas toda vez que o valor muda —
-    inclusive limpar, que também conta como mudança — em vez de sobrescrever
-    a linha atual, cria uma linha NOVA com o valor novo (vazio incluso). A
-    linha anterior fica congelada, intacta, como histórico de quem ainda
-    aponta pra ela: pro usuário parece que "apagou" (o campo volta a
-    aparecer vazio, porque passa a mostrar essa linha nova), mas no banco o
-    texto antigo nunca é tocado."""
+    "situacao_militar" (o campo "Publicação") e "doe" (o Diário Oficial do
+    Estado onde a mesma situação foi publicada) são tratados à parte — a
+    linha de PublicacaoBg de situacao_militar é reaproveitada como
+    publicacao_bg_id em Agregação/Disposição/Licença Especial/LTS (ver
+    obter_publicacao_bg_id em militar_situacao_service.py), inclusive por
+    registros já encerrados, que continuam apontando pra ela como histórico;
+    "doe" não tem esse reaproveitamento, mas segue a mesma regra de negócio
+    (nenhum dos dois é obrigatório em toda modalidade/situação, mas se for
+    preenchido precisa virar histórico). Por isso nenhum dos dois leva
+    UPDATE: o campo continua livre pra digitar (corrigir, atualizar,
+    descrever uma situação nova ao entrar numa licença/agregação/disposição,
+    ou limpar), mas toda vez que o valor muda — inclusive limpar, que também
+    conta como mudança — em vez de sobrescrever a linha atual, cria uma
+    linha NOVA com o valor novo (vazio incluso). A linha anterior fica
+    congelada, intacta, como histórico de quem ainda aponta pra ela: pro
+    usuário parece que "apagou" (o campo volta a aparecer vazio, porque
+    passa a mostrar essa linha nova), mas no banco o texto antigo nunca é
+    tocado."""
 
     for campo in CAMPOS_BG:
         if campo == "situacao_militar_2":
@@ -597,10 +606,10 @@ def _salvar_publicacoes_bg(militar, form_militar):
         valor = getattr(form_militar, campo).data
         valor = valor.strip() if isinstance(valor, str) else valor
         # .order_by garante determinismo: sem isso, se existir mais de uma
-        # linha pro mesmo militar_id+tipo_bg (o que agora é esperado pra
-        # "situacao_militar", uma por publicação já registrada), qual delas
-        # o Postgres devolve pro .first() não é garantido — pega sempre a
-        # mais recente.
+        # linha pro mesmo militar_id+tipo_bg (o que agora é esperado pros
+        # campos de CAMPOS_BG_SEMPRE_HISTORICO, uma por publicação já
+        # registrada), qual delas o Postgres devolve pro .first() não é
+        # garantido — pega sempre a mais recente.
         bg_existente = (
             PublicacaoBg.query
             .filter_by(militar_id=militar.id, tipo_bg=campo)
@@ -608,7 +617,7 @@ def _salvar_publicacoes_bg(militar, form_militar):
             .first()
         )
 
-        if campo == "situacao_militar":
+        if campo in CAMPOS_BG_SEMPRE_HISTORICO:
             # Nunca dá UPDATE no texto de uma linha já existente: só cria
             # linha nova quando o valor realmente muda — limpar também é
             # uma mudança (de "tem texto" pra "vazio"), então também gera

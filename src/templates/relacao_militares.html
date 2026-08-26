@@ -394,6 +394,7 @@
                                     <th>Especialidade</th>
                                     <th>Localidade</th>
                                     <th>Situação</th>
+                                    <th>DOE</th>
                                     <th>Modalidade</th>
                                     <th>Destino</th>
                                     <th>OBM 1</th>
@@ -441,6 +442,7 @@
                                         <span class="badge bg-secondary">{{ militar.situacao }}</span>
                                         {% endif %}
                                     </td>
+                                    <td>{{ militar.doe }}</td>
                                     <td>{{ militar.modalidade }}</td>
                                     <td>{{ militar.destino }}</td>
                                     <td>{{ militar.obms[0] if militar.obms|length > 0 else 'N/A' }}</td>
@@ -518,6 +520,11 @@
                         <div>
                             <span class="rel-mobile-label">Modalidade</span>
                             <span class="rel-mobile-value">{{ militar.modalidade }}</span>
+                        </div>
+
+                        <div>
+                            <span class="rel-mobile-label">DOE</span>
+                            <span class="rel-mobile-value">{{ militar.doe }}</span>
                         </div>
 
                         <div>
@@ -700,7 +707,7 @@
                         <div class="row g-2">
                             {% set colunas_disponiveis = [
                             'Nome Completo', 'Nome de Guerra', 'Posto/Graduação', 'Quadro', 'Sexo', 'Raça/Cor',
-                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Situação',
+                            'CPF', 'RG', 'Matrícula', 'Inclusão', 'Especialidade', 'Localidade', 'Situação', 'DOE',
                             'Modalidade', 'Destino', 'OBM 1', 'Função 1', 'OBM 2', 'Função 2', 'Data de Nascimento',
                             'Graduação', 'Grau de Instrução', 'Pós-Graduação', 'Mestrado', 'Doutorado'
                             ] %}

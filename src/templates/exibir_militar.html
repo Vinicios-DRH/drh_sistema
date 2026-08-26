@@ -574,11 +574,12 @@ MACROS
                   {{ render_field(form_militar.inicio_periodo, 'col-md-3') }}
                   {{ render_field(form_militar.fim_periodo, 'col-md-3') }}
                   {{ render_field(form_militar.situacao_militar, 'col-md-6') }}
+                  {{ render_field(form_militar.doe, 'col-md-6', '', 'Ex.: DOE 12.345 de 01/01/2026') }}
                 </div>
-                {% if (form_militar.situacao_militar.data or '')|trim != '' %}
+                {% if (form_militar.situacao_militar.data or '')|trim != '' or (form_militar.doe.data or '')|trim != '' %}
                 <p class="mp-muted-note mt-0 mb-3">
-                  Mudar o texto acima e salvar registra uma publicação nova no histórico — a anterior não é
-                  apagada nem sobrescrita, continua valendo pra situação em que foi lançada.
+                  Mudar o texto de Publicação ou DOE e salvar registra uma entrada nova no histórico de cada um —
+                  a anterior não é apagada nem sobrescrita, continua valendo pra situação em que foi lançada.
                 </p>
                 {% endif %}
 

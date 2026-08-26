@@ -23,6 +23,7 @@ from src.services.lts_service import listar_militares_lts
 from src.services.militar_situacao_service import (
     processar_fim_de_lts,
     processar_inicio_situacoes_extras,
+    mapa_doe_atual,
 )
 from src.services.situacoes_militares_service import (
     listar_militares_agregados,
@@ -176,6 +177,7 @@ def tabela_militares():
         )
 
         militares_filtrados_data = []
+        doe_por_militar = mapa_doe_atual([militar.id for militar in militares_paginados.items])
 
         for militar in militares_paginados.items:
             obm_funcoes_ativas = sorted(
@@ -268,6 +270,7 @@ def tabela_militares():
                 "situacao": situacao_exibe,
                 "modalidade": modalidade_exibe,
                 "destino": destino_txt,
+                "doe": doe_por_militar.get(militar.id) or "N/A",
                 "inclusao": inclusao_fmt,
                 "obms": obms,
                 "funcoes": funcoes,
