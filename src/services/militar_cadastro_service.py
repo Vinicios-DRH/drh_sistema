@@ -49,19 +49,6 @@ MODALIDADES_VALIDAS = {
     'EM CURSO',
 }
 
-# Campos de progressão de carreira (soldado -> coronel): uma vez
-# preenchidos, ficam travados — não podem ser apagados nem trocados pelo
-# formulário normal de edição (é publicação de promoção já lançada). O
-# template já deixa esses campos readonly quando têm valor; isso aqui é a
-# trava do lado do servidor, pra não depender só do HTML.
-CAMPOS_PROGRESSAO_CARREIRA = {
-    "soldado_tres", "soldado_dois", "soldado_um", "cabo",
-    "terceiro_sgt", "segundo_sgt", "primeiro_sgt", "subtenente",
-    "segundo_tenente", "primeiro_tenente", "cap", "maj", "tc", "cel",
-    "publicidade_segundo_tenente", "publicidade_primeiro_tenente",
-    "pub_cap", "pub_maj", "pub_tc", "pub_cel",
-}
-
 # Campos do FormMilitar que, na verdade, são publicações de Boletim Geral
 # (tabela PublicacaoBg) e não colunas diretas de Militar.
 CAMPOS_BG = [
@@ -418,15 +405,9 @@ _CAMPOS_GRADUACAO_MILITAR = [
 
 
 def _aplicar_boletins_promocao(militar, form_militar):
-    """BG de inclusão e o histórico de publicações de graduação (soldado..cel).
-
-    Cada campo de graduação, uma vez preenchido, fica travado: o que vier do
-    formulário pra ele é ignorado (o template já deixa o campo readonly
-    quando tem valor — isso aqui é a mesma trava do lado do servidor)."""
+    """BG de inclusão e o histórico de publicações de graduação (soldado..cel)."""
     militar.inclusao_bg = form_militar.inclusao_bg.data
     for campo in _CAMPOS_GRADUACAO_MILITAR:
-        if getattr(militar, campo):
-            continue
         setattr(militar, campo, getattr(form_militar, campo).data)
     militar.funcao_gratificada_id = form_militar.funcao_gratificada_id.data
     militar.alteracao_nome_guerra = form_militar.alteracao_nome_guerra.data
@@ -626,11 +607,6 @@ def _salvar_publicacoes_bg(militar, form_militar):
             .order_by(PublicacaoBg.id.desc())
             .first()
         )
-
-        if campo in CAMPOS_PROGRESSAO_CARREIRA and bg_existente and bg_existente.boletim_geral:
-            # Publicação de promoção já lançada: trava, ignora o que veio do
-            # form (mesma trava do lado do servidor de _aplicar_boletins_promocao).
-            continue
 
         if campo == "situacao_militar":
             # Nunca dá UPDATE no texto de uma linha já existente: só cria
