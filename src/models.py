@@ -189,7 +189,7 @@ class MilitaresADisposicao(database.Model):
             else:
                 self.status = 'A iniciar'
         else:
-            self.status = 'Vigente'
+            self.status = 'Vigente' if self.inicio_periodo <= hoje else 'A iniciar'
 
 
 class MilitaresAgregados(database.Model):
@@ -246,7 +246,7 @@ class MilitaresAgregados(database.Model):
             else:
                 self.status = 'A iniciar'
         else:
-            self.status = 'Vigente'
+            self.status = 'Vigente' if self.inicio_periodo <= hoje else 'A iniciar'
 
 
 @listens_for(MilitaresAgregados, 'before_insert')

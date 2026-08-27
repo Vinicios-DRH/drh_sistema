@@ -16,7 +16,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from src import database
-from src.models import LicencaEspecial, MilitaresADisposicao, MilitaresAgregados
+from src.models import LicencaEspecial, Militar, MilitaresADisposicao, MilitaresAgregados
+from src.querys import _periodo_vigente_expr
+from src.services.militar_situacao_service import ids_alto_comando_excluidos_de_agregado_disposicao
 
 DIAS_ALERTA_VENCIMENTO = 30
 QTD_DESTINOS_NO_RANKING = 5
@@ -43,6 +45,46 @@ def _ids_mais_recentes_por_militar(model):
     return database.session.query(linhas.c.id).filter(linhas.c.linha == 1)
 
 
+def _ids_militares_com_registro_vigente(model, campo_inicio, campo_fim):
+    """Ids de militar (deduplicado, sem o alto comando) com um registro
+    vigente por data na tabela filha informada — mesmo critério de "Vigente"
+    dos dashboards de Agregados/À Disposição. Usado pra qualquer tela que
+    precise filtrar/contar "quem está à disposição (ou agregado) hoje" bater
+    com o mesmo número dessas telas, em vez de confiar no campo Situação da
+    ficha (que só é atualizado quando o operador salva a ficha, e não cobre
+    o caso de alguém Agregado E à disposição ao mesmo tempo)."""
+    query = (
+        database.session.query(model.militar_id)
+        .join(Militar, Militar.id == model.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(model.id.in_(_ids_mais_recentes_por_militar(model)))
+        .filter(_periodo_vigente_expr(campo_inicio, campo_fim))
+    )
+    excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
+    if excluidos:
+        query = query.filter(model.militar_id.notin_(excluidos))
+    return set(mid for (mid,) in query.all())
+
+
+def ids_militares_a_disposicao_vigente():
+    """Union de "só à disposição" e "agregado e à disposição ao mesmo
+    tempo" — a tabela À Disposição é alimentada pela Modalidade, não pela
+    Situação, então já cobre os dois casos."""
+    return _ids_militares_com_registro_vigente(
+        MilitaresADisposicao,
+        MilitaresADisposicao.inicio_periodo,
+        MilitaresADisposicao.fim_periodo_disposicao,
+    )
+
+
+def ids_militares_agregados_vigente():
+    return _ids_militares_com_registro_vigente(
+        MilitaresAgregados,
+        MilitaresAgregados.inicio_periodo,
+        MilitaresAgregados.fim_periodo_agregacao,
+    )
+
+
 def listar_militares_agregados(militar_id=None):
     """Sem `militar_id`, lista só o registro MAIS RECENTE de cada militar
     (tela /militares-agregados) — sem isso, um militar com histórico de
@@ -56,7 +98,15 @@ def listar_militares_agregados(militar_id=None):
     if militar_id is not None:
         query = query.filter(MilitaresAgregados.militar_id == militar_id)
     else:
-        query = query.filter(MilitaresAgregados.id.in_(_ids_mais_recentes_por_militar(MilitaresAgregados)))
+        query = (
+            query
+            .join(Militar, Militar.id == MilitaresAgregados.militar_id)
+            .filter(Militar.inativo.is_(False))
+            .filter(MilitaresAgregados.id.in_(_ids_mais_recentes_por_militar(MilitaresAgregados)))
+        )
+        excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
+        if excluidos:
+            query = query.filter(MilitaresAgregados.militar_id.notin_(excluidos))
     return query.order_by(MilitaresAgregados.fim_periodo_agregacao.desc().nullslast()).all()
 
 
@@ -71,7 +121,15 @@ def listar_militares_a_disposicao(militar_id=None):
     if militar_id is not None:
         query = query.filter(MilitaresADisposicao.militar_id == militar_id)
     else:
-        query = query.filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
+        query = (
+            query
+            .join(Militar, Militar.id == MilitaresADisposicao.militar_id)
+            .filter(Militar.inativo.is_(False))
+            .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
+        )
+        excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
+        if excluidos:
+            query = query.filter(MilitaresADisposicao.militar_id.notin_(excluidos))
     return query.order_by(MilitaresADisposicao.fim_periodo_disposicao.desc().nullslast()).all()
 
 

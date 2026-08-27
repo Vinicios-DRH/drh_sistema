@@ -96,6 +96,132 @@ macros só usam o que recebem por parâmetro.
 {% endmacro %}
 
 
+{% macro pendencias_panel(pendencias, pagina_atual, hoje) %}
+{% if pendencias %}
+<div class="lts-panel lts-pendencias-panel">
+    <h2 class="lts-panel-title"><i class="bi bi-exclamation-diamond-fill"></i>Pendências — disposição vencida, aguardando decisão</h2>
+    <p class="lts-pendencias-subtitle">
+        Disposição sempre tem prazo; Agregação, não — o sistema não decide sozinho quando o prazo passa.
+        Confirme se cada caso foi prorrogado ou revertido/cessado.
+    </p>
+
+    <div class="lts-pendencias-list">
+        {% for p in pendencias %}
+        <div class="lts-pendencia-card {{ 'lts-pendencia-dual' if p.dual else 'lts-pendencia-solo' }}">
+            <div class="lts-pendencia-info">
+                <span class="lts-pendencia-badge">{{ 'AGREGADO + À DISPOSIÇÃO' if p.dual else 'SÓ À DISPOSIÇÃO' }}</span>
+                <div class="lts-pendencia-nome">
+                    <a href="{{ url_for('exibir_militar', militar_id=p.militar.id) }}">{{ p.militar.nome_completo }}</a>
+                </div>
+                <div class="lts-pendencia-detalhe">
+                    Venceu em {{ p.disposicao.fim_periodo_disposicao.strftime('%d/%m/%Y') }}
+                    — há {{ p.dias_vencido }} dia{{ 's' if p.dias_vencido != 1 else '' }}
+                    {% if p.disposicao.destino %} · {{ p.disposicao.destino.local }}{% endif %}
+                </div>
+            </div>
+            <div class="lts-pendencia-acoes">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                    data-bs-target="#modalProrrogar{{ p.militar.id }}">
+                    <i class="bi bi-arrow-repeat"></i> Prorrogar
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
+                    data-bs-target="#modalReverter{{ p.militar.id }}">
+                    <i class="bi bi-x-circle"></i> {{ 'Reverter' if p.dual else 'Cessar' }}
+                </button>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modalProrrogar{{ p.militar.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ url_for('prorrogar_disposicao_route', militar_id=p.militar.id) }}" class="modal-content">
+                    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                    <input type="hidden" name="proxima_pagina" value="{{ pagina_atual }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Prorrogar disposição — {{ p.militar.nome_guerra or p.militar.nome_completo }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Novo início</label>
+                                <input type="date" name="inicio_periodo" class="form-control" required
+                                    value="{{ p.sugestao_inicio.isoformat() }}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Novo término</label>
+                                <input type="date" name="fim_periodo" class="form-control" required
+                                    value="{{ p.sugestao_fim.isoformat() }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Publicação (BG)</label>
+                                <input type="text" name="publicacao" class="form-control" required
+                                    placeholder="Ex.: BG 123 de 01/01/2026">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">DOE <span class="text-muted">(opcional)</span></label>
+                                <input type="text" name="doe" class="form-control"
+                                    placeholder="Ex.: DOE 12.345 de 01/01/2026">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Confirmar prorrogação</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modalReverter{{ p.militar.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ url_for('reverter_disposicao_route', militar_id=p.militar.id) }}" class="modal-content">
+                    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                    <input type="hidden" name="proxima_pagina" value="{{ pagina_atual }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-x-circle"></i> {{ 'Reverter agregação' if p.dual else 'Cessar disposição' }} — {{ p.militar.nome_guerra or p.militar.nome_completo }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% if p.dual %}
+                        <div class="alert alert-warning py-2 small">
+                            Isso encerra a Agregação e a Disposição, e devolve o militar pra PRONTO.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning py-2 small">
+                            Isso encerra a Disposição e devolve o militar pra PRONTO.
+                        </div>
+                        {% endif %}
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">Data da {{ 'reversão' if p.dual else 'cessação' }}</label>
+                                <input type="date" name="data_reversao" class="form-control" value="{{ hoje.isoformat() }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Publicação (BG)</label>
+                                <input type="text" name="publicacao" class="form-control" required
+                                    placeholder="Ex.: BG 123 de 01/01/2026">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">DOE <span class="text-muted">(opcional)</span></label>
+                                <input type="text" name="doe" class="form-control"
+                                    placeholder="Ex.: DOE 12.345 de 01/01/2026">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar {{ 'reversão' if p.dual else 'cessação' }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+
 {% macro destino_breakdown(destinos) %}
 <div class="lts-bar-list">
     {% for d in destinos %}

@@ -582,6 +582,80 @@
             flex-direction: column;
         }
     }
+
+    /* ---- Pendências: disposição vencida aguardando decisão ---- */
+    .lts-pendencias-panel {
+        border-color: rgba(217, 119, 6, .35);
+        background: linear-gradient(135deg, rgba(217, 119, 6, .06), var(--app-surface) 60%);
+    }
+
+    .lts-pendencias-panel .lts-panel-title i { color: #b45309; }
+
+    .lts-pendencias-subtitle {
+        margin: -.4rem 0 .9rem;
+        font-size: .85rem;
+        color: var(--app-text-muted, #6b7280);
+    }
+
+    .lts-pendencias-list {
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+    }
+
+    .lts-pendencia-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .75rem .9rem;
+        border: 1px solid var(--app-border);
+        border-left: 4px solid #d97706;
+        border-radius: 14px;
+        background: var(--app-surface-muted, var(--app-surface));
+    }
+
+    .lts-pendencia-card.lts-pendencia-dual { border-left-color: #b91c1c; }
+
+    .lts-pendencia-badge {
+        display: inline-block;
+        margin-bottom: .25rem;
+        padding: .15rem .55rem;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        color: #92400e;
+        background: rgba(217, 119, 6, .16);
+    }
+
+    .lts-pendencia-dual .lts-pendencia-badge {
+        color: #991b1b;
+        background: rgba(185, 28, 28, .14);
+    }
+
+    html[data-theme="dark"] .lts-pendencia-badge { color: #fcd34d; background: rgba(217, 119, 6, .22); }
+    html[data-theme="dark"] .lts-pendencia-dual .lts-pendencia-badge { color: #fca5a5; background: rgba(185, 28, 28, .24); }
+
+    .lts-pendencia-nome a {
+        font-weight: 700;
+        color: var(--app-text);
+        text-decoration: none;
+    }
+
+    .lts-pendencia-nome a:hover { text-decoration: underline; }
+
+    .lts-pendencia-detalhe {
+        font-size: .82rem;
+        color: var(--app-text-muted, #6b7280);
+    }
+
+    .lts-pendencia-acoes {
+        display: flex;
+        gap: .4rem;
+        flex-shrink: 0;
+    }
 </style>
 {% endblock %}
 
@@ -610,6 +684,8 @@
         </section>
 
         {{ sm.stat_tiles(resumo) }}
+
+        {{ sm.pendencias_panel(pendencias, request.path, resumo.hoje) }}
 
         {% if resumo.destinos %}
         <div class="lts-panel">

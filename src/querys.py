@@ -73,11 +73,22 @@ def obter_estatisticas_militares():
         Militar.posto_grad_id.in_([16, 6, 5, 4, 3, 2, 1])
     ).count()
 
+    # Mesmo critério das listagens /militares-a-disposicao e /militares-agregados
+    # (situacoes_militares_service.py): um único registro (o mais recente) por
+    # militar, e sem contar o alto comando (Comandante-Geral, Subcomandante-
+    # Geral, Chefe do Estado-Maior Geral têm Situação/Modalidade de Agregado/
+    # À Disposição só por formalidade administrativa, não operacional).
+    from src.services.situacoes_militares_service import _ids_mais_recentes_por_militar
+    from src.services.militar_situacao_service import ids_alto_comando_excluidos_de_agregado_disposicao
+    _excluidos_alto_comando = ids_alto_comando_excluidos_de_agregado_disposicao()
+
     # À disposição — só vigentes
     a_disposicao = (
         MilitaresADisposicao.query
         .join(Militar, Militar.id == MilitaresADisposicao.militar_id)
         .filter(Militar.inativo.is_(False))
+        .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
+        .filter(MilitaresADisposicao.militar_id.notin_(_excluidos_alto_comando))
         .filter(_periodo_vigente_expr(
             MilitaresADisposicao.inicio_periodo,
             MilitaresADisposicao.fim_periodo_disposicao
@@ -90,6 +101,8 @@ def obter_estatisticas_militares():
         MilitaresAgregados.query
         .join(Militar, Militar.id == MilitaresAgregados.militar_id)
         .filter(Militar.inativo.is_(False))
+        .filter(MilitaresAgregados.id.in_(_ids_mais_recentes_por_militar(MilitaresAgregados)))
+        .filter(MilitaresAgregados.militar_id.notin_(_excluidos_alto_comando))
         .filter(_periodo_vigente_expr(
             MilitaresAgregados.inicio_periodo,
             MilitaresAgregados.fim_periodo_agregacao

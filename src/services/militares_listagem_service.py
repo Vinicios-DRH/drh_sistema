@@ -19,6 +19,10 @@ from src.models import (
     Quadro,
 )
 from src.services.militar_situacao_service import militares_com_doe_contendo
+from src.services.situacoes_militares_service import (
+    ids_militares_a_disposicao_vigente,
+    ids_militares_agregados_vigente,
+)
 
 PER_PAGE = 50
 
@@ -161,9 +165,34 @@ def _aplicar_filtros_diretos(query, filtros: FiltrosMilitares):
         query = query.filter(Militar.localidade_id.in_(filtros.localidade_ids))
 
     if filtros.situacoes:
-        query = query.filter(
-            func.upper(func.trim(func.coalesce(Militar.situacao, ""))).in_(filtros.situacoes)
-        )
+        # AGREGADO e À DISPOSIÇÃO não batem no campo Militar.situacao — esse
+        # campo só é atualizado quando o operador salva a ficha, e não cobre
+        # quem está Agregado E à disposição ao mesmo tempo (a Situação dessa
+        # pessoa fica "AGREGADO", mas ela também tem um registro vigente na
+        # tabela À Disposição). Pra bater com o mesmo número que aparece na
+        # Home e nas telas de Agregados/À Disposição, essas duas situações
+        # usam a tabela filha (vigente por data) em vez do campo da ficha.
+        situacoes_ficha = []
+        ids_por_tabela_filha = set()
+        usar_tabela_filha = False
+        for situ in filtros.situacoes:
+            if situ == "À DISPOSIÇÃO":
+                usar_tabela_filha = True
+                ids_por_tabela_filha |= ids_militares_a_disposicao_vigente()
+            elif situ == "AGREGADO":
+                usar_tabela_filha = True
+                ids_por_tabela_filha |= ids_militares_agregados_vigente()
+            else:
+                situacoes_ficha.append(situ)
+
+        condicoes_situacao = []
+        if situacoes_ficha:
+            condicoes_situacao.append(
+                func.upper(func.trim(func.coalesce(Militar.situacao, ""))).in_(situacoes_ficha)
+            )
+        if usar_tabela_filha:
+            condicoes_situacao.append(Militar.id.in_(ids_por_tabela_filha))
+        query = query.filter(or_(*condicoes_situacao))
 
     if filtros.modalidade_ids:
         query = query.filter(Militar.modalidade_id.in_(filtros.modalidade_ids))

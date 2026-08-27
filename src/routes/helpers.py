@@ -9,6 +9,10 @@ from src.models import (DocumentoMilitar, Militar, PostoGrad, Quadro, Obm, Milit
                         MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude)
 from src.decorators.control import checar_ocupacao
 from src.services.militar_situacao_service import militares_com_doe_contendo
+from src.services.situacoes_militares_service import (
+    ids_militares_a_disposicao_vigente,
+    ids_militares_agregados_vigente,
+)
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import distinct, func, or_, and_
@@ -746,13 +750,35 @@ def build_tabela_militares_query():
         query = query.filter(Militar.localidade_id.in_(localidade_ids))
 
     if situacoes:
-        query = query.filter(
-            func.upper(
-                func.trim(
-                    func.coalesce(Militar.situacao, "")
-                )
-            ).in_(situacoes)
-        )
+        # AGREGADO e À DISPOSIÇÃO usam a tabela filha (vigente por data), não
+        # o campo Militar.situacao — mesmo motivo de militares_listagem_service
+        # ._aplicar_filtros_diretos: esse campo não cobre quem está Agregado E
+        # à disposição ao mesmo tempo, e só é atualizado quando a ficha é salva.
+        situacoes_ficha = []
+        ids_por_tabela_filha = set()
+        usar_tabela_filha = False
+        for situ in situacoes:
+            if situ == "À DISPOSIÇÃO":
+                usar_tabela_filha = True
+                ids_por_tabela_filha |= ids_militares_a_disposicao_vigente()
+            elif situ == "AGREGADO":
+                usar_tabela_filha = True
+                ids_por_tabela_filha |= ids_militares_agregados_vigente()
+            else:
+                situacoes_ficha.append(situ)
+
+        condicoes_situacao = []
+        if situacoes_ficha:
+            condicoes_situacao.append(
+                func.upper(
+                    func.trim(
+                        func.coalesce(Militar.situacao, "")
+                    )
+                ).in_(situacoes_ficha)
+            )
+        if usar_tabela_filha:
+            condicoes_situacao.append(Militar.id.in_(ids_por_tabela_filha))
+        query = query.filter(or_(*condicoes_situacao))
 
     if modalidade_ids:
         query = query.filter(Militar.modalidade_id.in_(modalidade_ids))

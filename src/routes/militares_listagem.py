@@ -2,7 +2,7 @@
 from flask import current_app
 from flask_login import login_required
 from flask import request, jsonify, current_app, make_response
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required
 from src import app, database
 from src.forms import (FormFiltroMilitar)
@@ -24,6 +24,10 @@ from src.services.militar_situacao_service import (
     processar_fim_de_lts,
     processar_inicio_situacoes_extras,
     mapa_doe_atual,
+    parse_date_flex,
+    listar_pendencias_disposicao_vencida,
+    prorrogar_disposicao,
+    reverter_disposicao,
 )
 from src.services.situacoes_militares_service import (
     listar_militares_agregados,
@@ -320,7 +324,9 @@ def militares_a_disposicao():
 
     militares = listar_militares_a_disposicao()
     resumo = montar_resumo_dashboard(militares, campo_fim="fim_periodo_disposicao")
-    return render_template('militares_a_disposicao.html', militares=militares, resumo=resumo)
+    pendencias = listar_pendencias_disposicao_vencida()
+    return render_template(
+        'militares_a_disposicao.html', militares=militares, resumo=resumo, pendencias=pendencias)
 
 
 @app.route("/militares-agregados")
@@ -332,9 +338,63 @@ def militares_agregados():
     database.session.commit()
 
     militares = listar_militares_agregados()
+    pendencias = [p for p in listar_pendencias_disposicao_vencida() if p["dual"]]
     resumo = montar_resumo_dashboard(
         militares, campo_fim="fim_periodo_agregacao", status_vencido="Término de Agregação")
-    return render_template('militares_agregados.html', militares=militares, resumo=resumo)
+    return render_template(
+        'militares_agregados.html', militares=militares, resumo=resumo, pendencias=pendencias)
+
+
+@app.route("/situacao-funcional/<int:militar_id>/prorrogar-disposicao", methods=["POST"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def prorrogar_disposicao_route(militar_id):
+    militar = Militar.query.get_or_404(militar_id)
+    proxima_pagina = request.form.get("proxima_pagina") or url_for('militares_a_disposicao')
+
+    novo_inicio = parse_date_flex(request.form.get("inicio_periodo"))
+    novo_fim = parse_date_flex(request.form.get("fim_periodo"))
+    publicacao_texto = (request.form.get("publicacao") or "").strip()
+    doe_texto = request.form.get("doe")
+
+    if not novo_inicio or not novo_fim:
+        flash("Informe as datas de início e término da prorrogação.", "danger")
+        return redirect(proxima_pagina)
+    if novo_fim < novo_inicio:
+        flash("A data de término não pode ser anterior à data de início.", "danger")
+        return redirect(proxima_pagina)
+    if not publicacao_texto:
+        flash("Informe a publicação (BG) da prorrogação.", "danger")
+        return redirect(proxima_pagina)
+
+    prorrogar_disposicao(militar, novo_inicio, novo_fim, publicacao_texto, doe_texto)
+    database.session.commit()
+    flash(
+        f"Disposição de {militar.nome_completo} prorrogada até {novo_fim.strftime('%d/%m/%Y')}.",
+        "success",
+    )
+    return redirect(proxima_pagina)
+
+
+@app.route("/situacao-funcional/<int:militar_id>/reverter-disposicao", methods=["POST"])
+@login_required
+@checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
+def reverter_disposicao_route(militar_id):
+    militar = Militar.query.get_or_404(militar_id)
+    proxima_pagina = request.form.get("proxima_pagina") or url_for('militares_a_disposicao')
+
+    data_reversao = parse_date_flex(request.form.get("data_reversao")) or date.today()
+    publicacao_texto = (request.form.get("publicacao") or "").strip()
+    doe_texto = request.form.get("doe")
+
+    if not publicacao_texto:
+        flash("Informe a publicação (BG) da reversão/cessação.", "danger")
+        return redirect(proxima_pagina)
+
+    reverter_disposicao(militar, data_reversao, publicacao_texto, doe_texto)
+    database.session.commit()
+    flash(f"Situação de {militar.nome_completo} revertida para PRONTO.", "success")
+    return redirect(proxima_pagina)
 
 
 @app.route("/exportar-militares-a-disposicao")

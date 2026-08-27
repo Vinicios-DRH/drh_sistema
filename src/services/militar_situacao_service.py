@@ -1,9 +1,11 @@
 from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from src import database
 from src.models import (
+    Militar,
     Modalidade,
     Motivo,
     PublicacaoBg,
@@ -11,7 +13,43 @@ from src.models import (
     MilitaresADisposicao,
     LicencaEspecial,
     LicencaParaTratamentoDeSaude,
+    MilitarObmFuncao,
+    Funcao,
+    Obm,
 )
+
+# (função, sigla da OBM) do Comandante-Geral, Subcomandante-Geral e Chefe do
+# Estado-Maior Geral. Os três têm Situação/Modalidade de Agregado/À
+# Disposição só por formalidade administrativa do posto — não representam um
+# "emprestado a outro órgão" de verdade, então não contam nos módulos
+# operacionais de Agregados/À Disposição (dashboards, listagens e filtro de
+# /militares). Por função+OBM (não por militar_id) pra acompanhar quem quer
+# que ocupe o cargo — "SUBCOMANDANTE" sozinho pegaria também os
+# subcomandantes de OBM (um cargo comum em várias unidades), por isso o
+# pareamento com a OBM certa é obrigatório.
+_ALTO_COMANDO_FUNCAO_OBM = (
+    ("COMANDANTE GERAL", "GAB CMT GERAL"),
+    ("SUBCOMANDANTE", "GAB SUBCMT-GERAL"),
+    ("CHEFE DO ESTADO MAIOR", "EMG"),
+)
+
+
+def ids_alto_comando_excluidos_de_agregado_disposicao():
+    """Ids dos militares no alto comando (ver `_ALTO_COMANDO_FUNCAO_OBM`) que
+    devem ficar de fora das contagens/listagens de Agregados e À Disposição."""
+    ids = set()
+    for funcao_nome, obm_sigla in _ALTO_COMANDO_FUNCAO_OBM:
+        vinculos = (
+            MilitarObmFuncao.query
+            .join(Funcao, Funcao.id == MilitarObmFuncao.funcao_id)
+            .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
+            .filter(MilitarObmFuncao.data_fim.is_(None))
+            .filter(Funcao.ocupacao == funcao_nome, Obm.sigla == obm_sigla)
+            .with_entities(MilitarObmFuncao.militar_id)
+            .all()
+        )
+        ids.update(mid for (mid,) in vinculos)
+    return ids
 
 
 def normalizar_str(valor):
@@ -218,6 +256,178 @@ def _reverter_militar_para_pronto(militar):
             militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=None))
 
 
+# ---------------------------------------------------------------------------
+# PENDÊNCIAS DE DISPOSIÇÃO VENCIDA
+#
+# Disposição sempre tem uma data de término (~1 ano); Agregação nunca tem.
+# Quando o militar está só à disposição, a Disposição vencer significa que a
+# situação cessou. Quando está Agregado E à disposição ao mesmo tempo, a
+# Disposição vencer não encerra nada sozinha — a Agregação continua aberta
+# até uma decisão explícita: o órgão manda prorrogar (o operador atualiza a
+# data de término, publicação e DOE) ou sai uma portaria revertendo a
+# agregação (o militar volta pra PRONTO). Nenhuma das duas decisões pode ser
+# tomada automaticamente por data — precisa perguntar pro operador. Essas
+# funções alimentam esse "pergunte ao operador" nas telas /militares-a-
+# disposicao e /militares-agregados.
+# ---------------------------------------------------------------------------
+
+def listar_pendencias_disposicao_vencida():
+    """Militares (deduplicados pelo registro mais recente, sem o alto
+    comando, sem inativos) cuja Disposição já venceu por data mas cuja
+    Situação ainda não foi atualizada pelo operador. Cada item indica se é
+    "dual" (tem uma Agregação aberta junto) ou "solo" (só à disposição),
+    porque a ação certa muda conforme o caso."""
+    from src.services.situacoes_militares_service import _ids_mais_recentes_por_militar
+
+    hoje = date.today()
+    excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
+
+    disposicoes = (
+        MilitaresADisposicao.query
+        .join(Militar, Militar.id == MilitaresADisposicao.militar_id)
+        .filter(Militar.inativo.is_(False))
+        .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
+        .filter(MilitaresADisposicao.militar_id.notin_(excluidos))
+        .filter(MilitaresADisposicao.fim_periodo_disposicao.isnot(None))
+        .filter(MilitaresADisposicao.fim_periodo_disposicao < hoje)
+        .options(
+            joinedload(MilitaresADisposicao.militar),
+            joinedload(MilitaresADisposicao.destino),
+            joinedload(MilitaresADisposicao.publicacao_bg),
+        )
+        .all()
+    )
+
+    pendencias = []
+    for disp in disposicoes:
+        militar = disp.militar
+        if militar is None:
+            continue
+        agregacao_aberta = (
+            MilitaresAgregados.query
+            .filter(MilitaresAgregados.militar_id == militar.id)
+            .filter(or_(
+                MilitaresAgregados.fim_periodo_agregacao.is_(None),
+                MilitaresAgregados.fim_periodo_agregacao >= hoje,
+            ))
+            .order_by(MilitaresAgregados.id.desc())
+            .first()
+        )
+        sugestao_inicio = disp.fim_periodo_disposicao + timedelta(days=1)
+        pendencias.append({
+            "militar": militar,
+            "disposicao": disp,
+            "dual": agregacao_aberta is not None,
+            "agregacao": agregacao_aberta,
+            "dias_vencido": (hoje - disp.fim_periodo_disposicao).days,
+            "sugestao_inicio": sugestao_inicio,
+            "sugestao_fim": sugestao_inicio + relativedelta(years=1),
+        })
+
+    pendencias.sort(key=lambda p: p["dias_vencido"], reverse=True)
+    return pendencias
+
+
+def prorrogar_disposicao(militar, novo_inicio, novo_fim, publicacao_texto, doe_texto=None):
+    """Prorroga a Disposição do militar: cria um registro NOVO em
+    MilitaresADisposicao (o vencido continua intacto como histórico — nunca
+    dá UPDATE numa linha já existente), com a publicação/DOE da prorrogação
+    também como linha nova. Não mexe na Agregação (se houver) nem na
+    Situação/Modalidade do militar — só o período de disposição muda.
+    Não comita a sessão — quem chama decide o commit."""
+    disposicao_anterior = (
+        MilitaresADisposicao.query
+        .filter_by(militar_id=militar.id)
+        .order_by(MilitaresADisposicao.id.desc())
+        .first()
+    )
+
+    nova = MilitaresADisposicao(
+        militar_id=militar.id,
+        posto_grad_id=militar.posto_grad_id,
+        quadro_id=militar.quadro_id,
+        destino_id=disposicao_anterior.destino_id if disposicao_anterior else militar.destino_id,
+        modalidade_id=disposicao_anterior.modalidade_id if disposicao_anterior else militar.modalidade_id,
+        inicio_periodo=novo_inicio,
+        fim_periodo_disposicao=novo_fim,
+    )
+
+    publicacao_texto = (publicacao_texto or "").strip()
+    if publicacao_texto:
+        publicacao = PublicacaoBg(
+            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=publicacao_texto)
+        database.session.add(publicacao)
+        database.session.flush()
+        nova.publicacao_bg_id = publicacao.id
+
+    nova.atualizar_status()
+    database.session.add(nova)
+
+    doe_texto = (doe_texto or "").strip()
+    if doe_texto:
+        database.session.add(PublicacaoBg(
+            militar_id=militar.id, tipo_bg="doe", boletim_geral=doe_texto))
+
+    # Situação/Modalidade continuam as mesmas — só o período espelhado no
+    # militar acompanha a nova disposição (é a mesma coisa que salvar a
+    # ficha de novo com as datas atualizadas).
+    militar.inicio_periodo = novo_inicio
+    militar.fim_periodo = novo_fim
+
+    return nova
+
+
+def reverter_disposicao(militar, data_reversao, publicacao_texto, doe_texto=None):
+    """Encerra a Disposição vigente (e a Agregação, se estiver aberta junto)
+    e devolve o militar pra PRONTO — usado quando NÃO houve prorrogação:
+    "cessação" se o militar estava só à disposição, "reversão" se estava
+    Agregado e à disposição ao mesmo tempo. A publicação/DOE informados são
+    da portaria que formaliza isso (histórico, nunca sobrescreve).
+    Não comita a sessão — quem chama decide o commit."""
+    disposicao = (
+        MilitaresADisposicao.query
+        .filter_by(militar_id=militar.id)
+        .order_by(MilitaresADisposicao.id.desc())
+        .first()
+    )
+    if disposicao and (
+        not disposicao.fim_periodo_disposicao
+        or disposicao.fim_periodo_disposicao >= data_reversao
+    ):
+        disposicao.fim_periodo_disposicao = data_reversao
+        disposicao.atualizar_status()
+
+    agregacao = (
+        MilitaresAgregados.query
+        .filter_by(militar_id=militar.id)
+        .order_by(MilitaresAgregados.id.desc())
+        .first()
+    )
+    if agregacao and (
+        not agregacao.fim_periodo_agregacao
+        or agregacao.fim_periodo_agregacao >= data_reversao
+    ):
+        agregacao.fim_periodo_agregacao = data_reversao
+        agregacao.atualizar_status()
+
+    militar.situacao = "PRONTO"
+    militar.modalidade_id = MODALIDADE_PRONTO_ID
+    militar.motivo_id = MOTIVO_SEM_AGREGACOES_ID
+    militar.destino_id = DESTINO_CBMAM_ID
+    militar.inicio_periodo = None
+    militar.fim_periodo = None
+
+    publicacao_texto = (publicacao_texto or "").strip()
+    if publicacao_texto:
+        database.session.add(PublicacaoBg(
+            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=publicacao_texto))
+
+    doe_texto = (doe_texto or "").strip()
+    if doe_texto:
+        database.session.add(PublicacaoBg(
+            militar_id=militar.id, tipo_bg="doe", boletim_geral=doe_texto))
+
+
 def processar_fim_de_lts(militar_id=None):
     """Atualiza o status das LTS (recalculado a partir de hoje) e devolve o
     militar pra PRONTO em toda LTS já vencida que ainda seja a que o card de
@@ -358,8 +568,12 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_agregado.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_agregado.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
-        militar_agregado.fim_periodo_agregacao = parse_date_flex(
-            form_militar.fim_periodo.data)
+        # Agregação nunca tem data de término — só é encerrada por um ato
+        # administrativo explícito (portaria de reversão), nunca por data
+        # passando. Isso vale mesmo quando o militar está Agregado E à
+        # disposição ao mesmo tempo: quem tem prazo é a Disposição (bloco
+        # abaixo), não a Agregação. Ver reverter_disposicao/prorrogar_disposicao.
+        militar_agregado.fim_periodo_agregacao = None
         if not militar_agregado.publicacao_bg_id:
             militar_agregado.publicacao_bg_id = bg_id
         militar_agregado.atualizar_status()
@@ -367,6 +581,12 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         encerrar_agregacao_vigente(militar.id)
 
     # À DISPOSIÇÃO
+    # Gatilho é a Modalidade, não a Situação — de propósito: um militar pode
+    # estar simultaneamente Situação=AGREGADO (agregado a um órgão) e
+    # Modalidade=À DISPOSIÇÃO (à disposição desse mesmo órgão), caso legítimo
+    # e comum na corporação. Por isso as duas checagens usam campos
+    # diferentes: Agregação por Situação, À Disposição por Modalidade — não
+    # são mutuamente exclusivas.
     if modalidade_nome == "À DISPOSIÇÃO":
         militar_a_disposicao = MilitaresADisposicao.query.filter(
             MilitaresADisposicao.militar_id == militar.id,
