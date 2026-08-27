@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload
 
 from src import database
 from src.models import LicencaEspecial, Militar, MilitaresADisposicao, MilitaresAgregados
-from src.querys import _periodo_vigente_expr
+from src.querys import _periodo_vigente_com_excecao_defesa_civil_expr
 from src.services.militar_situacao_service import ids_alto_comando_excluidos_de_agregado_disposicao
 
 DIAS_ALERTA_VENCIMENTO = 30
@@ -45,20 +45,21 @@ def _ids_mais_recentes_por_militar(model):
     return database.session.query(linhas.c.id).filter(linhas.c.linha == 1)
 
 
-def _ids_militares_com_registro_vigente(model, campo_inicio, campo_fim):
+def _ids_militares_com_registro_vigente(model, campo_destino, campo_inicio, campo_fim):
     """Ids de militar (deduplicado, sem o alto comando) com um registro
     vigente por data na tabela filha informada — mesmo critério de "Vigente"
-    dos dashboards de Agregados/À Disposição. Usado pra qualquer tela que
-    precise filtrar/contar "quem está à disposição (ou agregado) hoje" bater
-    com o mesmo número dessas telas, em vez de confiar no campo Situação da
-    ficha (que só é atualizado quando o operador salva a ficha, e não cobre
-    o caso de alguém Agregado E à disposição ao mesmo tempo)."""
+    dos dashboards de Agregados/À Disposição (inclui a exceção da Defesa
+    Civil, que nunca vence). Usado pra qualquer tela que precise filtrar/
+    contar "quem está à disposição (ou agregado) hoje" bater com o mesmo
+    número dessas telas, em vez de confiar no campo Situação da ficha (que só
+    é atualizado quando o operador salva a ficha, e não cobre o caso de
+    alguém Agregado E à disposição ao mesmo tempo)."""
     query = (
         database.session.query(model.militar_id)
         .join(Militar, Militar.id == model.militar_id)
         .filter(Militar.inativo.is_(False))
         .filter(model.id.in_(_ids_mais_recentes_por_militar(model)))
-        .filter(_periodo_vigente_expr(campo_inicio, campo_fim))
+        .filter(_periodo_vigente_com_excecao_defesa_civil_expr(campo_destino, campo_inicio, campo_fim))
     )
     excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
     if excluidos:
@@ -72,6 +73,7 @@ def ids_militares_a_disposicao_vigente():
     Situação, então já cobre os dois casos."""
     return _ids_militares_com_registro_vigente(
         MilitaresADisposicao,
+        MilitaresADisposicao.destino_id,
         MilitaresADisposicao.inicio_periodo,
         MilitaresADisposicao.fim_periodo_disposicao,
     )
@@ -80,6 +82,7 @@ def ids_militares_a_disposicao_vigente():
 def ids_militares_agregados_vigente():
     return _ids_militares_com_registro_vigente(
         MilitaresAgregados,
+        MilitaresAgregados.destino_id,
         MilitaresAgregados.inicio_periodo,
         MilitaresAgregados.fim_periodo_agregacao,
     )

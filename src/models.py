@@ -132,6 +132,14 @@ class PublicacaoBg(database.Model):
         'Militar', backref='bg_publicacao', overlaps="militar_publicacoes_bg")
 
 
+# Militares agregados/à disposição na Defesa Civil não têm vencimento — a
+# corporação permite que fiquem lá indefinidamente, então nem a Disposição
+# nem a Agregação "vencem" por data pra eles (ver atualizar_status abaixo em
+# MilitaresADisposicao/MilitaresAgregados, e a exclusão correspondente em
+# listar_pendencias_disposicao_vencida, em militar_situacao_service.py).
+DESTINO_DEFESA_CIVIL_ID = 24
+
+
 class MilitaresADisposicao(database.Model):
     __tablename__ = "militares_a_disposicao"
     id = database.Column(database.Integer, primary_key=True)
@@ -173,9 +181,14 @@ class MilitaresADisposicao(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
+        # Defesa Civil não tem vencimento — o militar pode ficar lá
+        # indefinidamente, então a data de término (se houver) não conta pra
+        # decidir "Venceu": trata como se não tivesse fim nenhum.
+        fim = None if self.destino_id == DESTINO_DEFESA_CIVIL_ID else self.fim_periodo_disposicao
+
         # Prioridade para "já venceu": mesmo que o início nunca tenha sido
         # preenchido direito, um término no passado encerra a disposição.
-        if self.fim_periodo_disposicao and self.fim_periodo_disposicao < hoje:
+        if fim and fim < hoje:
             self.status = 'Venceu'
             return
 
@@ -183,8 +196,8 @@ class MilitaresADisposicao(database.Model):
             self.status = 'Inativo'
             return
 
-        if self.fim_periodo_disposicao:
-            if self.inicio_periodo <= hoje <= self.fim_periodo_disposicao:
+        if fim:
+            if self.inicio_periodo <= hoje <= fim:
                 self.status = 'Vigente'
             else:
                 self.status = 'A iniciar'
@@ -230,9 +243,13 @@ class MilitaresAgregados(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
+        # Defesa Civil não tem vencimento — ver nota em
+        # MilitaresADisposicao.atualizar_status.
+        fim = None if self.destino_id == DESTINO_DEFESA_CIVIL_ID else self.fim_periodo_agregacao
+
         # Prioridade para "já terminou": mesmo que o início nunca tenha sido
         # preenchido direito, um término no passado encerra a agregação.
-        if self.fim_periodo_agregacao and self.fim_periodo_agregacao < hoje:
+        if fim and fim < hoje:
             self.status = 'Término de Agregação'
             return
 
@@ -240,8 +257,8 @@ class MilitaresAgregados(database.Model):
             self.status = 'Inativo'
             return
 
-        if self.fim_periodo_agregacao:
-            if self.inicio_periodo <= hoje <= self.fim_periodo_agregacao:
+        if fim:
+            if self.inicio_periodo <= hoje <= fim:
                 self.status = 'Vigente'
             else:
                 self.status = 'A iniciar'

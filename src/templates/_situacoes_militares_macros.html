@@ -6,10 +6,19 @@ macros só usam o que recebem por parâmetro.
 ========================================================================== #}
 
 {% macro dias_badge(status, inicio, fim, hoje, status_vencido='Venceu') %}
-{% if status == 'Vigente' and fim %}
+{% if status == 'Vigente' and fim and fim >= hoje %}
 {% set dias = (fim - hoje).days %}
 <span class="dias-pill {{ 'dias-urgente' if dias <= 15 else 'dias-ok' }}">
     <i class="bi bi-hourglass-bottom"></i> Faltam {{ dias }} dia{{ 's' if dias != 1 else '' }}
+</span>
+{% elif status == 'Vigente' %}
+{# Vigência sem prazo pra valer: sem data de término (Agregação nunca tem
+   fim), OU com um fim no passado que não conta mais (destinos como Defesa
+   Civil nunca vencem, então um fim antigo aqui é só resquício, não vale
+   fazer conta com ele). Não é "sem data de início": o `inicio` pode estar
+   perfeitamente preenchido. #}
+<span class="dias-pill dias-ok">
+    <i class="bi bi-infinity"></i> Vigência sem prazo definido
 </span>
 {% elif status == status_vencido and fim %}
 {% set dias = (hoje - fim).days %}
@@ -20,6 +29,10 @@ macros só usam o que recebem por parâmetro.
 {% set dias = (inicio - hoje).days %}
 <span class="dias-pill dias-a-iniciar">
     <i class="bi bi-calendar-event"></i> Inicia em {{ dias }} dia{{ 's' if dias != 1 else '' }}
+</span>
+{% elif inicio %}
+<span class="dias-pill dias-indefinido">
+    <i class="bi bi-question-circle"></i> Situação indefinida
 </span>
 {% else %}
 <span class="dias-pill dias-indefinido">

@@ -16,6 +16,7 @@ from src.models import (
     MilitarObmFuncao,
     Funcao,
     Obm,
+    DESTINO_DEFESA_CIVIL_ID,
 )
 
 # (função, sigla da OBM) do Comandante-Geral, Subcomandante-Geral e Chefe do
@@ -288,6 +289,9 @@ def listar_pendencias_disposicao_vencida():
         .filter(Militar.inativo.is_(False))
         .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
         .filter(MilitaresADisposicao.militar_id.notin_(excluidos))
+        # Defesa Civil não tem vencimento — nunca é pendência (ver
+        # DESTINO_DEFESA_CIVIL_ID em models.py).
+        .filter(MilitaresADisposicao.destino_id != DESTINO_DEFESA_CIVIL_ID)
         .filter(MilitaresADisposicao.fim_periodo_disposicao.isnot(None))
         .filter(MilitaresADisposicao.fim_periodo_disposicao < hoje)
         .options(
