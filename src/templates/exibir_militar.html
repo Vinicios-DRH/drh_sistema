@@ -596,8 +596,31 @@ MACROS
                   </p>
 
                   {% if situacoes_extras %}
+                  {% set vigentes = situacoes_extras|selectattr('vigente')|list %}
                   {% set agendadas = situacoes_extras|selectattr('agendada')|list %}
-                  {% set demais = situacoes_extras|rejectattr('agendada')|list %}
+                  {% set demais = situacoes_extras|rejectattr('agendada')|rejectattr('vigente')|list %}
+
+                  {% for item in vigentes %}
+                  <div class="mp-simultanea-note">
+                    <div class="mp-simultanea-icon">
+                      <i class="bi bi-layers-fill"></i>
+                    </div>
+                    <div>
+                      <span class="mp-simultanea-title">Situação extra em andamento — simultânea à principal</span>
+                      <span class="mp-simultanea-headline">
+                        {{ item.label }} desde {{ item.inicio.strftime('%d/%m/%Y') if item.inicio else '—' }}
+                      </span>
+                      <div class="mp-simultanea-detail">
+                        Até {{ item.fim.strftime('%d/%m/%Y') if item.fim else '—' }}
+                        {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
+                        {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                      </div>
+                      <span class="mp-simultanea-badge">
+                        <i class="bi bi-check-circle-fill"></i> Vigente ao mesmo tempo que a situação principal acima
+                      </span>
+                    </div>
+                  </div>
+                  {% endfor %}
 
                   {% for item in agendadas %}
                   <div class="mp-scheduled-note">

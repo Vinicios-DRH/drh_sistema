@@ -830,21 +830,32 @@ def criar_situacao_extra(militar, tipo, destino_id, inicio, fim, publicacao_text
 
 
 def listar_situacoes_extras(militar_id, limite=None):
-    """Todas as situações (Agregação, À Disposição, Licença Especial, LTS) já
-    registradas pro militar, juntas numa lista só, mais recente primeiro —
-    prévia rápida na própria ficha do militar. O histórico completo, com
-    mais detalhe por seção, mora em src.services.historico_militar_service."""
+    """Situações extras (`situacao_extra=True` — Agregação, À Disposição,
+    Licença Especial ou LTS registradas sem mexer na situação principal) já
+    cadastradas pro militar, juntas numa lista só, mais recente primeiro —
+    prévia rápida na própria ficha do militar. NÃO inclui a situação
+    principal em si (essa já aparece nos campos de Situação/Modalidade/
+    Destino ali em cima) — sem esse filtro, o registro principal do militar
+    aparecia aqui também, e com o destaque novo de "vigente" ficava parecendo
+    uma situação extra em andamento quando na verdade é só a principal.
+    O histórico completo, com mais detalhe por seção, mora em
+    src.services.historico_militar_service."""
     itens = []
     for tipo, config in SITUACAO_EXTRA_CONFIG.items():
         registros = (
             config["model"].query
             .options(joinedload(config["model"].destino), joinedload(config["model"].publicacao_bg))
-            .filter_by(militar_id=militar_id)
+            .filter_by(militar_id=militar_id, situacao_extra=True)
             .all()
         )
         for registro in registros:
             inicio = getattr(registro, config["campo_inicio"])
             agendada = registro.status == "A iniciar"
+            # Vigente = coexistindo com a situação principal AGORA (ver
+            # processar_inicio_situacoes_extras) — precisa saltar aos olhos
+            # tanto quanto uma agendada, senão o operador não percebe que o
+            # militar tem duas situações rolando ao mesmo tempo.
+            vigente = registro.status == "Vigente"
             itens.append({
                 "tipo": tipo,
                 "label": config["label"],
@@ -854,6 +865,7 @@ def listar_situacoes_extras(militar_id, limite=None):
                 "destino": registro.destino.local if registro.destino else None,
                 "publicacao": registro.publicacao_bg.boletim_geral if registro.publicacao_bg else None,
                 "agendada": agendada,
+                "vigente": vigente,
                 "dias_para_iniciar": (inicio - date.today()).days if (agendada and inicio) else None,
             })
 
@@ -883,13 +895,33 @@ _ENCERRAR_POR_TIPO = {
 }
 
 
+def _militar_totalmente_pronto(militar):
+    """True só quando Situação E Modalidade são as duas PRONTO — mesmo
+    critério usado pra decidir se um militar "já foi resolvido" nos painéis
+    de Agregados/À Disposição (ver militar_com_situacao_agregado_expr /
+    militar_com_modalidade_a_disposicao_expr)."""
+    return (
+        normalizar_str(militar.situacao) == "PRONTO"
+        and militar.modalidade_id == MODALIDADE_PRONTO_ID
+    )
+
+
 def processar_inicio_situacoes_extras(militar_id=None):
     """Quando uma situação extra (criada via `criar_situacao_extra`, sem
-    mexer na situação principal) está "Vigente" e ainda não é a situação
-    principal do militar, ela assume o posto — é assim que, por exemplo,
-    uma Licença Especial futura registrada enquanto o militar ainda estava
-    de LTS passa a valer sozinha quando chega a vez dela, sem que ninguém
-    precise entrar manualmente na ficha pra trocar a situação.
+    mexer na situação principal) está "Vigente", ela só assume o posto de
+    situação principal se o militar estiver TOTALMENTE PRONTO (Situação E
+    Modalidade) — é assim que, por exemplo, uma Licença Especial futura
+    registrada enquanto o militar ainda estava de LTS passa a valer sozinha
+    quando chega a vez dela, sem que ninguém precise entrar manualmente na
+    ficha pra trocar a situação.
+
+    Se o militar JÁ tem uma situação principal em curso que não é PRONTO —
+    por exemplo, Agregado e à disposição ao mesmo tempo, ou só à disposição
+    — a situação extra NÃO toma o lugar dela: ela continua vigente só nela
+    mesma (na tabela dela), coexistindo com a principal. É o caso de alguém
+    Agregado+À Disposição que também entra de LTS no destino onde está: a
+    LTS fica registrada como extra, sem mexer na Agregação/Disposição em
+    curso, até que o militar volte a ficar totalmente PRONTO.
 
     Só olha registros com `situacao_extra=True` — os criados pela situação
     principal (tela de exibir-militar) já são mantidos em dia pelo
@@ -932,6 +964,11 @@ def processar_inicio_situacoes_extras(militar_id=None):
                 and militar.inicio_periodo == getattr(registro, config["campo_inicio"])
             )
             if ja_e_a_principal:
+                continue
+
+            if not _militar_totalmente_pronto(militar):
+                # Já tem uma situação principal em curso (ex.: Agregado e à
+                # disposição) — a extra fica só nela mesma, coexistindo.
                 continue
 
             for outro_tipo, encerrar in _ENCERRAR_POR_TIPO.items():

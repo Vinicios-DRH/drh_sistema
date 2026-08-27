@@ -537,6 +537,97 @@ adicionar_militar.html). Incluir dentro de {% block head %} com {% include %}.
   }
 
   /* ==========================================================================
+     SITUAÇÃO EXTRA VIGENTE (coexistindo com a principal agora) — mesma
+     estrutura do "agendada" acima, mas em verde: precisa deixar claro que
+     isso é uma SEGUNDA situação rolando ao mesmo tempo, não histórico.
+     ========================================================================== */
+
+  .mp-simultanea-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .8rem;
+    margin-bottom: .75rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #2c704a;
+    border-radius: var(--mp-radius-md);
+    color: #124a2d;
+    background: linear-gradient(135deg, #e3faec 0%, #c9f3da 100%);
+    box-shadow: 0 6px 16px rgba(28, 107, 63, .14);
+  }
+
+  .mp-simultanea-icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    color: #1c6b3f;
+    background: rgba(44, 112, 74, .18);
+  }
+
+  .mp-simultanea-title {
+    display: block;
+    margin-bottom: .2rem;
+    color: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .85;
+  }
+
+  .mp-simultanea-headline {
+    display: block;
+    margin-bottom: .3rem;
+    color: #0f3d24;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.3;
+  }
+
+  .mp-simultanea-detail {
+    font-size: .84rem;
+    line-height: 1.5;
+    color: inherit;
+    opacity: .92;
+  }
+
+  .mp-simultanea-badge {
+    display: inline-block;
+    margin-top: .45rem;
+    padding: .18rem .6rem;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: #1c6b3f;
+    background: rgba(44, 112, 74, .18);
+  }
+
+  html[data-theme="dark"] .mp-simultanea-note {
+    border-color: #2c704a;
+    color: #75dda1;
+    background: linear-gradient(135deg, #123322 0%, #0d2519 100%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .3);
+  }
+
+  html[data-theme="dark"] .mp-simultanea-icon {
+    color: #75dda1;
+    background: rgba(44, 112, 74, .22);
+  }
+
+  html[data-theme="dark"] .mp-simultanea-headline {
+    color: #a4eec1;
+  }
+
+  html[data-theme="dark"] .mp-simultanea-badge {
+    color: #a4eec1;
+    background: rgba(44, 112, 74, .22);
+  }
+
+  /* ==========================================================================
      CAMPOS
      ========================================================================== */
 
