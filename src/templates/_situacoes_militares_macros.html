@@ -225,7 +225,15 @@ macros só usam o que recebem por parâmetro.
 {% macro destino_breakdown(destinos) %}
 <div class="lts-bar-list">
     {% for d in destinos %}
-    <div class="lts-bar-row">
+    {% set clicavel = d.nome != 'Outros' %}
+    {% set valor_busca = '—' if d.nome == 'Sem destino informado' else d.nome %}
+    <div class="lts-bar-row{{ ' lts-bar-row-clicavel' if clicavel else '' }}"
+        {% if clicavel %}
+        data-destino="{{ valor_busca }}" role="button" tabindex="0"
+        aria-label="Filtrar pelo destino {{ d.nome }}" title="Filtrar pelo destino {{ d.nome }}"
+        {% else %}
+        title="{{ d.nome }} — vários destinos agrupados, clique em um específico acima pra filtrar"
+        {% endif %}>
         <div class="lts-bar-label" title="{{ d.nome }}">{{ d.nome }}</div>
         <div class="lts-bar-track">
             <div class="lts-bar-fill" style="width: {{ d.largura_pct }}%;"></div>

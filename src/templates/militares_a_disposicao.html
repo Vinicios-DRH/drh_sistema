@@ -392,7 +392,32 @@
         grid-template-columns: minmax(120px, 200px) 1fr auto;
         align-items: center;
         gap: .75rem;
+        padding: .2rem .4rem;
+        border-radius: 10px;
     }
+
+    .lts-bar-row-clicavel {
+        cursor: pointer;
+        user-select: none;
+        transition: background .12s ease, transform .12s ease;
+    }
+
+    .lts-bar-row-clicavel:hover {
+        background: var(--app-surface-soft);
+        transform: translateX(2px);
+    }
+
+    .lts-bar-row-clicavel:focus-visible {
+        outline: 2px solid var(--app-primary);
+        outline-offset: 2px;
+    }
+
+    .lts-bar-row-ativo {
+        background: var(--app-surface-soft);
+        box-shadow: 0 0 0 1.5px var(--app-primary) inset;
+    }
+
+    .lts-bar-row-ativo .lts-bar-label { color: var(--app-primary); }
 
     .lts-bar-label {
         overflow: hidden;
@@ -877,6 +902,32 @@
             if (evento.key === 'Enter' || evento.key === ' ') {
                 evento.preventDefault();
                 aplicarFiltroStatus($(this));
+            }
+        });
+
+        // ---- "Por destino" clicável: filtra a tabela pela coluna "Destino" ----
+        const DESTINO_COL = 4;
+        let destinoAtivo = null;
+
+        function aplicarFiltroDestino(linha) {
+            const destino = linha.data('destino');
+            if (destinoAtivo === destino) {
+                dt.column(DESTINO_COL).search('').draw();
+                $('.lts-bar-row-clicavel').removeClass('lts-bar-row-ativo');
+                destinoAtivo = null;
+                return;
+            }
+            dt.column(DESTINO_COL).search('^' + escapeRegex(destino) + '$', true, false).draw();
+            $('.lts-bar-row-clicavel').removeClass('lts-bar-row-ativo');
+            linha.addClass('lts-bar-row-ativo');
+            destinoAtivo = destino;
+        }
+
+        $('.lts-bar-row-clicavel').on('click', function () { aplicarFiltroDestino($(this)); });
+        $('.lts-bar-row-clicavel').on('keydown', function (evento) {
+            if (evento.key === 'Enter' || evento.key === ' ') {
+                evento.preventDefault();
+                aplicarFiltroDestino($(this));
             }
         });
     });
