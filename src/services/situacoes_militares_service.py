@@ -27,11 +27,21 @@ _RELACIONAMENTOS_COMUNS = ("militar", "posto_grad", "quadro", "destino", "modali
 
 
 def _ids_mais_recentes_por_militar(model):
-    """Id do registro mais novo (maior id) de cada militar_id — mesmo
-    critério que já decide qual é "o registro atual" de um militar em
-    sincronizar_blocos_funcionais (militar_situacao_service.py). Usado pra
-    telas de listagem mostrarem um único registro por militar, mesmo tendo
-    várias linhas de histórico no banco pra ele."""
+    """Id do registro mais novo (maior id) de cada militar_id, considerando
+    só registros com `inicio_periodo` preenchido.
+
+    Sem esse filtro, um rascunho/registro incompleto (sem início — nunca
+    chegou a ser uma disposição/agregação de verdade) que por acaso tem o ID
+    mais alto vira "o registro atual" do militar, mesmo que a ficha dele já
+    esteja PRONTO há tempos e não tenha nada a ver com esse lixo: aconteceu
+    de verdade com vários militares (quase todos com destino Defesa Civil),
+    e é exatamente o tipo de dado que `encerrar_agregacao_vigente`/
+    `encerrar_disposicao_vigente` fecham (`fim = ontem`) só por estarem
+    "em aberto" quando a ficha muda de situação, sem nunca terem tido
+    início — então continuam por aí pra sempre como o "mais recente".
+
+    Usado pra telas de listagem mostrarem um único registro por militar,
+    mesmo tendo várias linhas de histórico no banco pra ele."""
     linhas = (
         database.session.query(
             model.id,
@@ -40,6 +50,7 @@ def _ids_mais_recentes_por_militar(model):
                 order_by=model.id.desc(),
             ).label("linha"),
         )
+        .filter(model.inicio_periodo.isnot(None))
         .subquery()
     )
     return database.session.query(linhas.c.id).filter(linhas.c.linha == 1)
