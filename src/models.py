@@ -181,14 +181,17 @@ class MilitaresADisposicao(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
-        # Defesa Civil não tem vencimento — o militar pode ficar lá
-        # indefinidamente, então a data de término (se houver) não conta pra
-        # decidir "Venceu": trata como se não tivesse fim nenhum.
-        fim = None if self.destino_id == DESTINO_DEFESA_CIVIL_ID else self.fim_periodo_disposicao
-
         # Prioridade para "já venceu": mesmo que o início nunca tenha sido
         # preenchido direito, um término no passado encerra a disposição.
-        if fim and fim < hoje:
+        #
+        # Defesa Civil nunca vence sozinha (ver sincronizar_blocos_funcionais,
+        # que nunca deixa `fim_periodo_disposicao` ser preenchido enquanto o
+        # destino continuar Defesa Civil) — mas se este registro TEM um fim
+        # preenchido, é porque foi encerrado de verdade (o militar saiu de
+        # lá, `encerrar_disposicao_vigente` fechou), e esse fim tem que valer
+        # normalmente. Por isso aqui NÃO tem exceção pra Defesa Civil: a
+        # exceção mora na hora de gravar o fim, não na hora de decidir status.
+        if self.fim_periodo_disposicao and self.fim_periodo_disposicao < hoje:
             self.status = 'Venceu'
             return
 
@@ -196,8 +199,8 @@ class MilitaresADisposicao(database.Model):
             self.status = 'Inativo'
             return
 
-        if fim:
-            if self.inicio_periodo <= hoje <= fim:
+        if self.fim_periodo_disposicao:
+            if self.inicio_periodo <= hoje <= self.fim_periodo_disposicao:
                 self.status = 'Vigente'
             else:
                 self.status = 'A iniciar'
@@ -243,13 +246,13 @@ class MilitaresAgregados(database.Model):
     def atualizar_status(self):
         hoje = datetime.today().date()
 
-        # Defesa Civil não tem vencimento — ver nota em
-        # MilitaresADisposicao.atualizar_status.
-        fim = None if self.destino_id == DESTINO_DEFESA_CIVIL_ID else self.fim_periodo_agregacao
-
         # Prioridade para "já terminou": mesmo que o início nunca tenha sido
         # preenchido direito, um término no passado encerra a agregação.
-        if fim and fim < hoje:
+        #
+        # Sem exceção pra Defesa Civil aqui — ver nota em
+        # MilitaresADisposicao.atualizar_status: a exceção mora na hora de
+        # gravar o fim (sincronizar_blocos_funcionais), não aqui.
+        if self.fim_periodo_agregacao and self.fim_periodo_agregacao < hoje:
             self.status = 'Término de Agregação'
             return
 
@@ -257,8 +260,8 @@ class MilitaresAgregados(database.Model):
             self.status = 'Inativo'
             return
 
-        if fim:
-            if self.inicio_periodo <= hoje <= fim:
+        if self.fim_periodo_agregacao:
+            if self.inicio_periodo <= hoje <= self.fim_periodo_agregacao:
                 self.status = 'Vigente'
             else:
                 self.status = 'A iniciar'

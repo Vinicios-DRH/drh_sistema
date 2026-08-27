@@ -15,11 +15,17 @@ from src.models import (
     User,
     Obm,
     MilitarObmFuncao,
-    DESTINO_DEFESA_CIVIL_ID,
 )
 
 
 def _periodo_vigente_expr(inicio_col, fim_col):
+    # Defesa Civil nunca vence (o militar pode ficar lá indefinidamente) já
+    # está coberto aqui sem precisar de exceção: sincronizar_blocos_
+    # funcionais (militar_situacao_service.py) nunca deixa `fim_col` ser
+    # preenchido enquanto o destino continuar Defesa Civil, então esses
+    # registros sempre caem no `fim_col.is_(None)` abaixo. Se `fim_col` tem
+    # valor, é porque o registro foi encerrado de verdade (o militar saiu de
+    # lá) — nesse caso é certo respeitar o término normalmente.
     hoje = date.today()
     return and_(
         inicio_col.isnot(None),
@@ -28,25 +34,6 @@ def _periodo_vigente_expr(inicio_col, fim_col):
             fim_col.is_(None),
             fim_col >= hoje
         )
-    )
-
-
-def _periodo_vigente_com_excecao_defesa_civil_expr(destino_col, inicio_col, fim_col):
-    """Mesma regra de `_periodo_vigente_expr`, mas Defesa Civil nunca vence —
-    o militar pode ficar lá indefinidamente, então pra esse destino a data de
-    término não conta (só início preenchido e não-futuro). Ver
-    DESTINO_DEFESA_CIVIL_ID em models.py e o mesmo tratamento em
-    MilitaresADisposicao/MilitaresAgregados.atualizar_status."""
-    hoje = date.today()
-    return or_(
-        and_(destino_col == DESTINO_DEFESA_CIVIL_ID, inicio_col.isnot(None), inicio_col <= hoje),
-        # `destino_col != ID` é NULL (não True) em SQL quando destino_col é
-        # NULL — sem o `OR destino_col IS NULL` aqui, todo registro sem
-        # destino preenchido sumiria da contagem.
-        and_(
-            or_(destino_col != DESTINO_DEFESA_CIVIL_ID, destino_col.is_(None)),
-            _periodo_vigente_expr(inicio_col, fim_col),
-        ),
     )
 
 
@@ -99,7 +86,10 @@ def obter_estatisticas_militares():
     # Geral, Chefe do Estado-Maior Geral têm Situação/Modalidade de Agregado/
     # À Disposição só por formalidade administrativa, não operacional).
     from src.services.situacoes_militares_service import _ids_mais_recentes_por_militar
-    from src.services.militar_situacao_service import ids_alto_comando_excluidos_de_agregado_disposicao
+    from src.services.militar_situacao_service import (
+        ids_alto_comando_excluidos_de_agregado_disposicao,
+        militar_nao_totalmente_pronto_expr,
+    )
     _excluidos_alto_comando = ids_alto_comando_excluidos_de_agregado_disposicao()
 
     # À disposição — só vigentes
@@ -109,8 +99,8 @@ def obter_estatisticas_militares():
         .filter(Militar.inativo.is_(False))
         .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
         .filter(MilitaresADisposicao.militar_id.notin_(_excluidos_alto_comando))
-        .filter(_periodo_vigente_com_excecao_defesa_civil_expr(
-            MilitaresADisposicao.destino_id,
+        .filter(militar_nao_totalmente_pronto_expr())
+        .filter(_periodo_vigente_expr(
             MilitaresADisposicao.inicio_periodo,
             MilitaresADisposicao.fim_periodo_disposicao
         ))
@@ -124,8 +114,8 @@ def obter_estatisticas_militares():
         .filter(Militar.inativo.is_(False))
         .filter(MilitaresAgregados.id.in_(_ids_mais_recentes_por_militar(MilitaresAgregados)))
         .filter(MilitaresAgregados.militar_id.notin_(_excluidos_alto_comando))
-        .filter(_periodo_vigente_com_excecao_defesa_civil_expr(
-            MilitaresAgregados.destino_id,
+        .filter(militar_nao_totalmente_pronto_expr())
+        .filter(_periodo_vigente_expr(
             MilitaresAgregados.inicio_periodo,
             MilitaresAgregados.fim_periodo_agregacao
         ))

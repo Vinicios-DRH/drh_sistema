@@ -228,6 +228,28 @@ MOTIVO_SEM_AGREGACOES_ID = 1
 DESTINO_CBMAM_ID = 6
 
 
+def militar_nao_totalmente_pronto_expr():
+    """True quando o militar NÃO está inequivocamente PRONTO (Situação=PRONTO
+    E Modalidade=PRONTO ao mesmo tempo).
+
+    Usado pra tirar dos painéis de Agregados/À Disposição, da Home e da fila
+    de Pendências quem já foi completamente revertido pra PRONTO — sem esse
+    filtro, o registro antigo (já vencido) dessa pessoa continua sendo "o
+    mais recente com início preenchido" e ela nunca some da tela, mesmo sem
+    ter mais nada a ver com Agregação/À Disposição. Precisa das DUAS
+    condições (Situação E Modalidade) porque só uma delas sendo PRONTO não
+    é garantia — ex.: alguém Agregado E à disposição tem Situação=AGREGADO
+    mas isso não quer dizer que já foi resolvido.
+
+    Usa `coalesce`/comparação com string vazia em vez de `!=` direto porque
+    em SQL `coluna != valor` dá NULL (não True) quando a coluna é NULL — sem
+    isso, todo militar com Situação ou Modalidade em branco sumiria."""
+    return or_(
+        func.upper(func.trim(func.coalesce(Militar.situacao, ""))) != "PRONTO",
+        func.coalesce(Militar.modalidade_id, -1) != MODALIDADE_PRONTO_ID,
+    )
+
+
 def _reverter_militar_para_pronto(militar):
     """Devolve o militar pra PRONTO/SEM AGREGAÇÕES/CBMAM, com as datas de
     início/término e a publicação da Situação Funcional limpas — chamado
@@ -290,8 +312,15 @@ def listar_pendencias_disposicao_vencida():
         .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
         .filter(MilitaresADisposicao.militar_id.notin_(excluidos))
         # Defesa Civil não tem vencimento — nunca é pendência (ver
-        # DESTINO_DEFESA_CIVIL_ID em models.py).
-        .filter(MilitaresADisposicao.destino_id != DESTINO_DEFESA_CIVIL_ID)
+        # DESTINO_DEFESA_CIVIL_ID em models.py). `!=` puro excluiria também
+        # quem não tem destino nenhum (NULL != 24 é NULL em SQL, não True).
+        .filter(or_(
+            MilitaresADisposicao.destino_id != DESTINO_DEFESA_CIVIL_ID,
+            MilitaresADisposicao.destino_id.is_(None),
+        ))
+        # Já foi revertido pra PRONTO de vez — não é mais uma pendência,
+        # é só o histórico de uma situação já resolvida.
+        .filter(militar_nao_totalmente_pronto_expr())
         .filter(MilitaresADisposicao.fim_periodo_disposicao.isnot(None))
         .filter(MilitaresADisposicao.fim_periodo_disposicao < hoje)
         .options(
@@ -610,8 +639,16 @@ def sincronizar_blocos_funcionais(militar, form_militar):
         militar_a_disposicao.modalidade_id = modalidade_obj.id if modalidade_obj else None
         militar_a_disposicao.inicio_periodo = parse_date_flex(
             form_militar.inicio_periodo.data)
-        militar_a_disposicao.fim_periodo_disposicao = parse_date_flex(
-            form_militar.fim_periodo.data)
+        if militar_a_disposicao.destino_id == DESTINO_DEFESA_CIVIL_ID:
+            # Defesa Civil nunca vence — o militar pode ficar lá
+            # indefinidamente. Enquanto o destino continuar Defesa Civil,
+            # `fim_periodo_disposicao` fica sempre em aberto (None); só passa
+            # a valer de novo se/quando `encerrar_disposicao_vigente` fechar
+            # este registro porque o militar saiu de lá.
+            militar_a_disposicao.fim_periodo_disposicao = None
+        else:
+            militar_a_disposicao.fim_periodo_disposicao = parse_date_flex(
+                form_militar.fim_periodo.data)
         if not militar_a_disposicao.publicacao_bg_id:
             militar_a_disposicao.publicacao_bg_id = bg_id
         militar_a_disposicao.atualizar_status()
