@@ -111,6 +111,26 @@
         text-decoration: underline;
     }
 
+    .mil-ferias-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .3rem;
+        margin-right: .3rem;
+        padding: .12rem .5rem;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 700;
+        white-space: nowrap;
+        color: #92400e;
+        background: rgba(217, 119, 6, .16);
+    }
+
+    html[data-theme="dark"] .mil-ferias-badge {
+        color: #fcd34d;
+        background: rgba(217, 119, 6, .22);
+    }
+
     .pagination .page-link {
         border-radius: 10px !important;
         margin: 0 .12rem;
@@ -419,6 +439,13 @@
                                             class="text-decoration-none name-link">
                                             {{ militar.nome_completo }}
                                         </a>
+                                        {% if militar.ferias %}
+                                        <div class="mil-ferias-badge"
+                                            title="De férias ({{ militar.ferias.numero }}º período), até {{ militar.ferias.fim.strftime('%d/%m/%Y') if militar.ferias.fim else '—' }}">
+                                            <i class="bi bi-airplane-fill"></i>
+                                            Férias até {{ militar.ferias.fim.strftime('%d/%m/%Y') if militar.ferias.fim else '—' }}
+                                        </div>
+                                        {% endif %}
                                     </td>
                                     <td>{{ militar.nome_guerra }}</td>
                                     <td>{{ militar.posto_grad }}</td>
@@ -476,6 +503,13 @@
                             <div class="rel-mobile-subtitle">
                                 {{ militar.posto_grad }} · {{ militar.quadro }}
                             </div>
+                            {% if militar.ferias %}
+                            <div class="mil-ferias-badge"
+                                title="De férias ({{ militar.ferias.numero }}º período), até {{ militar.ferias.fim.strftime('%d/%m/%Y') if militar.ferias.fim else '—' }}">
+                                <i class="bi bi-airplane-fill"></i>
+                                Férias até {{ militar.ferias.fim.strftime('%d/%m/%Y') if militar.ferias.fim else '—' }}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <a href="{{ url_for('exibir_militar', militar_id=militar.id) }}"

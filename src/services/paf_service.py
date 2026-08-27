@@ -373,6 +373,48 @@ def mapa_ferias_vigentes(militar_ids):
     return mapa
 
 
+def ferias_do_ano_vigente_com_status(militar_id: int):
+    """PAF do ano vigente do militar, com os 3 períodos já com status
+    calculado — pro card de Férias na ficha do militar (resumo + modal com
+    o ano inteiro). Devolve None se o militar não tem PAF nesse ano."""
+    ano = paf_ano_vigente()
+    paf = Paf.query.filter_by(militar_id=militar_id, ano_referencia=ano).first()
+    if not paf:
+        return None
+
+    periodos = [
+        {
+            "numero": 1,
+            "qtd_dias": paf.qtd_dias_primeiro_periodo,
+            "inicio": paf.primeiro_periodo_ferias,
+            "fim": paf.fim_primeiro_periodo,
+            "status": status_periodo_ferias(paf.primeiro_periodo_ferias, paf.fim_primeiro_periodo),
+        },
+        {
+            "numero": 2,
+            "qtd_dias": paf.qtd_dias_segundo_periodo,
+            "inicio": paf.segundo_periodo_ferias,
+            "fim": paf.fim_segundo_periodo,
+            "status": status_periodo_ferias(paf.segundo_periodo_ferias, paf.fim_segundo_periodo),
+        },
+        {
+            "numero": 3,
+            "qtd_dias": paf.qtd_dias_terceiro_periodo,
+            "inicio": paf.terceiro_periodo_ferias,
+            "fim": paf.fim_terceiro_periodo,
+            "status": status_periodo_ferias(paf.terceiro_periodo_ferias, paf.fim_terceiro_periodo),
+        },
+    ]
+    periodo_vigente = next((p for p in periodos if p["status"] == "Vigente"), None)
+
+    return {
+        "ano": ano,
+        "paf": paf,
+        "periodos": periodos,
+        "periodo_vigente": periodo_vigente,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Exportação Excel dos PAFs de uma OBM
 # ---------------------------------------------------------------------------

@@ -245,6 +245,13 @@ adicionar_militar.html). Incluir dentro de {% block head %} com {% include %}.
     background: rgba(181, 18, 27, .22);
   }
 
+  .mp-summary-value-ferias {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: #a9e3ff;
+  }
+
   /* ==========================================================================
      ESTRUTURA PRINCIPAL
      ========================================================================== */
@@ -626,6 +633,120 @@ adicionar_militar.html). Incluir dentro de {% block head %} com {% include %}.
     color: #a4eec1;
     background: rgba(44, 112, 74, .22);
   }
+
+  /* ==========================================================================
+     FÉRIAS — mesma estrutura do "simultânea" acima, em azul (mesma cor do
+     badge de férias nos painéis de Agregados/À Disposição).
+     ========================================================================== */
+
+  .mp-ferias-note {
+    display: flex;
+    align-items: flex-start;
+    gap: .8rem;
+    margin-bottom: .75rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #0d5f8a;
+    border-radius: var(--mp-radius-md);
+    color: #0a4463;
+    background: linear-gradient(135deg, #e4f4fd 0%, #c7e8f9 100%);
+    box-shadow: 0 6px 16px rgba(13, 95, 138, .14);
+  }
+
+  .mp-ferias-icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    color: #0d5f8a;
+    background: rgba(13, 95, 138, .18);
+  }
+
+  .mp-ferias-title {
+    display: block;
+    margin-bottom: .2rem;
+    color: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .85;
+  }
+
+  .mp-ferias-headline {
+    display: block;
+    margin-bottom: .3rem;
+    color: #063550;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.3;
+  }
+
+  .mp-ferias-detail {
+    font-size: .84rem;
+    line-height: 1.5;
+    color: inherit;
+    opacity: .92;
+  }
+
+  html[data-theme="dark"] .mp-ferias-note {
+    border-color: #0d5f8a;
+    color: #7ec8ec;
+    background: linear-gradient(135deg, #0d2c3d 0%, #0a2130 100%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .3);
+  }
+
+  html[data-theme="dark"] .mp-ferias-icon {
+    color: #7ec8ec;
+    background: rgba(13, 95, 138, .24);
+  }
+
+  html[data-theme="dark"] .mp-ferias-headline {
+    color: #a9dcf5;
+  }
+
+  .mp-ferias-neutral {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .75rem;
+    padding: .75rem 1rem;
+    border: 1px dashed var(--app-border, #d8dde3);
+    border-radius: var(--mp-radius-md);
+    color: var(--app-muted, #6b7280);
+    font-size: .88rem;
+  }
+
+  .mp-ferias-periodo-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .6rem .8rem;
+    border: 1px solid var(--app-border, #e5e7eb);
+    border-radius: 10px;
+    margin-bottom: .5rem;
+  }
+
+  .mp-ferias-periodo-status {
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+  }
+
+  .mp-ferias-periodo-status.status-vigente-p { color: #1c6b3f; background: #d9f7df; }
+  .mp-ferias-periodo-status.status-iniciar-p { color: #8e6400; background: #fff3cd; }
+  .mp-ferias-periodo-status.status-usufruida-p { color: #495057; background: #e9ecef; }
+  .mp-ferias-periodo-status.status-vazio-p { color: #9ca3af; background: #f3f4f6; }
+
+  html[data-theme="dark"] .mp-ferias-periodo-status.status-vigente-p { color: #75dda1; background: #143b2a; }
+  html[data-theme="dark"] .mp-ferias-periodo-status.status-iniciar-p { color: #f3d37d; background: #382f15; }
+  html[data-theme="dark"] .mp-ferias-periodo-status.status-usufruida-p { color: #c9ced4; background: #2b2f36; }
+  html[data-theme="dark"] .mp-ferias-periodo-status.status-vazio-p { color: #6b7280; background: #23262b; }
 
   /* ==========================================================================
      CAMPOS

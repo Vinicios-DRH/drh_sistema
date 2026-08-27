@@ -71,9 +71,12 @@ def militares():
         page=filtros.page, per_page=PER_PAGE, error_out=False
     )
 
-    militares_linhas = [
-        serializar_militar_linha(militar) for militar in militares_paginados.items
-    ]
+    ferias_por_militar = mapa_ferias_vigentes([m.id for m in militares_paginados.items])
+    militares_linhas = []
+    for militar in militares_paginados.items:
+        linha = serializar_militar_linha(militar)
+        linha["ferias"] = ferias_por_militar.get(militar.id)
+        militares_linhas.append(linha)
 
     total = militares_paginados.total
 
@@ -184,6 +187,7 @@ def tabela_militares():
 
         militares_filtrados_data = []
         doe_por_militar = mapa_doe_atual([militar.id for militar in militares_paginados.items])
+        ferias_por_militar = mapa_ferias_vigentes([militar.id for militar in militares_paginados.items])
 
         for militar in militares_paginados.items:
             obm_funcoes_ativas = sorted(
@@ -277,6 +281,7 @@ def tabela_militares():
                 "modalidade": modalidade_exibe,
                 "destino": destino_txt,
                 "doe": doe_por_militar.get(militar.id) or "N/A",
+                "ferias": ferias_por_militar.get(militar.id),
                 "inclusao": inclusao_fmt,
                 "obms": obms,
                 "funcoes": funcoes,

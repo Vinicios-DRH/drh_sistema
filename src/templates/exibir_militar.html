@@ -128,6 +128,18 @@ MACROS
               {{ militar.quadro.quadro if militar.quadro else '—' }}
             </span>
           </div>
+
+          <div class="mp-summary-item">
+            <span class="mp-summary-label">Férias</span>
+            {% if ferias_ano_vigente and ferias_ano_vigente.periodo_vigente %}
+            <span class="mp-summary-value mp-summary-value-ferias">
+              <i class="bi bi-airplane-fill"></i>
+              Até {{ ferias_ano_vigente.periodo_vigente.fim.strftime('%d/%m/%Y') if ferias_ano_vigente.periodo_vigente.fim else ferias_ano_vigente.periodo_vigente.inicio.strftime('%d/%m/%Y') }}
+            </span>
+            {% else %}
+            <span class="mp-summary-value">—</span>
+            {% endif %}
+          </div>
         </div>
       </div>
     </section>
@@ -729,6 +741,90 @@ MACROS
                     </div>
                   </div>
                   {% endif %}
+                </div>
+
+                <div class="mp-dynamic-card mt-3">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="mp-field-label mb-0">Férias</div>
+                    <button type="button" class="btn btn-sm mp-btn-outline" data-bs-toggle="modal"
+                      data-bs-target="#modalFeriasAno">
+                      <i class="bi bi-calendar3 me-1"></i>Ver férias de {{ ano_referencia_pafs }}
+                    </button>
+                  </div>
+
+                  {% if ferias_ano_vigente and ferias_ano_vigente.periodo_vigente %}
+                  {% set pv = ferias_ano_vigente.periodo_vigente %}
+                  <div class="mp-ferias-note">
+                    <div class="mp-ferias-icon">
+                      <i class="bi bi-airplane-fill"></i>
+                    </div>
+                    <div>
+                      <span class="mp-ferias-title">De férias agora</span>
+                      <span class="mp-ferias-headline">
+                        {{ pv.numero }}º período — {{ pv.inicio.strftime('%d/%m/%Y') if pv.inicio else '—' }}
+                        a {{ pv.fim.strftime('%d/%m/%Y') if pv.fim else '—' }}
+                      </span>
+                      {% if pv.qtd_dias %}
+                      <div class="mp-ferias-detail">{{ pv.qtd_dias }} dia{{ 's' if pv.qtd_dias != 1 else '' }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% elif ferias_ano_vigente %}
+                  <div class="mp-ferias-neutral">
+                    <i class="bi bi-calendar-check"></i>
+                    Sem férias em andamento no momento — veja os períodos de {{ ano_referencia_pafs }} no botão acima.
+                  </div>
+                  {% else %}
+                  <div class="mp-ferias-neutral">
+                    <i class="bi bi-calendar-x"></i>
+                    Nenhum PAF cadastrado para {{ ano_referencia_pafs }}.
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="modal fade" id="modalFeriasAno" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-airplane-fill me-1"></i>
+                          Férias de {{ ano_referencia_pafs }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                      </div>
+                      <div class="modal-body">
+                        {% if ferias_ano_vigente %}
+                        {% for periodo in ferias_ano_vigente.periodos %}
+                        <div class="mp-ferias-periodo-row">
+                          <div>
+                            <strong>{{ periodo.numero }}º período</strong>
+                            {% if periodo.inicio %}
+                            <div class="mp-muted-note mb-0">
+                              {{ periodo.inicio.strftime('%d/%m/%Y') }}
+                              a {{ periodo.fim.strftime('%d/%m/%Y') if periodo.fim else periodo.inicio.strftime('%d/%m/%Y') }}
+                              {% if periodo.qtd_dias %} · {{ periodo.qtd_dias }} dia{{ 's' if periodo.qtd_dias != 1 else '' }}{% endif %}
+                            </div>
+                            {% else %}
+                            <div class="mp-muted-note mb-0">Não marcado</div>
+                            {% endif %}
+                          </div>
+                          <span class="mp-ferias-periodo-status
+                            {% if periodo.status == 'Vigente' %}status-vigente-p
+                            {% elif periodo.status == 'A iniciar' %}status-iniciar-p
+                            {% elif periodo.status == 'Usufruída' %}status-usufruida-p
+                            {% else %}status-vazio-p{% endif %}">
+                            {{ periodo.status or 'Sem data' }}
+                          </span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="mp-muted-note mb-0">Nenhum PAF cadastrado para {{ ano_referencia_pafs }}.</p>
+                        {% endif %}
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="mp-dynamic-card mt-3">

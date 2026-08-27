@@ -39,6 +39,7 @@ from src.services.militar_situacao_service import (
     processar_inicio_situacoes_extras,
     processar_fim_de_situacao_militar,
 )
+from src.services.paf_service import ferias_do_ano_vigente_com_status, paf_ano_vigente
 
 
 @app.route("/adicionar-militar", methods=['GET', 'POST'])
@@ -246,6 +247,7 @@ def exibir_militar(militar_id):
 
     elogios = listar_elogios(militar.id)
     situacoes_extras = listar_situacoes_extras(militar.id, limite=8)
+    ferias_ano_vigente = ferias_do_ano_vigente_com_status(militar.id)
 
     obm_funcao_tipo_1 = (
         MilitarObmFuncao.query
@@ -321,6 +323,8 @@ def exibir_militar(militar_id):
         conjuge=conjuge,
         elogios=elogios,
         situacoes_extras=situacoes_extras,
+        ferias_ano_vigente=ferias_ano_vigente,
+        ano_referencia_pafs=paf_ano_vigente(),
         can_edit=can_edit,
         can_delete=can_delete,
         bg_sit2_val=bg_sit2_val if request.method == "GET" else request.form.get(
