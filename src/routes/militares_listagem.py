@@ -28,7 +28,9 @@ from src.services.militar_situacao_service import (
     listar_pendencias_disposicao_vencida,
     prorrogar_disposicao,
     reverter_disposicao,
+    mapa_situacoes_extras_vigentes,
 )
+from src.services.paf_service import mapa_ferias_vigentes
 from src.services.situacoes_militares_service import (
     listar_militares_agregados,
     listar_militares_a_disposicao,
@@ -325,8 +327,14 @@ def militares_a_disposicao():
     militares = listar_militares_a_disposicao()
     resumo = montar_resumo_dashboard(militares, campo_fim="fim_periodo_disposicao")
     pendencias = listar_pendencias_disposicao_vencida()
+
+    ids_militares = [m.militar_id for m in militares]
+    situacoes_extras_por_militar = mapa_situacoes_extras_vigentes(ids_militares)
+    ferias_por_militar = mapa_ferias_vigentes(ids_militares)
+
     return render_template(
-        'militares_a_disposicao.html', militares=militares, resumo=resumo, pendencias=pendencias)
+        'militares_a_disposicao.html', militares=militares, resumo=resumo, pendencias=pendencias,
+        situacoes_extras_por_militar=situacoes_extras_por_militar, ferias_por_militar=ferias_por_militar)
 
 
 @app.route("/militares-agregados")
@@ -341,8 +349,14 @@ def militares_agregados():
     pendencias = [p for p in listar_pendencias_disposicao_vencida() if p["dual"]]
     resumo = montar_resumo_dashboard(
         militares, campo_fim="fim_periodo_agregacao", status_vencido="Término de Agregação")
+
+    ids_militares = [m.militar_id for m in militares]
+    situacoes_extras_por_militar = mapa_situacoes_extras_vigentes(ids_militares)
+    ferias_por_militar = mapa_ferias_vigentes(ids_militares)
+
     return render_template(
-        'militares_agregados.html', militares=militares, resumo=resumo, pendencias=pendencias)
+        'militares_agregados.html', militares=militares, resumo=resumo, pendencias=pendencias,
+        situacoes_extras_por_militar=situacoes_extras_por_militar, ferias_por_militar=ferias_por_militar)
 
 
 @app.route("/situacao-funcional/<int:militar_id>/prorrogar-disposicao", methods=["POST"])

@@ -687,6 +687,40 @@
         gap: .4rem;
         flex-shrink: 0;
     }
+
+    /* ---- Alertas na linha: situação extra vigente / férias ---- */
+    .lts-alerta-extra {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .3rem;
+        margin-right: .35rem;
+        padding: .12rem .5rem;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .lts-alerta-situacao-extra {
+        color: #1c6b3f;
+        background: rgba(44, 112, 74, .16);
+    }
+
+    .lts-alerta-ferias {
+        color: #0d5f8a;
+        background: rgba(13, 95, 138, .14);
+    }
+
+    html[data-theme="dark"] .lts-alerta-situacao-extra {
+        color: #75dda1;
+        background: rgba(44, 112, 74, .22);
+    }
+
+    html[data-theme="dark"] .lts-alerta-ferias {
+        color: #7ec8ec;
+        background: rgba(13, 95, 138, .24);
+    }
 </style>
 {% endblock %}
 
@@ -766,6 +800,7 @@
                                     <a class="lts-link" href="{{ url_for('exibir_militar', militar_id=disp.militar_id) }}">
                                         {{ disp.militar.nome_completo }}
                                     </a>
+                                    {{ sm.alertas_extras(situacoes_extras_por_militar.get(disp.militar_id), ferias_por_militar.get(disp.militar_id)) }}
                                     {% else %}
                                     —
                                     {% endif %}

@@ -829,6 +829,54 @@ def criar_situacao_extra(militar, tipo, destino_id, inicio, fim, publicacao_text
     return registro
 
 
+def mapa_situacoes_extras_vigentes(militar_ids):
+    """Pra um conjunto de militar_id, a situação extra (`situacao_extra=True`)
+    VIGENTE de cada um agora, se houver — uma consulta por tabela (não uma
+    por militar), pra usar nos painéis de Agregados/À Disposição, onde
+    precisa saber "esse militar, além do que já aparece na tabela, também
+    está de LTS/Licença Especial/Agregação/À Disposição extra ao mesmo
+    tempo?" sem rodar centenas de queries. Se um militar tiver mais de uma
+    extra vigente ao mesmo tempo, fica só a de fim mais distante (a que
+    "dura mais")."""
+    if not militar_ids:
+        return {}
+
+    militar_ids = set(militar_ids)
+    hoje = date.today()
+    mapa = {}
+
+    for tipo, config in SITUACAO_EXTRA_CONFIG.items():
+        campo_inicio_col = getattr(config["model"], config["campo_inicio"])
+        campo_fim_col = getattr(config["model"], config["campo_fim"])
+        registros = (
+            config["model"].query
+            .filter(config["model"].militar_id.in_(militar_ids))
+            .filter(config["model"].situacao_extra.is_(True))
+            .filter(campo_inicio_col.isnot(None))
+            .filter(campo_inicio_col <= hoje)
+            .filter(or_(campo_fim_col.is_(None), campo_fim_col >= hoje))
+            .options(joinedload(config["model"].destino))
+            .all()
+        )
+        for registro in registros:
+            fim = getattr(registro, config["campo_fim"])
+            atual = mapa.get(registro.militar_id)
+            if atual is not None:
+                if atual["fim"] is None:
+                    continue  # atual já é "sem prazo" — nada supera
+                if fim is not None and fim <= atual["fim"]:
+                    continue  # atual dura mais (ou igual) — mantém
+            mapa[registro.militar_id] = {
+                "tipo": tipo,
+                "label": config["label"],
+                "inicio": getattr(registro, config["campo_inicio"]),
+                "fim": fim,
+                "destino": registro.destino.local if registro.destino else None,
+            }
+
+    return mapa
+
+
 def listar_situacoes_extras(militar_id, limite=None):
     """Situações extras (`situacao_extra=True` — Agregação, À Disposição,
     Licença Especial ou LTS registradas sem mexer na situação principal) já

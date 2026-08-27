@@ -5,6 +5,24 @@ destinos). Sempre importar com `with context` não é necessário aqui — os
 macros só usam o que recebem por parâmetro.
 ========================================================================== #}
 
+{% macro alertas_extras(situacao_extra, ferias) %}
+{% if situacao_extra %}
+<div class="lts-alerta-extra lts-alerta-situacao-extra"
+    title="Situação extra vigente ao mesmo tempo: {{ situacao_extra.label }}{% if situacao_extra.destino %} — {{ situacao_extra.destino }}{% endif %}">
+    <i class="bi bi-layers-fill"></i>
+    {{ situacao_extra.label }} {{ 'até ' ~ situacao_extra.fim.strftime('%d/%m/%Y') if situacao_extra.fim else '(sem prazo)' }}
+</div>
+{% endif %}
+{% if ferias %}
+<div class="lts-alerta-extra lts-alerta-ferias"
+    title="De férias ({{ ferias.numero }}º período), até {{ ferias.fim.strftime('%d/%m/%Y') if ferias.fim else '—' }}">
+    <i class="bi bi-airplane-fill"></i>
+    Férias até {{ ferias.fim.strftime('%d/%m/%Y') if ferias.fim else '—' }}
+</div>
+{% endif %}
+{% endmacro %}
+
+
 {% macro dias_badge(status, inicio, fim, hoje, status_vencido='Venceu') %}
 {% if status == 'Vigente' and fim and fim >= hoje %}
 {% set dias = (fim - hoje).days %}

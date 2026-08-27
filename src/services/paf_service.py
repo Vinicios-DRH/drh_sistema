@@ -15,7 +15,7 @@ from flask_login import current_user
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import aliased, joinedload
 
 from src import database
@@ -326,6 +326,51 @@ def status_periodo_ferias(inicio, fim) -> Optional[str]:
     if inicio <= hoje <= fim_efetivo:
         return "Vigente"
     return "Usufruída"
+
+
+def mapa_ferias_vigentes(militar_ids):
+    """Pra um conjunto de militar_id, o período de férias (1º/2º/3º) VIGENTE
+    agora de cada um, se houver — uma consulta só (não uma por militar), pra
+    usar nos painéis de Agregados/À Disposição, mostrando quem também está
+    de férias ao mesmo tempo. Mesmo critério de `status_periodo_ferias`
+    (fim ausente conta o próprio início como fim)."""
+    if not militar_ids:
+        return {}
+
+    militar_ids = set(militar_ids)
+    hoje = date.today()
+
+    def _periodo_vigente(inicio_col, fim_col):
+        return and_(
+            inicio_col.isnot(None),
+            inicio_col <= hoje,
+            func.coalesce(fim_col, inicio_col) >= hoje,
+        )
+
+    pafs = (
+        Paf.query
+        .filter(Paf.militar_id.in_(militar_ids))
+        .filter(or_(
+            _periodo_vigente(Paf.primeiro_periodo_ferias, Paf.fim_primeiro_periodo),
+            _periodo_vigente(Paf.segundo_periodo_ferias, Paf.fim_segundo_periodo),
+            _periodo_vigente(Paf.terceiro_periodo_ferias, Paf.fim_terceiro_periodo),
+        ))
+        .all()
+    )
+
+    mapa = {}
+    for paf in pafs:
+        for numero, inicio_attr, fim_attr in (
+            (1, "primeiro_periodo_ferias", "fim_primeiro_periodo"),
+            (2, "segundo_periodo_ferias", "fim_segundo_periodo"),
+            (3, "terceiro_periodo_ferias", "fim_terceiro_periodo"),
+        ):
+            inicio = getattr(paf, inicio_attr)
+            fim = getattr(paf, fim_attr) or inicio
+            if inicio and inicio <= hoje <= fim:
+                mapa[paf.militar_id] = {"numero": numero, "inicio": inicio, "fim": fim}
+                break
+    return mapa
 
 
 # ---------------------------------------------------------------------------
