@@ -88,7 +88,8 @@ def obter_estatisticas_militares():
     from src.services.situacoes_militares_service import _ids_mais_recentes_por_militar
     from src.services.militar_situacao_service import (
         ids_alto_comando_excluidos_de_agregado_disposicao,
-        militar_nao_totalmente_pronto_expr,
+        militar_com_modalidade_a_disposicao_expr,
+        militar_com_situacao_agregado_expr,
     )
     _excluidos_alto_comando = ids_alto_comando_excluidos_de_agregado_disposicao()
 
@@ -99,7 +100,7 @@ def obter_estatisticas_militares():
         .filter(Militar.inativo.is_(False))
         .filter(MilitaresADisposicao.id.in_(_ids_mais_recentes_por_militar(MilitaresADisposicao)))
         .filter(MilitaresADisposicao.militar_id.notin_(_excluidos_alto_comando))
-        .filter(militar_nao_totalmente_pronto_expr())
+        .filter(militar_com_modalidade_a_disposicao_expr())
         .filter(_periodo_vigente_expr(
             MilitaresADisposicao.inicio_periodo,
             MilitaresADisposicao.fim_periodo_disposicao
@@ -114,7 +115,7 @@ def obter_estatisticas_militares():
         .filter(Militar.inativo.is_(False))
         .filter(MilitaresAgregados.id.in_(_ids_mais_recentes_por_militar(MilitaresAgregados)))
         .filter(MilitaresAgregados.militar_id.notin_(_excluidos_alto_comando))
-        .filter(militar_nao_totalmente_pronto_expr())
+        .filter(militar_com_situacao_agregado_expr())
         .filter(_periodo_vigente_expr(
             MilitaresAgregados.inicio_periodo,
             MilitaresAgregados.fim_periodo_agregacao

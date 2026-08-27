@@ -227,27 +227,43 @@ MODALIDADE_PRONTO_ID = 8
 MOTIVO_SEM_AGREGACOES_ID = 1
 DESTINO_CBMAM_ID = 6
 
+# Modalidade "À DISPOSIÇÃO" — é o campo que sincronizar_blocos_funcionais usa
+# pra decidir se o bloco de À Disposição se aplica (ver nota lá).
+MODALIDADE_A_DISPOSICAO_ID = 2
 
-def militar_nao_totalmente_pronto_expr():
-    """True quando o militar NÃO está inequivocamente PRONTO (Situação=PRONTO
-    E Modalidade=PRONTO ao mesmo tempo).
 
-    Usado pra tirar dos painéis de Agregados/À Disposição, da Home e da fila
-    de Pendências quem já foi completamente revertido pra PRONTO — sem esse
-    filtro, o registro antigo (já vencido) dessa pessoa continua sendo "o
-    mais recente com início preenchido" e ela nunca some da tela, mesmo sem
-    ter mais nada a ver com Agregação/À Disposição. Precisa das DUAS
-    condições (Situação E Modalidade) porque só uma delas sendo PRONTO não
-    é garantia — ex.: alguém Agregado E à disposição tem Situação=AGREGADO
-    mas isso não quer dizer que já foi resolvido.
+def militar_com_modalidade_a_disposicao_expr():
+    """True só quando a Modalidade ATUAL da ficha do militar ainda é "À
+    DISPOSIÇÃO" — é o mesmo campo que `sincronizar_blocos_funcionais` usa
+    pra decidir se grava/mantém um registro em MilitaresADisposicao.
 
-    Usa `coalesce`/comparação com string vazia em vez de `!=` direto porque
-    em SQL `coluna != valor` dá NULL (não True) quando a coluna é NULL — sem
-    isso, todo militar com Situação ou Modalidade em branco sumiria."""
-    return or_(
-        func.upper(func.trim(func.coalesce(Militar.situacao, ""))) != "PRONTO",
-        func.coalesce(Militar.modalidade_id, -1) != MODALIDADE_PRONTO_ID,
-    )
+    Por que não basta olhar o registro mais recente (com o período dele já
+    vencido, por exemplo) pra decidir se ainda é relevante: quando o
+    operador salva a ficha trocando a Modalidade pra outra coisa (ex.:
+    "AGUARDANDO"), `encerrar_disposicao_vigente` fecha o registro antigo
+    (fim = ontem) — só que ele continua sendo "o mais recente com início
+    preenchido" pra sempre. Sem checar a Modalidade atual, esse registro já
+    resolvido nunca sai do painel de À Disposição, mesmo a ficha já
+    apontando pra outro lugar (ex.: Agregado aguardando RR).
+
+    Isso NÃO esconde uma disposição vencida ainda pendente de decisão: se o
+    operador ainda não mexeu na ficha, a Modalidade continua "À DISPOSIÇÃO"
+    (só muda quando alguém explicitamente salva outra coisa), então essas
+    pendências continuam aparecendo normalmente."""
+    return Militar.modalidade_id == MODALIDADE_A_DISPOSICAO_ID
+
+
+def militar_com_situacao_agregado_expr():
+    """Equivalente a `militar_com_modalidade_a_disposicao_expr`, mas pro
+    painel de Agregados: só considera relevante quem tem Situação=AGREGADO
+    na ficha AGORA (mesmo campo que decide o bloco de Agregação em
+    sincronizar_blocos_funcionais).
+
+    Usa `coalesce`/comparação com string vazia em vez de `==` direto porque
+    em SQL `coluna = valor` dá NULL (não True/False) quando a coluna é
+    NULL — sem isso um militar com Situação em branco poderia se comportar
+    de um jeito inesperado dependendo de como a comparação é usada."""
+    return func.upper(func.trim(func.coalesce(Militar.situacao, ""))) == "AGREGADO"
 
 
 def _reverter_militar_para_pronto(militar):
@@ -318,9 +334,11 @@ def listar_pendencias_disposicao_vencida():
             MilitaresADisposicao.destino_id != DESTINO_DEFESA_CIVIL_ID,
             MilitaresADisposicao.destino_id.is_(None),
         ))
-        # Já foi revertido pra PRONTO de vez — não é mais uma pendência,
-        # é só o histórico de uma situação já resolvida.
-        .filter(militar_nao_totalmente_pronto_expr())
+        # Se a Modalidade da ficha já não é mais "À DISPOSIÇÃO", o operador
+        # já resolveu isso salvando outra coisa (PRONTO, Agregado aguardando
+        # RR, etc.) — não é mais uma pendência, é só o histórico de uma
+        # situação já resolvida.
+        .filter(militar_com_modalidade_a_disposicao_expr())
         .filter(MilitaresADisposicao.fim_periodo_disposicao.isnot(None))
         .filter(MilitaresADisposicao.fim_periodo_disposicao < hoje)
         .options(
