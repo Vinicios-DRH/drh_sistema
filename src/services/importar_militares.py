@@ -97,12 +97,14 @@ COLUMN_SYNONYMS = {
     "data_fim": "fim_periodo",
     "data fim": "fim_periodo",
 
-    "publicacao": "situacao_militar",
-    "publicação": "situacao_militar",
-    "situacao_militar": "situacao_militar",
-    "situação militar": "situacao_militar",
-    "bg": "situacao_militar",
-    "boletim": "situacao_militar",
+    "publicacao": "boletim_geral",
+    "publicação": "boletim_geral",
+    "situacao_militar": "boletim_geral",
+    "situação militar": "boletim_geral",
+    "bg": "boletim_geral",
+    "boletim": "boletim_geral",
+    "boletim_geral": "boletim_geral",
+    "boletim geral": "boletim_geral",
 
     "situacao2": "situacao2",
     "situação2": "situacao2",
@@ -147,7 +149,7 @@ IMPORTABLE_FIELDS = {
     "motivo": "fk",
     "inicio_periodo": "date",
     "fim_periodo": "date",
-    "situacao_militar": str,
+    "boletim_geral": str,
 
     "situacao2": "fk",
     "agregacoes2": "fk",
@@ -256,7 +258,7 @@ SIMPLE_FIELD_TARGET_MAP = {
     "situacao_principal": "pronto",
     "inicio_periodo": "inicio_periodo",
     "fim_periodo": "fim_periodo",
-    "situacao_militar": "situacao_militar",
+    "boletim_geral": "boletim_geral",
 }
 
 

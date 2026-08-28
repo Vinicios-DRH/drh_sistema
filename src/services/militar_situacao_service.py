@@ -85,7 +85,7 @@ def obter_motivo_por_id(motivo_id):
     return Motivo.query.get(motivo_id)
 
 
-def obter_publicacao_bg_id(militar_id, tipo_bg="situacao_militar"):
+def obter_publicacao_bg_id(militar_id, tipo_bg="boletim_geral"):
     """A publicação mais recente desse tipo pro militar. Pode haver mais de
     uma linha (uma por situação já registrada — ver
     src.services.militar_cadastro_service._salvar_publicacoes_bg), então o
@@ -99,12 +99,13 @@ def obter_publicacao_bg_id(militar_id, tipo_bg="situacao_militar"):
     return bg.id if bg else None
 
 
-def mapa_doe_atual(militar_ids) -> dict:
-    """DOE atual (texto do PublicacaoBg mais recente com tipo_bg='doe') de
-    cada militar em `militar_ids`, numa consulta só — pras telas de listagem
-    (/militares, /tabela-militares, exportação) mostrarem/filtrarem o DOE
-    sem um SELECT por militar. Maior id vence, mesmo critério usado em todo
-    lugar que resolve "qual é o valor atual" de um PublicacaoBg."""
+def _mapa_publicacao_bg_atual(militar_ids, tipo_bg) -> dict:
+    """Texto do PublicacaoBg mais recente de um `tipo_bg` (ex.: 'doe',
+    'boletim_geral') pra cada militar em `militar_ids`, numa consulta só —
+    pras telas de listagem (/militares, /tabela-militares, exportação)
+    mostrarem/filtrarem sem um SELECT por militar. Maior id vence, mesmo
+    critério usado em todo lugar que resolve "qual é o valor atual" de um
+    PublicacaoBg."""
     ids = [mid for mid in (militar_ids or []) if mid]
     if not ids:
         return {}
@@ -118,7 +119,7 @@ def mapa_doe_atual(militar_ids) -> dict:
                 order_by=PublicacaoBg.id.desc(),
             ).label("linha"),
         )
-        .filter(PublicacaoBg.tipo_bg == "doe", PublicacaoBg.militar_id.in_(ids))
+        .filter(PublicacaoBg.tipo_bg == tipo_bg, PublicacaoBg.militar_id.in_(ids))
         .subquery()
     )
 
@@ -129,6 +130,20 @@ def mapa_doe_atual(militar_ids) -> dict:
     )
 
     return {militar_id: (boletim_geral or "") for militar_id, boletim_geral in linhas_mais_recentes}
+
+
+def mapa_doe_atual(militar_ids) -> dict:
+    """DOE atual (texto do PublicacaoBg mais recente com tipo_bg='doe') de
+    cada militar em `militar_ids`. Ver `_mapa_publicacao_bg_atual`."""
+    return _mapa_publicacao_bg_atual(militar_ids, "doe")
+
+
+def mapa_boletim_geral_atual(militar_ids) -> dict:
+    """Boletim Geral atual da Situação Funcional (texto do PublicacaoBg mais
+    recente com tipo_bg='boletim_geral' — o campo que aparece como
+    "Boletim Geral" na ficha do militar) de cada militar em `militar_ids`.
+    Ver `_mapa_publicacao_bg_atual`."""
+    return _mapa_publicacao_bg_atual(militar_ids, "boletim_geral")
 
 
 def militares_com_doe_contendo(texto: str):
@@ -286,13 +301,13 @@ def _reverter_militar_para_pronto(militar):
 
     bg_atual = (
         PublicacaoBg.query
-        .filter_by(militar_id=militar.id, tipo_bg="situacao_militar")
+        .filter_by(militar_id=militar.id, tipo_bg="boletim_geral")
         .order_by(PublicacaoBg.id.desc())
         .first()
     )
     if bg_atual and bg_atual.boletim_geral:
         database.session.add(PublicacaoBg(
-            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=None))
+            militar_id=militar.id, tipo_bg="boletim_geral", boletim_geral=None))
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +421,7 @@ def prorrogar_disposicao(militar, novo_inicio, novo_fim, publicacao_texto, doe_t
     publicacao_texto = (publicacao_texto or "").strip()
     if publicacao_texto:
         publicacao = PublicacaoBg(
-            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=publicacao_texto)
+            militar_id=militar.id, tipo_bg="boletim_geral", boletim_geral=publicacao_texto)
         database.session.add(publicacao)
         database.session.flush()
         nova.publicacao_bg_id = publicacao.id
@@ -471,7 +486,7 @@ def reverter_disposicao(militar, data_reversao, publicacao_texto, doe_texto=None
     publicacao_texto = (publicacao_texto or "").strip()
     if publicacao_texto:
         database.session.add(PublicacaoBg(
-            militar_id=militar.id, tipo_bg="situacao_militar", boletim_geral=publicacao_texto))
+            militar_id=militar.id, tipo_bg="boletim_geral", boletim_geral=publicacao_texto))
 
     doe_texto = (doe_texto or "").strip()
     if doe_texto:

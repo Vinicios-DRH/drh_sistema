@@ -585,12 +585,12 @@ MACROS
                   {{ render_select(form_militar.destino_id, 'col-md-6') }}
                   {{ render_field(form_militar.inicio_periodo, 'col-md-3') }}
                   {{ render_field(form_militar.fim_periodo, 'col-md-3') }}
-                  {{ render_field(form_militar.situacao_militar, 'col-md-6') }}
+                  {{ render_field(form_militar.boletim_geral, 'col-md-6') }}
                   {{ render_field(form_militar.doe, 'col-md-6', '', 'Ex.: DOE 12.345 de 01/01/2026') }}
                 </div>
-                {% if (form_militar.situacao_militar.data or '')|trim != '' or (form_militar.doe.data or '')|trim != '' %}
+                {% if (form_militar.boletim_geral.data or '')|trim != '' or (form_militar.doe.data or '')|trim != '' %}
                 <p class="mp-muted-note mt-0 mb-3">
-                  Mudar o texto de Publicação ou DOE e salvar registra uma entrada nova no histórico de cada um —
+                  Mudar o texto de Boletim Geral ou DOE e salvar registra uma entrada nova no histórico de cada um —
                   a anterior não é apagada nem sobrescrita, continua valendo pra situação em que foi lançada.
                 </p>
                 {% endif %}
@@ -625,7 +625,7 @@ MACROS
                       <div class="mp-simultanea-detail">
                         Até {{ item.fim.strftime('%d/%m/%Y') if item.fim else '—' }}
                         {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
-                        {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                        {% if item.publicacao %} · Boletim Geral: {{ item.publicacao }}{% endif %}
                       </div>
                       <span class="mp-simultanea-badge">
                         <i class="bi bi-check-circle-fill"></i> Vigente ao mesmo tempo que a situação principal acima
@@ -647,7 +647,7 @@ MACROS
                       <div class="mp-scheduled-detail">
                         Até {{ item.fim.strftime('%d/%m/%Y') if item.fim else '—' }}
                         {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
-                        {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                        {% if item.publicacao %} · Boletim Geral: {{ item.publicacao }}{% endif %}
                       </div>
                       {% if item.dias_para_iniciar is not none %}
                       <span class="mp-scheduled-countdown">
@@ -676,7 +676,7 @@ MACROS
                           {{ item.fim.strftime('%d/%m/%Y') if item.fim else '?' }}
                           {% if item.status %} · {{ item.status }}{% endif %}
                           {% if item.destino %} · Destino: {{ item.destino }}{% endif %}
-                          {% if item.publicacao %} · Publicação: {{ item.publicacao }}{% endif %}
+                          {% if item.publicacao %} · Boletim Geral: {{ item.publicacao }}{% endif %}
                         </span>
                       </div>
                     </div>
@@ -725,7 +725,7 @@ MACROS
 
                     <div class="col-md-8">
                       <label for="publicacao_situacao_extra" class="mp-field-label">
-                        Publicação (BG)
+                        Boletim Geral
                       </label>
                       <input type="text" id="publicacao_situacao_extra" name="publicacao_situacao_extra"
                         class="form-control" placeholder="Ex.: BG nº 1234/2025, p. 45">

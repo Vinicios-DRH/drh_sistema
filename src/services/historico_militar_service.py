@@ -169,8 +169,8 @@ def listar_progressao_carreira(militar: Militar):
 
 
 def obter_publicacao_situacao_atual(militar_id: int):
-    """Publicação (BG) da situação funcional atual — o mesmo campo
-    "Publicação" da aba Situação Funcional em Exibir Militar.
+    """Boletim Geral da situação funcional atual — o mesmo campo
+    "Boletim Geral" da aba Situação Funcional em Exibir Militar.
 
     Existem modalidades (Agregação, À Disposição, Licença Especial, LTS) com
     tabela própria de histórico, cada registro já com sua publicação. Mas
@@ -179,7 +179,7 @@ def obter_publicacao_situacao_atual(militar_id: int):
     do militar. É por isso que ela precisa aparecer aqui à parte."""
     pb = (
         PublicacaoBg.query
-        .filter_by(militar_id=militar_id, tipo_bg="situacao_militar")
+        .filter_by(militar_id=militar_id, tipo_bg="boletim_geral")
         .order_by(PublicacaoBg.id.desc())
         .first()
     )

@@ -114,7 +114,7 @@ class FormMilitar(FlaskForm):
         "INÍCIO", format='%Y-%m-%d', validators=[Optional()])
     fim_periodo = DateField("TÉRMINO", format='%Y-%m-%d',
                             validators=[Optional()])
-    situacao_militar = StringField("Publicação")
+    boletim_geral = StringField("Boletim Geral")
     doe = StringField("DOE")
     ltip_afastamento_cargo_eletivo = StringField(
         "LTIP: Afastamento/Cargo Eletivo", default="NÃO")

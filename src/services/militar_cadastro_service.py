@@ -52,7 +52,7 @@ MODALIDADES_VALIDAS = {
 # Campos do FormMilitar que, na verdade, são publicações de Boletim Geral
 # (tabela PublicacaoBg) e não colunas diretas de Militar.
 CAMPOS_BG = [
-    "transferencia", "situacao_militar", "doe", "cfsd", "cfc", "cfs", "cas",
+    "transferencia", "boletim_geral", "doe", "cfsd", "cfc", "cfs", "cas",
     "choa", "cfo", "cbo", "cao", "csbm", "soldado_tres",
     "soldado_dois", "soldado_um", "cabo", "terceiro_sgt",
     "segundo_sgt", "primeiro_sgt", "subtenente",
@@ -62,9 +62,9 @@ CAMPOS_BG = [
 ]
 
 # Campos de CAMPOS_BG que seguem a mesma regra de "nunca UPDATE" de
-# situacao_militar (ver _salvar_publicacoes_bg) — cada mudança de valor vira
+# boletim_geral (ver _salvar_publicacoes_bg) — cada mudança de valor vira
 # uma linha NOVA em PublicacaoBg, preservando as anteriores como histórico.
-CAMPOS_BG_SEMPRE_HISTORICO = {"situacao_militar", "doe"}
+CAMPOS_BG_SEMPRE_HISTORICO = {"boletim_geral", "doe"}
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +218,7 @@ def preencher_form_para_exibicao(form_militar, militar, obm_funcao_tipo_1, obm_f
     form_militar.idade_atual.data = idade
 
     # Ordenado do mais antigo pro mais novo: como agora pode haver mais de
-    # uma linha pro mesmo tipo_bg (situacao_militar guarda uma por
+    # uma linha pro mesmo tipo_bg (boletim_geral guarda uma por
     # alteração, nunca sobrescreve — ver _salvar_publicacoes_bg), o loop
     # abaixo vai sobrescrevendo `.data` na ordem, e a mais recente sempre
     # vence por último. Sem esse order_by, qual linha "ganha" fica ao sabor
@@ -577,9 +577,9 @@ def _salvar_publicacoes_bg(militar, form_militar):
     """Grava as publicações de BG mapeadas em CAMPOS_BG (situacao_militar_2 já
     foi tratada manualmente em `_aplicar_situacao_extra_manual`).
 
-    "situacao_militar" (o campo "Publicação") e "doe" (o Diário Oficial do
+    "boletim_geral" (o campo "Boletim Geral") e "doe" (o Diário Oficial do
     Estado onde a mesma situação foi publicada) são tratados à parte — a
-    linha de PublicacaoBg de situacao_militar é reaproveitada como
+    linha de PublicacaoBg de boletim_geral é reaproveitada como
     publicacao_bg_id em Agregação/Disposição/Licença Especial/LTS (ver
     obter_publicacao_bg_id em militar_situacao_service.py), inclusive por
     registros já encerrados, que continuam apontando pra ela como histórico;
