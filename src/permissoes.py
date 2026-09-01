@@ -6,6 +6,8 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_VALIDACOES", "nome": "Menu: Validações (grupo)"},
     {"codigo": "NAV_VALIDACOES_RECEBIMENTO",
         "nome": "Menu: Validações > Declarações — Recebimento"},
+    {"codigo": "ANALISE_VINCULO",
+        "nome": "Vínculo: Análise de Declarações (Auditor)"},
     {"codigo": "NAV_VALIDACOES_PAF", "nome": "Menu: Validações > Validação PAF"},
     {"codigo": "NAV_VALIDACOES_DEP_PROCESSOS",
         "nome": "Menu: Validações > Processos Inclusão de Dependentes"},
@@ -44,6 +46,8 @@ PERMISSOES_CATALOGO = [
         "nome": "Menu: Militares Ativos > Adicionar Militar"},
     {"codigo": "NAV_MIL_ATIVOS_IMPORT",
         "nome": "Menu: Militares Ativos > Importar Planilha"},
+    {"codigo": "NAV_MIL_ATIVOS_QR",
+        "nome": "Menu: Militares Ativos > Gerar QrCodes"},
 
     {"codigo": "NAV_MIL_ATIVOS_DISP",
         "nome": "Menu: Militares Ativos > Militares à disposição"},
@@ -129,7 +133,6 @@ PERMISSOES_CATALOGO = [
     {"codigo": "NAV_FERIAS_SUPER", "nome": "Menu: Férias > (Super)"},
     {"codigo": "FERIAS_SUPER",
         "nome": "Férias: Super (bypass regras e ações especiais)"},
-    {"codigo": "FERIAS_UPDATE", "nome": "Férias: Atualizar PAF"},
     {"codigo": "FERIAS_EDITAR_FORA_JANELA",
         "nome": "Férias: Editar fora do período 10–20"},
 
