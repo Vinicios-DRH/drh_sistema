@@ -25,26 +25,26 @@
     }
 
     .glass-panel {
-        background: rgba(255, 255, 255, .95);
-        border: 1px solid rgba(255, 255, 255, .55);
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
         border-radius: 18px;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-        color: #111;
+        color: var(--app-text);
     }
 
     .table-shell {
-        background: #fff;
-        border: 1px solid rgba(0, 0, 0, .06);
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
         border-radius: 14px;
         padding: 1rem;
     }
 
     #tabela-acessos thead th {
         background: transparent;
-        border-bottom: 2px solid #e2e8f0;
-        color: #64748b;
+        border-bottom: 2px solid var(--app-border);
+        color: var(--app-muted);
         font-weight: 600;
         font-size: 0.85rem;
         text-transform: uppercase;
@@ -55,17 +55,34 @@
     #tabela-acessos tbody td {
         vertical-align: middle;
         font-size: 0.85rem;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--app-border);
         padding: 0.75rem 0.5rem;
+        color: var(--app-text);
     }
 
     #tabela-acessos tbody tr:hover {
-        background-color: #f8fafc;
+        background-color: var(--app-table-row-hover);
+    }
+
+    #tabela-acessos .text-dark {
+        color: var(--app-text) !important;
     }
 
     .badge-metodo {
         width: 50px;
         text-align: center;
+    }
+
+    .badge-ip {
+        background: var(--app-surface-muted);
+        color: var(--app-text);
+        border: 1px solid var(--app-border);
+    }
+
+    /* Fundo em degradê da página é fixo (mesma paleta do --app-hero-* do
+       tema), igual ao resto do sistema — não deve clarear no modo claro. */
+    html[data-theme="dark"] body {
+        background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed !important;
     }
 </style>
 {% endblock %}
@@ -148,7 +165,7 @@
                                         log.rota_acessada }}</span>
                                 </td>
 
-                                <td><span class="badge bg-light text-dark border">{{ log.ip_address }}</span></td>
+                                <td><span class="badge badge-ip">{{ log.ip_address }}</span></td>
 
                                 <td class="text-truncate" style="max-width: 200px;" title="{{ log.user_agent }}">
                                     <span class="small text-muted">{{ log.user_agent }}</span>
@@ -192,11 +209,11 @@
                     aria-label="Close"></button>
             </div>
             <form action="{{ url_for('limpar_logs_acesso') }}" method="POST">
-                <div class="modal-body bg-light p-4">
-                    <p class="mb-3 text-dark">Para evitar a lentidão do banco de dados, você pode apagar registros
+                <div class="modal-body p-4">
+                    <p class="mb-3">Para evitar a lentidão do banco de dados, você pode apagar registros
                         antigos de tráfego. Essa ação <strong>não pode ser desfeita</strong>.</p>
 
-                    <label class="form-label fw-bold text-secondary small">Apagar logs mais antigos que:</label>
+                    <label class="form-label fw-bold text-muted small">Apagar logs mais antigos que:</label>
                     <select name="dias" class="form-select border-danger">
                         <option value="15">15 dias</option>
                         <option value="30" selected>30 dias (Recomendado)</option>
@@ -204,7 +221,7 @@
                         <option value="90">90 dias</option>
                     </select>
                 </div>
-                <div class="modal-footer bg-white">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-danger">Confirmar Limpeza</button>
                 </div>

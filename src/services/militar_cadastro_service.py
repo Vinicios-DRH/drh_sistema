@@ -44,6 +44,7 @@ MODALIDADES_VALIDAS = {
     'LICENÇA ESPECIAL',
     'LICENÇA MATERNIDADE',
     'LTS',
+    'LTSPF',
     'ORDEM DE SERVIÇO',
     'PRONTO',
     'EM CURSO',
