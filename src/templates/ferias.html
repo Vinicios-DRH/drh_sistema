@@ -360,8 +360,12 @@
                 method: 'POST',
                 body: payload
             })
-                .then(r => r.json())
-                .then(resp => {
+                .then(r => r.json().then(resp => ({ ok: r.ok, resp })))
+                .then(({ ok, resp }) => {
+                    if (!ok) {
+                        alert(resp.error || resp.message || 'Erro ao salvar.');
+                        return; // não recarrega: mantém o que o usuário digitou pra corrigir
+                    }
                     alert(resp.message || 'Salvo!');
                     table.ajax.reload(null, false); // ✅ mantém página/scroll
                 })

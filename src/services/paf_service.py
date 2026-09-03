@@ -89,7 +89,7 @@ def calcular_direito_dias_ferias(militar) -> int:
 # tela da chefia (partial_tabela_obm.html). Uma requisição direta ao
 # endpoint (fora da tela) não pode conseguir gravar um valor fora disso.
 OPCOES_QTD_DIAS_POR_PERIODO = {
-    1: {0, 10, 20, 30, 40},
+    1: {0, 10, 15, 20, 30, 40},
     2: {0, 10, 15, 20},
     3: {0, 10},
 }

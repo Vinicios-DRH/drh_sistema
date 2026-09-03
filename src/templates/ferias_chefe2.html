@@ -1109,9 +1109,13 @@
           btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
           fetch(`${BASE_URL}/pafs/update`, { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(resp => {
-              alert(resp.message);
+            .then(r => r.json().then(resp => ({ ok: r.ok, resp })))
+            .then(({ ok, resp }) => {
+              if (!ok) {
+                alert(resp.error || resp.message || 'Erro ao salvar.');
+                return; // mantém o destaque e o que foi digitado pra corrigir
+              }
+              alert(resp.message || 'Salvo!');
               row.classList.remove('table-danger');
             })
             .catch(() => alert('Erro na comunicação com o servidor ao salvar.'))
