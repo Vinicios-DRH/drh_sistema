@@ -48,6 +48,7 @@ MODALIDADES_VALIDAS = {
     'ORDEM DE SERVIÇO',
     'PRONTO',
     'EM CURSO',
+    'CARGO ELETIVO',
 }
 
 # Campos do FormMilitar que, na verdade, são publicações de Boletim Geral
