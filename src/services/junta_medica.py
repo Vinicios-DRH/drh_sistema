@@ -2,8 +2,16 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import Optional
-from src.models import JuntaFechamentoBg, Licencas, Militar
+from src.models import (
+    JuntaFechamentoBg,
+    JuntaRestricaoTipo,
+    Licencas,
+    LicencaRestricao,
+    Militar,
+    MilitarObmFuncao,
+)
 from sqlalchemy.orm import joinedload
+from src import database
 
 
 TIPO_LICENCA_LABELS = {
@@ -14,6 +22,8 @@ TIPO_LICENCA_LABELS = {
     "APTO_RESTR": "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO": "APTO AO SERVIÇO DO CBMAM",
     "CURSO": "CURSO",
+    "TAF": "TAF",
+    "PROMOCAO": "PROMOÇÃO",
     "AGREGADO": "AGREGADO",
 }
 
@@ -25,9 +35,44 @@ STATUS_LABELS = {
     "APTO_RESTR": "APTO AO SERVIÇO DO CBMAM COM RESTRIÇÕES",
     "APTO": "APTO AO SERVIÇO DO CBMAM",
     "CURSO_APTO": "APTO PARA FINS DE CURSO",
+    "CURSO_REGIME_ESPECIAL": "REGIME ESPECIAL PARA FINS DE CURSO",
     "CURSO_INAPTO": "INAPTO PARA FINS DE CURSO",
+    "TAF_APTO": "APTO PARA O TAF",
+    "TAF_ALTERNATIVO": "TAF ALTERNATIVO",
+    "TAF_INAPTO": "INAPTO PARA O TAF",
+    "PROMOCAO_APTO": "APTO PARA FINS DE PROMOÇÃO",
+    "PROMOCAO_INAPTO": "INAPTO PARA FINS DE PROMOÇÃO",
     "AGREGADO": "AGREGADO",
 }
+
+# Tipos de inspeção que não são licença/decisão médica de situação: o parecer
+# vale só pro fim específico (curso, TAF, promoção) e por isso não mexe no
+# status atual do militar. Cada um tem sua própria lista de resultados.
+RESULTADOS_POR_TIPO = {
+    "CURSO": [
+        ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL"),
+        ("CURSO_APTO", "APTO"),
+        ("CURSO_INAPTO", "INAPTO"),
+    ],
+    "TAF": [
+        ("TAF_APTO", "APTO"),
+        ("TAF_ALTERNATIVO", "ALTERNATIVO"),
+        ("TAF_INAPTO", "INAPTO"),
+    ],
+    "PROMOCAO": [
+        ("PROMOCAO_APTO", "APTO"),
+        ("PROMOCAO_INAPTO", "INAPTO"),
+    ],
+}
+
+TIPOS_COM_RESULTADO = set(RESULTADOS_POR_TIPO.keys())
+
+# Tipos de inspeção pontuais: sem quantidade de dias e sem período. A data do
+# registro é a própria data da sessão da Junta.
+TIPOS_PONTUAIS = set(RESULTADOS_POR_TIPO.keys())
+
+# Tipos em que a Junta pode marcar restrições (checkboxes).
+TIPOS_COM_RESTRICAO = {"APTO_RESTR", "APTO_RECOM"}
 
 LIMITES_AGREGACAO = {
     "LTS": 365,
@@ -37,7 +82,7 @@ LIMITES_AGREGACAO = {
 
 TIPOS_COM_LIMITE = set(LIMITES_AGREGACAO.keys())
 TIPOS_DECISAO = {"APTO", "APTO_RECOM", "APTO_RESTR", "AGREGADO"}
-TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO"}
+TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO", "TAF", "PROMOCAO"}
 
 
 def calcular_data_fim(data_inicio: date, qtd_dias: int) -> date:
@@ -80,6 +125,57 @@ def label_status(status: Optional[str]) -> str:
     if not status:
         return "-"
     return STATUS_LABELS.get(status, status)
+
+
+def resultados_do_tipo(tipo: Optional[str]):
+    """Lista (valor, label) de resultados válidos pro tipo de inspeção."""
+    return RESULTADOS_POR_TIPO.get(tipo or "", [])
+
+
+def resultado_valido(tipo: Optional[str], resultado: Optional[str]) -> bool:
+    validos = {v for v, _ in resultados_do_tipo(tipo)}
+    return bool(resultado) and resultado in validos
+
+
+def label_resultado(tipo: Optional[str], resultado: Optional[str]) -> str:
+    for valor, texto in resultados_do_tipo(tipo):
+        if valor == resultado:
+            return texto
+    return label_status(resultado)
+
+
+def listar_tipos_restricao(somente_ativos: bool = True):
+    query = JuntaRestricaoTipo.query
+    if somente_ativos:
+        query = query.filter(JuntaRestricaoTipo.ativo.is_(True))
+    return query.order_by(
+        JuntaRestricaoTipo.ordem.asc(),
+        JuntaRestricaoTipo.nome.asc()
+    ).all()
+
+
+def obter_ou_criar_tipo_restricao(nome: str) -> Optional[JuntaRestricaoTipo]:
+    """
+    Resolve uma restrição digitada em "Outros". Reaproveita o tipo existente
+    (comparando sem diferenciar maiúsculas) em vez de duplicar o catálogo.
+    Não faz commit — quem chama controla a transação.
+    """
+    nome = (nome or "").strip()
+    if not nome:
+        return None
+
+    existente = (
+        JuntaRestricaoTipo.query
+        .filter(database.func.lower(JuntaRestricaoTipo.nome) == nome.lower())
+        .first()
+    )
+    if existente:
+        return existente
+
+    novo = JuntaRestricaoTipo(nome=nome, ativo=True, ordem=999)
+    database.session.add(novo)
+    database.session.flush()
+    return novo
 
 
 def _filtrar_registros_medicos(registros):
@@ -258,12 +354,78 @@ def calcular_situacao_atual(registros, hoje: Optional[date] = None):
     }
 
 
+def _militares_da_obm(obm_id):
+    """
+    Ids dos militares lotados na OBM (vínculo ainda sem data_fim).
+
+    É subquery e não JOIN de propósito: 17 militares têm mais de um vínculo
+    ativo, e um join duplicaria os registros deles na listagem. Assim o filtro
+    também tem a semântica certa — casa se QUALQUER vínculo ativo for da OBM.
+    """
+    return (
+        database.session.query(MilitarObmFuncao.militar_id)
+        .filter(
+            MilitarObmFuncao.data_fim.is_(None),
+            MilitarObmFuncao.obm_id == int(obm_id),
+        )
+    )
+
+
+def _aplicar_filtros_efetivo(query, filtro_quadro_id="",
+                             filtro_posto_grad_id="", filtro_obm_id=""):
+    """Aplica quadro / posto-grad / OBM numa query que já tem Militar joinado."""
+    if filtro_quadro_id:
+        query = query.filter(Militar.quadro_id == int(filtro_quadro_id))
+
+    if filtro_posto_grad_id:
+        query = query.filter(Militar.posto_grad_id == int(filtro_posto_grad_id))
+
+    if filtro_obm_id:
+        query = query.filter(Militar.id.in_(_militares_da_obm(filtro_obm_id)))
+
+    return query
+
+
+def contar_efetivo_ativo(filtro_quadro_id="", filtro_posto_grad_id="",
+                         filtro_obm_id="") -> int:
+    """
+    Efetivo ativo que serve de denominador dos percentuais: militares não
+    inativos, recortados pelos mesmos filtros de quadro / posto-grad / OBM
+    aplicados à listagem.
+    """
+    query = (
+        database.session.query(
+            database.func.count(database.distinct(Militar.id)))
+        .select_from(Militar)
+        .filter(Militar.inativo.isnot(True))
+    )
+
+    query = _aplicar_filtros_efetivo(
+        query,
+        filtro_quadro_id=filtro_quadro_id,
+        filtro_posto_grad_id=filtro_posto_grad_id,
+        filtro_obm_id=filtro_obm_id,
+    )
+
+    return int(query.scalar() or 0)
+
+
+def _percentual(quantidade: int, total: int) -> float:
+    if not total:
+        return 0.0
+    return round((quantidade * 100.0) / total, 2)
+
+
 def montar_dados_licencas(
     filtro_q="",
     filtro_tipo="",
     filtro_status="",
     filtro_status_atual="",
-    filtro_nota_bg=""
+    filtro_nota_bg="",
+    filtro_quadro_id="",
+    filtro_posto_grad_id="",
+    filtro_obm_id="",
+    filtro_restricao_id="",
 ):
     query = (
         Licencas.query
@@ -273,6 +435,7 @@ def montar_dados_licencas(
             joinedload(Licencas.militar).joinedload(Militar.posto_grad),
             joinedload(Licencas.militar).joinedload(Militar.quadro),
             joinedload(Licencas.fechamento_bg),
+            joinedload(Licencas.restricoes).joinedload(LicencaRestricao.tipo),
         )
     )
 
@@ -288,6 +451,21 @@ def montar_dados_licencas(
     if filtro_nota_bg:
         query = query.filter(
             JuntaFechamentoBg.nota_bg.ilike(f"%{filtro_nota_bg}%"))
+
+    query = _aplicar_filtros_efetivo(
+        query,
+        filtro_quadro_id=filtro_quadro_id,
+        filtro_posto_grad_id=filtro_posto_grad_id,
+        filtro_obm_id=filtro_obm_id,
+    )
+
+    if filtro_restricao_id:
+        query = query.filter(
+            Licencas.id.in_(
+                database.session.query(LicencaRestricao.licenca_id)
+                .filter(LicencaRestricao.restricao_tipo_id == int(filtro_restricao_id))
+            )
+        )
 
     registros = query.order_by(
         Licencas.created_at.desc(), Licencas.id.desc()).all()
@@ -313,6 +491,11 @@ def montar_dados_licencas(
         if filtro_status_atual and situacao["status_atual"] != filtro_status_atual:
             continue
 
+        restricoes = sorted(
+            (r.tipo.nome for r in reg.restricoes if r.tipo),
+            key=lambda x: x.lower()
+        )
+
         dados.append({
             "registro": reg,
             "tipo_label": label_tipo(reg.tipo_licenca),
@@ -321,18 +504,110 @@ def montar_dados_licencas(
             "status_atual_label": situacao["status_atual_label"],
             "agregacao": situacao["agregacao"],
             "nota_bg": reg.fechamento_bg.nota_bg if reg.fechamento_bg else "PENDENTE BG",
+            "restricoes": restricoes,
+            "curso_nome": reg.curso_nome or (reg.curso.nome if reg.curso else None),
         })
 
-    resumo = {
+    resumo = _montar_resumo(
+        dados,
+        filtro_quadro_id=filtro_quadro_id,
+        filtro_posto_grad_id=filtro_posto_grad_id,
+        filtro_obm_id=filtro_obm_id,
+    )
+
+    return dados, resumo
+
+
+def _montar_resumo(dados, filtro_quadro_id="", filtro_posto_grad_id="",
+                   filtro_obm_id=""):
+    """
+    Resumo da listagem. Os contadores continuam existindo (é o que a tela
+    sempre mostrou), mas os percentuais são calculados por MILITAR DISTINTO
+    sobre o efetivo ativo — senão um militar com 4 renovações de LTS contaria
+    4 vezes e o percentual estouraria 100%.
+    """
+    efetivo_ativo = contar_efetivo_ativo(
+        filtro_quadro_id=filtro_quadro_id,
+        filtro_posto_grad_id=filtro_posto_grad_id,
+        filtro_obm_id=filtro_obm_id,
+    )
+
+    militares_por_status = {}
+    for item in dados:
+        status = item["status_atual"] or "SEM_REGISTRO"
+        militares_por_status.setdefault(status, set()).add(
+            item["registro"].militar_id)
+
+    def militares(*status_list):
+        acumulado = set()
+        for status in status_list:
+            acumulado |= militares_por_status.get(status, set())
+        return acumulado
+
+    em_licenca = militares("LTS", "LTSPF", "LM")
+    aptos = militares("APTO")
+    recomendacoes = militares("APTO_RECOM")
+    restricoes = militares("APTO_RESTR")
+    agregados = militares("AGREGADO")
+    aguardando = militares("AGUARDANDO_INSPECAO")
+
+    # Percentual por tipo de restrição: militares distintos que carregam
+    # aquela restrição dentro do recorte filtrado.
+    militares_por_restricao = {}
+    for item in dados:
+        for nome in item["restricoes"]:
+            militares_por_restricao.setdefault(nome, set()).add(
+                item["registro"].militar_id)
+
+    restricoes_detalhe = [
+        {
+            "nome": nome,
+            "militares": len(ids),
+            "percentual": _percentual(len(ids), efetivo_ativo),
+        }
+        for nome, ids in militares_por_restricao.items()
+    ]
+    restricoes_detalhe.sort(key=lambda x: (-x["militares"], x["nome"].lower()))
+
+    # Percentual por tipo de licença/inspeção (pelo tipo do registro).
+    militares_por_tipo = {}
+    for item in dados:
+        militares_por_tipo.setdefault(item["registro"].tipo_licenca, set()).add(
+            item["registro"].militar_id)
+
+    licencas_detalhe = [
+        {
+            "tipo": tipo,
+            "label": label_tipo(tipo),
+            "militares": len(ids),
+            "percentual": _percentual(len(ids), efetivo_ativo),
+        }
+        for tipo, ids in militares_por_tipo.items()
+    ]
+    licencas_detalhe.sort(key=lambda x: (-x["militares"], x["label"]))
+
+    return {
         "total": len(dados),
-        "em_licenca": sum(1 for d in dados if d["status_atual"] in {"LTS", "LTSPF", "LM"}),
-        "aptos": sum(1 for d in dados if d["status_atual"] == "APTO"),
-        "recomendacoes": sum(1 for d in dados if d["status_atual"] == "APTO_RECOM"),
-        "restricoes": sum(1 for d in dados if d["status_atual"] == "APTO_RESTR"),
-        "agregados": sum(1 for d in dados if d["status_atual"] == "AGREGADO"),
-        "aguardando_inspecao": sum(1 for d in dados if d["status_atual"] == "AGUARDANDO_INSPECAO"),
+        "militares_distintos": len({d["registro"].militar_id for d in dados}),
+        "efetivo_ativo": efetivo_ativo,
+
+        "em_licenca": len(em_licenca),
+        "aptos": len(aptos),
+        "recomendacoes": len(recomendacoes),
+        "restricoes": len(restricoes),
+        "agregados": len(agregados),
+        "aguardando_inspecao": len(aguardando),
+
+        "pct_em_licenca": _percentual(len(em_licenca), efetivo_ativo),
+        "pct_aptos": _percentual(len(aptos), efetivo_ativo),
+        "pct_recomendacoes": _percentual(len(recomendacoes), efetivo_ativo),
+        "pct_restricoes": _percentual(len(restricoes), efetivo_ativo),
+        "pct_agregados": _percentual(len(agregados), efetivo_ativo),
+        "pct_aguardando_inspecao": _percentual(len(aguardando), efetivo_ativo),
+
+        "restricoes_detalhe": restricoes_detalhe,
+        "licencas_detalhe": licencas_detalhe,
+
         "alertas_agregacao": sum(1 for d in dados if d["agregacao"]["alerta"]),
         "pendentes_bg": sum(1 for d in dados if d["nota_bg"] == "PENDENTE BG"),
     }
-
-    return dados, resumo

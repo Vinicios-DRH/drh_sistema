@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+
+{% block title %}Consolidado Mensal — Junta Médica{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+{% endblock %}
+
+{% block body %}
+{% set periodo_texto = filtro_de[5:7] ~ '/' ~ filtro_de[0:4] ~ ' a ' ~ filtro_ate[5:7] ~ '/' ~ filtro_ate[0:4] %}
+{% set max_lanc = (linhas | map(attribute='inspecoes_lancadas') | max) if linhas else 0 %}
+
+<div class="jm-page">
+    <div class="container-fluid jm-container">
+
+        <section class="jm-hero">
+            <div class="jm-hero-main">
+                <div class="jm-hero-title-area">
+                    <div class="jm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                    </div>
+                    <div>
+                        <span class="jm-eyebrow">Junta Médica — Consolidado</span>
+                        <h1 class="jm-title">
+                            {% if militar %}
+                            {{ militar.posto_grad.sigla if militar.posto_grad else '' }}
+                            {{ militar.nome_completo }}
+                            {% else %}
+                            Licenças e restrições por mês
+                            {% endif %}
+                        </h1>
+                        <p class="jm-subtitle">
+                            {% if militar %}
+                            Quantas licenças e restrições este militar teve em cada mês do período,
+                            com o total ao final.
+                            {% else %}
+                            Quantas licenças e restrições a Junta registrou em cada mês, com o total do período.
+                            Escolha um militar no filtro para ver o mesmo recorte individualmente.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="jm-hero-actions">
+                    {% if militar %}
+                    <a href="{{ url_for('junta.estatisticas_mensais', de=filtro_de, ate=filtro_ate) }}"
+                        class="btn btn-hero">
+                        <i class="bi bi-people me-1"></i>Toda a força
+                    </a>
+                    <a href="{{ url_for('junta.historico_militar', militar_id=militar.id) }}" class="btn btn-hero">
+                        <i class="bi bi-clock-history me-1"></i>Histórico
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('junta.exportar_estatisticas_excel', de=filtro_de, ate=filtro_ate, quadro_id=filtro_quadro_id, posto_grad_id=filtro_posto_grad_id, obm_id=filtro_obm_id, tipo=filtro_tipo, militar_id=(militar.id if militar else None)) }}"
+                        class="btn btn-hero">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-hero btn-hero-primary">
+                        <i class="bi bi-list-ul me-1"></i>Registros
+                    </a>
+                </div>
+            </div>
+
+            <div class="jm-hero-chips">
+                <span class="jm-hero-chip"><i class="bi bi-calendar3"></i>{{ periodo_texto }}</span>
+                <span class="jm-hero-chip"><i class="bi bi-calendar-week"></i>{{ linhas | length }} competência(s)</span>
+                {% if not militar %}
+                <span class="jm-hero-chip"><i class="bi bi-people"></i>{{ efetivo_ativo }} militares ativos</span>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- ===== FICHA DO MILITAR ===== -->
+        {% if militar %}
+        <div class="jm-militar-card mt-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-5">
+                    <div class="jm-stat-label">Militar</div>
+                    <div class="jm-nome fs-5">
+                        {{ militar.posto_grad.sigla if militar.posto_grad else '' }} {{ militar.nome_completo }}
+                    </div>
+                    <div class="jm-sub">
+                        {{ militar.quadro.quadro if militar.quadro else '—' }}
+                        {% if militar.matricula %} • Mat. {{ militar.matricula }}{% endif %}
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="jm-stat-label">Situação atual</div>
+                    {% if situacao and situacao.status_atual %}
+                    {% if situacao.status_atual == 'APTO' %}
+                    <span class="jm-pill jm-pill-ok">{{ situacao.status_atual_label }}</span>
+                    {% elif situacao.status_atual in ['LTS', 'LTSPF', 'LM'] %}
+                    <span class="jm-pill jm-pill-critico">{{ situacao.status_atual_label }}</span>
+                    {% elif situacao.status_atual in ['APTO_RESTR', 'APTO_RECOM', 'AGREGADO'] %}
+                    <span class="jm-pill jm-pill-alerta">{{ situacao.status_atual_label }}</span>
+                    {% else %}
+                    <span class="jm-pill jm-pill-info">{{ situacao.status_atual_label }}</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="jm-pill jm-pill-neutro">Sem registro na Junta</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-lg-3">
+                    <div class="jm-stat-label">Agregação</div>
+                    {% if situacao and situacao.agregacao.atingiu_limite %}
+                    <span class="jm-pill jm-pill-alerta">Apto à agregação</span>
+                    {% elif situacao and situacao.agregacao.alerta %}
+                    <span class="jm-pill jm-pill-critico">
+                        {{ situacao.agregacao.dias_continuos }}/{{ situacao.agregacao.limite }} dias
+                    </span>
+                    {% else %}
+                    <span class="jm-pill jm-pill-neutro">Sem alerta</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== TOTAIS ===== -->
+        <div class="jm-stats">
+            <div class="jm-stat jm-stat-critical">
+                <div class="jm-stat-icon"><i class="bi bi-hospital"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ totais.licencas_lancadas }}</div>
+                    <div class="jm-stat-label">Licenças no período</div>
+                    <div class="jm-stat-sublabel">LTS + LTSPF + LM</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-warning">
+                <div class="jm-stat-icon"><i class="bi bi-shield-exclamation"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ totais.restricoes_lancadas }}</div>
+                    <div class="jm-stat-label">Restrições no período</div>
+                    <div class="jm-stat-sublabel">marcadas nos pareceres</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ totais.inspecoes_lancadas }}</div>
+                    <div class="jm-stat-label">Inspeções no período</div>
+                    <div class="jm-stat-sublabel">todos os tipos</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-neutro">
+                <div class="jm-stat-icon"><i class="bi bi-calendar-range"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ totais.dias_licenca }}</div>
+                    <div class="jm-stat-label">Dias de licença</div>
+                    <div class="jm-stat-sublabel">média {{ totais.media_dias_mes }}/mês</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon">
+                    <i class="bi {{ 'bi-calendar-check' if militar else 'bi-people-fill' }}"></i>
+                </div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">
+                        {% if militar %}{{ totais.meses_com_licenca }}{% else %}{{ totais.militares_distintos }}{% endif %}
+                    </div>
+                    <div class="jm-stat-label">
+                        {% if militar %}Meses com licença{% else %}Militares distintos{% endif %}
+                    </div>
+                    <div class="jm-stat-sublabel">
+                        {% if militar %}
+                        de {{ linhas | length }} meses
+                        {% elif efetivo_ativo %}
+                        {{ ((totais.militares_distintos * 100.0) / efetivo_ativo) | round(2) }}% do efetivo
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== FILTROS ===== -->
+        <div class="jm-panel jm-form">
+            <h2 class="jm-panel-title"><i class="bi bi-funnel"></i>Período e filtros</h2>
+
+            <form method="GET" action="{{ url_for('junta.estatisticas_mensais') }}" autocomplete="off">
+                <input type="hidden" name="militar_id" id="militar_id" value="{{ militar.id if militar else '' }}">
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-2">
+                        <label class="form-label" for="de">De (mês)</label>
+                        <input type="month" name="de" id="de" value="{{ filtro_de }}" class="form-control">
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label" for="ate">Até (mês)</label>
+                        <input type="month" name="ate" id="ate" value="{{ filtro_ate }}" class="form-control">
+                    </div>
+
+                    <div class="col-lg-4">
+                        <label class="form-label" for="busca_militar">Militar (opcional)</label>
+                        <div class="jm-autocomplete">
+                            <input type="text" id="busca_militar" class="form-control"
+                                value="{{ militar.nome_completo if militar else '' }}"
+                                placeholder="Digite o nome para ver só esse militar...">
+                            <div id="resultados_militar" class="jm-resultados"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label">Tipo de inspeção</label>
+                        <select name="tipo" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, label in tipos_filtro %}
+                            <option value="{{ valor }}" {% if filtro_tipo==valor %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label">Quadro</label>
+                        <select name="quadro_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for quadro in quadros %}
+                            <option value="{{ quadro.id }}" {% if filtro_quadro_id==quadro.id|string %}selected{% endif
+                                %}>{{ quadro.quadro }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">Posto / Graduação</label>
+                        <select name="posto_grad_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for pg in postos_grad %}
+                            <option value="{{ pg.id }}" {% if filtro_posto_grad_id==pg.id|string %}selected{% endif %}>
+                                {{ pg.sigla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">OBM</label>
+                        <select name="obm_id" class="form-select">
+                            <option value="">Todas</option>
+                            {% for obm in obms %}
+                            <option value="{{ obm.id }}" {% if filtro_obm_id==obm.id|string %}selected{% endif %}>
+                                {{ obm.sigla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-6 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2 me-1"></i>Aplicar
+                        </button>
+                        <a href="{{ url_for('junta.estatisticas_mensais') }}"
+                            class="btn btn-outline-secondary">Limpar</a>
+                    </div>
+                </div>
+            </form>
+
+            <hr class="my-3">
+
+            <p class="jm-legenda mb-0">
+                <b>Lançadas</b> — o parecer foi assinado naquele mês (produção da Junta).
+                <b>Vigentes</b> — a licença atravessava aquele mês, mesmo tendo começado antes;
+                por isso a coluna não é somável no total.
+                <b>Dias</b> — só a fatia do afastamento que cai dentro do mês.
+            </p>
+        </div>
+
+        <!-- ===== TABELA MENSAL ===== -->
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Mês a mês</h2>
+                    <p class="jm-table-sub">{{ linhas | length }} competência(s) • {{ periodo_texto }}</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Competência</th>
+                            <th class="jm-num">Licenças lançadas</th>
+                            <th class="jm-num">Restrições lançadas</th>
+                            <th class="jm-num">Inspeções lançadas</th>
+                            <th class="jm-num">Licenças vigentes</th>
+                            <th class="jm-num">Dias de licença</th>
+                            <th class="jm-num">
+                                {% if militar %}Pareceres{% else %}Militares distintos{% endif %}
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for linha in linhas %}
+                        <tr>
+                            <td>
+                                <div class="jm-mes">{{ linha.rotulo }}</div>
+                                <div class="jm-spark">
+                                    <div class="jm-spark-fill"
+                                        style="width: {{ ((linha.inspecoes_lancadas * 100 / max_lanc) if max_lanc else 0) | round(1) }}%;">
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="jm-num {% if not linha.licencas_lancadas %}jm-zero{% endif %}">
+                                {{ linha.licencas_lancadas }}</td>
+                            <td class="jm-num {% if not linha.restricoes_lancadas %}jm-zero{% endif %}">
+                                {{ linha.restricoes_lancadas }}</td>
+                            <td class="jm-num {% if not linha.inspecoes_lancadas %}jm-zero{% endif %}">
+                                {{ linha.inspecoes_lancadas }}</td>
+                            <td class="jm-num {% if not linha.licencas_vigentes %}jm-zero{% endif %}">
+                                {{ linha.licencas_vigentes }}</td>
+                            <td class="jm-num {% if not linha.dias_licenca %}jm-zero{% endif %}">
+                                {{ linha.dias_licenca }}</td>
+                            <td class="jm-num {% if not linha.militares_distintos %}jm-zero{% endif %}">
+                                {{ linha.militares_distintos }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <span class="jm-sub">Nenhuma competência no período informado.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% if linhas %}
+                        <tr class="jm-total-row">
+                            <td>TOTAL DO PERÍODO</td>
+                            <td class="jm-num">{{ totais.licencas_lancadas }}</td>
+                            <td class="jm-num">{{ totais.restricoes_lancadas }}</td>
+                            <td class="jm-num">{{ totais.inspecoes_lancadas }}</td>
+                            <td class="jm-num" title="Não é somável: o mesmo registro atravessa vários meses">—</td>
+                            <td class="jm-num">{{ totais.dias_licenca }}</td>
+                            <td class="jm-num">
+                                {% if militar %}{{ totais.inspecoes_lancadas }}{% else %}{{ totais.militares_distintos }}{% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== MÊS x TIPO ===== -->
+        {% if tipos_presentes %}
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Por tipo de inspeção</h2>
+                    <p class="jm-table-sub">Lançamentos de cada tipo em cada mês</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Competência</th>
+                            {% for tipo, label in tipos_presentes %}
+                            <th class="jm-num">{{ label }}</th>
+                            {% endfor %}
+                            <th class="jm-num">Total do mês</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for linha in linhas %}
+                        <tr>
+                            <td class="jm-mes">{{ linha.rotulo }}</td>
+                            {% for tipo, label in tipos_presentes %}
+                            {% set valor = linha.por_tipo.get(tipo, 0) %}
+                            <td class="jm-num {% if not valor %}jm-zero{% endif %}">{{ valor }}</td>
+                            {% endfor %}
+                            <td class="jm-num {% if not linha.inspecoes_lancadas %}jm-zero{% endif %}">
+                                {{ linha.inspecoes_lancadas }}</td>
+                        </tr>
+                        {% endfor %}
+
+                        <tr class="jm-total-row">
+                            <td>TOTAL</td>
+                            {% for tipo, label in tipos_presentes %}
+                            <td class="jm-num">{{ totais.por_tipo.get(tipo, 0) }}</td>
+                            {% endfor %}
+                            <td class="jm-num">{{ totais.inspecoes_lancadas }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== MÊS x RESTRIÇÃO ===== -->
+        {% if restricoes_presentes %}
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Por tipo de restrição</h2>
+                    <p class="jm-table-sub">Restrições marcadas nos pareceres de cada mês</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Competência</th>
+                            {% for nome in restricoes_presentes %}
+                            <th class="jm-num">{{ nome }}</th>
+                            {% endfor %}
+                            <th class="jm-num">Total do mês</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for linha in linhas %}
+                        <tr>
+                            <td class="jm-mes">{{ linha.rotulo }}</td>
+                            {% for nome in restricoes_presentes %}
+                            {% set valor = linha.por_restricao.get(nome, 0) %}
+                            <td class="jm-num {% if not valor %}jm-zero{% endif %}">{{ valor }}</td>
+                            {% endfor %}
+                            <td class="jm-num {% if not linha.restricoes_lancadas %}jm-zero{% endif %}">
+                                {{ linha.restricoes_lancadas }}</td>
+                        </tr>
+                        {% endfor %}
+
+                        <tr class="jm-total-row">
+                            <td>TOTAL</td>
+                            {% for nome in restricoes_presentes %}
+                            <td class="jm-num">{{ totais.por_restricao.get(nome, 0) }}</td>
+                            {% endfor %}
+                            <td class="jm-num">{{ totais.restricoes_lancadas }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== LANÇAMENTOS DO MILITAR ===== -->
+        {% if militar %}
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Lançamentos no período</h2>
+                    <p class="jm-table-sub">{{ registros | length }} registro(s) que compõem os números acima</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Competência</th>
+                            <th>Tipo</th>
+                            <th>Restrições</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="jm-num">Dias</th>
+                            <th>Sessão</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for reg in registros %}
+                        {% set ref = reg.data_sessao or reg.data_inicio %}
+                        <tr>
+                            <td class="jm-mes">{{ ref.strftime('%m/%Y') if ref else '—' }}</td>
+
+                            <td>
+                                <span class="jm-pill jm-pill-info">{{ label_tipo(reg.tipo_licenca) }}</span>
+                                {% if reg.curso_nome %}
+                                <div class="jm-sub">{{ reg.curso_nome }}</div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% for vinculo in reg.restricoes %}
+                                <span class="jm-tag">{{ vinculo.tipo.nome }}</span>
+                                {% else %}
+                                <span class="jm-zero">—</span>
+                                {% endfor %}
+                            </td>
+
+                            <td>{{ reg.data_inicio.strftime('%d/%m/%Y') if reg.data_inicio else '' }}</td>
+                            <td>{{ reg.data_fim.strftime('%d/%m/%Y') if reg.data_fim else '' }}</td>
+                            <td class="jm-num">{{ reg.qtd_dias }}</td>
+                            <td class="jm-sub">{{ reg.sessao }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <span class="jm-sub">Nenhum lançamento para este militar no período.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== RANKING ===== -->
+        {% if ranking %}
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Militares com mais registros no período</h2>
+                    <p class="jm-table-sub">Clique no nome para abrir o consolidado mensal daquele militar</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Militar</th>
+                            <th class="jm-num">Licenças</th>
+                            <th class="jm-num">Restrições</th>
+                            <th class="jm-num">Inspeções</th>
+                            <th class="jm-num">Dias</th>
+                            <th class="jm-num">Meses</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in ranking %}
+                        <tr>
+                            <td class="jm-sub">{{ loop.index }}</td>
+                            <td>
+                                <a class="jm-link"
+                                    href="{{ url_for('junta.estatisticas_mensais', militar_id=item.militar_id, de=filtro_de, ate=filtro_ate, quadro_id=filtro_quadro_id, posto_grad_id=filtro_posto_grad_id, obm_id=filtro_obm_id, tipo=filtro_tipo) }}">
+                                    {{ item.militar.posto_grad.sigla if item.militar and item.militar.posto_grad
+                                    else '' }}
+                                    {{ item.militar.nome_completo if item.militar else '—' }}
+                                </a>
+                                <div class="jm-sub">
+                                    {{ item.militar.quadro.quadro if item.militar and item.militar.quadro else '—' }}
+                                </div>
+                            </td>
+                            <td class="jm-num">{{ item.licencas }}</td>
+                            <td class="jm-num">{{ item.restricoes }}</td>
+                            <td class="jm-num">{{ item.inspecoes }}</td>
+                            <td class="jm-num">{{ item.dias }}</td>
+                            <td class="jm-num">{{ item.meses_distintos }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const busca = document.getElementById("busca_militar");
+        const resultados = document.getElementById("resultados_militar");
+        const militarId = document.getElementById("militar_id");
+
+        let debounce = null;
+        let ultimaBusca = 0;
+
+        function esconder() {
+            resultados.style.display = "none";
+            resultados.innerHTML = "";
+        }
+
+        function mostrar(lista) {
+            resultados.innerHTML = "";
+
+            if (!lista.length) {
+                resultados.innerHTML =
+                    '<div class="jm-resultado-vazio">Nenhum militar encontrado.</div>';
+                resultados.style.display = "block";
+                return;
+            }
+
+            lista.forEach(item => {
+                const el = document.createElement("button");
+                el.type = "button";
+                el.className = "jm-resultado-item";
+                el.innerHTML =
+                    `<span class="fw-semibold">${item.posto_grad} ${item.nome}</span>`;
+                el.addEventListener("click", function () {
+                    militarId.value = item.id;
+                    busca.value = item.nome;
+                    esconder();
+                    // escolher um militar já aplica o filtro
+                    busca.closest("form").submit();
+                });
+                resultados.appendChild(el);
+            });
+
+            resultados.style.display = "block";
+        }
+
+        busca.addEventListener("input", function () {
+            const termo = this.value.trim();
+
+            // mexeu no campo = não está mais preso ao militar anterior
+            militarId.value = "";
+            clearTimeout(debounce);
+
+            if (termo.length < 1) { esconder(); return; }
+
+            debounce = setTimeout(async () => {
+                const req = ++ultimaBusca;
+                try {
+                    const resp = await fetch(
+                        `/junta/api/militares/buscar?q=${encodeURIComponent(termo)}`);
+                    if (req !== ultimaBusca) return;
+                    if (!resp.ok) { esconder(); return; }
+                    mostrar(await resp.json());
+                } catch (err) {
+                    console.error(err);
+                    esconder();
+                }
+            }, 180);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!resultados.contains(e.target) && e.target !== busca) esconder();
+        });
+    });
+</script>
+{% endblock %}

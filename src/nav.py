@@ -358,6 +358,40 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
 
     nav.append(
         _mk_group(
+            "Junta Médica",
+            icon="fas fa-notes-medical",
+            perm="NAV_JUNTA",
+            children=[
+                _mk_item(
+                    "Nova Inspeção / Licença",
+                    "junta.nova_licenca",
+                    icon="fas fa-file-medical",
+                    perm="NAV_JUNTA_NOVA",
+                ),
+                _mk_item(
+                    "Registros e Licenças",
+                    "junta.listar_licencas",
+                    icon="fas fa-list-alt",
+                    perm="NAV_JUNTA_LICENCAS",
+                ),
+                _mk_item(
+                    "Consolidado Mensal",
+                    "junta.estatisticas_mensais",
+                    icon="fas fa-chart-column",
+                    perm="NAV_JUNTA_ESTATISTICAS",
+                ),
+                _mk_item(
+                    "Painel de Renovações",
+                    "junta.painel_renovacoes",
+                    icon="fas fa-sync-alt",
+                    perm="NAV_JUNTA_RENOVACOES",
+                ),
+            ],
+        )
+    )
+
+    nav.append(
+        _mk_group(
             "CSM",
             icon="fas fa-id-card",
             perm="NAV_MOTORISTAS",

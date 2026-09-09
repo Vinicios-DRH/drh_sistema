@@ -2016,8 +2016,26 @@ class Licencas(database.Model):
     status = database.Column(database.String(40), nullable=False, index=True)
     sessao = database.Column(database.String(30), nullable=False)
 
+    # Data em que a Junta se reuniu. É a primeira coisa que o operador preenche
+    # na tela — nullable só por causa dos registros antigos, que foram gravados
+    # antes do campo existir.
+    data_sessao = database.Column(database.Date, nullable=True, index=True)
+
     numero_bg_curso = database.Column(database.String(80), nullable=True)
     data_extenso_curso = database.Column(database.String(120), nullable=True)
+
+    # Inspeção para fins de curso: `curso_id` quando o curso veio do catálogo
+    # (tabela `curso`) e `curso_nome` sempre preenchido — inclusive quando o
+    # operador digitou um curso novo em "Outros". Guardar o nome de propósito:
+    # a nota do BG precisa do texto exato daquele dia, mesmo que o catálogo
+    # mude depois.
+    curso_id = database.Column(
+        database.Integer,
+        database.ForeignKey("curso.id"),
+        nullable=True,
+        index=True
+    )
+    curso_nome = database.Column(database.String(150), nullable=True)
 
     observacao = database.Column(database.Text, nullable=True)
 
@@ -2036,6 +2054,77 @@ class Licencas(database.Model):
     usuario = database.relationship("User", backref="licencas_junta")
     fechamento_bg = database.relationship(
         "JuntaFechamentoBg", back_populates="licencas")
+    curso = database.relationship("Curso")
+
+    restricoes = database.relationship(
+        "LicencaRestricao",
+        back_populates="licenca",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+
+class JuntaRestricaoTipo(database.Model):
+    """
+    Catálogo dos tipos de restrição que a Junta marca num parecer de
+    "APTO COM RESTRIÇÕES/RECOMENDAÇÕES". Vira a lista de checkboxes da tela.
+    Quando o operador digita uma restrição nova em "Outros", ela entra aqui e
+    já aparece marcável no próximo lançamento.
+    """
+    __tablename__ = "junta_restricao_tipo"
+
+    id = database.Column(database.Integer, primary_key=True)
+    nome = database.Column(database.String(160), nullable=False, unique=True)
+    ativo = database.Column(database.Boolean, nullable=False, default=True)
+    ordem = database.Column(database.Integer, nullable=False, default=100)
+
+    created_at = database.Column(
+        database.DateTime, default=now_manaus_naive, nullable=False)
+
+    lancamentos = database.relationship(
+        "LicencaRestricao", back_populates="tipo", lazy="selectin")
+
+    def __repr__(self):
+        return f"<JuntaRestricaoTipo {self.nome}>"
+
+
+class LicencaRestricao(database.Model):
+    """
+    Liga um lançamento da Junta às restrições marcadas nele. É N:N de propósito:
+    o mesmo militar pode receber várias restrições no mesmo parecer, e ganhar
+    outras em pareceres seguintes.
+    """
+    __tablename__ = "licenca_restricao"
+
+    id = database.Column(database.Integer, primary_key=True)
+
+    licenca_id = database.Column(
+        database.Integer,
+        database.ForeignKey("licencas.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    restricao_tipo_id = database.Column(
+        database.Integer,
+        database.ForeignKey("junta_restricao_tipo.id"),
+        nullable=False,
+        index=True
+    )
+
+    # Detalhe livre daquela restrição específica (ex.: "por 60 dias").
+    detalhe = database.Column(database.String(255), nullable=True)
+
+    created_at = database.Column(
+        database.DateTime, default=now_manaus_naive, nullable=False)
+
+    licenca = database.relationship("Licencas", back_populates="restricoes")
+    tipo = database.relationship(
+        "JuntaRestricaoTipo", back_populates="lancamentos")
+
+    __table_args__ = (
+        database.UniqueConstraint(
+            "licenca_id", "restricao_tipo_id", name="uq_licenca_restricao"),
+    )
 
 
 class ConferenciaPagadoria(database.Model):

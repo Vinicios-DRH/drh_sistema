@@ -1,166 +1,397 @@
 {% extends "base.html" %}
 
-{% block body %}
+{% block title %}Relatório da Junta Médica{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
 <style>
-    .print-shell {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px;
+    /* Documento oficial: fundo branco e tipografia sóbria, tanto na tela
+       quanto no papel. Não usa os tokens de tema de propósito — relatório
+       impresso é sempre claro. */
+    .rel-folha {
+        max-width: 1120px;
+        margin: 1.25rem auto;
+        padding: 2.2rem 2.4rem;
+        border: 1px solid #d6dee6;
+        border-radius: 6px;
         background: #fff;
-        color: #111;
+        color: #16202e;
+        box-shadow: 0 10px 30px -18px rgba(15, 76, 129, .4);
     }
 
-    .print-head {
+    .rel-cabecalho {
         display: flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: start;
-        margin-bottom: 20px;
+        gap: 1.5rem;
+        padding-bottom: 1.1rem;
+        border-bottom: 2px solid #0f4c81;
     }
 
-    .print-title {
-        font-size: 28px;
+    .rel-brasao {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+    }
+
+    .rel-brasao img {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+    }
+
+    .rel-orgao {
+        margin: 0;
+        color: #0f4c81;
+        font-size: .78rem;
         font-weight: 800;
-        margin-bottom: 4px;
-    }
-
-    .print-sub {
-        color: #4b5563;
-    }
-
-    .print-kpis {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 12px;
-        margin: 18px 0 22px;
-    }
-
-    .print-kpi {
-        border: 1px solid #d1d5db;
-        border-radius: 12px;
-        padding: 12px;
-    }
-
-    .print-kpi-label {
-        font-size: 12px;
+        letter-spacing: .07em;
         text-transform: uppercase;
-        color: #6b7280;
+    }
+
+    .rel-titulo {
+        margin: .15rem 0 0;
+        color: #16202e;
+        font-size: 1.32rem;
+        font-weight: 800;
+    }
+
+    .rel-sub {
+        margin: .15rem 0 0;
+        color: #5b6b7d;
+        font-size: .84rem;
+    }
+
+    .rel-emissao {
+        color: #5b6b7d;
+        font-size: .78rem;
+        text-align: right;
+    }
+
+    .rel-secao {
+        margin: 1.6rem 0 .7rem;
+        padding-bottom: .35rem;
+        border-bottom: 1px solid #dbe3ea;
+        color: #0f4c81;
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .rel-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: .6rem;
+    }
+
+    .rel-kpi {
+        padding: .7rem .85rem;
+        border: 1px solid #dbe3ea;
+        border-left: 3px solid #0f4c81;
+        border-radius: 4px;
+        background: #f7fafc;
+    }
+
+    .rel-kpi-label {
+        color: #5b6b7d;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .rel-kpi-valor {
+        margin-top: .2rem;
+        color: #16202e;
+        font-size: 1.28rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rel-kpi-pct {
+        color: #0f4c81;
+        font-size: .74rem;
         font-weight: 700;
     }
 
-    .print-kpi-value {
-        font-size: 22px;
-        font-weight: 800;
-        margin-top: 6px;
-    }
-
-    .print-table {
+    .rel-tabela {
         width: 100%;
         border-collapse: collapse;
+        font-size: .78rem;
     }
 
-    .print-table th,
-    .print-table td {
-        border: 1px solid #d1d5db;
-        padding: 8px 10px;
-        font-size: 12px;
+    .rel-tabela th {
+        padding: .5rem .55rem;
+        border-bottom: 2px solid #0f4c81;
+        color: #16202e;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+        background: #f2f6f9;
+    }
+
+    .rel-tabela td {
+        padding: .45rem .55rem;
+        border-bottom: 1px solid #e6ecf1;
         vertical-align: top;
     }
 
-    .print-table th {
-        background: #0b2f4f;
-        color: #fff;
-        text-align: left;
+    .rel-tabela tbody tr:nth-child(even) td {
+        background: #fafcfd;
+    }
+
+    .rel-num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .rel-militar {
+        font-weight: 700;
+    }
+
+    .rel-obs {
+        color: #7a4a00;
+        font-weight: 700;
+    }
+
+    .rel-assinaturas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3.2rem;
+    }
+
+    .rel-assinatura {
+        padding-top: .4rem;
+        border-top: 1px solid #16202e;
+        color: #5b6b7d;
+        font-size: .76rem;
+        text-align: center;
+    }
+
+    .rel-rodape {
+        margin-top: 2rem;
+        padding-top: .6rem;
+        border-top: 1px solid #dbe3ea;
+        color: #8494a5;
+        font-size: .7rem;
+        text-align: center;
     }
 
     @media print {
-        .no-print {
-            display: none !important;
+        @page {
+            margin: 12mm;
+            size: A4 landscape;
         }
 
         body {
             background: #fff !important;
         }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .rel-folha {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .rel-tabela {
+            font-size: .68rem;
+        }
+
+        .rel-tabela thead {
+            display: table-header-group;
+        }
+
+        .rel-tabela tr {
+            break-inside: avoid;
+        }
+
+        .rel-kpi,
+        .rel-assinaturas {
+            break-inside: avoid;
+        }
     }
 </style>
+{% endblock %}
 
-<div class="print-shell">
-    <div class="print-head">
-        <div>
-            <div class="print-title">Relatório da Junta Médica</div>
-            <div class="print-sub">CBMAM • Licenças, inspeções e agregação</div>
+{% block body %}
+<div class="container-fluid no-print pt-3">
+    <div class="d-flex justify-content-center gap-2">
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="bi bi-printer me-1"></i>Salvar / Imprimir PDF
+        </button>
+        <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+</div>
+
+<div class="rel-folha">
+    <div class="rel-cabecalho">
+        <div class="rel-brasao">
+            <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+            <div>
+                <p class="rel-orgao">Corpo de Bombeiros Militar do Amazonas</p>
+                <h1 class="rel-titulo">Relatório da Junta Médica</h1>
+                <p class="rel-sub">Licenças, inspeções e situação de agregação</p>
+            </div>
         </div>
 
-        <div class="no-print">
-            <button onclick="window.print()" class="btn btn-dark">Salvar/Imprimir PDF</button>
+        <div class="rel-emissao">
+            Emitido em<br>
+            <strong>{{ hoje.strftime('%d/%m/%Y') if hoje else '' }}</strong>
         </div>
     </div>
 
-    <div class="print-kpis">
-        <div class="print-kpi">
-            <div class="print-kpi-label">Total</div>
-            <div class="print-kpi-value">{{ resumo.total }}</div>
+    <div class="rel-secao">Síntese</div>
+
+    <div class="rel-kpis">
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Registros</div>
+            <div class="rel-kpi-valor">{{ resumo.total }}</div>
         </div>
-        <div class="print-kpi">
-            <div class="print-kpi-label">Em licença</div>
-            <div class="print-kpi-value">{{ resumo.em_licenca }}</div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Efetivo ativo</div>
+            <div class="rel-kpi-valor">{{ resumo.efetivo_ativo }}</div>
         </div>
-        <div class="print-kpi">
-            <div class="print-kpi-label">Aptos</div>
-            <div class="print-kpi-value">{{ resumo.aptos }}</div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Em licença</div>
+            <div class="rel-kpi-valor">{{ resumo.em_licenca }}</div>
+            <div class="rel-kpi-pct">{{ resumo.pct_em_licenca }}% do efetivo</div>
         </div>
-        <div class="print-kpi">
-            <div class="print-kpi-label">Restrições</div>
-            <div class="print-kpi-value">{{ resumo.restricoes }}</div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Aptos</div>
+            <div class="rel-kpi-valor">{{ resumo.aptos }}</div>
+            <div class="rel-kpi-pct">{{ resumo.pct_aptos }}% do efetivo</div>
         </div>
-        <div class="print-kpi">
-            <div class="print-kpi-label">Aguardando inspeção</div>
-            <div class="print-kpi-value">{{ resumo.aguardando_inspecao }}</div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Com restrições</div>
+            <div class="rel-kpi-valor">{{ resumo.restricoes }}</div>
+            <div class="rel-kpi-pct">{{ resumo.pct_restricoes }}% do efetivo</div>
         </div>
-        <div class="print-kpi">
-            <div class="print-kpi-label">Agregados</div>
-            <div class="print-kpi-value">{{ resumo.agregados }}</div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Aguardando inspeção</div>
+            <div class="rel-kpi-valor">{{ resumo.aguardando_inspecao }}</div>
+            <div class="rel-kpi-pct">{{ resumo.pct_aguardando_inspecao }}% do efetivo</div>
+        </div>
+
+        <div class="rel-kpi">
+            <div class="rel-kpi-label">Agregados</div>
+            <div class="rel-kpi-valor">{{ resumo.agregados }}</div>
+            <div class="rel-kpi-pct">{{ resumo.pct_agregados }}% do efetivo</div>
         </div>
     </div>
 
-    <table class="print-table">
+    {% if resumo.restricoes_detalhe %}
+    <div class="rel-secao">Restrições sobre o efetivo ativo ({{ resumo.efetivo_ativo }} militares)</div>
+
+    <table class="rel-tabela">
+        <thead>
+            <tr>
+                <th>Restrição</th>
+                <th class="rel-num">Militares</th>
+                <th class="rel-num">% do efetivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for linha in resumo.restricoes_detalhe %}
+            <tr>
+                <td>{{ linha.nome }}</td>
+                <td class="rel-num">{{ linha.militares }}</td>
+                <td class="rel-num">{{ linha.percentual }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="rel-secao">Relação de registros</div>
+
+    <table class="rel-tabela">
         <thead>
             <tr>
                 <th>Militar</th>
                 <th>Tipo</th>
-                <th>Status Registro</th>
-                <th>Status Atual</th>
+                <th>Restrições</th>
+                <th>Status do registro</th>
+                <th>Status atual</th>
                 <th>Início</th>
                 <th>Fim</th>
-                <th>Dias</th>
+                <th class="rel-num">Dias</th>
                 <th>Agregação</th>
             </tr>
         </thead>
         <tbody>
             {% for item in dados %}
+            {% set reg = item.registro %}
             <tr>
                 <td>
-                    {{ item.registro.militar.posto_grad.sigla if item.registro.militar and
-                    item.registro.militar.posto_grad else '' }}
-                    {{ item.registro.militar.nome_completo if item.registro.militar else '' }}
+                    <span class="rel-militar">
+                        {{ reg.militar.posto_grad.sigla if reg.militar and reg.militar.posto_grad else '' }}
+                        {{ reg.militar.nome_completo if reg.militar else '' }}
+                    </span>
+                    <br>
+                    <span style="color:#7a8899;">
+                        {{ reg.militar.quadro.quadro if reg.militar and reg.militar.quadro else '—' }}
+                    </span>
                 </td>
-                <td>{{ item.tipo_label }}</td>
+
+                <td>
+                    {{ item.tipo_label }}
+                    {% if item.curso_nome %}<br><span style="color:#7a8899;">{{ item.curso_nome }}</span>{% endif %}
+                </td>
+
+                <td>{{ item.restricoes | join('; ') if item.restricoes else '—' }}</td>
                 <td>{{ item.status_label }}</td>
                 <td>{{ item.status_atual_label }}</td>
-                <td>{{ item.registro.data_inicio.strftime('%d/%m/%Y') if item.registro.data_inicio else '' }}</td>
-                <td>{{ item.registro.data_fim.strftime('%d/%m/%Y') if item.registro.data_fim else '' }}</td>
-                <td>{{ item.registro.qtd_dias }}</td>
+                <td>{{ reg.data_inicio.strftime('%d/%m/%Y') if reg.data_inicio else '' }}</td>
+                <td>{{ reg.data_fim.strftime('%d/%m/%Y') if reg.data_fim else '' }}</td>
+                <td class="rel-num">{{ reg.qtd_dias }}</td>
+
                 <td>
                     {% if item.agregacao.atingiu_limite %}
-                    AGREGADO/Apto à agregação
+                    <span class="rel-obs">Apto à agregação</span>
                     {% elif item.agregacao.alerta %}
-                    {{ item.agregacao.mensagem }}
+                    <span class="rel-obs">{{ item.agregacao.dias_continuos }}/{{ item.agregacao.limite }} dias</span>
                     {% else %}
-                    -
+                    —
                     {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" style="text-align:center;padding:2rem;color:#7a8899;">
+                    Nenhum registro encontrado para os filtros informados.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <div class="rel-assinaturas">
+        <div class="rel-assinatura">Presidente da JOIS/CBMAM</div>
+        <div class="rel-assinatura">Membro da JOIS/CBMAM</div>
+        <div class="rel-assinatura">Membro da JOIS/CBMAM</div>
+    </div>
+
+    <div class="rel-rodape">
+        SIGDP — Diretoria de Pessoal • Corpo de Bombeiros Militar do Amazonas
+    </div>
 </div>
 {% endblock %}

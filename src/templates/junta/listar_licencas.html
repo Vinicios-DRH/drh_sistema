@@ -1,598 +1,453 @@
 {% extends "base.html" %}
 
+{% block title %}Registros da Junta Médica{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+{% endblock %}
+
 {% block body %}
-<style>
-    :root {
-        --jm-bg-1: #061a2f;
-        --jm-bg-2: #0b2f4f;
-        --jm-bg-3: #123f68;
-        --jm-card: rgba(255, 255, 255, 0.10);
-        --jm-border: rgba(255, 255, 255, 0.18);
-        --jm-text: #eaf4ff;
-        --jm-muted: #bdd1e6;
-        --jm-primary: #7cc7ff;
-        --jm-success: #56d89a;
-        --jm-warning: #ffc96b;
-        --jm-danger: #ff6b7d;
-        --jm-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-        --jm-radius-xl: 28px;
-        --jm-radius-lg: 20px;
-        --jm-radius-md: 16px;
-    }
-
-    .jm-page {
-        min-height: calc(100vh - 60px);
-        padding: 2rem 0 3rem;
-        background:
-            radial-gradient(circle at top left, rgba(124, 199, 255, 0.18), transparent 28%),
-            radial-gradient(circle at top right, rgba(86, 216, 154, 0.12), transparent 24%),
-            linear-gradient(135deg, var(--jm-bg-1) 0%, var(--jm-bg-2) 48%, var(--jm-bg-3) 100%);
-    }
-
-    .jm-shell {
-        max-width: 1440px;
-        margin: 0 auto;
-    }
-
-    .jm-glass {
-        background: var(--jm-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--jm-border);
-        box-shadow: var(--jm-shadow);
-    }
-
-    .jm-hero,
-    .jm-panel,
-    .jm-table-wrap {
-        border-radius: var(--jm-radius-xl);
-        overflow: hidden;
-    }
-
-    .jm-hero {
-        padding: 1.6rem;
-        color: var(--jm-text);
-    }
-
-    .jm-chip {
-        display: inline-flex;
-        align-items: center;
-        padding: .45rem .85rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.10);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: var(--jm-text);
-        font-size: .82rem;
-        font-weight: 700;
-    }
-
-    .jm-muted {
-        color: var(--jm-muted);
-    }
-
-    .jm-stat {
-        border-radius: 20px;
-        padding: 1rem 1.05rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        height: 100%;
-    }
-
-    .jm-stat-label {
-        color: var(--jm-muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        font-weight: 700;
-        margin-bottom: .45rem;
-    }
-
-    .jm-stat-value {
-        color: var(--jm-text);
-        font-size: 1.7rem;
-        font-weight: 800;
-        line-height: 1;
-    }
-
-    .jm-panel-header,
-    .jm-table-header {
-        padding: 1.15rem 1.35rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-        color: var(--jm-text);
-    }
-
-    .jm-panel-body,
-    .jm-table-body {
-        padding: 1.35rem;
-        color: var(--jm-text);
-    }
-
-    .jm-label {
-        color: var(--jm-text);
-        font-weight: 700;
-        margin-bottom: .45rem;
-        font-size: .92rem;
-    }
-
-    .jm-input,
-    .jm-select {
-        background: rgba(255, 255, 255, 0.10) !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        color: #fff !important;
-        border-radius: 16px !important;
-        min-height: 48px;
-        box-shadow: none !important;
-    }
-
-    .jm-input::placeholder {
-        color: rgba(234, 244, 255, 0.55);
-    }
-
-    .jm-input:focus,
-    .jm-select:focus {
-        border-color: rgba(124, 199, 255, 0.52) !important;
-        box-shadow: 0 0 0 .2rem rgba(76, 166, 255, 0.14) !important;
-    }
-
-    .jm-btn-primary {
-        border: 0;
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: #fff;
-        background: linear-gradient(135deg, #1d7bff, #45b0ff);
-        box-shadow: 0 12px 24px rgba(29, 123, 255, 0.28);
-    }
-
-    .jm-btn-primary:hover {
-        color: #fff;
-    }
-
-    .jm-btn-ghost {
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: var(--jm-text);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .jm-btn-ghost:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    .jm-table {
-        --bs-table-bg: transparent;
-        --bs-table-color: #eaf4ff;
-        --bs-table-border-color: rgba(255, 255, 255, 0.08);
-        margin-bottom: 0;
-    }
-
-    .jm-table thead th {
-        color: #cfe3f7;
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        border-bottom-width: 1px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .jm-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.04);
-    }
-
-    .jm-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: .42rem .72rem;
-        border-radius: 999px;
-        font-size: .78rem;
-        font-weight: 800;
-        letter-spacing: .01em;
-        border: 1px solid transparent;
-        white-space: nowrap;
-    }
-
-    .jm-badge-info {
-        color: #d7efff;
-        background: rgba(76, 166, 255, 0.14);
-        border-color: rgba(76, 166, 255, 0.22);
-    }
-
-    .jm-badge-success {
-        color: #d8ffe9;
-        background: rgba(86, 216, 154, 0.14);
-        border-color: rgba(86, 216, 154, 0.24);
-    }
-
-    .jm-badge-warning {
-        color: #ffe8b8;
-        background: rgba(255, 201, 107, 0.14);
-        border-color: rgba(255, 201, 107, 0.24);
-    }
-
-    .jm-badge-danger {
-        color: #ffd9df;
-        background: rgba(255, 107, 125, 0.14);
-        border-color: rgba(255, 107, 125, 0.24);
-    }
-
-    .jm-badge-muted {
-        color: #d8e8f8;
-        background: rgba(255, 255, 255, 0.10);
-        border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    .jm-name {
-        font-weight: 700;
-        color: var(--jm-text);
-        line-height: 1.35;
-    }
-
-    .jm-sub {
-        color: var(--jm-muted);
-        font-size: .86rem;
-    }
-
-    .pagination {
-        gap: .4rem;
-        flex-wrap: wrap;
-    }
-
-    .page-link {
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
-        min-width: 42px;
-        text-align: center;
-    }
-
-    .page-link:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.14);
-    }
-
-    .page-item.active .page-link {
-        background: linear-gradient(135deg, #1d7bff, #45b0ff);
-        border-color: transparent;
-    }
-
-    .page-item.disabled .page-link {
-        background: rgba(255, 255, 255, 0.05);
-        color: #8fb1cf;
-    }
-
-    .form-select option {
-        color: #111827;
-    }
-
-    @media (max-width: 768px) {
-        .jm-page {
-            padding: 1rem .35rem 2rem;
-        }
-
-        .jm-hero,
-        .jm-panel-header,
-        .jm-panel-body,
-        .jm-table-header,
-        .jm-table-body {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    }
-</style>
+{% set args_filtro = {'q': filtro_q, 'tipo': filtro_tipo, 'status': filtro_status,
+'status_atual': filtro_status_atual, 'nota_bg': filtro_nota_bg, 'quadro_id': filtro_quadro_id,
+'posto_grad_id': filtro_posto_grad_id, 'obm_id': filtro_obm_id, 'restricao_id': filtro_restricao_id} %}
 
 <div class="jm-page">
-    <div class="container-fluid jm-shell">
+    <div class="container-fluid jm-container">
 
-        <div class="jm-glass jm-hero mb-4">
-            <div class="d-flex flex-column flex-xl-row justify-content-between gap-4">
-                <div>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="jm-chip">Junta Médica</span>
-                        <span class="jm-chip">Consulta de registros</span>
-                        <span class="jm-chip">CBMAM</span>
+        <section class="jm-hero">
+            <div class="jm-hero-main">
+                <div class="jm-hero-title-area">
+                    <div class="jm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                    </div>
+                    <div>
+                        <span class="jm-eyebrow">Junta Médica</span>
+                        <h1 class="jm-title">Registros e Licenças</h1>
+                        <p class="jm-subtitle">
+                            Consulta dos pareceres da Junta, com a situação atual de cada militar e o
+                            acompanhamento dos prazos de agregação.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="jm-hero-actions">
+                    <a href="{{ url_for('junta.estatisticas_mensais') }}" class="btn btn-hero">
+                        <i class="bi bi-bar-chart-line me-1"></i>Consolidado
+                    </a>
+                    <a href="{{ url_for('junta.exportar_licencas_excel', **args_filtro) }}" class="btn btn-hero">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('junta.relatorio_licencas', **args_filtro) }}" target="_blank"
+                        class="btn btn-hero">
+                        <i class="bi bi-printer me-1"></i>Relatório
+                    </a>
+                    <a href="{{ url_for('junta.nova_licenca') }}" class="btn btn-hero btn-hero-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Nova inspeção
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== NÚMEROS ===== -->
+        <div class="jm-stats">
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon"><i class="bi bi-collection"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.total }}</div>
+                    <div class="jm-stat-label">Registros filtrados</div>
+                    <div class="jm-stat-sublabel">{{ resumo.militares_distintos }} militar(es)</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-neutro">
+                <div class="jm-stat-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.efetivo_ativo }}</div>
+                    <div class="jm-stat-label">Efetivo ativo</div>
+                    <div class="jm-stat-sublabel">base dos percentuais</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-critical">
+                <div class="jm-stat-icon"><i class="bi bi-hospital"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.em_licenca }}</div>
+                    <div class="jm-stat-label">Em licença</div>
+                    <div class="jm-stat-sublabel">{{ resumo.pct_em_licenca }}% do efetivo</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-good">
+                <div class="jm-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.aptos }}</div>
+                    <div class="jm-stat-label">Aptos</div>
+                    <div class="jm-stat-sublabel">{{ resumo.pct_aptos }}% do efetivo</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-warning">
+                <div class="jm-stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.restricoes }}</div>
+                    <div class="jm-stat-label">Com restrições</div>
+                    <div class="jm-stat-sublabel">{{ resumo.pct_restricoes }}% do efetivo</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-warning">
+                <div class="jm-stat-icon"><i class="bi bi-info-circle-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.recomendacoes }}</div>
+                    <div class="jm-stat-label">Com recomendações</div>
+                    <div class="jm-stat-sublabel">{{ resumo.pct_recomendacoes }}% do efetivo</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-warning">
+                <div class="jm-stat-icon"><i class="bi bi-person-dash-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.agregados }}</div>
+                    <div class="jm-stat-label">Agregados</div>
+                    <div class="jm-stat-sublabel">{{ resumo.pct_agregados }}% do efetivo</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-critical">
+                <div class="jm-stat-icon"><i class="bi bi-journal-x"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.pendentes_bg }}</div>
+                    <div class="jm-stat-label">Pendentes de BG</div>
+                    {% if resumo.alertas_agregacao %}
+                    <div class="jm-stat-sublabel">{{ resumo.alertas_agregacao }} alerta(s) de agregação</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PERCENTUAIS ===== -->
+        <div class="row g-3">
+            <div class="col-xl-6">
+                <div class="jm-panel h-100">
+                    <div class="jm-panel-head">
+                        <div>
+                            <h2 class="jm-panel-title"><i class="bi bi-shield-exclamation"></i>Restrições</h2>
+                            <p class="jm-panel-subtitle mb-0">Percentual sobre o efetivo ativo do mesmo recorte</p>
+                        </div>
+                        <span class="jm-pill jm-pill-info">{{ resumo.efetivo_ativo }} ativos</span>
                     </div>
 
-                    <h2 class="fw-bold mb-2">Registros da Junta Médica</h2>
-                    <p class="mb-0 jm-muted">
-                        Visualize, filtre e acompanhe os registros de licenças, inspeções e situações de agregação.
+                    {% for linha in resumo.restricoes_detalhe %}
+                    <div class="jm-bar-row">
+                        <div class="jm-bar-top">
+                            <span class="jm-bar-nome">{{ linha.nome }}</span>
+                            <span class="jm-bar-valor">{{ linha.militares }} • {{ linha.percentual }}%</span>
+                        </div>
+                        <div class="jm-bar">
+                            <div class="jm-bar-fill is-alerta" style="width: {{ linha.percentual }}%;"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="jm-sub mb-0">Nenhuma restrição registrada nos registros filtrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="jm-panel h-100">
+                    <div class="jm-panel-head">
+                        <div>
+                            <h2 class="jm-panel-title"><i class="bi bi-clipboard2-pulse"></i>Licenças e inspeções</h2>
+                            <p class="jm-panel-subtitle mb-0">Percentual sobre o efetivo ativo do mesmo recorte</p>
+                        </div>
+                        <span class="jm-pill jm-pill-info">{{ resumo.efetivo_ativo }} ativos</span>
+                    </div>
+
+                    {% for linha in resumo.licencas_detalhe %}
+                    <div class="jm-bar-row">
+                        <div class="jm-bar-top">
+                            <span class="jm-bar-nome">{{ linha.label }}</span>
+                            <span class="jm-bar-valor">{{ linha.militares }} • {{ linha.percentual }}%</span>
+                        </div>
+                        <div class="jm-bar">
+                            <div class="jm-bar-fill" style="width: {{ linha.percentual }}%;"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="jm-sub mb-0">Nenhum registro nos filtros informados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== FILTROS ===== -->
+        <div class="jm-panel jm-form">
+            <h2 class="jm-panel-title"><i class="bi bi-funnel"></i>Filtros</h2>
+
+            <form method="GET" action="{{ url_for('junta.listar_licencas') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-3">
+                        <label class="form-label">Militar</label>
+                        <input type="text" name="q" value="{{ filtro_q }}" class="form-control"
+                            placeholder="Pesquisar por nome completo...">
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">Quadro</label>
+                        <select name="quadro_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for quadro in quadros %}
+                            <option value="{{ quadro.id }}" {% if filtro_quadro_id==quadro.id|string %}selected{% endif
+                                %}>{{ quadro.quadro }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">Posto / Graduação</label>
+                        <select name="posto_grad_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for pg in postos_grad %}
+                            <option value="{{ pg.id }}" {% if filtro_posto_grad_id==pg.id|string %}selected{% endif %}>
+                                {{ pg.sigla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">OBM</label>
+                        <select name="obm_id" class="form-select">
+                            <option value="">Todas</option>
+                            {% for obm in obms %}
+                            <option value="{{ obm.id }}" {% if filtro_obm_id==obm.id|string %}selected{% endif %}>
+                                {{ obm.sigla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label">Tipo de inspeção</label>
+                        <select name="tipo" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, label in tipos_filtro %}
+                            <option value="{{ valor }}" {% if filtro_tipo==valor %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label">Status do registro</label>
+                        <select name="status" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, label in status_filtro %}
+                            <option value="{{ valor }}" {% if filtro_status==valor %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">Status atual</label>
+                        <select name="status_atual" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, label in status_atual_filtro %}
+                            <option value="{{ valor }}" {% if filtro_status_atual==valor %}selected{% endif %}>
+                                {{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label">Tipo de restrição</label>
+                        <select name="restricao_id" class="form-select">
+                            <option value="">Todas</option>
+                            {% for tipo in tipos_restricao %}
+                            <option value="{{ tipo.id }}" {% if filtro_restricao_id==tipo.id|string %}selected{% endif
+                                %}>{{ tipo.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <label class="form-label">Nota BG</label>
+                        <input type="text" name="nota_bg" value="{{ filtro_nota_bg }}" class="form-control"
+                            placeholder="Ex.: BG 045/2026">
+                    </div>
+
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>Filtrar
+                        </button>
+                        <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-outline-secondary">Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== TABELA ===== -->
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Lista de registros</h2>
+                    <p class="jm-table-sub">
+                        Exibindo {{ dados|length }} de {{ total }} registro(s) encontrado(s)
                     </p>
                 </div>
-
-                <div class="d-flex gap-2 align-items-start flex-wrap">
-                    <a href="{{ url_for('junta.nova_licenca') }}" class="btn jm-btn-primary">
-                        Nova licença
-                    </a>
-
-                    <a href="{{ url_for('junta.exportar_licencas_excel', q=filtro_q, tipo=filtro_tipo, status=filtro_status, status_atual=filtro_status_atual) }}"
-                        class="btn jm-btn-ghost">
-                        Exportar Excel
-                    </a>
-
-                    <a href="{{ url_for('junta.relatorio_licencas', q=filtro_q, tipo=filtro_tipo, status=filtro_status, status_atual=filtro_status_atual) }}"
-                        target="_blank" class="btn jm-btn-ghost">
-                        Relatório / PDF
-                    </a>
-                </div>
             </div>
 
-            <div class="row g-3 mt-1">
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Total filtrado</div>
-                        <div class="jm-stat-value">{{ resumo.total }}</div>
-                    </div>
-                </div>
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nota BG</th>
+                            <th>Militar</th>
+                            <th>Tipo</th>
+                            <th>Restrições</th>
+                            <th>Status do registro</th>
+                            <th>Status atual</th>
+                            <th>Agregação</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="jm-num">Dias</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
 
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Em licença</div>
-                        <div class="jm-stat-value">{{ resumo.em_licenca }}</div>
-                    </div>
-                </div>
+                    <tbody>
+                        {% for item in dados %}
+                        {% set reg = item.registro %}
+                        <tr>
+                            <td>
+                                {% if item.nota_bg == 'PENDENTE BG' %}
+                                <span class="jm-pill jm-pill-critico">Pendente</span>
+                                {% else %}
+                                <span class="jm-pill jm-pill-info">{{ item.nota_bg }}</span>
+                                {% endif %}
+                            </td>
 
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Aptos</div>
-                        <div class="jm-stat-value">{{ resumo.aptos }}</div>
-                    </div>
-                </div>
+                            <td>
+                                <div class="jm-nome">
+                                    {{ reg.militar.posto_grad.sigla if reg.militar and reg.militar.posto_grad else '' }}
+                                    {{ reg.militar.nome_completo if reg.militar else '' }}
+                                </div>
+                                <div class="jm-sub">
+                                    {{ reg.militar.quadro.quadro if reg.militar and reg.militar.quadro else '—' }}
+                                </div>
+                            </td>
 
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Restrições</div>
-                        <div class="jm-stat-value">{{ resumo.restricoes }}</div>
-                    </div>
-                </div>
+                            <td>
+                                <span class="jm-pill jm-pill-info">{{ item.tipo_label }}</span>
+                                {% if item.curso_nome %}
+                                <div class="jm-sub">{{ item.curso_nome }}</div>
+                                {% endif %}
+                            </td>
 
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Agregados</div>
-                        <div class="jm-stat-value">{{ resumo.agregados }}</div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Alertas agregação</div>
-                        <div class="jm-stat-value">{{ resumo.alertas_agregacao }}</div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Pendentes BG</div>
-                        <div class="jm-stat-value">{{ resumo.pendentes_bg }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="jm-glass jm-panel mb-4">
-            <div class="jm-panel-header">
-                <h5 class="mb-0 fw-bold">Filtros</h5>
-            </div>
-
-            <div class="jm-panel-body">
-                <form method="GET" action="{{ url_for('junta.listar_licencas') }}">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-lg-3">
-                            <label class="jm-label">Militar</label>
-                            <input type="text" name="q" value="{{ filtro_q }}" class="form-control jm-input"
-                                placeholder="Pesquisar por nome completo...">
-                        </div>
-
-                        <div class="col-lg-2">
-                            <label class="jm-label">Tipo da licença</label>
-                            <select name="tipo" class="form-select jm-select">
-                                <option value="">Todos</option>
-                                {% for valor, label in tipos_filtro %}
-                                <option value="{{ valor }}" {% if filtro_tipo==valor %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
+                            <td>
+                                {% for nome in item.restricoes %}
+                                <span class="jm-tag">{{ nome }}</span>
+                                {% else %}
+                                <span class="jm-zero">—</span>
                                 {% endfor %}
-                            </select>
-                        </div>
+                            </td>
 
-                        <div class="col-lg-2">
-                            <label class="jm-label">Status do registro</label>
-                            <select name="status" class="form-select jm-select">
-                                <option value="">Todos</option>
-                                {% for valor, label in status_filtro %}
-                                <option value="{{ valor }}" {% if filtro_status==valor %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                            <td>
+                                {% if reg.status == 'APTO' %}
+                                <span class="jm-pill jm-pill-ok">{{ item.status_label }}</span>
+                                {% elif reg.status in ['APTO_RESTR', 'APTO_RECOM', 'AGREGADO'] %}
+                                <span class="jm-pill jm-pill-alerta">{{ item.status_label }}</span>
+                                {% elif reg.status in ['LTS', 'LTSPF', 'LM'] %}
+                                <span class="jm-pill jm-pill-critico">{{ item.status_label }}</span>
+                                {% else %}
+                                <span class="jm-pill jm-pill-neutro">{{ item.status_label }}</span>
+                                {% endif %}
+                            </td>
 
-                        <div class="col-lg-3">
-                            <label class="jm-label">Status atual</label>
-                            <select name="status_atual" class="form-select jm-select">
-                                <option value="">Todos</option>
-                                {% for valor, label in status_atual_filtro %}
-                                <option value="{{ valor }}" {% if filtro_status_atual==valor %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-lg-3">
-                            <label class="jm-label">Nota BG</label>
-                            <input type="text" name="nota_bg" value="{{ filtro_nota_bg }}" class="form-control jm-input"
-                                placeholder="Ex.: BG 045/2026">
-                        </div>
-                        <div class="col-lg-2">
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn jm-btn-primary">Filtrar</button>
-                                <a href="{{ url_for('junta.listar_licencas') }}" class="btn jm-btn-ghost">Limpar</a>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+                            <td>
+                                {% if item.status_atual == 'APTO' %}
+                                <span class="jm-pill jm-pill-ok">{{ item.status_atual_label }}</span>
+                                {% elif item.status_atual in ['APTO_RESTR', 'APTO_RECOM', 'AGREGADO'] %}
+                                <span class="jm-pill jm-pill-alerta">{{ item.status_atual_label }}</span>
+                                {% elif item.status_atual in ['LTS', 'LTSPF', 'LM'] %}
+                                <span class="jm-pill jm-pill-critico">{{ item.status_atual_label }}</span>
+                                {% elif item.status_atual == 'AGUARDANDO_INSPECAO' %}
+                                <span class="jm-pill jm-pill-info">{{ item.status_atual_label }}</span>
+                                {% else %}
+                                <span class="jm-pill jm-pill-neutro">{{ item.status_atual_label }}</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.agregacao.atingiu_limite %}
+                                <span class="jm-pill jm-pill-alerta">Apto à agregação</span>
+                                {% elif item.agregacao.alerta %}
+                                <span class="jm-pill jm-pill-critico">
+                                    {{ item.agregacao.dias_continuos }}/{{ item.agregacao.limite }} dias
+                                </span>
+                                {% else %}
+                                <span class="jm-zero">Sem alerta</span>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ reg.data_inicio.strftime('%d/%m/%Y') if reg.data_inicio else '' }}</td>
+                            <td>{{ reg.data_fim.strftime('%d/%m/%Y') if reg.data_fim else '' }}</td>
+                            <td class="jm-num">{{ reg.qtd_dias }}</td>
+
+                            <td class="text-end text-nowrap">
+                                <a href="{{ url_for('junta.historico_militar', militar_id=reg.militar_id) }}"
+                                    class="btn btn-sm btn-outline-primary" title="Histórico do militar">
+                                    <i class="bi bi-clock-history"></i>
+                                </a>
+                                <a href="{{ url_for('junta.estatisticas_mensais', militar_id=reg.militar_id) }}"
+                                    class="btn btn-sm btn-outline-primary" title="Consolidado mensal">
+                                    <i class="bi bi-bar-chart-line"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-5">
+                                <i class="bi bi-inbox fs-3 d-block mb-2 jm-zero"></i>
+                                <span class="jm-sub">Nenhum registro encontrado para os filtros informados.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
 
-        <div class="jm-glass jm-table-wrap">
-            <div class="jm-table-header d-flex justify-content-between align-items-center gap-3">
-                <div>
-                    <h5 class="mb-1 fw-bold">Lista de registros</h5>
-                    <div class="jm-muted">
-                        Exibindo {{ dados|length }} registro(s) nesta página • Total encontrado: {{ total }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="jm-table-body">
-                <div class="table-responsive">
-                    <table class="table jm-table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Nota BG</th>
-                                <th>Militar</th>
-                                <th>Tipo</th>
-                                <th>Status do Registro</th>
-                                <th>Status Atual</th>
-                                <th>Agregação</th>
-                                <th>Início</th>
-                                <th>Fim</th>
-                                <th>Dias</th>
-                                <th class="text-end">Ações</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {% for item in dados %}
-                            {% set reg = item.registro %}
-                            <tr>
-                                <td>
-                                    {% if item.nota_bg == 'PENDENTE BG' %}
-                                    <span class="jm-badge jm-badge-danger">{{ item.nota_bg }}</span>
-                                    {% else %}
-                                    <span class="jm-badge jm-badge-info">{{ item.nota_bg }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="jm-name">
-                                        {{ reg.militar.posto_grad.sigla if reg.militar and reg.militar.posto_grad else
-                                        '' }}
-                                        {{ reg.militar.nome_completo if reg.militar else '' }}
-                                    </div>
-                                    <div class="jm-sub">
-                                        {{ reg.militar.quadro.quadro if reg.militar and reg.militar.quadro else '—' }}
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <span class="jm-badge jm-badge-info">{{ item.tipo_label }}</span>
-                                </td>
-
-                                <td>
-                                    {% if reg.status == 'APTO' %}
-                                    <span class="jm-badge jm-badge-success">{{ item.status_label }}</span>
-                                    {% elif reg.status == 'APTO_RESTR' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_label }}</span>{% elif
-                                    reg.status == 'APTO_RECOM' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_label }}</span>
-                                    {% elif reg.status in ['LTS', 'LTSPF', 'LM'] %}
-                                    <span class="jm-badge jm-badge-danger">{{ item.status_label }}</span>
-                                    {% elif reg.status == 'AGREGADO' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_label }}</span>
-                                    {% else %}
-                                    <span class="jm-badge jm-badge-muted">{{ item.status_label }}</span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if item.status_atual == 'APTO' %}
-                                    <span class="jm-badge jm-badge-success">{{ item.status_atual_label }}</span>
-                                    {% elif item.status_atual == 'APTO_RESTR' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_atual_label }}</span>
-                                    {% elif item.status_atual == 'APTO_RECOM' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_atual_label }}</span>
-                                    {% elif item.status_atual in ['LTS', 'LTSPF', 'LM'] %}
-                                    <span class="jm-badge jm-badge-danger">{{ item.status_atual_label }}</span>
-                                    {% elif item.status_atual == 'AGUARDANDO_INSPECAO' %}
-                                    <span class="jm-badge jm-badge-info">{{ item.status_atual_label }}</span>
-                                    {% elif item.status_atual == 'AGREGADO' %}
-                                    <span class="jm-badge jm-badge-warning">{{ item.status_atual_label }}</span>
-                                    {% else %}
-                                    <span class="jm-badge jm-badge-muted">{{ item.status_atual_label }}</span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if item.agregacao.atingiu_limite %}
-                                    <span class="jm-badge jm-badge-warning">AGREGADO / apto à agregação</span>
-                                    {% elif item.agregacao.alerta %}
-                                    <span class="jm-badge jm-badge-danger">
-                                        {{ item.agregacao.dias_continuos }}/{{ item.agregacao.limite }} dias
-                                    </span>
-                                    {% else %}
-                                    <span class="jm-badge jm-badge-muted">Sem alerta</span>
-                                    {% endif %}
-                                </td>
-
-                                <td>{{ reg.data_inicio.strftime('%d/%m/%Y') if reg.data_inicio else '' }}</td>
-                                <td>{{ reg.data_fim.strftime('%d/%m/%Y') if reg.data_fim else '' }}</td>
-                                <td>{{ reg.qtd_dias }}</td>
-
-                                <td class="text-end">
-                                    <a href="{{ url_for('junta.historico_militar', militar_id=reg.militar_id) }}"
-                                        class="btn jm-btn-ghost btn-sm">
-                                        Histórico
-                                    </a>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="9" class="text-center py-5 jm-muted">
-                                    Nenhum registro encontrado para os filtros informados.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                {% if total_pages > 1 %}
-                <nav class="mt-4">
+            {% if total_pages > 1 %}
+            <div class="d-flex justify-content-center py-3">
+                <nav>
                     <ul class="pagination mb-0">
                         <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
                             <a class="page-link"
-                                href="{{ url_for('junta.listar_licencas', page=current_page-1, q=filtro_q, tipo=filtro_tipo, status=filtro_status, status_atual=filtro_status_atual) }}">
-                                &laquo;
+                                href="{{ url_for('junta.listar_licencas', page=current_page-1, **args_filtro) }}">
+                                <i class="bi bi-chevron-left"></i>
                             </a>
                         </li>
 
                         {% for p in range(1, total_pages + 1) %}
-                        {% if p == current_page or (p >= current_page - 2 and p <= current_page + 2) or p==1 or
-                            p==total_pages %} <li class="page-item {% if p == current_page %}active{% endif %}">
+                        {% if p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                        <li class="page-item {% if p == current_page %}active{% endif %}">
                             <a class="page-link"
-                                href="{{ url_for('junta.listar_licencas', page=p, q=filtro_q, tipo=filtro_tipo, status=filtro_status, status_atual=filtro_status_atual) }}">
-                                {{ p }}
-                            </a>
-                            </li>
-                            {% elif p == current_page - 3 or p == current_page + 3 %}
-                            <li class="page-item disabled">
-                                <span class="page-link">…</span>
-                            </li>
-                            {% endif %}
-                            {% endfor %}
+                                href="{{ url_for('junta.listar_licencas', page=p, **args_filtro) }}">{{ p }}</a>
+                        </li>
+                        {% elif p == current_page - 3 or p == current_page + 3 %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                        {% endfor %}
 
-                            <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
-                                <a class="page-link"
-                                    href="{{ url_for('junta.listar_licencas', page=current_page+1, q=filtro_q, tipo=filtro_tipo, status=filtro_status, status_atual=filtro_status_atual) }}">
-                                    &raquo;
-                                </a>
-                            </li>
+                        <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+                            <a class="page-link"
+                                href="{{ url_for('junta.listar_licencas', page=current_page+1, **args_filtro) }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
-                {% endif %}
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

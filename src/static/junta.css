@@ -1,0 +1,919 @@
+/* ==========================================================================
+   SIGDP — MÓDULO JUNTA MÉDICA
+   Estilos compartilhados das telas da Junta.
+
+   Consome os tokens globais de `theme-overrides.css` (--app-*), então tudo
+   aqui acompanha o tema claro/escuro do sistema automaticamente. Não use
+   cor fixa em superfície, texto ou borda: só nas faixas semânticas de status,
+   que têm par claro/escuro logo abaixo de cada regra.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   PÁGINA
+   -------------------------------------------------------------------------- */
+.jm-page {
+    min-height: calc(100vh - var(--nav-h, 64px));
+    padding: 1rem 0 2.5rem;
+    color: var(--app-text);
+    background:
+        radial-gradient(circle at top left, rgba(181, 18, 27, .08), transparent 20%),
+        radial-gradient(circle at top right, rgba(15, 76, 129, .14), transparent 28%),
+        linear-gradient(135deg,
+            var(--app-page-bg) 0%,
+            var(--app-page-bg-alt) 52%,
+            var(--app-surface-muted) 100%);
+}
+
+.jm-container {
+    max-width: 1500px;
+}
+
+/* --------------------------------------------------------------------------
+   HERO (faixa institucional)
+   -------------------------------------------------------------------------- */
+.jm-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 1.35rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 20px;
+    color: var(--app-hero-text, #fff);
+    background: linear-gradient(135deg,
+            var(--app-hero-start, #071b2c) 0%,
+            var(--app-hero-middle, #0b385e) 50%,
+            var(--app-hero-end, #145883) 100%);
+    box-shadow: var(--app-shadow-hero);
+}
+
+.jm-hero-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.jm-hero-title-area {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    min-width: 0;
+}
+
+.jm-logo-box {
+    display: grid;
+    flex: 0 0 60px;
+    width: 60px;
+    height: 60px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .09);
+}
+
+.jm-logo-box img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.jm-eyebrow {
+    display: block;
+    margin-bottom: .25rem;
+    color: var(--app-hero-muted, rgba(255, 255, 255, .72));
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.jm-title {
+    margin: 0;
+    color: var(--app-hero-text, #fff);
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    font-weight: 850;
+}
+
+.jm-subtitle {
+    margin: .3rem 0 0;
+    max-width: 78ch;
+    color: var(--app-hero-muted, rgba(255, 255, 255, .78));
+    font-size: .87rem;
+}
+
+.jm-subtitle strong {
+    color: var(--app-hero-text, #fff);
+}
+
+.jm-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* Botões sobre a faixa escura */
+.jm-hero .btn-hero {
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 12px;
+    padding: .5rem .9rem;
+    color: #fff;
+    font-size: .87rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, .10);
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.jm-hero .btn-hero:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .45);
+    background: rgba(255, 255, 255, .18);
+}
+
+.jm-hero .btn-hero-primary {
+    border-color: transparent;
+    background: #fff;
+    color: #0b385e;
+}
+
+.jm-hero .btn-hero-primary:hover {
+    background: #eaf2f9;
+    color: #072943;
+}
+
+.jm-hero-chips {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+    margin-top: .85rem;
+}
+
+.jm-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .3rem .7rem;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .09);
+    color: var(--app-hero-muted, rgba(255, 255, 255, .85));
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   PAINÉIS
+   -------------------------------------------------------------------------- */
+.jm-panel {
+    margin-top: 1rem;
+    padding: 1.1rem;
+    border: 1px solid var(--app-border);
+    border-radius: 20px;
+    color: var(--app-text);
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow-card);
+}
+
+.jm-panel-title {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 .9rem;
+    color: var(--app-text);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.jm-panel-title i {
+    color: var(--app-primary);
+}
+
+.jm-panel-subtitle {
+    margin: -.6rem 0 .9rem;
+    color: var(--app-muted);
+    font-size: .85rem;
+}
+
+/* Cabeçalho de painel com ação à direita */
+.jm-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: .9rem;
+}
+
+.jm-panel-head .jm-panel-title,
+.jm-panel-head .jm-panel-subtitle {
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   CARTÕES DE NÚMERO
+   -------------------------------------------------------------------------- */
+.jm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: .85rem;
+    margin-top: 1rem;
+}
+
+.jm-stat {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--app-border);
+    border-left: 4px solid var(--app-border);
+    border-radius: 16px;
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow-card);
+}
+
+.jm-stat-icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 13px;
+    font-size: 1.15rem;
+    color: var(--app-primary);
+    background: linear-gradient(135deg, rgba(15, 76, 129, .18), rgba(15, 76, 129, .08));
+}
+
+.jm-stat-body {
+    min-width: 0;
+}
+
+.jm-stat-value {
+    color: var(--app-text);
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.jm-stat-label {
+    margin-top: .1rem;
+    color: var(--app-muted);
+    font-size: .8rem;
+    line-height: 1.3;
+}
+
+.jm-stat-sublabel {
+    margin-top: .25rem;
+    color: var(--app-primary);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+/* Faixas semânticas */
+.jm-stat-good {
+    border-left-color: #2c704a;
+}
+
+.jm-stat-good .jm-stat-icon {
+    color: #14532d;
+    background: linear-gradient(135deg, #d9f7df, #b7ecc7);
+}
+
+html[data-theme="dark"] .jm-stat-good .jm-stat-icon {
+    color: #86efac;
+    background: linear-gradient(135deg, #1c4a32, #123324);
+}
+
+.jm-stat-warning {
+    border-left-color: #8a6d1f;
+}
+
+.jm-stat-warning .jm-stat-icon {
+    color: #6b4e0a;
+    background: linear-gradient(135deg, #fff3cd, #ffe08a);
+}
+
+html[data-theme="dark"] .jm-stat-warning .jm-stat-icon {
+    color: #fbd776;
+    background: linear-gradient(135deg, #4a3a12, #33280a);
+}
+
+.jm-stat-critical {
+    border-left-color: #743d46;
+}
+
+.jm-stat-critical .jm-stat-icon {
+    color: #7f1d2b;
+    background: linear-gradient(135deg, #ffd9d9, #ffb3b8);
+}
+
+html[data-theme="dark"] .jm-stat-critical .jm-stat-icon {
+    color: #ffb0b8;
+    background: linear-gradient(135deg, #52181f, #3a1015);
+}
+
+.jm-stat-info {
+    border-left-color: var(--app-primary);
+}
+
+.jm-stat-neutro {
+    border-left-color: #6b7280;
+}
+
+.jm-stat-neutro .jm-stat-icon {
+    color: #374151;
+    background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+}
+
+html[data-theme="dark"] .jm-stat-neutro .jm-stat-icon {
+    color: #cbd5e1;
+    background: linear-gradient(135deg, #3f4757, #2b3241);
+}
+
+/* --------------------------------------------------------------------------
+   FORMULÁRIOS
+   -------------------------------------------------------------------------- */
+.jm-form .form-label,
+.jm-label {
+    display: block;
+    margin-bottom: .35rem;
+    color: var(--app-text);
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.jm-form .form-control,
+.jm-form .form-select,
+.jm-input,
+.jm-select {
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    color: var(--app-input-text, var(--app-text));
+    background: var(--app-input-bg, var(--app-surface));
+}
+
+.jm-form .form-control:focus,
+.jm-form .form-select:focus,
+.jm-input:focus,
+.jm-select:focus {
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 .2rem rgba(15, 76, 129, .14);
+}
+
+html[data-theme="dark"] .jm-form .form-control:focus,
+html[data-theme="dark"] .jm-form .form-select:focus,
+html[data-theme="dark"] .jm-input:focus,
+html[data-theme="dark"] .jm-select:focus {
+    box-shadow: 0 0 0 .2rem rgba(114, 194, 246, .18);
+}
+
+.jm-readonly {
+    background: var(--app-surface-soft) !important;
+    color: var(--app-muted) !important;
+}
+
+textarea.jm-textarea {
+    min-height: 96px;
+}
+
+/* Campo obrigatório */
+.jm-req {
+    margin-left: .15rem;
+    color: #b5121b;
+    font-weight: 800;
+}
+
+html[data-theme="dark"] .jm-req {
+    color: #ff8f98;
+}
+
+.jm-req-legend {
+    color: var(--app-muted);
+    font-size: .8rem;
+}
+
+/* Bloco de abertura destacado (sessão + data) */
+.jm-destaque {
+    padding: 1rem 1.1rem 1.15rem;
+    border: 1px solid var(--app-primary);
+    border-left: 4px solid var(--app-primary);
+    border-radius: 16px;
+    background: var(--app-surface-soft);
+}
+
+/* Numeração das etapas do formulário */
+.jm-step {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 1.5rem 0 .85rem;
+    color: var(--app-text);
+    font-size: .95rem;
+    font-weight: 800;
+}
+
+.jm-step:first-child {
+    margin-top: 0;
+}
+
+.jm-step-num {
+    display: grid;
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--app-primary);
+    color: var(--app-primary-contrast);
+    font-size: .8rem;
+    font-weight: 800;
+}
+
+.jm-step-hint {
+    margin: -.5rem 0 .85rem 2.15rem;
+    color: var(--app-muted);
+    font-size: .82rem;
+}
+
+/* --------------------------------------------------------------------------
+   CHECKBOXES DE RESTRIÇÃO
+   -------------------------------------------------------------------------- */
+.jm-check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: .5rem;
+}
+
+.jm-check {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .65rem .8rem;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: var(--app-surface-soft);
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+
+.jm-check:hover {
+    border-color: var(--app-primary);
+}
+
+.jm-check input {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: .12rem;
+    accent-color: var(--app-primary);
+}
+
+.jm-check span {
+    color: var(--app-text);
+    font-size: .87rem;
+    line-height: 1.3;
+}
+
+.jm-check.is-checked {
+    border-color: var(--app-primary);
+    background: rgba(15, 76, 129, .09);
+}
+
+html[data-theme="dark"] .jm-check.is-checked {
+    background: rgba(114, 194, 246, .13);
+}
+
+.jm-check input:disabled+span {
+    color: var(--app-muted);
+}
+
+/* --------------------------------------------------------------------------
+   TABELAS
+   -------------------------------------------------------------------------- */
+.jm-table-shell {
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    border-radius: 18px;
+    background: var(--app-surface);
+    box-shadow: 0 10px 30px -18px rgba(15, 76, 129, .35);
+}
+
+.jm-table-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.jm-table-head h2 {
+    margin: 0;
+    color: var(--app-text);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.jm-table-head .jm-table-sub {
+    margin: .2rem 0 0;
+    color: var(--app-muted);
+    font-size: .84rem;
+}
+
+.jm-table {
+    --bs-table-color: var(--app-text);
+    --bs-table-bg: transparent;
+    --bs-table-hover-color: var(--app-text);
+    --bs-table-hover-bg: rgba(15, 76, 129, .07);
+    --bs-table-border-color: var(--app-border);
+    margin-bottom: 0;
+}
+
+html[data-theme="dark"] .jm-table {
+    --bs-table-hover-bg: rgba(96, 165, 250, .11);
+}
+
+.jm-table thead th {
+    padding-top: .8rem;
+    padding-bottom: .8rem;
+    color: var(--app-muted);
+    font-size: .73rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: var(--app-table-head);
+    border-bottom: 2px solid var(--app-border) !important;
+}
+
+.jm-table td,
+.jm-table th {
+    vertical-align: middle;
+}
+
+.jm-table tbody td {
+    font-size: .89rem;
+}
+
+.jm-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.jm-zero {
+    color: var(--app-muted);
+    opacity: .45;
+}
+
+/* Linha de total */
+.jm-total-row td {
+    background: var(--app-surface-muted) !important;
+    border-top: 2px solid var(--app-primary) !important;
+    color: var(--app-text);
+    font-weight: 800;
+}
+
+.jm-nome {
+    color: var(--app-text);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.jm-sub {
+    color: var(--app-muted);
+    font-size: .8rem;
+}
+
+.jm-link {
+    color: var(--app-link, var(--app-primary));
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.jm-link:hover {
+    text-decoration: underline;
+}
+
+.jm-mes {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   PILLS DE STATUS
+   -------------------------------------------------------------------------- */
+.jm-pill {
+    display: inline-block;
+    padding: .25rem .6rem;
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.jm-pill-ok {
+    border-color: #2c704a;
+    color: #1c6b3f;
+    background: #d9f7df;
+}
+
+html[data-theme="dark"] .jm-pill-ok {
+    color: #75dda1;
+    background: #143b2a;
+}
+
+.jm-pill-alerta {
+    border-color: #8a6d1f;
+    color: #7a5d0a;
+    background: #fff3cd;
+}
+
+html[data-theme="dark"] .jm-pill-alerta {
+    border-color: #6d5723;
+    color: #f3d37d;
+    background: #382f15;
+}
+
+.jm-pill-critico {
+    border-color: #743d46;
+    color: #a1303c;
+    background: #ffd9d9;
+}
+
+html[data-theme="dark"] .jm-pill-critico {
+    color: #ffa2aa;
+    background: #441d25;
+}
+
+.jm-pill-info {
+    border-color: #2a5f8a;
+    color: #14446e;
+    background: #e3f0fa;
+}
+
+html[data-theme="dark"] .jm-pill-info {
+    border-color: #2a5f8a;
+    color: #9fd2f7;
+    background: #12314b;
+}
+
+.jm-pill-neutro {
+    color: var(--app-muted);
+}
+
+/* Etiqueta de restrição */
+.jm-tag {
+    display: inline-block;
+    margin: .1rem .15rem .1rem 0;
+    padding: .15rem .5rem;
+    border: 1px solid #8a6d1f;
+    border-radius: 999px;
+    background: #fff3cd;
+    color: #6b4e0a;
+    font-size: .73rem;
+    font-weight: 700;
+}
+
+html[data-theme="dark"] .jm-tag {
+    border-color: #6d5723;
+    background: #382f15;
+    color: #f3d37d;
+}
+
+/* --------------------------------------------------------------------------
+   BARRAS DE PROPORÇÃO
+   -------------------------------------------------------------------------- */
+.jm-bar-row {
+    margin-bottom: .8rem;
+}
+
+.jm-bar-row:last-child {
+    margin-bottom: 0;
+}
+
+.jm-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+.jm-bar-nome {
+    color: var(--app-text);
+    font-size: .86rem;
+    font-weight: 600;
+}
+
+.jm-bar-valor {
+    color: var(--app-primary);
+    font-size: .82rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.jm-bar {
+    height: 8px;
+    margin-top: .3rem;
+    border-radius: 99px;
+    background: var(--app-surface-muted);
+    overflow: hidden;
+}
+
+.jm-bar-fill {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--app-primary), #4a9fd8);
+}
+
+.jm-bar-fill.is-alerta {
+    background: linear-gradient(90deg, #b7861f, #e0b64a);
+}
+
+/* Mini barra dentro da célula da tabela */
+.jm-spark {
+    height: 5px;
+    min-width: 84px;
+    margin-top: .28rem;
+    border-radius: 99px;
+    background: var(--app-surface-muted);
+    overflow: hidden;
+}
+
+.jm-spark-fill {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 99px;
+    background: var(--app-primary);
+    opacity: .75;
+}
+
+/* --------------------------------------------------------------------------
+   AUTOCOMPLETE DE MILITAR
+   -------------------------------------------------------------------------- */
+.jm-autocomplete {
+    position: relative;
+}
+
+.jm-resultados {
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    display: none;
+    max-height: 320px;
+    margin-top: .25rem;
+    overflow-y: auto;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: var(--app-surface);
+    box-shadow: 0 16px 34px -12px rgba(15, 76, 129, .38);
+}
+
+.jm-resultado-item {
+    display: block;
+    width: 100%;
+    padding: .6rem .85rem;
+    border: 0;
+    border-bottom: 1px solid var(--app-border);
+    background: transparent;
+    color: var(--app-text);
+    text-align: left;
+    font-size: .87rem;
+}
+
+.jm-resultado-item:last-child {
+    border-bottom: 0;
+}
+
+.jm-resultado-item:hover,
+.jm-resultado-item:focus {
+    background: var(--app-table-row-hover);
+}
+
+.jm-resultado-vazio {
+    padding: .7rem .85rem;
+    color: var(--app-muted);
+    font-size: .87rem;
+}
+
+/* --------------------------------------------------------------------------
+   AVISOS
+   -------------------------------------------------------------------------- */
+.jm-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .8rem .95rem;
+    border: 1px solid #8a6d1f;
+    border-left: 4px solid #8a6d1f;
+    border-radius: 12px;
+    background: #fff8e6;
+    color: #6b4e0a;
+    font-size: .87rem;
+}
+
+html[data-theme="dark"] .jm-aviso {
+    background: #2f2711;
+    color: #f3d37d;
+}
+
+.jm-legenda {
+    color: var(--app-muted);
+    font-size: .83rem;
+    line-height: 1.65;
+}
+
+.jm-legenda b {
+    color: var(--app-text);
+}
+
+/* Cartão de identificação do militar */
+.jm-militar-card {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--app-border);
+    border-left: 4px solid var(--app-primary);
+    border-radius: 16px;
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow-card);
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVO
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .jm-hero {
+        padding: 1.1rem;
+    }
+
+    .jm-hero-main {
+        align-items: flex-start;
+    }
+
+    .jm-logo-box {
+        flex-basis: 48px;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+    }
+
+    .jm-logo-box img {
+        width: 32px;
+        height: 32px;
+    }
+
+    .jm-panel {
+        padding: .9rem;
+    }
+
+    .jm-step-hint {
+        margin-left: 0;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   IMPRESSÃO (relatório)
+   -------------------------------------------------------------------------- */
+@media print {
+
+    .jm-page {
+        background: #fff !important;
+        padding: 0;
+    }
+
+    .no-print,
+    .jm-hero-actions {
+        display: none !important;
+    }
+
+    .jm-panel,
+    .jm-table-shell,
+    .jm-stat {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .jm-hero {
+        color: #000 !important;
+        background: #fff !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+
+    .jm-hero .jm-title,
+    .jm-hero .jm-subtitle,
+    .jm-hero .jm-eyebrow {
+        color: #000 !important;
+    }
+
+    .jm-table thead th {
+        background: #f0f0f0 !important;
+    }
+}

@@ -1,311 +1,252 @@
 {% extends "base.html" %}
 
+{% block title %}Histórico na Junta — {{ militar.nome_completo }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+{% endblock %}
+
 {% block body %}
-<style>
-    :root {
-        --jm-bg-1: #061a2f;
-        --jm-bg-2: #0b2f4f;
-        --jm-bg-3: #123f68;
-        --jm-card: rgba(255, 255, 255, 0.10);
-        --jm-border: rgba(255, 255, 255, 0.18);
-        --jm-text: #eaf4ff;
-        --jm-muted: #bdd1e6;
-        --jm-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-        --jm-radius-xl: 28px;
-    }
-
-    .jm-page {
-        min-height: calc(100vh - 60px);
-        padding: 2rem 0 3rem;
-        background:
-            radial-gradient(circle at top left, rgba(124, 199, 255, 0.18), transparent 28%),
-            radial-gradient(circle at top right, rgba(86, 216, 154, 0.12), transparent 24%),
-            linear-gradient(135deg, var(--jm-bg-1) 0%, var(--jm-bg-2) 48%, var(--jm-bg-3) 100%);
-    }
-
-    .jm-shell {
-        max-width: 1420px;
-        margin: 0 auto;
-    }
-
-    .jm-glass {
-        background: var(--jm-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--jm-border);
-        box-shadow: var(--jm-shadow);
-    }
-
-    .jm-hero,
-    .jm-table-wrap {
-        border-radius: var(--jm-radius-xl);
-        overflow: hidden;
-    }
-
-    .jm-hero {
-        padding: 1.6rem;
-        color: var(--jm-text);
-    }
-
-    .jm-chip {
-        display: inline-flex;
-        align-items: center;
-        padding: .45rem .85rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.10);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: var(--jm-text);
-        font-size: .82rem;
-        font-weight: 700;
-    }
-
-    .jm-muted {
-        color: var(--jm-muted);
-    }
-
-    .jm-stat {
-        border-radius: 18px;
-        padding: 1rem 1.05rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        height: 100%;
-    }
-
-    .jm-stat-label {
-        color: var(--jm-muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        font-weight: 700;
-        margin-bottom: .45rem;
-    }
-
-    .jm-stat-value {
-        color: var(--jm-text);
-        font-size: 1.1rem;
-        font-weight: 800;
-        line-height: 1.25;
-    }
-
-    .jm-table-header,
-    .jm-table-body {
-        color: var(--jm-text);
-        padding: 1.25rem 1.35rem;
-    }
-
-    .jm-table-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    }
-
-    .jm-table {
-        --bs-table-bg: transparent;
-        --bs-table-color: #eaf4ff;
-        --bs-table-border-color: rgba(255, 255, 255, 0.08);
-        margin-bottom: 0;
-    }
-
-    .jm-table thead th {
-        color: #cfe3f7;
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        border-bottom-width: 1px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .jm-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.04);
-    }
-
-    .jm-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: .42rem .72rem;
-        border-radius: 999px;
-        font-size: .78rem;
-        font-weight: 800;
-        letter-spacing: .01em;
-        border: 1px solid transparent;
-        white-space: nowrap;
-    }
-
-    .jm-badge-info {
-        color: #d7efff;
-        background: rgba(76, 166, 255, 0.14);
-        border-color: rgba(76, 166, 255, 0.22);
-    }
-
-    .jm-badge-success {
-        color: #d8ffe9;
-        background: rgba(86, 216, 154, 0.14);
-        border-color: rgba(86, 216, 154, 0.24);
-    }
-
-    .jm-badge-warning {
-        color: #ffe8b8;
-        background: rgba(255, 201, 107, 0.14);
-        border-color: rgba(255, 201, 107, 0.24);
-    }
-
-    .jm-badge-danger {
-        color: #ffd9df;
-        background: rgba(255, 107, 125, 0.14);
-        border-color: rgba(255, 107, 125, 0.24);
-    }
-
-    .jm-btn-ghost {
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: var(--jm-text);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.08);
-        text-decoration: none;
-    }
-
-    .jm-btn-ghost:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    @media (max-width: 768px) {
-        .jm-page {
-            padding: 1rem .35rem 2rem;
-        }
-
-        .jm-hero,
-        .jm-table-header,
-        .jm-table-body {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    }
-</style>
-
 <div class="jm-page">
-    <div class="container-fluid jm-shell">
-        <div class="jm-glass jm-hero mb-4">
-            <div class="d-flex flex-column flex-xl-row justify-content-between gap-4">
-                <div>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="jm-chip">Junta Médica</span>
-                        <span class="jm-chip">Histórico do militar</span>
-                        <span class="jm-chip">CBMAM</span>
-                    </div>
+    <div class="container-fluid jm-container">
 
-                    <h2 class="fw-bold mb-2">
-                        {{ militar.posto_grad.sigla if militar.posto_grad else '' }} {{ militar.nome_completo }}
-                    </h2>
-                    <p class="mb-0 jm-muted">
-                        Consulta completa dos registros médicos lançados para o militar selecionado.
-                    </p>
+        <section class="jm-hero">
+            <div class="jm-hero-main">
+                <div class="jm-hero-title-area">
+                    <div class="jm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                    </div>
+                    <div>
+                        <span class="jm-eyebrow">Junta Médica — Histórico</span>
+                        <h1 class="jm-title">
+                            {{ militar.posto_grad.sigla if militar.posto_grad else '' }} {{ militar.nome_completo }}
+                        </h1>
+                        <p class="jm-subtitle">
+                            Linha do tempo completa dos pareceres da Junta para este militar.
+                        </p>
+                    </div>
                 </div>
 
-                <div class="d-flex gap-2 flex-wrap align-items-start">
-                    <span class="jm-chip">Status atual: {{ status_atual_label }}</span>
-                    <a href="{{ url_for('junta.listar_licencas') }}" class="jm-btn-ghost">
-                        Voltar para lista
+                <div class="jm-hero-actions">
+                    <a href="{{ url_for('junta.estatisticas_mensais', militar_id=militar.id) }}" class="btn btn-hero">
+                        <i class="bi bi-bar-chart-line me-1"></i>Consolidado mensal
+                    </a>
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-hero btn-hero-primary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar para lista
                     </a>
                 </div>
             </div>
 
-            <div class="row g-3 mt-1">
-                <div class="col-md-3">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Posto/Grad</div>
-                        <div class="jm-stat-value">{{ militar.posto_grad.sigla if militar.posto_grad else '—' }}</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Quadro</div>
-                        <div class="jm-stat-value">{{ militar.quadro.quadro if militar.quadro else '—' }}</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Total de registros</div>
-                        <div class="jm-stat-value">{{ registros|length }}</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="jm-stat">
-                        <div class="jm-stat-label">Situação atual</div>
-                        <div class="jm-stat-value">{{ status_atual_label }}</div>
-                    </div>
-                </div>
-                {% if agregacao.atingiu_limite %}
-                <div class="alert alert-warning mt-3">
-                    <strong>Atenção:</strong> {{ agregacao.mensagem }}
-                </div>
-                {% elif agregacao.alerta %}
-                <div class="alert alert-danger mt-3">
-                    <strong>Alerta de agregação:</strong> {{ agregacao.mensagem }}
-                </div>
+            <div class="jm-hero-chips">
+                <span class="jm-hero-chip">
+                    <i class="bi bi-activity"></i>{{ status_atual_label }}
+                </span>
+                {% if militar.matricula %}
+                <span class="jm-hero-chip"><i class="bi bi-person-badge"></i>Mat. {{ militar.matricula }}</span>
                 {% endif %}
+                <span class="jm-hero-chip">
+                    <i class="bi bi-collection"></i>{{ registros|length }} registro(s)
+                </span>
+            </div>
+        </section>
+
+        <!-- ===== RESUMO ===== -->
+        <div class="jm-stats">
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon"><i class="bi bi-award"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ militar.posto_grad.sigla if militar.posto_grad else '—' }}</div>
+                    <div class="jm-stat-label">Posto / Graduação</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-neutro">
+                <div class="jm-stat-icon"><i class="bi bi-diagram-3"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ militar.quadro.quadro if militar.quadro else '—' }}</div>
+                    <div class="jm-stat-label">Quadro</div>
+                </div>
+            </div>
+
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon"><i class="bi bi-collection"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ registros|length }}</div>
+                    <div class="jm-stat-label">Total de registros</div>
+                </div>
+            </div>
+
+            <div
+                class="jm-stat {% if status_atual == 'APTO' %}jm-stat-good{% elif status_atual in ['LTS','LTSPF','LM'] %}jm-stat-critical{% elif status_atual in ['APTO_RESTR','APTO_RECOM','AGREGADO'] %}jm-stat-warning{% else %}jm-stat-neutro{% endif %}">
+                <div class="jm-stat-icon"><i class="bi bi-clipboard2-check"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value" style="font-size:1rem;line-height:1.35;">
+                        {{ status_atual_label }}
+                    </div>
+                    <div class="jm-stat-label">Situação atual</div>
+                </div>
             </div>
         </div>
 
-        <div class="jm-glass jm-table-wrap">
-            <div class="jm-table-header">
-                <h5 class="mb-1 fw-bold">Linha do tempo de registros</h5>
-                <div class="jm-muted">Histórico imutável da Junta Médica</div>
+        {% if agregacao.atingiu_limite %}
+        <div class="jm-aviso mt-3">
+            <i class="bi bi-exclamation-octagon-fill"></i>
+            <div><strong>Atenção:</strong> {{ agregacao.mensagem }}</div>
+        </div>
+        {% elif agregacao.alerta %}
+        <div class="jm-aviso mt-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div><strong>Alerta de agregação:</strong> {{ agregacao.mensagem }}</div>
+        </div>
+        {% endif %}
+
+        <!-- ===== TIMELINE ===== -->
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Linha do tempo de registros</h2>
+                    <p class="jm-table-sub">Do mais recente para o mais antigo</p>
+                </div>
             </div>
 
-            <div class="jm-table-body">
-                <div class="table-responsive">
-                    <table class="table jm-table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Status do Registro</th>
-                                <th>BG</th>
-                                <th>Dias</th>
-                                <th>Início</th>
-                                <th>Fim</th>
-                                <th>Sessão</th>
-                                <th>Lançado em</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for r in registros %}
-                            <tr>
-                                <td>
-                                    <span class="jm-badge jm-badge-info">{{ label_tipo(r.tipo_licenca) }}</span>
-                                </td>
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Restrições</th>
+                            <th>Status do registro</th>
+                            <th>BG</th>
+                            <th class="jm-num">Dias</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th>Sessão</th>
+                            <th>Lançado em</th>
+                        </tr>
+                    </thead>
 
-                                <td>
-                                    {% if r.status == 'APTO' %}
-                                    <span class="jm-badge jm-badge-success">{{ label_status(r.status) }}</span>
-                                    {% elif r.status == 'APTO_RESTR' %}
-                                    <span class="jm-badge jm-badge-warning">{{ label_status(r.status) }}</span>
-                                    {% elif r.status in ['LTS', 'LTSPF', 'LM'] %}
-                                    <span class="jm-badge jm-badge-danger">{{ label_status(r.status) }}</span>
-                                    {% else %}
-                                    <span class="jm-badge jm-badge-info">{{ label_status(r.status) }}</span>
-                                    {% endif %}
-                                </td>
+                    <tbody>
+                        {% for r in registros %}
+                        <tr>
+                            <td>
+                                <span class="jm-pill jm-pill-info">{{ label_tipo(r.tipo_licenca) }}</span>
+                                {% if r.curso_nome or r.curso %}
+                                <div class="jm-sub">{{ r.curso_nome or r.curso.nome }}</div>
+                                {% endif %}
+                            </td>
 
-                                <td>{{ r.recebimento_bg }}</td>
-                                <td>{{ r.qtd_dias }}</td>
-                                <td>{{ r.data_inicio.strftime('%d/%m/%Y') if r.data_inicio else '' }}</td>
-                                <td>{{ r.data_fim.strftime('%d/%m/%Y') if r.data_fim else '' }}</td>
-                                <td>{{ r.sessao }}</td>
-                                <td>{{ r.created_at.strftime('%d/%m/%Y %H:%M') if r.created_at else '' }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="8" class="text-center py-5 jm-muted">
-                                    Nenhum registro encontrado.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                            <td>
+                                {% for vinculo in r.restricoes %}
+                                <span class="jm-tag">{{ vinculo.tipo.nome }}</span>
+                                {% else %}
+                                <span class="jm-zero">—</span>
+                                {% endfor %}
+
+                                {% if r.tipo_licenca in tipos_com_restricao %}
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block"
+                                    data-bs-toggle="modal" data-bs-target="#modalRestricoes{{ r.id }}">
+                                    <i class="bi bi-plus-lg me-1"></i>Adicionar
+                                </button>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if r.status == 'APTO' %}
+                                <span class="jm-pill jm-pill-ok">{{ label_status(r.status) }}</span>
+                                {% elif r.status in ['APTO_RESTR', 'APTO_RECOM', 'AGREGADO'] %}
+                                <span class="jm-pill jm-pill-alerta">{{ label_status(r.status) }}</span>
+                                {% elif r.status in ['LTS', 'LTSPF', 'LM'] %}
+                                <span class="jm-pill jm-pill-critico">{{ label_status(r.status) }}</span>
+                                {% else %}
+                                <span class="jm-pill jm-pill-neutro">{{ label_status(r.status) }}</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="jm-sub">{{ r.recebimento_bg or r.numero_bg_curso or '—' }}</td>
+                            <td class="jm-num">{{ r.qtd_dias }}</td>
+                            <td>{{ r.data_inicio.strftime('%d/%m/%Y') if r.data_inicio else '' }}</td>
+                            <td>{{ r.data_fim.strftime('%d/%m/%Y') if r.data_fim else '' }}</td>
+                            <td class="jm-sub">{{ r.sessao }}</td>
+                            <td class="jm-sub">{{ r.created_at.strftime('%d/%m/%Y %H:%M') if r.created_at else '' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="bi bi-inbox fs-3 d-block mb-2 jm-zero"></i>
+                                <span class="jm-sub">Nenhum registro encontrado.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Um modal por lançamento: é assim que o militar ganha restrições novas
+     sem precisar refazer o parecer inteiro. -->
+{% for r in registros %}
+{% if r.tipo_licenca in tipos_com_restricao %}
+<div class="modal fade" id="modalRestricoes{{ r.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content jm-form">
+            <form method="POST" action="{{ url_for('junta.adicionar_restricoes', licenca_id=r.id) }}">
+                <input type="hidden" name="origem"
+                    value="{{ url_for('junta.historico_militar', militar_id=militar.id) }}">
+
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-shield-plus me-1"></i>Adicionar restrições
+                        </h5>
+                        <div class="jm-sub">
+                            {{ label_tipo(r.tipo_licenca) }} •
+                            {{ r.data_inicio.strftime('%d/%m/%Y') if r.data_inicio else '' }}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="jm-check-grid">
+                        {% for tipo in tipos_restricao %}
+                        {% set ja_tem = r.restricoes | selectattr('restricao_tipo_id', 'equalto', tipo.id) | list %}
+                        <label class="jm-check {% if ja_tem %}is-checked{% endif %}">
+                            <input type="checkbox" name="restricoes" value="{{ tipo.id }}" {% if ja_tem %}checked
+                                disabled{% endif %}>
+                            <span>{{ tipo.nome }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Outra restrição (informe)</label>
+                        <input type="text" name="restricao_outra" class="form-control"
+                            placeholder="Não está na lista? Digite aqui.">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".jm-check input[type=checkbox]").forEach(chk => {
+            chk.addEventListener("change", function () {
+                this.closest(".jm-check").classList.toggle("is-checked", this.checked);
+            });
+        });
+    });
+</script>
 {% endblock %}

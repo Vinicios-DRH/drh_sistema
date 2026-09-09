@@ -1017,6 +1017,14 @@ class FormResetarSenhaPublica(FlaskForm):
 
 
 class FormLicencas(FlaskForm):
+    # --- Sessão da Junta: primeiro bloco da tela, ambos obrigatórios ---
+    sessao = StringField("Sessão da Junta", validators=[DataRequired()])
+    data_sessao = DateField(
+        "Data da Sessão",
+        format="%Y-%m-%d",
+        validators=[DataRequired()]
+    )
+
     militar_id = HiddenField("Militar ID", validators=[DataRequired()])
 
     militar_nome = StringField("Militar", validators=[
@@ -1027,7 +1035,7 @@ class FormLicencas(FlaskForm):
     obm_id_1 = StringField("OBM", render_kw={"readonly": True})
 
     tipo_licenca = SelectField(
-        "Tipo de licença",
+        "Tipo de inspeção",
         choices=[
             ("LTS", "INCAPAZ TEMPORARIAMENTE PARA SERVIÇO (LTS)"),
             ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA"),
@@ -1036,6 +1044,8 @@ class FormLicencas(FlaskForm):
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM"),
             ("APTO", "APTO AO SERVIÇO DO CBMAM"),
             ("CURSO", "CURSO"),
+            ("TAF", "TAF"),
+            ("PROMOCAO", "PROMOÇÃO"),
             ("AGREGADO", "AGREGADO"),
         ],
         validators=[DataRequired()]
@@ -1070,20 +1080,48 @@ class FormLicencas(FlaskForm):
             ("APTO_RESTR", "APTO PARA O SERVIÇO DO CBMAM COM RESTRIÇÃO"),
             ("APTO", "APTO PARA O SERVIÇO DO CBMAM"),
             ("CURSO_APTO", "APTO PARA FINS DE CURSO"),
+            ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL PARA FINS DE CURSO"),
             ("CURSO_INAPTO", "INAPTO PARA FINS DE CURSO"),
+            ("TAF_APTO", "APTO PARA O TAF"),
+            ("TAF_ALTERNATIVO", "TAF ALTERNATIVO"),
+            ("TAF_INAPTO", "INAPTO PARA O TAF"),
+            ("PROMOCAO_APTO", "APTO PARA FINS DE PROMOÇÃO"),
+            ("PROMOCAO_INAPTO", "INAPTO PARA FINS DE PROMOÇÃO"),
             ("AGREGADO", "AGREGADO"),
         ],
         validators=[Optional()]
     )
 
-    resultado_curso = SelectField(
-        "Resultado para fins de curso",
+    # Resultado das inspeções pontuais (CURSO / TAF / PROMOÇÃO). O select da
+    # tela é remontado por JS conforme o tipo escolhido; por isso as choices
+    # aqui carregam todos os resultados possíveis e a validação do subconjunto
+    # certo é feita na rota (services.junta_medica.resultado_valido).
+    resultado_inspecao = SelectField(
+        "Resultado da inspeção",
         choices=[
-            ("CURSO_APTO", "APTO PARA FINS DE CURSO"),
-            ("CURSO_INAPTO", "INAPTO PARA FINS DE CURSO"),
+            ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL"),
+            ("CURSO_APTO", "APTO"),
+            ("CURSO_INAPTO", "INAPTO"),
+            ("TAF_APTO", "APTO"),
+            ("TAF_ALTERNATIVO", "ALTERNATIVO"),
+            ("TAF_INAPTO", "INAPTO"),
+            ("PROMOCAO_APTO", "APTO"),
+            ("PROMOCAO_INAPTO", "INAPTO"),
         ],
-        validators=[Optional()]
+        validators=[Optional()],
+        validate_choice=False
     )
+
+    # Curso da inspeção "CURSO": vem do catálogo (`curso`) ou, quando o
+    # operador escolhe "Outros", do texto digitado em curso_outro.
+    curso_id = SelectField(
+        "Qual o curso?",
+        choices=[],
+        validators=[Optional()],
+        validate_choice=False
+    )
+    curso_outro = StringField(
+        "Outro curso (informe o nome)", validators=[Optional()])
 
     numero_bg_curso = StringField("Número do BG", validators=[Optional()])
     data_extenso_curso = StringField(
@@ -1092,7 +1130,11 @@ class FormLicencas(FlaskForm):
         render_kw={"readonly": True}
     )
 
-    sessao = StringField("Sessão da Junta", validators=[DataRequired()])
+    # Restrições marcadas no parecer (checkboxes) — os ids vêm no request como
+    # lista, por isso são lidos direto do request.form na rota.
+    restricao_outra = StringField(
+        "Outra restrição (informe)", validators=[Optional()])
+
     observacao = TextAreaField("Observações", validators=[Optional()])
 
     botao_submit = SubmitField("Registrar")

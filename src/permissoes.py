@@ -188,6 +188,25 @@ PERMISSOES_CATALOGO = [
 
     # ===== Gestão de Chefia (Mapa da Força das OBMs) =====
     {"codigo": "NAV_GESTAO_CHEFIA", "nome": "Menu: Gestão da Chefia (Mapa da Força)"},
+
+    # ===== Junta Médica =====
+    {"codigo": "NAV_JUNTA", "nome": "Menu: Junta Médica (grupo)"},
+    {"codigo": "NAV_JUNTA_NOVA", "nome": "Menu: Junta Médica > Nova Inspeção/Licença"},
+    {"codigo": "NAV_JUNTA_LICENCAS", "nome": "Menu: Junta Médica > Registros e Licenças"},
+    {"codigo": "NAV_JUNTA_RENOVACOES",
+        "nome": "Menu: Junta Médica > Painel de Renovações"},
+    {"codigo": "NAV_JUNTA_ESTATISTICAS",
+        "nome": "Menu: Junta Médica > Consolidado Mensal"},
+
+    {"codigo": "JUNTA_READ",
+        "nome": "Junta Médica: Consultar registros, histórico e relatório"},
+    {"codigo": "JUNTA_CREATE",
+        "nome": "Junta Médica: Lançar inspeção/licença e restrições"},
+    {"codigo": "JUNTA_EXPORT", "nome": "Junta Médica: Exportar Excel"},
+    {"codigo": "JUNTA_BG_FECHAR",
+        "nome": "Junta Médica: Finalizar lançamentos e gerar nota do BG"},
+    {"codigo": "JUNTA_RENOVACOES_READ",
+        "nome": "Junta Médica: Consultar painel de renovações"},
 ]
 
 

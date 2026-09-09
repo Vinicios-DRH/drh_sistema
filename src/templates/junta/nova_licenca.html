@@ -1,505 +1,360 @@
 {% extends "base.html" %}
 
+{% block title %}Nova Inspeção — Junta Médica{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+{% endblock %}
+
 {% block body %}
-<style>
-    :root {
-        --jm-bg-1: #061a2f;
-        --jm-bg-2: #0b2f4f;
-        --jm-bg-3: #123f68;
-        --jm-card: rgba(255, 255, 255, 0.10);
-        --jm-card-strong: rgba(255, 255, 255, 0.16);
-        --jm-border: rgba(255, 255, 255, 0.18);
-        --jm-text: #eaf4ff;
-        --jm-muted: #bdd1e6;
-        --jm-primary: #7cc7ff;
-        --jm-primary-2: #4ca6ff;
-        --jm-success: #56d89a;
-        --jm-warning: #ffc96b;
-        --jm-danger: #ff6b7d;
-        --jm-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-        --jm-radius-xl: 28px;
-        --jm-radius-lg: 20px;
-        --jm-radius-md: 16px;
-    }
-
-    .jm-page {
-        min-height: calc(100vh - 60px);
-        padding: 2rem 0 3rem;
-        background:
-            radial-gradient(circle at top left, rgba(124, 199, 255, 0.18), transparent 28%),
-            radial-gradient(circle at top right, rgba(86, 216, 154, 0.12), transparent 24%),
-            linear-gradient(135deg, var(--jm-bg-1) 0%, var(--jm-bg-2) 48%, var(--jm-bg-3) 100%);
-    }
-
-    .jm-shell {
-        max-width: 1380px;
-        margin: 0 auto;
-    }
-
-    .jm-glass {
-        background: var(--jm-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--jm-border);
-        box-shadow: var(--jm-shadow);
-    }
-
-    .jm-hero {
-        border-radius: var(--jm-radius-xl);
-        padding: 1.6rem 1.6rem 1.35rem;
-        color: var(--jm-text);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .jm-hero::after {
-        content: "";
-        position: absolute;
-        inset: auto -40px -40px auto;
-        width: 220px;
-        height: 220px;
-        background: radial-gradient(circle, rgba(124, 199, 255, 0.28), transparent 65%);
-        pointer-events: none;
-    }
-
-    .jm-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: .45rem;
-        padding: .45rem .85rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.10);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: var(--jm-text);
-        font-size: .82rem;
-        font-weight: 600;
-    }
-
-    .jm-muted {
-        color: var(--jm-muted);
-    }
-
-    .jm-card {
-        border-radius: var(--jm-radius-xl);
-        overflow: hidden;
-    }
-
-    .jm-card-header {
-        padding: 1.15rem 1.35rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        color: var(--jm-text);
-    }
-
-    .jm-card-body {
-        padding: 1.35rem;
-        color: var(--jm-text);
-    }
-
-    .jm-section-title {
-        font-size: .85rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        color: var(--jm-muted);
-        margin-bottom: .9rem;
-        font-weight: 700;
-    }
-
-    .jm-input,
-    .jm-select,
-    .jm-textarea {
-        background: rgba(255, 255, 255, 0.10) !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        color: #fff !important;
-        border-radius: 16px !important;
-        min-height: 48px;
-        box-shadow: none !important;
-    }
-
-    .jm-input::placeholder,
-    .jm-textarea::placeholder {
-        color: rgba(234, 244, 255, 0.58);
-    }
-
-    .jm-input:focus,
-    .jm-select:focus,
-    .jm-textarea:focus {
-        border-color: rgba(124, 199, 255, 0.52) !important;
-        box-shadow: 0 0 0 .2rem rgba(76, 166, 255, 0.14) !important;
-    }
-
-    .jm-textarea {
-        min-height: 120px;
-    }
-
-    .jm-readonly {
-        background: rgba(255, 255, 255, 0.07) !important;
-    }
-
-    .jm-label {
-        color: var(--jm-text);
-        font-weight: 700;
-        margin-bottom: .45rem;
-        font-size: .92rem;
-    }
-
-    .jm-mini-card {
-        border-radius: 18px;
-        padding: .95rem 1rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        min-height: 94px;
-    }
-
-    .jm-mini-label {
-        font-size: .76rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        color: var(--jm-muted);
-        margin-bottom: .35rem;
-        font-weight: 700;
-    }
-
-    .jm-mini-value {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--jm-text);
-        line-height: 1.35;
-    }
-
-    .jm-alert {
-        border: 1px solid rgba(255, 201, 107, 0.32);
-        background: rgba(255, 201, 107, 0.14);
-        color: #ffe3aa;
-        border-radius: 18px;
-        padding: .95rem 1rem;
-    }
-
-    .jm-btn-primary {
-        border: 0;
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: #fff;
-        background: linear-gradient(135deg, #1d7bff, #45b0ff);
-        box-shadow: 0 12px 24px rgba(29, 123, 255, 0.28);
-    }
-
-    .jm-btn-primary:hover {
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    .jm-btn-ghost {
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: var(--jm-text);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .jm-btn-ghost:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    #resultados_militar {
-        max-height: 280px;
-        overflow-y: auto;
-        display: none;
-        border-radius: 18px;
-        background: rgba(7, 20, 36, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
-    }
-
-    #resultados_militar .list-group-item {
-        cursor: pointer;
-        background: transparent;
-        color: var(--jm-text);
-        border-color: rgba(255, 255, 255, 0.06);
-        padding: .9rem 1rem;
-    }
-
-    #resultados_militar .list-group-item:hover {
-        background: rgba(124, 199, 255, 0.10);
-    }
-
-    .alert {
-        border-radius: 16px;
-        border: 0;
-    }
-
-    .form-select option {
-        color: #111827;
-    }
-
-    @media (max-width: 768px) {
-        .jm-page {
-            padding: 1rem .35rem 2rem;
-        }
-
-        .jm-card-body,
-        .jm-card-header,
-        .jm-hero {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    }
-</style>
-
 <div class="jm-page">
-    <div class="container-fluid jm-shell">
-        <div class="jm-glass jm-hero mb-4">
-            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                <div>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="jm-chip">Junta Médica</span>
-                        <span class="jm-chip">Registro histórico</span>
-                        <span class="jm-chip">CBMAM</span>
+    <div class="container-fluid jm-container">
+
+        <section class="jm-hero">
+            <div class="jm-hero-main">
+                <div class="jm-hero-title-area">
+                    <div class="jm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
                     </div>
-                    <h2 class="mb-2 fw-bold">Nova Licença / Inspeção Médica</h2>
-                    <p class="mb-0 jm-muted">
-                        Preencha os dados da Junta Médica com cálculo automático de término, status do registro e alerta
-                        para inspeção posterior em LTS prolongada.
-                    </p>
+                    <div>
+                        <span class="jm-eyebrow">Junta Médica</span>
+                        <h1 class="jm-title">Nova Inspeção / Licença</h1>
+                        <p class="jm-subtitle">
+                            Comece pela sessão e pela data da Junta. Os campos seguintes se ajustam ao tipo de
+                            inspeção escolhido, com cálculo automático de término e alerta de inspeção posterior
+                            em LTS prolongada.
+                        </p>
+                    </div>
                 </div>
-                <button type="button" class="jm-btn-primary" data-bs-toggle="modal" data-bs-target="#modalFinalizarBg">
-                    Finalizar lançamentos do dia
-                </button>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ url_for('junta.listar_licencas') }}" class="jm-btn-ghost text-decoration-none">
-                        Ver registros
+
+                <div class="jm-hero-actions">
+                    <a href="{{ url_for('junta.estatisticas_mensais') }}" class="btn btn-hero">
+                        <i class="bi bi-bar-chart-line me-1"></i>Consolidado
+                    </a>
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-hero">
+                        <i class="bi bi-list-ul me-1"></i>Registros
                     </a>
                 </div>
             </div>
-        </div>
-        <div class="jm-glass jm-card mb-4">
-            <div
-                class="jm-card-body d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+
+            <div class="jm-hero-chips">
+                <span class="jm-hero-chip">
+                    <i class="bi bi-calendar-event"></i>
+                    Hoje: {{ hoje.strftime('%d/%m/%Y') if hoje else '' }}
+                </span>
+                <span class="jm-hero-chip">
+                    <i class="bi bi-shield-lock"></i>
+                    Histórico imutável (append-only)
+                </span>
+            </div>
+        </section>
+
+        <!-- ===== FECHAMENTO DO DIA ===== -->
+        <div class="jm-panel">
+            <div class="jm-panel-head">
                 <div>
-                    <div class="jm-section-title mb-2">Fechamento do dia</div>
-                    <div class="fw-bold fs-5 text-white">{{ pendentes_hoje }} lançamento(s) pendente(s) de BG hoje</div>
-                    <div class="jm-muted">Data de referência: {{ hoje.strftime('%d/%m/%Y') if hoje else '' }}</div>
+                    <h2 class="jm-panel-title">
+                        <i class="bi bi-journal-check"></i>Fechamento do dia
+                    </h2>
+                    <p class="jm-panel-subtitle mb-0">
+                        {% if pendentes_hoje %}
+                        <strong>{{ pendentes_hoje }}</strong> lançamento(s) aguardando nota de BG em
+                        {{ hoje.strftime('%d/%m/%Y') if hoje else '' }}.
+                        {% else %}
+                        Nenhum lançamento pendente de BG hoje.
+                        {% endif %}
+                    </p>
                 </div>
 
-                <button type="button" class="btn jm-btn-primary" data-bs-toggle="modal"
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
                     data-bs-target="#modalFinalizarBg" {% if pendentes_hoje==0 %}disabled{% endif %}>
-                    Finalizar e informar nota BG
+                    <i class="bi bi-file-earmark-word me-1"></i>Finalizar e gerar nota BG
                 </button>
             </div>
         </div>
-        <div class="jm-glass jm-card">
-            <div class="jm-card-header">
+
+        <!-- ===== FORMULÁRIO ===== -->
+        <div class="jm-panel jm-form">
+            <div class="jm-panel-head">
                 <div>
-                    <h4 class="mb-1 fw-bold">Lançamento de licença</h4>
-                    <div class="jm-muted">Histórico imutável com preenchimento assistido</div>
+                    <h2 class="jm-panel-title">
+                        <i class="bi bi-clipboard2-pulse"></i>Lançamento de inspeção
+                    </h2>
+                    <p class="jm-panel-subtitle mb-0">
+                        Preenchimento assistido — os campos mudam conforme o tipo de inspeção.
+                    </p>
                 </div>
-                <span class="jm-chip">Append-only</span>
+                <span class="jm-req-legend">
+                    <span class="jm-req">*</span> preenchimento obrigatório
+                </span>
             </div>
 
-            <div class="jm-card-body">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="mb-3">
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            <form method="POST" action="{{ url_for('junta.nova_licenca') }}" id="form-licenca" autocomplete="off">
+                {{ form.hidden_tag() }}
+                {{ form.militar_id(id="militar_id") }}
+
+                <!-- Etapa 1 — abertura -->
+                <div class="jm-destaque">
+                    <div class="jm-step" style="margin-top:0;">
+                        <span class="jm-step-num">1</span>
+                        Sessão da Junta
                     </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% endwith %}
-
-                <form method="POST" action="{{ url_for('junta.nova_licenca') }}" id="form-licenca" autocomplete="off">
-                    {{ form.hidden_tag() }}
-                    {{ form.militar_id(id="militar_id") }}
-
-                    <div class="jm-section-title">Identificação do militar</div>
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label class="jm-label">Buscar militar</label>
-                            <input type="text" id="busca_militar" class="form-control jm-input"
-                                placeholder="Digite o nome do militar...">
-                            <div id="resultados_militar" class="list-group mt-2"></div>
-                        </div>
-
-                        <div class="col-lg-5">
-                            <label class="jm-label">{{ form.militar_nome.label.text }}</label>
-                            {{ form.militar_nome(class="form-control jm-input jm-readonly", id="militar_nome",
-                            readonly=true) }}
-                        </div>
-
-                        <div class="col-lg-7">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="jm-mini-card">
-                                        <div class="jm-mini-label">{{ form.posto_grad_id.label.text }}</div>
-                                        <div class="jm-mini-value" id="posto_grad_preview">—</div>
-                                        {{ form.posto_grad_id(class="d-none", id="posto_grad_id", readonly=true) }}
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="jm-mini-card">
-                                        <div class="jm-mini-label">{{ form.quadro_id.label.text }}</div>
-                                        <div class="jm-mini-value" id="quadro_preview">—</div>
-                                        {{ form.quadro_id(class="d-none", id="quadro_id", readonly=true) }}
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="jm-mini-card">
-                                        <div class="jm-mini-label">{{ form.obm_id_1.label.text }}</div>
-                                        <div class="jm-mini-value" id="obm_preview">—</div>
-                                        {{ form.obm_id_1(class="d-none", id="obm_id_1", readonly=true) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3" id="grupo_qtd_dias">
-                            <label class="jm-label">{{ form.qtd_dias.label.text }}</label>
-                            {{ form.qtd_dias(class="form-control jm-input", id="qtd_dias", placeholder="0") }}
-                        </div>
-
-                        <div class="col-lg-3" id="grupo_data_inicio">
-                            <label class="jm-label">{{ form.data_inicio.label.text }}</label>
-                            {{ form.data_inicio(class="form-control jm-input", id="data_inicio") }}
-                        </div>
-
-                        <div class="col-lg-3" id="grupo_data_termino">
-                            <label class="jm-label">{{ form.data_termino.label.text }}</label>
-                            {{ form.data_termino(class="form-control jm-input jm-readonly", id="data_termino",
-                            readonly=true) }}
-                        </div>
-
-                        <div class="col-lg-3 d-none" id="grupo_resultado_curso">
-                            <label class="jm-label">{{ form.resultado_curso.label.text }}</label>
-                            {{ form.resultado_curso(class="form-select jm-select", id="resultado_curso") }}
-                        </div>
-
-                        <div class="col-lg-3 d-none" id="grupo_numero_bg_curso">
-                            <label class="jm-label">{{ form.numero_bg_curso.label.text }}</label>
-                            {{ form.numero_bg_curso(class="form-control jm-input", id="numero_bg_curso",
-                            placeholder="Ex.: BG 032/2026") }}
-                        </div>
-
-                        <div class="col-lg-6 d-none" id="grupo_data_extenso_curso">
-                            <label class="jm-label">{{ form.data_extenso_curso.label.text }}</label>
-                            {{ form.data_extenso_curso(class="form-control jm-input jm-readonly",
-                            id="data_extenso_curso", readonly=true, value=data_extenso_hoje) }}
-                        </div>
-                    </div>
-
-                    <div class="jm-section-title">Dados da licença</div>
 
                     <div class="row g-3">
-                        <div class="col-lg-4">
-                            <label class="jm-label">{{ form.tipo_licenca.label.text }}</label>
-                            {{ form.tipo_licenca(class="form-select jm-select", id="tipo_licenca") }}
-                        </div>
-
-                        <div class="col-lg-2">
-                            <label class="jm-label">{{ form.qtd_dias.label.text }}</label>
-                            {{ form.qtd_dias(class="form-control jm-input", id="qtd_dias", placeholder="0") }}
-                        </div>
-
-                        <div class="col-lg-3">
-                            <label class="jm-label">{{ form.sessao.label.text }}</label>
-                            {{ form.sessao(class="form-control jm-input", placeholder="Ex.: Sessão Ordinária") }}
-                        </div>
-
-                        <div class="col-lg-3">
-                            <label class="jm-label">{{ form.data_inicio.label.text }}</label>
-                            {{ form.data_inicio(class="form-control jm-input", id="data_inicio") }}
-                        </div>
-
-                        <div class="col-lg-3">
-                            <label class="jm-label">{{ form.data_termino.label.text }}</label>
-                            {{ form.data_termino(class="form-control jm-input jm-readonly", id="data_termino",
-                            readonly=true) }}
+                        <div class="col-lg-6">
+                            <label class="form-label" for="sessao">
+                                {{ form.sessao.label.text }} <span class="jm-req">*</span>
+                            </label>
+                            {{ form.sessao(class="form-control", id="sessao", placeholder="Ex.: 012/2026",
+                            required=true) }}
                         </div>
 
                         <div class="col-lg-6">
-                            <label class="jm-label">{{ form.status.label.text }}</label>
-                            {{ form.status(class="form-select jm-select jm-readonly", id="status", disabled=true) }}
+                            <label class="form-label" for="data_sessao">
+                                {{ form.data_sessao.label.text }} <span class="jm-req">*</span>
+                            </label>
+                            {{ form.data_sessao(class="form-control", id="data_sessao", required=true,
+                            value=(form.data_sessao.data or hoje).strftime('%Y-%m-%d')) }}
                         </div>
-
-                        <div class="col-12">
-                            <label class="jm-label">{{ form.observacao.label.text }}</label>
-                            {{ form.observacao(class="form-control jm-textarea", rows="3", placeholder="Observações
-                            complementares, restrições, referências de inspeção, etc.") }}
-                        </div>
-                    </div>
-
-                    <div id="alerta_inspecao" class="jm-alert mt-4 d-none">
-                        Esta LTS possui 90 dias ou mais. Ao término, o militar deverá retornar à Junta Médica para nova
-                        avaliação.
-                    </div>
-
-                    <div class="mt-4 d-flex flex-wrap gap-2">
-                        {{ form.botao_submit(class="btn jm-btn-primary") }}
-                        <button type="button" class="btn jm-btn-ghost" id="btn_limpar">Limpar</button>
-                        <a href="{{ url_for('junta.listar_licencas') }}" class="btn jm-btn-ghost">Cancelar</a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="modalFinalizarBg" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content"
-            style="background:#0b2239;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:22px;">
-            <form method="POST" action="{{ url_for('junta.finalizar_bg_dia') }}">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold">Finalizar lançamentos do dia</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="jm-label">Data de referência</label>
-                        <input type="date" name="data_referencia" class="form-control jm-input"
-                            value="{{ hoje.strftime('%Y-%m-%d') if hoje else '' }}" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="jm-label">Nota para BG</label>
-                        <input type="text" name="nota_bg" class="form-control jm-input" placeholder="Ex.: BG 045/2026"
-                            required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="jm-label">Sessão</label>
-                        <input type="text" name="sessao_bg" class="form-control jm-input" placeholder="Ex.: 012"
-                            required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="jm-label">Observação do fechamento</label>
-                        <textarea name="observacao_bg" class="form-control jm-textarea" rows="3"
-                            placeholder="Observação opcional sobre o fechamento do dia..."></textarea>
-                    </div>
-
-                    <div class="jm-alert">
-                        Todos os lançamentos pendentes da data informada serão vinculados à nota BG cadastrada.
                     </div>
                 </div>
 
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn jm-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn jm-btn-primary">Finalizar</button>
+                <!-- Etapa 2 — militar -->
+                <div class="jm-step">
+                    <span class="jm-step-num">2</span>
+                    Identificação do militar
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label" for="busca_militar">
+                            Buscar militar <span class="jm-req">*</span>
+                        </label>
+                        <div class="jm-autocomplete">
+                            <input type="text" id="busca_militar" class="form-control"
+                                placeholder="Digite o nome do militar...">
+                            <div id="resultados_militar" class="jm-resultados"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ form.militar_nome.label.text }}</label>
+                        {{ form.militar_nome(class="form-control jm-readonly", id="militar_nome", readonly=true,
+                        placeholder="Selecione na busca ao lado") }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.posto_grad_id.label.text }}</label>
+                        <div class="form-control jm-readonly" id="posto_grad_preview">—</div>
+                        {{ form.posto_grad_id(class="d-none", id="posto_grad_id", readonly=true) }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.quadro_id.label.text }}</label>
+                        <div class="form-control jm-readonly" id="quadro_preview">—</div>
+                        {{ form.quadro_id(class="d-none", id="quadro_id", readonly=true) }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ form.obm_id_1.label.text }}</label>
+                        <div class="form-control jm-readonly" id="obm_preview">—</div>
+                        {{ form.obm_id_1(class="d-none", id="obm_id_1", readonly=true) }}
+                    </div>
+                </div>
+
+                <!-- Etapa 3 — inspeção -->
+                <div class="jm-step">
+                    <span class="jm-step-num">3</span>
+                    Dados da inspeção
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label" for="tipo_licenca">
+                            {{ form.tipo_licenca.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.tipo_licenca(class="form-select", id="tipo_licenca", required=true) }}
+                    </div>
+
+                    <div class="col-lg-6 d-none" id="grupo_resultado">
+                        <label class="form-label" for="resultado_inspecao">
+                            {{ form.resultado_inspecao.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        <select name="resultado_inspecao" id="resultado_inspecao" class="form-select"></select>
+                    </div>
+
+                    <div class="col-lg-6 d-none" id="grupo_curso">
+                        <label class="form-label" for="curso_id">
+                            Qual o curso? <span class="jm-req">*</span>
+                        </label>
+                        <select name="curso_id" id="curso_id" class="form-select">
+                            <option value="">Selecione o curso...</option>
+                            {% for curso in cursos %}
+                            <option value="{{ curso.id }}">{{ curso.nome }}</option>
+                            {% endfor %}
+                            <option value="OUTRO">OUTROS (informar novo curso)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-6 d-none" id="grupo_curso_outro">
+                        <label class="form-label" for="curso_outro">
+                            {{ form.curso_outro.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.curso_outro(class="form-control", id="curso_outro",
+                        placeholder="Digite o nome do curso") }}
+                    </div>
+
+                    <div class="col-lg-3 d-none" id="grupo_numero_bg_curso">
+                        <label class="form-label" for="numero_bg_curso">
+                            {{ form.numero_bg_curso.label.text }}
+                            <span class="jm-req d-none" id="req_numero_bg">*</span>
+                        </label>
+                        {{ form.numero_bg_curso(class="form-control", id="numero_bg_curso",
+                        placeholder="Ex.: BG 032/2026") }}
+                    </div>
+
+                    <div class="col-lg-5 d-none" id="grupo_data_extenso_curso">
+                        <label class="form-label">{{ form.data_extenso_curso.label.text }}</label>
+                        {{ form.data_extenso_curso(class="form-control jm-readonly", id="data_extenso_curso",
+                        readonly=true, value=data_extenso_hoje) }}
+                    </div>
+
+                    <div class="col-lg-2" id="grupo_qtd_dias">
+                        <label class="form-label" for="qtd_dias">
+                            {{ form.qtd_dias.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.qtd_dias(class="form-control", id="qtd_dias", placeholder="0") }}
+                    </div>
+
+                    <div class="col-lg-3" id="grupo_data_inicio">
+                        <label class="form-label" for="data_inicio">
+                            {{ form.data_inicio.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.data_inicio(class="form-control", id="data_inicio") }}
+                    </div>
+
+                    <div class="col-lg-3" id="grupo_data_termino">
+                        <label class="form-label">{{ form.data_termino.label.text }}</label>
+                        {{ form.data_termino(class="form-control jm-readonly", id="data_termino", readonly=true) }}
+                    </div>
+
+                    <div class="col-lg-4" id="grupo_status">
+                        <label class="form-label">{{ form.status.label.text }}</label>
+                        {{ form.status(class="form-select jm-readonly", id="status", disabled=true) }}
+                    </div>
+
+                    <!-- Restrições -->
+                    <div class="col-12 d-none" id="grupo_restricoes">
+                        <label class="form-label">Tipos de restrição</label>
+                        <p class="jm-sub mb-2">
+                            Marque quantas forem necessárias — o mesmo militar pode receber mais de uma.
+                        </p>
+
+                        <div class="jm-check-grid">
+                            {% for tipo in tipos_restricao %}
+                            <label class="jm-check">
+                                <input type="checkbox" name="restricoes" value="{{ tipo.id }}">
+                                <span>{{ tipo.nome }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label" for="restricao_outra">
+                                {{ form.restricao_outra.label.text }}
+                            </label>
+                            {{ form.restricao_outra(class="form-control", id="restricao_outra",
+                            placeholder="Não está na lista? Digite aqui — passa a valer nos próximos lançamentos.") }}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ form.observacao.label.text }}</label>
+                        {{ form.observacao(class="form-control jm-textarea", rows="3",
+                        placeholder="Observações complementares, referências de inspeção, etc.") }}
+                    </div>
+                </div>
+
+                <div id="alerta_inspecao" class="jm-aviso mt-3 d-none">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        Esta LTS possui 90 dias ou mais. Ao término, o militar deverá retornar à Junta Médica
+                        para nova avaliação.
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    {{ form.botao_submit(class="btn btn-primary") }}
+                    <button type="button" class="btn btn-outline-secondary" id="btn_limpar">Limpar</button>
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-outline-secondary">Cancelar</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- ===== MODAL DE FECHAMENTO ===== -->
+<div class="modal fade" id="modalFinalizarBg" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content jm-form">
+            <form method="POST" action="{{ url_for('junta.finalizar_bg_dia') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-journal-check me-1"></i>Finalizar lançamentos do dia
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Data de referência <span class="jm-req">*</span></label>
+                        <input type="date" name="data_referencia" class="form-control"
+                            value="{{ hoje.strftime('%Y-%m-%d') if hoje else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nota para BG <span class="jm-req">*</span></label>
+                        <input type="text" name="nota_bg" class="form-control" placeholder="Ex.: BG 045/2026" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Sessão <span class="jm-req">*</span></label>
+                        <input type="text" name="sessao_bg" class="form-control" placeholder="Ex.: 012" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observação do fechamento</label>
+                        <textarea name="observacao_bg" class="form-control" rows="3"
+                            placeholder="Observação opcional sobre o fechamento do dia..."></textarea>
+                    </div>
+
+                    <div class="jm-aviso">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <div>Todos os lançamentos pendentes da data informada serão vinculados a esta nota de BG.</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Finalizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
+    // Resultados válidos por tipo de inspeção, vindos do back-end
+    // (services/junta_medica.RESULTADOS_POR_TIPO) pra não duplicar regra aqui.
+    const RESULTADOS_POR_TIPO = {{ resultados_por_tipo | tojson }};
+    const TIPOS_PONTUAIS = {{ tipos_pontuais | tojson }};
+    const TIPOS_COM_RESTRICAO = {{ tipos_com_restricao | tojson }};
+    const DATA_EXTENSO_HOJE = {{ data_extenso_hoje | tojson }};
+    const MESES_PT = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+        "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+
     document.addEventListener("DOMContentLoaded", function () {
         const buscaMilitar = document.getElementById("busca_militar");
         const resultados = document.getElementById("resultados_militar");
@@ -514,6 +369,7 @@
         const quadroPreview = document.getElementById("quadro_preview");
         const obmPreview = document.getElementById("obm_preview");
 
+        const dataSessao = document.getElementById("data_sessao");
         const qtdDias = document.getElementById("qtd_dias");
         const dataInicio = document.getElementById("data_inicio");
         const dataTermino = document.getElementById("data_termino");
@@ -522,18 +378,25 @@
         const alertaInspecao = document.getElementById("alerta_inspecao");
         const btnLimpar = document.getElementById("btn_limpar");
 
-        const resultadoCurso = document.getElementById("resultado_curso");
-        const numeroBgCurso = document.getElementById("numero_bg_curso");
+        const resultadoInspecao = document.getElementById("resultado_inspecao");
+        const cursoSelect = document.getElementById("curso_id");
+        const cursoOutro = document.getElementById("curso_outro");
         const dataExtensoCurso = document.getElementById("data_extenso_curso");
+        const reqNumeroBg = document.getElementById("req_numero_bg");
 
         const grupoQtdDias = document.getElementById("grupo_qtd_dias");
         const grupoDataInicio = document.getElementById("grupo_data_inicio");
         const grupoDataTermino = document.getElementById("grupo_data_termino");
-        const grupoResultadoCurso = document.getElementById("grupo_resultado_curso");
+        const grupoResultado = document.getElementById("grupo_resultado");
+        const grupoCurso = document.getElementById("grupo_curso");
+        const grupoCursoOutro = document.getElementById("grupo_curso_outro");
         const grupoNumeroBgCurso = document.getElementById("grupo_numero_bg_curso");
         const grupoDataExtensoCurso = document.getElementById("grupo_data_extenso_curso");
+        const grupoRestricoes = document.getElementById("grupo_restricoes");
+        const grupoStatus = document.getElementById("grupo_status");
 
         let debounceTimer = null;
+        let ultimaBusca = 0;
 
         function limparMilitar() {
             militarId.value = "";
@@ -556,11 +419,8 @@
             resultados.innerHTML = "";
 
             if (!lista.length) {
-                resultados.innerHTML = `
-                <div class="list-group-item text-muted">
-                    Nenhum militar encontrado.
-                </div>
-            `;
+                resultados.innerHTML =
+                    '<div class="jm-resultado-vazio">Nenhum militar encontrado.</div>';
                 resultados.style.display = "block";
                 return;
             }
@@ -568,8 +428,9 @@
             lista.forEach(item => {
                 const el = document.createElement("button");
                 el.type = "button";
-                el.className = "list-group-item list-group-item-action";
-                el.innerHTML = `<div class="fw-semibold">${item.nome}</div>`;
+                el.className = "jm-resultado-item";
+                el.innerHTML =
+                    `<span class="fw-semibold">${item.posto_grad} ${item.nome}</span>`;
                 el.addEventListener("click", async function () {
                     militarId.value = item.id;
                     militarNome.value = item.nome;
@@ -583,15 +444,21 @@
             resultados.style.display = "block";
         }
 
+        // O back-end já devolve na ordem certa (quem começa com o que foi
+        // digitado primeiro, depois quem só contém, cada bloco em ordem
+        // alfabética). Aqui é só uma trava pra não reordenar.
         async function buscarMilitares(nome) {
+            const requisicao = ++ultimaBusca;
+
             try {
-                const resp = await fetch(`/junta/api/militares/buscar?q=${encodeURIComponent(nome)}`);
-                if (!resp.ok) {
-                    esconderResultados();
-                    return;
-                }
-                const data = await resp.json();
-                mostrarResultados(data);
+                const resp = await fetch(
+                    `/junta/api/militares/buscar?q=${encodeURIComponent(nome)}`);
+
+                // Descarta resposta de uma digitação já ultrapassada.
+                if (requisicao !== ultimaBusca) return;
+
+                if (!resp.ok) { esconderResultados(); return; }
+                mostrarResultados(await resp.json());
             } catch (err) {
                 console.error(err);
                 esconderResultados();
@@ -618,28 +485,78 @@
             }
         }
 
+        function dataPorExtenso(valorISO) {
+            if (!valorISO) return DATA_EXTENSO_HOJE;
+            const partes = valorISO.split("-");
+            if (partes.length !== 3) return DATA_EXTENSO_HOJE;
+            const dia = parseInt(partes[2], 10);
+            const mes = parseInt(partes[1], 10);
+            return `${dia} DE ${MESES_PT[mes - 1]} DE ${partes[0]}`;
+        }
+
+        function montarResultados(tipo) {
+            const opcoes = RESULTADOS_POR_TIPO[tipo] || [];
+            const atual = resultadoInspecao.value;
+
+            resultadoInspecao.innerHTML = "";
+
+            opcoes.forEach(([valor, texto]) => {
+                const opt = document.createElement("option");
+                opt.value = valor;
+                opt.textContent = texto;
+                resultadoInspecao.appendChild(opt);
+            });
+
+            if (opcoes.some(([valor]) => valor === atual)) {
+                resultadoInspecao.value = atual;
+            }
+        }
+
+        function atualizarCursoOutro() {
+            const ehOutro = cursoSelect.value === "OUTRO";
+            grupoCursoOutro.classList.toggle("d-none", !ehOutro);
+            if (!ehOutro) cursoOutro.value = "";
+        }
+
         function calcularTerminoEStatus() {
             const tipo = tipoLicenca.value;
             const dias = parseInt(qtdDias.value || "0", 10);
             const inicio = dataInicio.value;
-            const isCurso = tipo === "CURSO";
 
-            grupoQtdDias.classList.toggle("d-none", isCurso);
-            grupoDataInicio.classList.toggle("d-none", isCurso);
-            grupoDataTermino.classList.toggle("d-none", isCurso);
+            const ehPontual = TIPOS_PONTUAIS.includes(tipo);
+            const ehCurso = tipo === "CURSO";
+            const temRestricao = TIPOS_COM_RESTRICAO.includes(tipo);
 
-            grupoResultadoCurso.classList.toggle("d-none", !isCurso);
-            grupoNumeroBgCurso.classList.toggle("d-none", !isCurso);
-            grupoDataExtensoCurso.classList.toggle("d-none", !isCurso);
+            // Período só faz sentido para licenças/decisões com prazo.
+            grupoQtdDias.classList.toggle("d-none", ehPontual);
+            grupoDataInicio.classList.toggle("d-none", ehPontual);
+            grupoDataTermino.classList.toggle("d-none", ehPontual);
+            grupoStatus.classList.toggle("d-none", ehPontual);
 
-            if (isCurso) {
-                dataExtensoCurso.value = "{{ data_extenso_hoje }}";
+            grupoResultado.classList.toggle("d-none", !ehPontual);
+            grupoNumeroBgCurso.classList.toggle("d-none", !ehPontual);
+            grupoDataExtensoCurso.classList.toggle("d-none", !ehPontual);
+            grupoCurso.classList.toggle("d-none", !ehCurso);
+            reqNumeroBg.classList.toggle("d-none", !ehCurso);
+
+            grupoRestricoes.classList.toggle("d-none", !temRestricao);
+
+            if (ehPontual) {
+                montarResultados(tipo);
+                dataExtensoCurso.value = dataPorExtenso(dataSessao.value);
                 dataTermino.value = "";
                 qtdDias.readOnly = false;
                 alertaInspecao.classList.add("d-none");
-                status.value = resultadoCurso.value || "CURSO_APTO";
+
+                if (!ehCurso) {
+                    grupoCursoOutro.classList.add("d-none");
+                } else {
+                    atualizarCursoOutro();
+                }
                 return;
             }
+
+            grupoCursoOutro.classList.add("d-none");
 
             if (inicio && dias > 0) {
                 const d = new Date(inicio + "T00:00:00");
@@ -667,23 +584,31 @@
                 status.value = "AGREGADO";
                 qtdDias.value = 1;
                 qtdDias.readOnly = true;
-
-                if (inicio) {
-                    dataTermino.value = inicio;
-                } else {
-                    dataTermino.value = "";
-                }
-
+                dataTermino.value = inicio || "";
                 alertaInspecao.classList.add("d-none");
                 return;
-            } else {
-                qtdDias.readOnly = false;
             }
+
+            qtdDias.readOnly = false;
         }
 
-        resultadoCurso.addEventListener("change", function () {
-            if (tipoLicenca.value === "CURSO") {
-                status.value = this.value;
+        // Marca visualmente o checkbox de restrição selecionado.
+        document.querySelectorAll(".jm-check input[type=checkbox]").forEach(chk => {
+            const marcar = () =>
+                chk.closest(".jm-check").classList.toggle("is-checked", chk.checked);
+            chk.addEventListener("change", marcar);
+            marcar();
+        });
+
+        cursoSelect.addEventListener("change", atualizarCursoOutro);
+
+        dataSessao.addEventListener("change", function () {
+            dataExtensoCurso.value = dataPorExtenso(this.value);
+
+            // Conveniência: a data da licença normalmente é a da sessão.
+            if (!dataInicio.value) {
+                dataInicio.value = this.value;
+                calcularTerminoEStatus();
             }
         });
 
@@ -692,14 +617,9 @@
             limparMilitar();
             clearTimeout(debounceTimer);
 
-            if (termo.length < 2) {
-                esconderResultados();
-                return;
-            }
+            if (termo.length < 1) { esconderResultados(); return; }
 
-            debounceTimer = setTimeout(() => {
-                buscarMilitares(termo);
-            }, 250);
+            debounceTimer = setTimeout(() => buscarMilitares(termo), 180);
         });
 
         document.addEventListener("click", function (e) {
@@ -712,6 +632,32 @@
         qtdDias.addEventListener("input", calcularTerminoEStatus);
         dataInicio.addEventListener("change", calcularTerminoEStatus);
 
+        document.getElementById("form-licenca").addEventListener("submit", function (e) {
+            const tipo = tipoLicenca.value;
+
+            if (!militarId.value) {
+                e.preventDefault();
+                alert("Selecione o militar na busca antes de registrar.");
+                buscaMilitar.focus();
+                return;
+            }
+
+            if (tipo === "CURSO") {
+                if (!cursoSelect.value) {
+                    e.preventDefault();
+                    alert("Informe qual o curso da inspeção.");
+                    cursoSelect.focus();
+                    return;
+                }
+                if (cursoSelect.value === "OUTRO" && !cursoOutro.value.trim()) {
+                    e.preventDefault();
+                    alert("Digite o nome do curso no campo de outros.");
+                    cursoOutro.focus();
+                    return;
+                }
+            }
+        });
+
         btnLimpar.addEventListener("click", function () {
             document.getElementById("form-licenca").reset();
             limparMilitar();
@@ -719,6 +665,9 @@
             dataTermino.value = "";
             esconderResultados();
             alertaInspecao.classList.add("d-none");
+            document.querySelectorAll(".jm-check")
+                .forEach(el => el.classList.remove("is-checked"));
+            calcularTerminoEStatus();
         });
 
         calcularTerminoEStatus();

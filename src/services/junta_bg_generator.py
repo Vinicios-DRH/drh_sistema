@@ -5,12 +5,24 @@ from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from docxtpl import DocxTemplate
+from jinja2 import ChainableUndefined, Environment
 from sqlalchemy.orm import joinedload
 
 from src import database
-from src.models import JuntaFechamentoBg, Licencas, Militar
+from src.models import JuntaFechamentoBg, Licencas, LicencaRestricao, Militar
 
 MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def _jinja_env_tolerante() -> Environment:
+    """
+    Ambiente do docx com ChainableUndefined: alguns títulos de seção do
+    modelo_junta.docx referenciam `item.alguma_coisa` fora do laço da tabela
+    (o `item` só existe dentro do `{%tr for ... %}`). Com o Undefined padrão
+    isso derruba a geração inteira da nota; aqui esses trechos apenas saem em
+    branco e o BG é gerado normalmente.
+    """
+    return Environment(undefined=ChainableUndefined)
 
 
 def fmt_data_br(dt):
@@ -105,10 +117,31 @@ def montar_item_licenca(lic):
         "data_fim": fmt_data_br(lic.data_fim),
         "um_dia_depois_do_termino": um_dia_apos(lic.data_fim),
         "recomendacoes": lic.observacao or "",
-        "restricoes": lic.observacao or "",
+        "restricoes": _texto_restricoes(lic),
         "sessao": lic.sessao or "",
+        "curso_nome": lic.curso_nome or (lic.curso.nome if lic.curso else ""),
+        "numero_bg": lic.numero_bg_curso or "",
+        "data_extenso": lic.data_extenso_curso or "",
     })
     return base
+
+
+def _texto_restricoes(lic):
+    """
+    Texto das restrições do parecer: as marcadas nos checkboxes e, na falta
+    delas, a observação livre (que era o único lugar onde isso existia antes).
+    """
+    nomes = [v.tipo.nome for v in getattr(lic, "restricoes", []) if v.tipo]
+
+    if not nomes:
+        return lic.observacao or ""
+
+    texto = "; ".join(sorted(nomes, key=str.lower))
+
+    if lic.observacao:
+        texto = f"{texto}. {lic.observacao}"
+
+    return texto
 
 
 def agrupar_por_secao(licencas):
@@ -120,6 +153,9 @@ def agrupar_por_secao(licencas):
         "apto_restr": [],
         "apto": [],
         "agregado": [],
+        "curso_itens": [],
+        "taf": [],
+        "promocao": [],
     }
 
     for lic in licencas:
@@ -139,6 +175,12 @@ def agrupar_por_secao(licencas):
             grupos["apto"].append(item)
         elif lic.tipo_licenca == "AGREGADO":
             grupos["agregado"].append(item)
+        elif lic.tipo_licenca == "CURSO":
+            grupos["curso_itens"].append(item)
+        elif lic.tipo_licenca == "TAF":
+            grupos["taf"].append(item)
+        elif lic.tipo_licenca == "PROMOCAO":
+            grupos["promocao"].append(item)
 
     return grupos
 
@@ -166,6 +208,8 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
         .options(
             joinedload(Licencas.militar).joinedload(Militar.posto_grad),
             joinedload(Licencas.militar).joinedload(Militar.quadro),
+            joinedload(Licencas.restricoes).joinedload(LicencaRestricao.tipo),
+            joinedload(Licencas.curso),
         )
         .order_by(
             Licencas.tipo_licenca.asc(),
@@ -200,6 +244,24 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
         "apto": grupos["apto"],
         "agregado": grupos["agregado"],
 
+        # Inspeções pontuais. `curso` é a lista que alimenta o
+        # "{%tr for item in curso %}" que já existe no modelo .docx; o nome do
+        # curso vai em `curso_nome` (no modelo ele está como "{{curso}}", que
+        # colide com a lista e precisa ser trocado por "{{curso_nome}}").
+        # `taf` e `promocao` ficam prontos para quando o modelo ganhar essas
+        # seções — hoje ele não tem nenhuma.
+        "curso": grupos["curso_itens"],
+        "taf": grupos["taf"],
+        "promocao": grupos["promocao"],
+
+        "curso_nome": grupos["curso_itens"][0]["curso_nome"] if grupos["curso_itens"] else "",
+        "numero_bg": grupos["curso_itens"][0]["numero_bg"] if grupos["curso_itens"] else "",
+        "data_extenso": grupos["curso_itens"][0]["data_extenso"] if grupos["curso_itens"] else "",
+
+        "tem_curso": len(grupos["curso_itens"]) > 0,
+        "tem_taf": len(grupos["taf"]) > 0,
+        "tem_promocao": len(grupos["promocao"]) > 0,
+
         "tem_lts": len(grupos["lts"]) > 0,
         "tem_ltspf": len(grupos["ltspf"]) > 0,
         "tem_lm": len(grupos["lm"]) > 0,
@@ -209,7 +271,7 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
         "tem_agregado": len(grupos["agregado"]) > 0,
     }
 
-    doc.render(context)
+    doc.render(context, jinja_env=_jinja_env_tolerante())
     doc.save(str(output_path))
 
     fechamento.arquivo_docx = nome_arquivo

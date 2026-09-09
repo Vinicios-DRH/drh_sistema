@@ -1,367 +1,199 @@
-{% extends "base.html" %} {% block body %} <style>
-    :root {
-        --jm-bg-1: #061a2f;
-        --jm-bg-2: #0b2f4f;
-        --jm-bg-3: #123f68;
-        --jm-card: rgba(255, 255, 255, 0.10);
-        --jm-border: rgba(255, 255, 255, 0.18);
-        --jm-text: #eaf4ff;
-        --jm-muted: #bdd1e6;
-        --jm-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-        --jm-radius-xl: 28px;
-        --jm-radius-lg: 20px;
-        --jm-radius-md: 16px;
-    }
+{% extends "base.html" %}
 
-    .jm-page {
-        min-height: calc(100vh - 60px);
-        padding: 2rem 0 3rem;
-        background: radial-gradient(circle at top left, rgba(124, 199, 255, 0.18), transparent 28%), radial-gradient(circle at top right, rgba(86, 216, 154, 0.12), transparent 24%), linear-gradient(135deg, var(--jm-bg-1) 0%, var(--jm-bg-2) 48%, var(--jm-bg-3) 100%);
-    }
+{% block title %}Painel de Renovações — Junta Médica{% endblock %}
 
-    .jm-shell {
-        max-width: 1450px;
-        margin: 0 auto;
-    }
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+{% endblock %}
 
-    .jm-glass {
-        background: var(--jm-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--jm-border);
-        box-shadow: var(--jm-shadow);
-    }
-
-    .jm-hero,
-    .jm-panel,
-    .jm-table-wrap {
-        border-radius: var(--jm-radius-xl);
-        overflow: hidden;
-    }
-
-    .jm-hero {
-        padding: 1.6rem;
-        color: var(--jm-text);
-    }
-
-    .jm-chip {
-        display: inline-flex;
-        align-items: center;
-        padding: .45rem .85rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.10);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: var(--jm-text);
-        font-size: .82rem;
-        font-weight: 700;
-    }
-
-    .jm-muted {
-        color: var(--jm-muted);
-    }
-
-    .jm-panel-header,
-    .jm-table-header {
-        padding: 1.15rem 1.35rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-        color: var(--jm-text);
-    }
-
-    .jm-panel-body,
-    .jm-table-body {
-        padding: 1.35rem;
-        color: var(--jm-text);
-    }
-
-    .jm-stat {
-        border-radius: 18px;
-        padding: 1rem 1.05rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        height: 100%;
-    }
-
-    .jm-stat-label {
-        color: var(--jm-muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        font-weight: 700;
-        margin-bottom: .45rem;
-    }
-
-    .jm-stat-value {
-        color: var(--jm-text);
-        font-size: 1.7rem;
-        font-weight: 800;
-        line-height: 1;
-    }
-
-    .jm-label {
-        color: var(--jm-text);
-        font-weight: 700;
-        margin-bottom: .45rem;
-        font-size: .92rem;
-    }
-
-    .jm-input,
-    .jm-select {
-        background: rgba(255, 255, 255, 0.10) !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        color: #fff !important;
-        border-radius: 16px !important;
-        min-height: 48px;
-        box-shadow: none !important;
-    }
-
-    .jm-input::placeholder {
-        color: rgba(234, 244, 255, 0.55);
-    }
-
-    .jm-input:focus,
-    .jm-select:focus {
-        border-color: rgba(124, 199, 255, 0.52) !important;
-        box-shadow: 0 0 0 .2rem rgba(76, 166, 255, 0.14) !important;
-    }
-
-    .jm-btn-primary {
-        border: 0;
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: #fff;
-        background: linear-gradient(135deg, #1d7bff, #45b0ff);
-        box-shadow: 0 12px 24px rgba(29, 123, 255, 0.28);
-    }
-
-    .jm-btn-primary:hover {
-        color: #fff;
-    }
-
-    .jm-btn-ghost {
-        border-radius: 16px;
-        padding: .85rem 1.25rem;
-        font-weight: 700;
-        color: var(--jm-text);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .jm-btn-ghost:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    .jm-table {
-        --bs-table-bg: transparent;
-        --bs-table-color: #eaf4ff;
-        --bs-table-border-color: rgba(255, 255, 255, 0.08);
-        margin-bottom: 0;
-    }
-
-    .jm-table thead th {
-        color: #cfe3f7;
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        border-bottom-width: 1px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .jm-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.04);
-    }
-
-    .jm-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: .42rem .72rem;
-        border-radius: 999px;
-        font-size: .78rem;
-        font-weight: 800;
-        letter-spacing: .01em;
-        border: 1px solid transparent;
-        white-space: nowrap;
-    }
-
-    .jm-badge-danger {
-        color: #ffd9df;
-        background: rgba(255, 107, 125, 0.14);
-        border-color: rgba(255, 107, 125, 0.24);
-    }
-
-    .jm-badge-warning {
-        color: #ffe8b8;
-        background: rgba(255, 201, 107, 0.14);
-        border-color: rgba(255, 201, 107, 0.24);
-    }
-
-    .jm-badge-info {
-        color: #d7efff;
-        background: rgba(76, 166, 255, 0.14);
-        border-color: rgba(76, 166, 255, 0.22);
-    }
-
-    .jm-badge-muted {
-        color: #d8e8f8;
-        background: rgba(255, 255, 255, 0.10);
-        border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    .jm-name {
-        font-weight: 700;
-        color: var(--jm-text);
-        line-height: 1.35;
-    }
-
-    .jm-sub {
-        color: var(--jm-muted);
-        font-size: .86rem;
-    }
-
-    .jm-motivo {
-        font-size: .88rem;
-        color: #ffe3aa;
-        line-height: 1.4;
-    }
-
-    .form-select option {
-        color: #111827;
-    }
-
-    @media (max-width: 768px) {
-        .jm-page {
-            padding: 1rem .35rem 2rem;
-        }
-
-        .jm-hero,
-        .jm-panel-header,
-        .jm-panel-body,
-        .jm-table-header,
-        .jm-table-body {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    }
-</style>
+{% block body %}
 <div class="jm-page">
-    <div class="container-fluid jm-shell">
-        <div class="jm-glass jm-hero mb-4">
-            <div class="d-flex flex-column flex-xl-row justify-content-between gap-4">
-                <div>
-                    <div class="d-flex flex-wrap gap-2 mb-3"> <span class="jm-chip">Junta Médica</span> <span
-                            class="jm-chip">Auditoria de renovações</span> <span class="jm-chip">CBMAM</span> </div>
-                    <h2 class="fw-bold mb-2">Painel de Renovações de Licença</h2>
-                    <p class="mb-0 jm-muted"> Acompanhe licenças e situações contínuas por período, identifique
-                        renovações recorrentes e destaque militares com permanência prolongada em LTS, LTSPF, LM, apto
-                        com recomendações e apto com restrições. </p>
+    <div class="container-fluid jm-container">
+
+        <section class="jm-hero">
+            <div class="jm-hero-main">
+                <div class="jm-hero-title-area">
+                    <div class="jm-logo-box">
+                        <img src="{{ url_for('static', filename='img/logobm.png') }}" alt="CBMAM">
+                    </div>
+                    <div>
+                        <span class="jm-eyebrow">Junta Médica — Auditoria</span>
+                        <h1 class="jm-title">Painel de Renovações</h1>
+                        <p class="jm-subtitle">
+                            Licenças e situações contínuas por período. Identifica renovações recorrentes e
+                            destaca militares com permanência prolongada em LTS, LTSPF, LM, apto com
+                            recomendações e apto com restrições.
+                        </p>
+                    </div>
                 </div>
-                <div class="d-flex gap-2 align-items-start flex-wrap"> <a href="{{ url_for('junta.nova_licenca') }}"
-                        class="btn jm-btn-primary"> Nova licença </a> <a href="{{ url_for('junta.listar_licencas') }}"
-                        class="btn jm-btn-ghost"> Ver registros </a> </div>
+
+                <div class="jm-hero-actions">
+                    <a href="{{ url_for('junta.estatisticas_mensais') }}" class="btn btn-hero">
+                        <i class="bi bi-bar-chart-line me-1"></i>Consolidado
+                    </a>
+                    <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-hero">
+                        <i class="bi bi-list-ul me-1"></i>Registros
+                    </a>
+                    <a href="{{ url_for('junta.nova_licenca') }}" class="btn btn-hero btn-hero-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Nova inspeção
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="jm-glass jm-panel mb-4">
-            <div class="jm-panel-header">
-                <h5 class="mb-0 fw-bold">Filtros</h5>
-            </div>
-            <div class="jm-panel-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-2"> <label class="jm-label">Mês</label> <input type="number" name="mes"
-                            value="{{ filtro_mes or '' }}" class="form-control jm-input" min="1" max="12"> </div>
-                    <div class="col-md-2"> <label class="jm-label">Ano</label> <input type="number" name="ano"
-                            value="{{ filtro_ano or '' }}" class="form-control jm-input" min="2020" max="2100"> </div>
-                    <div class="col-md-4"> <label class="jm-label">Tipo</label> <select name="tipo"
-                            class="form-select jm-select">
-                            <option value="">Todos</option>
-                            <option value="LTS" {% if filtro_tipo=='LTS' %}selected{% endif %}>LTS</option>
-                            <option value="LTSPF" {% if filtro_tipo=='LTSPF' %}selected{% endif %}>LTSPF</option>
-                            <option value="LM" {% if filtro_tipo=='LM' %}selected{% endif %}>Licença Maternidade
-                            </option>
-                            <option value="APTO_RECOM" {% if filtro_tipo=='APTO_RECOM' %}selected{% endif %}>Apto com
-                                Recomendações</option>
-                            <option value="APTO_RESTR" {% if filtro_tipo=='APTO_RESTR' %}selected{% endif %}>Apto com
-                                Restrições</option>
-                        </select> </div>
-                    <div class="col-md-2 d-grid"> <button class="btn jm-btn-primary">Filtrar</button> </div>
-                    <div class="col-md-2 d-grid"> <a href="{{ url_for('junta.painel_renovacoes') }}"
-                            class="btn jm-btn-ghost">Limpar</a> </div>
-                </form>
-            </div>
-        </div>
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="jm-glass jm-stat">
-                    <div class="jm-stat-label">Blocos encontrados</div>
+        </section>
+
+        <!-- ===== NÚMEROS ===== -->
+        <div class="jm-stats">
+            <div class="jm-stat jm-stat-info">
+                <div class="jm-stat-icon"><i class="bi bi-layers"></i></div>
+                <div class="jm-stat-body">
                     <div class="jm-stat-value">{{ resumo.total_blocos }}</div>
+                    <div class="jm-stat-label">Blocos contínuos encontrados</div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="jm-glass jm-stat">
-                    <div class="jm-stat-label">Com renovação</div>
+
+            <div class="jm-stat jm-stat-warning">
+                <div class="jm-stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+                <div class="jm-stat-body">
                     <div class="jm-stat-value">{{ resumo.com_renovacao }}</div>
+                    <div class="jm-stat-label">Com pelo menos uma renovação</div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="jm-glass jm-stat">
-                    <div class="jm-stat-label">Suspeitos</div>
-                    <div class="jm-stat-value text-danger">{{ resumo.suspeitos }}</div>
+
+            <div class="jm-stat jm-stat-critical">
+                <div class="jm-stat-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                <div class="jm-stat-body">
+                    <div class="jm-stat-value">{{ resumo.suspeitos }}</div>
+                    <div class="jm-stat-label">Merecem atenção</div>
                 </div>
             </div>
         </div>
-        <div class="jm-glass jm-table-wrap">
-            <div class="jm-table-header">
-                <h5 class="mb-1 fw-bold">Blocos contínuos por militar</h5>
-                <div class="jm-muted"> Cada linha representa um ciclo contínuo do mesmo tipo de licença/situação,
-                    permitindo enxergar renovações e duração acumulada. </div>
-            </div>
-            <div class="jm-table-body">
-                <div class="table-responsive">
-                    <table class="table jm-table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Militar</th>
-                                <th>Tipo</th>
-                                <th>Início</th>
-                                <th>Fim</th>
-                                <th>Dias contínuos</th>
-                                <th>Renovações</th>
-                                <th>Última renovação</th>
-                                <th>Meses</th>
-                                <th>Situação</th>
-                                <th>Motivo</th>
-                            </tr>
-                        </thead>
-                        <tbody> {% for item in linhas %} <tr>
-                                <td>
-                                    <div class="jm-name"> {{ item.militar.posto_grad.sigla if item.militar.posto_grad
-                                        else '' }} {{ item.militar.nome_completo }} </div>
-                                    <div class="jm-sub"> {{ item.militar.quadro.quadro if item.militar.quadro else '—'
-                                        }} </div>
-                                </td>
-                                <td> <span class="jm-badge jm-badge-info"> {{ item.tipo_label if item.tipo_label is
-                                        defined else item.tipo_licenca }} </span> </td>
-                                <td>{{ item.inicio_bloco.strftime('%d/%m/%Y') }}</td>
-                                <td>{{ item.fim_bloco.strftime('%d/%m/%Y') }}</td>
-                                <td>{{ item.dias_continuos }}</td>
-                                <td> {% if item.renovacoes >= 2 %} <span class="jm-badge jm-badge-danger">{{
-                                        item.renovacoes }}</span> {% elif item.renovacoes == 1 %} <span
-                                        class="jm-badge jm-badge-warning">{{ item.renovacoes }}</span> {% else %} <span
-                                        class="jm-badge jm-badge-muted">{{ item.renovacoes }}</span> {% endif %} </td>
-                                <td> {{ item.ultima_renovacao.strftime('%d/%m/%Y') if item.ultima_renovacao else '—' }}
-                                </td>
-                                <td>{{ item.meses_abrangidos | join(', ') }}</td>
-                                <td> {% if item.suspeito %} <span class="jm-badge jm-badge-danger">Atenção</span> {%
-                                    else %} <span class="jm-badge jm-badge-muted">Normal</span> {% endif %} </td>
-                                <td> {% if item.motivo_suspeita %} <div class="jm-motivo">{{ item.motivo_suspeita }}
-                                    </div> {% else %} <span class="jm-muted">—</span> {% endif %} </td>
-                            </tr> {% else %} <tr>
-                                <td colspan="10" class="text-center py-5 jm-muted"> Nenhum caso encontrado. </td>
-                            </tr> {% endfor %} </tbody>
-                    </table>
+
+        <!-- ===== FILTROS ===== -->
+        <div class="jm-panel jm-form">
+            <h2 class="jm-panel-title"><i class="bi bi-funnel"></i>Filtros</h2>
+
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Mês</label>
+                    <input type="number" name="mes" value="{{ filtro_mes or '' }}" class="form-control" min="1"
+                        max="12" placeholder="1–12">
                 </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Ano</label>
+                    <input type="number" name="ano" value="{{ filtro_ano or '' }}" class="form-control" min="2020"
+                        max="2100" placeholder="Ex.: 2026">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="LTS" {% if filtro_tipo=='LTS' %}selected{% endif %}>LTS</option>
+                        <option value="LTSPF" {% if filtro_tipo=='LTSPF' %}selected{% endif %}>LTSPF</option>
+                        <option value="LM" {% if filtro_tipo=='LM' %}selected{% endif %}>Licença Maternidade</option>
+                        <option value="APTO_RECOM" {% if filtro_tipo=='APTO_RECOM' %}selected{% endif %}>
+                            Apto com Recomendações</option>
+                        <option value="APTO_RESTR" {% if filtro_tipo=='APTO_RESTR' %}selected{% endif %}>
+                            Apto com Restrições</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('junta.painel_renovacoes') }}" class="btn btn-outline-secondary">Limpar</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== TABELA ===== -->
+        <div class="jm-table-shell mt-3">
+            <div class="jm-table-head">
+                <div>
+                    <h2>Blocos contínuos por militar</h2>
+                    <p class="jm-table-sub">
+                        Cada linha é um ciclo contínuo do mesmo tipo de licença/situação, mostrando as
+                        renovações e a duração acumulada.
+                    </p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Militar</th>
+                            <th>Tipo</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="jm-num">Dias contínuos</th>
+                            <th class="jm-num">Renovações</th>
+                            <th>Última renovação</th>
+                            <th>Meses</th>
+                            <th>Situação</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in linhas %}
+                        <tr>
+                            <td>
+                                <div class="jm-nome">
+                                    {{ item.militar.posto_grad.sigla if item.militar.posto_grad else '' }}
+                                    {{ item.militar.nome_completo }}
+                                </div>
+                                <div class="jm-sub">
+                                    {{ item.militar.quadro.quadro if item.militar.quadro else '—' }}
+                                </div>
+                            </td>
+
+                            <td><span class="jm-pill jm-pill-info">{{ item.tipo_label }}</span></td>
+
+                            <td>{{ item.inicio_bloco.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ item.fim_bloco.strftime('%d/%m/%Y') }}</td>
+                            <td class="jm-num">{{ item.dias_continuos }}</td>
+
+                            <td class="jm-num">
+                                {% if item.renovacoes >= 2 %}
+                                <span class="jm-pill jm-pill-critico">{{ item.renovacoes }}</span>
+                                {% elif item.renovacoes == 1 %}
+                                <span class="jm-pill jm-pill-alerta">{{ item.renovacoes }}</span>
+                                {% else %}
+                                <span class="jm-zero">0</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ item.ultima_renovacao.strftime('%d/%m/%Y') if item.ultima_renovacao else '—' }}
+                            </td>
+
+                            <td class="jm-sub">{{ item.meses_abrangidos | join(', ') }}</td>
+
+                            <td>
+                                {% if item.suspeito %}
+                                <span class="jm-pill jm-pill-critico">Atenção</span>
+                                {% else %}
+                                <span class="jm-pill jm-pill-ok">Normal</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="jm-sub">{{ item.motivo_suspeita or '—' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <i class="bi bi-inbox fs-3 d-block mb-2 jm-zero"></i>
+                                <span class="jm-sub">Nenhum bloco encontrado para os filtros informados.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div> {% endblock %}
+</div>
+{% endblock %}
