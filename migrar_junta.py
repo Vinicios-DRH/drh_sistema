@@ -1,8 +1,9 @@
 """
-Migração do módulo da Junta Médica — atalho para o ambiente de desenvolvimento.
+Migração do módulo da Junta Médica.
 
-Para PRODUÇÃO use `sql/2026-09-09_junta_medica.sql`, que faz exatamente as
-mesmas alterações em SQL puro, numa transação só, e roda direto no Supabase.
+Este script é a fonte única da migração — o `sql/2026-09-09_junta_medica.sql`
+que existia antes foi removido no commit 8116d14. Para PRODUÇÃO, rode este
+mesmo arquivo com o DATABASE_URL apontando pro banco de produção.
 
 Roda uma vez (é idempotente — pode rodar de novo sem quebrar nada):
 

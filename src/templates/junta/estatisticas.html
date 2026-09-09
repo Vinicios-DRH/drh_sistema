@@ -318,8 +318,11 @@
                                 {{ linha.licencas_vigentes }}</td>
                             <td class="jm-num {% if not linha.dias_licenca %}jm-zero{% endif %}">
                                 {{ linha.dias_licenca }}</td>
-                            <td class="jm-num {% if not linha.militares_distintos %}jm-zero{% endif %}">
-                                {{ linha.militares_distintos }}</td>
+                            {# Com um militar escolhido a coluna vira "Pareceres" (o cabeçalho e o
+                               total já trocam) — "militares distintos" seria sempre 0 ou 1. #}
+                            {% set ultima_coluna = linha.inspecoes_lancadas if militar else linha.militares_distintos %}
+                            <td class="jm-num {% if not ultima_coluna %}jm-zero{% endif %}">
+                                {{ ultima_coluna }}</td>
                         </tr>
                         {% else %}
                         <tr>

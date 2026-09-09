@@ -930,7 +930,9 @@ def exportar_estatisticas_excel():
     filtros = _ler_filtros_estatisticas()
     militar_id = request.args.get("militar_id", type=int)
 
-    militar = Militar.query.get(militar_id) if militar_id else None
+    # get_or_404 igual à tela: um militar_id inválido tem que dar 404, e não
+    # baixar uma planilha vazia sem dizer o motivo.
+    militar = Militar.query.get_or_404(militar_id) if militar_id else None
 
     resultado = montar_estatisticas_mensais(
         filtros["inicio"],
@@ -964,6 +966,8 @@ def exportar_estatisticas_excel():
     ])
     ws.append([])
 
+    # Mesma troca que a tela faz: com um militar escolhido, "militares
+    # distintos" seria sempre 0 ou 1 — a coluna vira a contagem de pareceres.
     cabecalho = [
         "Competência",
         "Licenças lançadas",
@@ -971,7 +975,7 @@ def exportar_estatisticas_excel():
         "Inspeções lançadas",
         "Licenças vigentes",
         "Dias de licença",
-        "Militares distintos",
+        "Pareceres" if militar else "Militares distintos",
     ] + [label for _, label in tipos]
 
     ws.append(cabecalho)
@@ -991,7 +995,7 @@ def exportar_estatisticas_excel():
             linha["inspecoes_lancadas"],
             linha["licencas_vigentes"],
             linha["dias_licenca"],
-            linha["militares_distintos"],
+            linha["inspecoes_lancadas"] if militar else linha["militares_distintos"],
         ] + [linha["por_tipo"].get(tipo, 0) for tipo, _ in tipos])
 
     ws.append([
@@ -1002,7 +1006,7 @@ def exportar_estatisticas_excel():
         "-",                      # vigentes não soma: o mesmo registro
                                   # atravessa vários meses
         totais["dias_licenca"],
-        totais["militares_distintos"],
+        totais["inspecoes_lancadas"] if militar else totais["militares_distintos"],
     ] + [totais["por_tipo"].get(tipo, 0) for tipo, _ in tipos])
 
     for col in range(1, len(cabecalho) + 1):
