@@ -4,6 +4,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='junta.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -269,6 +270,78 @@
                 por isso a coluna não é somável no total.
                 <b>Dias</b> — só a fatia do afastamento que cai dentro do mês.
             </p>
+        </div>
+
+        <!-- ===== GRÁFICOS ===== -->
+        <div class="row g-3 mt-0">
+            <div class="col-xl-7">
+                <div class="jm-panel h-100">
+                    <h2 class="jm-panel-title"><i class="bi bi-graph-up"></i>Evolução mensal</h2>
+                    <p class="jm-panel-subtitle mb-2">Licenças, restrições e inspeções lançadas em cada mês</p>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="graficoEvolucao"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-5">
+                <div class="jm-panel h-100">
+                    <h2 class="jm-panel-title"><i class="bi bi-camera-video"></i>On-line x presencial</h2>
+                    <p class="jm-panel-subtitle mb-2">Proporção das inspeções lançadas no período</p>
+
+                    {% set total_modalidade = totais.online + totais.presencial %}
+                    <div class="jm-meter-valor">{{ totais.pct_online }}<span>%</span></div>
+                    <div class="jm-sub mb-2">das inspeções foram feitas on-line</div>
+
+                    <div class="jm-meter-track">
+                        <div class="jm-meter-fill jm-meter-online"
+                            style="width: {{ totais.pct_online if total_modalidade else 0 }}%;"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <span class="jm-meter-legenda">
+                            <i class="jm-meter-dot jm-meter-dot-online"></i>
+                            On-line — {{ totais.online }}
+                        </span>
+                        <span class="jm-meter-legenda">
+                            <i class="jm-meter-dot jm-meter-dot-presencial"></i>
+                            Presencial — {{ totais.presencial }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="jm-panel h-100">
+                    <h2 class="jm-panel-title"><i class="bi bi-bar-chart-line"></i>Por tipo de inspeção</h2>
+                    <p class="jm-panel-subtitle mb-2">Total do período, por tipo</p>
+                    <div style="position:relative; height:{{ 40 + (tipos_presentes|length * 30) }}px;">
+                        <canvas id="graficoTipos"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="jm-panel h-100">
+                    <h2 class="jm-panel-title"><i class="bi bi-bar-chart-line"></i>Dias de licença por mês</h2>
+                    <p class="jm-panel-subtitle mb-2">Soma dos dias vigentes em cada competência</p>
+                    <div style="position:relative; height:260px;">
+                        <canvas id="graficoDias"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {% if restricoes_presentes %}
+            <div class="col-12">
+                <div class="jm-panel">
+                    <h2 class="jm-panel-title"><i class="bi bi-shield-exclamation"></i>Restrições mais frequentes</h2>
+                    <p class="jm-panel-subtitle mb-2">Total de lançamentos no período, por restrição</p>
+                    <div style="position:relative; height:{{ 40 + (restricoes_presentes|length * 32) }}px;">
+                        <canvas id="graficoRestricoes"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- ===== TABELA MENSAL ===== -->
@@ -636,6 +709,167 @@
         document.addEventListener("click", function (e) {
             if (!resultados.contains(e.target) && e.target !== busca) esconder();
         });
+    });
+</script>
+
+<script>
+    // Dados já prontos no formato que o Chart.js consome — ver
+    // services/junta_estatisticas._montar_dados_grafico.
+    const GRAFICO = {{ grafico | tojson }};
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (!window.Chart || !GRAFICO || !GRAFICO.rotulos || !GRAFICO.rotulos.length) return;
+
+        // Lê os tokens de tema do próprio app (claro/escuro) pra não
+        // duplicar paleta — os gráficos acompanham o tema da tela.
+        const estilo = getComputedStyle(document.documentElement);
+        const token = (nome, fallback) => (estilo.getPropertyValue(nome) || fallback).trim();
+
+        const corTexto = token('--app-muted', '#6b7280');
+        const corGrade = token('--app-border', '#e2e8f0');
+        const corSuperficie = token('--app-surface', '#ffffff');
+        const corTextoForte = token('--app-text', '#111827');
+
+        // Paleta categórica fixa (mesma ordem sempre — é o que garante
+        // leitura segura em daltonismo): azul, laranja, verde-água.
+        const escuro = document.documentElement.getAttribute('data-theme') === 'dark';
+        const PALETA = escuro
+            ? ['#3987e5', '#d95926', '#199e70']
+            : ['#2a78d6', '#eb6834', '#1baf7a'];
+
+        Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+        Chart.defaults.color = corTexto;
+        Chart.defaults.borderColor = corGrade;
+
+        const tooltipComum = {
+            backgroundColor: corSuperficie,
+            titleColor: corTextoForte,
+            bodyColor: corTextoForte,
+            borderColor: corGrade,
+            borderWidth: 1,
+            padding: 10,
+            boxPadding: 4,
+        };
+
+        // ---- 1) Evolução mensal (linha, 3 séries) ----
+        const elEvolucao = document.getElementById('graficoEvolucao');
+        if (elEvolucao) {
+            new Chart(elEvolucao, {
+                type: 'line',
+                data: {
+                    labels: GRAFICO.rotulos,
+                    datasets: [
+                        { label: 'Licenças', data: GRAFICO.licencas, borderColor: PALETA[0], backgroundColor: PALETA[0], borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: .25 },
+                        { label: 'Restrições', data: GRAFICO.restricoes, borderColor: PALETA[1], backgroundColor: PALETA[1], borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: .25 },
+                        { label: 'Inspeções', data: GRAFICO.inspecoes, borderColor: PALETA[2], backgroundColor: PALETA[2], borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: .25 },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
+                        tooltip: tooltipComum,
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: corGrade } },
+                    },
+                },
+            });
+        }
+
+        // ---- 2) Por tipo de inspeção (barra horizontal, 1 cor) ----
+        const elTipos = document.getElementById('graficoTipos');
+        if (elTipos && GRAFICO.por_tipo) {
+            const entradas = Object.entries(GRAFICO.por_tipo)
+                .map(([label, serie]) => [label, serie.reduce((a, b) => a + b, 0)])
+                .filter(([, total]) => total > 0)
+                .sort((a, b) => b[1] - a[1]);
+
+            new Chart(elTipos, {
+                type: 'bar',
+                data: {
+                    labels: entradas.map(e => e[0]),
+                    datasets: [{
+                        label: 'Lançamentos',
+                        data: entradas.map(e => e[1]),
+                        backgroundColor: PALETA[0],
+                        borderRadius: 4,
+                        maxBarThickness: 22,
+                    }],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipComum },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: corGrade } },
+                        y: { grid: { display: false } },
+                    },
+                },
+            });
+        }
+
+        // ---- 3) Dias de licença por mês (barra, 1 cor) ----
+        const elDias = document.getElementById('graficoDias');
+        if (elDias) {
+            new Chart(elDias, {
+                type: 'bar',
+                data: {
+                    labels: GRAFICO.rotulos,
+                    datasets: [{
+                        label: 'Dias',
+                        data: GRAFICO.dias,
+                        backgroundColor: PALETA[1],
+                        borderRadius: 4,
+                        maxBarThickness: 34,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipComum },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: corGrade } },
+                    },
+                },
+            });
+        }
+
+        // ---- 4) Restrições mais frequentes (barra horizontal, 1 cor) ----
+        const elRestricoes = document.getElementById('graficoRestricoes');
+        if (elRestricoes && GRAFICO.por_restricao_totais) {
+            const entradas = Object.entries(GRAFICO.por_restricao_totais)
+                .sort((a, b) => b[1] - a[1]);
+
+            new Chart(elRestricoes, {
+                type: 'bar',
+                data: {
+                    labels: entradas.map(e => e[0]),
+                    datasets: [{
+                        label: 'Lançamentos',
+                        data: entradas.map(e => e[1]),
+                        backgroundColor: PALETA[2],
+                        borderRadius: 4,
+                        maxBarThickness: 22,
+                    }],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: tooltipComum },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: corGrade } },
+                        y: { grid: { display: false } },
+                    },
+                },
+            });
+        }
     });
 </script>
 {% endblock %}

@@ -1983,9 +1983,29 @@ class JuntaFechamentoBg(database.Model):
     created_at = database.Column(
         database.DateTime, default=now_manaus_naive, nullable=False)
 
+    # ---- Errata ----
+    # Uma errata não fecha lançamentos pendentes: ela corrige uma nota já
+    # publicada. `fechamento_original_id` aponta pra nota sendo corrigida;
+    # `numero_bg_publicacao`/`data_bg_publicacao` guardam o Boletim Geral
+    # ONDE ela saiu de fato (nem sempre é o mesmo dia/número da nota da Junta).
+    eh_errata = database.Column(
+        database.Boolean, nullable=False, default=False)
+    fechamento_original_id = database.Column(
+        database.Integer,
+        database.ForeignKey("junta_fechamento_bg.id"),
+        nullable=True,
+        index=True
+    )
+    numero_bg_publicacao = database.Column(database.String(80), nullable=True)
+    data_bg_publicacao = database.Column(database.Date, nullable=True)
+    onde_se_le = database.Column(database.Text, nullable=True)
+    leia_se = database.Column(database.Text, nullable=True)
+
     usuario = database.relationship("User", backref="fechamentos_bg_junta")
     licencas = database.relationship(
         "Licencas", back_populates="fechamento_bg")
+    fechamento_original = database.relationship(
+        "JuntaFechamentoBg", remote_side=[id], backref="erratas")
 
 
 class Licencas(database.Model):
@@ -2036,6 +2056,22 @@ class Licencas(database.Model):
         index=True
     )
     curso_nome = database.Column(database.String(150), nullable=True)
+
+    # Resultado livre de "outros" (ex.: CURSO_OUTRO) — o texto que o operador
+    # digitou quando nenhum resultado padrão da lista serve.
+    resultado_detalhe = database.Column(database.String(160), nullable=True)
+
+    # Reavaliação ao término da LTS: se marcado, o militar precisa voltar à
+    # Junta quando o prazo acabar (vira AGUARDANDO_INSPECAO). Se desmarcado,
+    # ele já é considerado apto automaticamente no término — e a nota do BG
+    # que fechar aquele dia (ou um dia depois) deve trazê-lo como apto.
+    # Default True preserva o comportamento conservador de sempre reavaliar.
+    reavaliar_ao_termino = database.Column(
+        database.Boolean, nullable=False, default=True)
+
+    # Inspeção on-line ou presencial — não entra na nota de BG, é só pra
+    # estatística de quantas inspeções a Junta fez remotamente.
+    online = database.Column(database.Boolean, nullable=False, default=False)
 
     observacao = database.Column(database.Text, nullable=True)
 

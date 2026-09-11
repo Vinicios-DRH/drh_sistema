@@ -49,29 +49,127 @@
             </div>
         </section>
 
-        <!-- ===== FECHAMENTO DO DIA ===== -->
+        <!-- ===== SESSÕES AGUARDANDO NOTA DE BG ===== -->
         <div class="jm-panel">
             <div class="jm-panel-head">
                 <div>
                     <h2 class="jm-panel-title">
-                        <i class="bi bi-journal-check"></i>Fechamento do dia
+                        <i class="bi bi-journal-check"></i>Sessões aguardando nota de BG
                     </h2>
                     <p class="jm-panel-subtitle mb-0">
-                        {% if pendentes_hoje %}
-                        <strong>{{ pendentes_hoje }}</strong> lançamento(s) aguardando nota de BG em
-                        {{ hoje.strftime('%d/%m/%Y') if hoje else '' }}.
+                        {% if sessoes_pendentes %}
+                        Cada sessão vira uma nota separada — feche uma de cada vez.
                         {% else %}
-                        Nenhum lançamento pendente de BG hoje.
+                        Nenhuma sessão com lançamento pendente no momento.
                         {% endif %}
                     </p>
                 </div>
 
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#modalFinalizarBg" {% if pendentes_hoje==0 %}disabled{% endif %}>
-                    <i class="bi bi-file-earmark-word me-1"></i>Finalizar e gerar nota BG
+                <button type="button" class="btn btn-outline-secondary" id="btn_abrir_errata">
+                    <i class="bi bi-pencil-square me-1"></i>Registrar errata
                 </button>
             </div>
+
+            {% if sessoes_pendentes %}
+            <div class="table-responsive mt-3">
+                <table class="table jm-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sessão</th>
+                            <th>Data</th>
+                            <th class="jm-num">Lançamentos</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessoes_pendentes %}
+                        <tr>
+                            <td class="jm-nome">{{ s.sessao }}</td>
+                            <td>{{ s.data_sessao.strftime('%d/%m/%Y') }}</td>
+                            <td class="jm-num">{{ s.quantidade }}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-primary btn-finalizar-sessao"
+                                    data-chave="{{ s.sessao }}||{{ s.data_sessao.isoformat() }}"
+                                    data-sessao="{{ s.sessao }}"
+                                    data-data="{{ s.data_sessao.strftime('%d/%m/%Y') }}">
+                                    <i class="bi bi-file-earmark-word me-1"></i>Gerar nota BG
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if aptos_pendentes %}
+            <div class="jm-aviso mt-3 mb-0">
+                <i class="bi bi-bell-fill"></i>
+                <div>
+                    <strong>{{ aptos_pendentes|length }} militar(es)</strong> já estão aptos (LTS vencida, sem
+                    reavaliação marcada) e ainda não têm parecer formal — veja a lista abaixo antes de fechar a
+                    sessão deles, pra entrarem na nota de BG.
+                </div>
+            </div>
+            {% endif %}
         </div>
+
+        <!-- ===== APTOS AGUARDANDO LANÇAMENTO ===== -->
+        {% if aptos_pendentes %}
+        <div class="jm-panel">
+            <div class="jm-panel-head">
+                <div>
+                    <h2 class="jm-panel-title">
+                        <i class="bi bi-bell-fill"></i>Aptos aguardando lançamento no BG
+                    </h2>
+                    <p class="jm-panel-subtitle mb-0">
+                        A LTS terminou sem exigir reavaliação — o militar já está apto de fato, mas isso nunca
+                        virou um parecer. Clique em "Lançar apto" pra preencher o formulário abaixo sozinho.
+                    </p>
+                </div>
+                <span class="jm-pill jm-pill-alerta">{{ aptos_pendentes|length }} pendente(s)</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table jm-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Militar</th>
+                            <th>LTS terminou em</th>
+                            <th>Apto desde</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in aptos_pendentes %}
+                        <tr>
+                            <td>
+                                <div class="jm-nome">
+                                    {{ item.militar.posto_grad.sigla if item.militar.posto_grad else '' }}
+                                    {{ item.militar.nome_completo }}
+                                </div>
+                                <div class="jm-sub">
+                                    {{ item.militar.quadro.quadro if item.militar.quadro else '—' }}
+                                </div>
+                            </td>
+                            <td>{{ item.registro.data_fim.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ item.apto_desde.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-primary btn-lancar-apto"
+                                    data-militar-id="{{ item.militar.id }}"
+                                    data-militar-nome="{{ item.militar.nome_completo }}"
+                                    data-posto-grad="{{ item.militar.posto_grad.sigla if item.militar.posto_grad else '' }}"
+                                    data-quadro="{{ item.militar.quadro.quadro if item.militar.quadro else '' }}">
+                                    <i class="bi bi-check2-circle me-1"></i>Lançar apto
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- ===== FORMULÁRIO ===== -->
         <div class="jm-panel jm-form">
@@ -100,6 +198,37 @@
                         Sessão da Junta
                     </div>
 
+                    {% if sessao_ativa %}
+                    <!-- Sessão travada: preenchida uma vez, reaproveitada em todo
+                         lançamento seguinte. Só muda clicando em "Trocar sessão". -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="jm-sub mb-1">Sessão ativa — vale pra todos os lançamentos seguintes</div>
+                            <div class="jm-nome fs-5">
+                                {{ sessao_ativa.sessao }} — {{ sessao_ativa.data_sessao.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <a href="{{ url_for('junta.nova_licenca', trocar_sessao=1) }}"
+                            class="btn btn-sm btn-outline-secondary text-nowrap">
+                            <i class="bi bi-arrow-repeat me-1"></i>Trocar sessão
+                        </a>
+                    </div>
+
+                    {% if sessao_ja_fechada %}
+                    <div class="jm-aviso mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <div>
+                            Essa sessão já tem nota de BG gerada. Um lançamento novo aqui vai abrir uma nota
+                            <strong>adicional</strong> pra ela — se for pra corrigir algo já publicado, use
+                            "Registrar errata" em vez disso.
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {{ form.sessao(type="hidden", id="sessao", value=sessao_ativa.sessao) }}
+                    {{ form.data_sessao(type="hidden", id="data_sessao",
+                    value=sessao_ativa.data_sessao.strftime('%Y-%m-%d')) }}
+                    {% else %}
                     <div class="row g-3">
                         <div class="col-lg-6">
                             <label class="form-label" for="sessao">
@@ -117,6 +246,11 @@
                             value=(form.data_sessao.data or hoje).strftime('%Y-%m-%d')) }}
                         </div>
                     </div>
+                    <p class="jm-sub mt-2 mb-0">
+                        Preenchida uma vez, essa sessão fica travada pros próximos lançamentos — só muda
+                        clicando em "Trocar sessão".
+                    </p>
+                    {% endif %}
                 </div>
 
                 <!-- Etapa 2 — militar -->
@@ -181,6 +315,33 @@
                             {{ form.resultado_inspecao.label.text }} <span class="jm-req">*</span>
                         </label>
                         <select name="resultado_inspecao" id="resultado_inspecao" class="form-select"></select>
+                    </div>
+
+                    <div class="col-lg-6 d-none" id="grupo_resultado_detalhe">
+                        <label class="form-label" for="resultado_detalhe">
+                            {{ form.resultado_detalhe.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.resultado_detalhe(class="form-control", id="resultado_detalhe",
+                        placeholder="Ex.: trancamento a pedido, desistência...") }}
+                    </div>
+
+                    <div class="col-lg-6 d-none" id="grupo_reavaliar">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <label class="jm-check" style="display:inline-flex;">
+                            {{ form.reavaliar_ao_termino(id="reavaliar_ao_termino") }}
+                            <span>
+                                {{ form.reavaliar_ao_termino.label.text }} — se desmarcado, ao término o militar
+                                já é considerado apto e deve entrar na próxima nota de BG.
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="col-lg-4" id="grupo_online">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <label class="jm-check" style="display:inline-flex;">
+                            {{ form.online(id="online") }}
+                            <span>{{ form.online.label.text }} (não vai pra nota do BG — só estatística)</span>
+                        </label>
                     </div>
 
                     <div class="col-lg-6 d-none" id="grupo_curso">
@@ -257,14 +418,18 @@
                                 <span>{{ tipo.nome }}</span>
                             </label>
                             {% endfor %}
+                            <label class="jm-check">
+                                <input type="checkbox" id="chk_restricao_outra">
+                                <span>OUTROS</span>
+                            </label>
                         </div>
 
-                        <div class="mt-3">
+                        <div class="mt-3 d-none" id="grupo_restricao_outra_texto">
                             <label class="form-label" for="restricao_outra">
-                                {{ form.restricao_outra.label.text }}
+                                Qual restrição? <span class="jm-req">*</span>
                             </label>
                             {{ form.restricao_outra(class="form-control", id="restricao_outra",
-                            placeholder="Não está na lista? Digite aqui — passa a valer nos próximos lançamentos.") }}
+                            placeholder="Digite o nome — passa a valer nos próximos lançamentos.") }}
                         </div>
                     </div>
 
@@ -293,44 +458,114 @@
     </div>
 </div>
 
-<!-- ===== MODAL DE FECHAMENTO ===== -->
+<!-- ===== MODAL DE FECHAMENTO / ERRATA ===== -->
 <div class="modal fade" id="modalFinalizarBg" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content jm-form">
-            <form method="POST" action="{{ url_for('junta.finalizar_bg_dia') }}">
+            <form method="POST" action="{{ url_for('junta.finalizar_bg_dia') }}" id="form-finalizar-bg">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-journal-check me-1"></i>Finalizar lançamentos do dia
+                        <i class="bi bi-journal-check me-1"></i>Finalizar lançamentos ou registrar errata
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="eh_errata" id="eh_errata" value="on">
+                        <label class="form-check-label" for="eh_errata">
+                            Este lançamento é uma <strong>errata</strong> de uma nota já publicada
+                        </label>
+                    </div>
+
+                    <!-- ---- fechamento normal: escolhe a sessão pendente ---- -->
+                    <div id="bloco_fechamento_normal">
+                        <div class="mb-3">
+                            <label class="form-label">Sessão a fechar <span class="jm-req">*</span></label>
+                            <select name="sessao_data_pendente" id="sessao_data_pendente" class="form-select"
+                                {% if not sessoes_pendentes %}disabled{% endif %}>
+                                {% if not sessoes_pendentes %}
+                                <option value="">Nenhuma sessão pendente</option>
+                                {% endif %}
+                                {% for s in sessoes_pendentes %}
+                                <option value="{{ s.sessao }}||{{ s.data_sessao.isoformat() }}">
+                                    Sessão {{ s.sessao }} — {{ s.data_sessao.strftime('%d/%m/%Y') }}
+                                    ({{ s.quantidade }} pendente{{ 's' if s.quantidade != 1 else '' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="jm-aviso">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <div>Todos os lançamentos pendentes da sessão escolhida serão vinculados a esta nota
+                                de BG.</div>
+                        </div>
+                    </div>
+
+                    <!-- ---- errata ---- -->
+                    <div id="bloco_errata" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Nota que está sendo corrigida <span
+                                    class="jm-req">*</span></label>
+                            <select name="fechamento_original_id" id="fechamento_original_id" class="form-select">
+                                <option value="">Selecione a nota original...</option>
+                                {% for f in fechamentos_anteriores %}
+                                <option value="{{ f.id }}">
+                                    BG {{ f.nota_bg }} — {{ f.data_referencia.strftime('%d/%m/%Y') }} — Sessão
+                                    {{ f.sessao }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Boletim Geral nº (onde a nota original saiu) <span class="jm-req">*</span>
+                                </label>
+                                <input type="text" name="numero_bg_publicacao" id="numero_bg_publicacao"
+                                    class="form-control" placeholder="Ex.: 133">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data do Boletim Geral <span class="jm-req">*</span></label>
+                                <input type="date" name="data_bg_publicacao" id="data_bg_publicacao"
+                                    class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Onde se lê <span class="jm-req">*</span></label>
+                            <textarea name="onde_se_le" id="onde_se_le" class="form-control" rows="3"
+                                placeholder="Cole aqui o texto tal como saiu na nota anterior..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Leia-se <span class="jm-req">*</span></label>
+                            <textarea name="leia_se" id="leia_se" class="form-control" rows="3"
+                                placeholder="Digite o texto correto..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sessão da errata <span class="jm-req">*</span></label>
+                            <input type="text" name="sessao_bg" id="sessao_bg" class="form-control"
+                                placeholder="Ex.: 012">
+                        </div>
+                    </div>
+
+                    <!-- ---- comuns aos dois modos ---- -->
                     <div class="mb-3">
-                        <label class="form-label">Data de referência <span class="jm-req">*</span></label>
-                        <input type="date" name="data_referencia" class="form-control"
-                            value="{{ hoje.strftime('%Y-%m-%d') if hoje else '' }}" required>
+                        <label class="form-label" id="label_nota_bg">
+                            Nota para BG <span class="jm-req">*</span>
+                        </label>
+                        <input type="text" name="nota_bg" class="form-control" placeholder="Ex.: BG 045/2026"
+                            required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Nota para BG <span class="jm-req">*</span></label>
-                        <input type="text" name="nota_bg" class="form-control" placeholder="Ex.: BG 045/2026" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Sessão <span class="jm-req">*</span></label>
-                        <input type="text" name="sessao_bg" class="form-control" placeholder="Ex.: 012" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Observação do fechamento</label>
-                        <textarea name="observacao_bg" class="form-control" rows="3"
-                            placeholder="Observação opcional sobre o fechamento do dia..."></textarea>
-                    </div>
-
-                    <div class="jm-aviso">
-                        <i class="bi bi-info-circle-fill"></i>
-                        <div>Todos os lançamentos pendentes da data informada serão vinculados a esta nota de BG.</div>
+                        <label class="form-label">Observação</label>
+                        <textarea name="observacao_bg" class="form-control" rows="2"
+                            placeholder="Observação opcional..."></textarea>
                     </div>
                 </div>
 
@@ -349,8 +584,11 @@
     // Resultados válidos por tipo de inspeção, vindos do back-end
     // (services/junta_medica.RESULTADOS_POR_TIPO) pra não duplicar regra aqui.
     const RESULTADOS_POR_TIPO = {{ resultados_por_tipo | tojson }};
+    const RESULTADOS_COM_DETALHE_LIVRE = {{ resultados_com_detalhe_livre | tojson }};
     const TIPOS_PONTUAIS = {{ tipos_pontuais | tojson }};
     const TIPOS_COM_RESTRICAO = {{ tipos_com_restricao | tojson }};
+    const TIPOS_COM_REAVALIAR = {{ tipos_com_reavaliar | tojson }};
+    const TIPOS_DATA_UNICA = {{ tipos_data_unica | tojson }};
     const DATA_EXTENSO_HOJE = {{ data_extenso_hoje | tojson }};
     const MESES_PT = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
         "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
@@ -394,6 +632,14 @@
         const grupoDataExtensoCurso = document.getElementById("grupo_data_extenso_curso");
         const grupoRestricoes = document.getElementById("grupo_restricoes");
         const grupoStatus = document.getElementById("grupo_status");
+        const grupoReavaliar = document.getElementById("grupo_reavaliar");
+        const grupoOnline = document.getElementById("grupo_online");
+        const grupoResultadoDetalhe = document.getElementById("grupo_resultado_detalhe");
+        const resultadoDetalhe = document.getElementById("resultado_detalhe");
+
+        const chkRestricaoOutra = document.getElementById("chk_restricao_outra");
+        const grupoRestricaoOutraTexto = document.getElementById("grupo_restricao_outra_texto");
+        const restricaoOutra = document.getElementById("restricao_outra");
 
         let debounceTimer = null;
         let ultimaBusca = 0;
@@ -494,6 +740,12 @@
             return `${dia} DE ${MESES_PT[mes - 1]} DE ${partes[0]}`;
         }
 
+        function atualizarResultadoDetalhe() {
+            const ehDetalheLivre = RESULTADOS_COM_DETALHE_LIVRE.includes(resultadoInspecao.value);
+            grupoResultadoDetalhe.classList.toggle("d-none", !ehDetalheLivre);
+            if (!ehDetalheLivre) resultadoDetalhe.value = "";
+        }
+
         function montarResultados(tipo) {
             const opcoes = RESULTADOS_POR_TIPO[tipo] || [];
             const atual = resultadoInspecao.value;
@@ -510,6 +762,8 @@
             if (opcoes.some(([valor]) => valor === atual)) {
                 resultadoInspecao.value = atual;
             }
+
+            atualizarResultadoDetalhe();
         }
 
         function atualizarCursoOutro() {
@@ -525,12 +779,16 @@
 
             const ehPontual = TIPOS_PONTUAIS.includes(tipo);
             const ehCurso = tipo === "CURSO";
+            const ehDataUnica = TIPOS_DATA_UNICA.includes(tipo);
             const temRestricao = TIPOS_COM_RESTRICAO.includes(tipo);
+            const podeReavaliar = TIPOS_COM_REAVALIAR.includes(tipo);
 
-            // Período só faz sentido para licenças/decisões com prazo.
-            grupoQtdDias.classList.toggle("d-none", ehPontual);
+            // Período (dias/término) só faz sentido pra licenças com prazo —
+            // pontuais (curso/TAF/promoção) e "data única" (apto/agregado)
+            // não têm quantidade de dias nem término, só uma data.
+            grupoQtdDias.classList.toggle("d-none", ehPontual || ehDataUnica);
             grupoDataInicio.classList.toggle("d-none", ehPontual);
-            grupoDataTermino.classList.toggle("d-none", ehPontual);
+            grupoDataTermino.classList.toggle("d-none", ehPontual || ehDataUnica);
             grupoStatus.classList.toggle("d-none", ehPontual);
 
             grupoResultado.classList.toggle("d-none", !ehPontual);
@@ -540,6 +798,8 @@
             reqNumeroBg.classList.toggle("d-none", !ehCurso);
 
             grupoRestricoes.classList.toggle("d-none", !temRestricao);
+            grupoReavaliar.classList.toggle("d-none", !podeReavaliar);
+            grupoOnline.classList.toggle("d-none", tipo === "AGREGADO");
 
             if (ehPontual) {
                 montarResultados(tipo);
@@ -557,6 +817,18 @@
             }
 
             grupoCursoOutro.classList.add("d-none");
+            grupoResultadoDetalhe.classList.add("d-none");
+
+            if (ehDataUnica) {
+                // APTO / AGREGADO: só uma data, sem prazo — a mesma data
+                // serve de início e fim.
+                qtdDias.value = 1;
+                qtdDias.readOnly = true;
+                dataTermino.value = inicio || "";
+                status.value = tipo;
+                alertaInspecao.classList.add("d-none");
+                return;
+            }
 
             if (inicio && dias > 0) {
                 const d = new Date(inicio + "T00:00:00");
@@ -571,22 +843,11 @@
             else if (tipo === "LM") status.value = "LM";
             else if (tipo === "APTO_RECOM") status.value = "APTO_RECOM";
             else if (tipo === "APTO_RESTR") status.value = "APTO_RESTR";
-            else if (tipo === "APTO") status.value = "APTO";
-            else if (tipo === "AGREGADO") status.value = "AGREGADO";
 
             if (tipo === "LTS" && dias >= 90) {
                 alertaInspecao.classList.remove("d-none");
             } else {
                 alertaInspecao.classList.add("d-none");
-            }
-
-            if (tipo === "AGREGADO") {
-                status.value = "AGREGADO";
-                qtdDias.value = 1;
-                qtdDias.readOnly = true;
-                dataTermino.value = inicio || "";
-                alertaInspecao.classList.add("d-none");
-                return;
             }
 
             qtdDias.readOnly = false;
@@ -601,6 +862,37 @@
         });
 
         cursoSelect.addEventListener("change", atualizarCursoOutro);
+        resultadoInspecao.addEventListener("change", atualizarResultadoDetalhe);
+
+        chkRestricaoOutra.addEventListener("change", function () {
+            grupoRestricaoOutraTexto.classList.toggle("d-none", !this.checked);
+            if (this.checked) {
+                restricaoOutra.focus();
+            } else {
+                restricaoOutra.value = "";
+            }
+        });
+
+        // Atalho da lista "Aptos aguardando lançamento": preenche o militar
+        // e o tipo sozinho, o operador só confere e envia.
+        document.querySelectorAll(".btn-lancar-apto").forEach(btn => {
+            btn.addEventListener("click", function () {
+                militarId.value = this.dataset.militarId;
+                militarNome.value = this.dataset.militarNome;
+                buscaMilitar.value = this.dataset.militarNome;
+                postoGrad.value = this.dataset.postoGrad;
+                quadro.value = this.dataset.quadro;
+                postoGradPreview.textContent = this.dataset.postoGrad || "—";
+                quadroPreview.textContent = this.dataset.quadro || "—";
+
+                tipoLicenca.value = "APTO";
+                calcularTerminoEStatus();
+
+                document.getElementById("form-licenca").scrollIntoView(
+                    { behavior: "smooth", block: "start" });
+                dataInicio.focus();
+            });
+        });
 
         dataSessao.addEventListener("change", function () {
             dataExtensoCurso.value = dataPorExtenso(this.value);
@@ -656,6 +948,21 @@
                     return;
                 }
             }
+
+            if (RESULTADOS_COM_DETALHE_LIVRE.includes(resultadoInspecao.value)
+                && !resultadoDetalhe.value.trim()) {
+                e.preventDefault();
+                alert("Informe qual foi o resultado (opção 'Outro').");
+                resultadoDetalhe.focus();
+                return;
+            }
+
+            if (chkRestricaoOutra.checked && !restricaoOutra.value.trim()) {
+                e.preventDefault();
+                alert("Digite o nome da restrição em 'Outros', ou desmarque a opção.");
+                restricaoOutra.focus();
+                return;
+            }
         });
 
         btnLimpar.addEventListener("click", function () {
@@ -671,6 +978,60 @@
         });
 
         calcularTerminoEStatus();
+
+        // ---- Modal de fechamento: alterna entre fechar sessão e errata ----
+        const modalFinalizar = document.getElementById("modalFinalizarBg");
+        const chkErrata = document.getElementById("eh_errata");
+        const blocoFechamentoNormal = document.getElementById("bloco_fechamento_normal");
+        const blocoErrata = document.getElementById("bloco_errata");
+        const labelNotaBg = document.getElementById("label_nota_bg");
+        const selectSessaoPendente = document.getElementById("sessao_data_pendente");
+
+        function alternarModoErrata(ehErrata) {
+            blocoFechamentoNormal.classList.toggle("d-none", ehErrata);
+            blocoErrata.classList.toggle("d-none", !ehErrata);
+
+            labelNotaBg.innerHTML = ehErrata
+                ? 'Nota da errata <span class="jm-req">*</span>'
+                : 'Nota para BG <span class="jm-req">*</span>';
+        }
+
+        if (chkErrata) {
+            chkErrata.addEventListener("change", function () {
+                alternarModoErrata(this.checked);
+            });
+        }
+
+        // Cada linha da tabela de sessões pendentes abre o modal já com
+        // aquela sessão selecionada — não precisa escolher de novo.
+        document.querySelectorAll(".btn-finalizar-sessao").forEach(btn => {
+            btn.addEventListener("click", function () {
+                if (chkErrata) {
+                    chkErrata.checked = false;
+                    alternarModoErrata(false);
+                }
+                if (selectSessaoPendente) {
+                    selectSessaoPendente.value = this.dataset.chave;
+                }
+                if (modalFinalizar && window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalFinalizar).show();
+                }
+            });
+        });
+
+        // "Registrar errata" abre o mesmo modal já no modo errata.
+        const btnAbrirErrata = document.getElementById("btn_abrir_errata");
+        if (btnAbrirErrata) {
+            btnAbrirErrata.addEventListener("click", function () {
+                if (chkErrata) {
+                    chkErrata.checked = true;
+                    alternarModoErrata(true);
+                }
+                if (modalFinalizar && window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalFinalizar).show();
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

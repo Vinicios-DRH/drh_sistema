@@ -736,6 +736,74 @@ html[data-theme="dark"] .jm-tag {
     background: linear-gradient(90deg, #b7861f, #e0b64a);
 }
 
+/* --------------------------------------------------------------------------
+   MEDIDOR DE PROPORÇÃO (ex.: on-line x presencial)
+   Uma proporção de duas categorias é melhor lida como número + barra do que
+   como rosca/pizza de duas fatias — mais fácil de comparar e de ler o valor.
+   -------------------------------------------------------------------------- */
+.jm-meter-valor {
+    color: var(--app-text);
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.jm-meter-valor span {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--app-muted);
+}
+
+.jm-meter-track {
+    display: flex;
+    height: 14px;
+    border-radius: 99px;
+    background: var(--app-surface-muted);
+    overflow: hidden;
+}
+
+.jm-meter-fill {
+    height: 100%;
+    min-width: 4px;
+    border-radius: 99px;
+}
+
+.jm-meter-online {
+    background: #2a78d6;
+}
+
+html[data-theme="dark"] .jm-meter-online {
+    background: #3987e5;
+}
+
+.jm-meter-legenda {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    color: var(--app-muted);
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+.jm-meter-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.jm-meter-dot-online {
+    background: #2a78d6;
+}
+
+html[data-theme="dark"] .jm-meter-dot-online {
+    background: #3987e5;
+}
+
+.jm-meter-dot-presencial {
+    background: var(--app-muted);
+}
+
 /* Mini barra dentro da célula da tabela */
 .jm-spark {
     height: 5px;

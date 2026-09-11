@@ -10,13 +10,14 @@ from src.models import (
     Militar,
     MilitarObmFuncao,
 )
-from sqlalchemy.orm import joinedload
+from sqlalchemy import func as sa_func
+from sqlalchemy.orm import aliased, joinedload
 from src import database
 
 
 TIPO_LICENCA_LABELS = {
     "LTS": "INCAPAZ TEMPORARIAMENTE PARA SERVIÇO (LTS)",
-    "LTSPF": "LICENÇA PARA TRATAMENTO DE SAÚDE PESSOA DA FAMÍLIA",
+    "LTSPF": "LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA (LTSPF)",
     "LM": "LICENÇA MATERNIDADE",
     "APTO_RECOM": "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO_RESTR": "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM",
@@ -29,7 +30,7 @@ TIPO_LICENCA_LABELS = {
 
 STATUS_LABELS = {
     "LTS": "LTS - INCAPAZ TEMPORARIAMENTE",
-    "LTSPF": "LTSPF",
+    "LTSPF": "LTSPF - LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA",
     "LM": "LICENÇA MATERNIDADE",
     "APTO_RECOM": "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM",
     "APTO_RESTR": "APTO AO SERVIÇO DO CBMAM COM RESTRIÇÕES",
@@ -37,6 +38,7 @@ STATUS_LABELS = {
     "CURSO_APTO": "APTO PARA FINS DE CURSO",
     "CURSO_REGIME_ESPECIAL": "REGIME ESPECIAL PARA FINS DE CURSO",
     "CURSO_INAPTO": "INAPTO PARA FINS DE CURSO",
+    "CURSO_OUTRO": "OUTRO RESULTADO PARA FINS DE CURSO",
     "TAF_APTO": "APTO PARA O TAF",
     "TAF_ALTERNATIVO": "TAF ALTERNATIVO",
     "TAF_INAPTO": "INAPTO PARA O TAF",
@@ -48,11 +50,16 @@ STATUS_LABELS = {
 # Tipos de inspeção que não são licença/decisão médica de situação: o parecer
 # vale só pro fim específico (curso, TAF, promoção) e por isso não mexe no
 # status atual do militar. Cada um tem sua própria lista de resultados.
+#
+# "OUTRO" no curso é de propósito: cobre resultados que não são só apto/
+# inapto/regime especial (ex.: trancamento, desistência) sem precisar de um
+# valor novo no catálogo — o texto livre vai em `resultado_detalhe`.
 RESULTADOS_POR_TIPO = {
     "CURSO": [
         ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL"),
         ("CURSO_APTO", "APTO"),
         ("CURSO_INAPTO", "INAPTO"),
+        ("CURSO_OUTRO", "OUTRO"),
     ],
     "TAF": [
         ("TAF_APTO", "APTO"),
@@ -65,7 +72,15 @@ RESULTADOS_POR_TIPO = {
     ],
 }
 
+# Resultados cujo texto exibido não é fixo — vem do que o operador digitou em
+# `resultado_detalhe`.
+RESULTADOS_COM_DETALHE_LIVRE = {"CURSO_OUTRO"}
+
 TIPOS_COM_RESULTADO = set(RESULTADOS_POR_TIPO.keys())
+
+# Tipos "de um dia só": qtd_dias é sempre 1 e data_fim == data_inicio. Na
+# tela, isso vira "só um campo de data" (sem quantidade de dias nem término).
+TIPOS_DATA_UNICA = {"APTO", "AGREGADO"}
 
 # Tipos de inspeção pontuais: sem quantidade de dias e sem período. A data do
 # registro é a própria data da sessão da Junta.
@@ -111,8 +126,24 @@ def calcular_status_registro(tipo_licenca: str) -> str:
     return "APTO"
 
 
-def exige_inspecao_pos_lts(tipo_licenca: str, qtd_dias: int) -> bool:
-    return tipo_licenca == "LTS" and qtd_dias >= 90
+def exige_inspecao_pos_lts(tipo_licenca: str, qtd_dias: int,
+                           reavaliar_ao_termino: Optional[bool] = None) -> bool:
+    """
+    Decide se, ao terminar, a LTS exige retorno à Junta (AGUARDANDO_INSPECAO)
+    ou se o militar já é considerado apto automaticamente.
+
+    O checkbox "Reavaliar ao término" manda quando informado (é a decisão da
+    própria Junta, caso a caso). Registros antigos não têm essa marcação
+    (`reavaliar_ao_termino is None`) — pra eles vale a regra histórica: LTS de
+    90 dias ou mais sempre exigia retorno.
+    """
+    if tipo_licenca != "LTS":
+        return False
+
+    if reavaliar_ao_termino is not None:
+        return bool(reavaliar_ao_termino)
+
+    return qtd_dias >= 90
 
 
 def label_tipo(tipo: Optional[str]) -> str:
@@ -144,6 +175,93 @@ def label_resultado(tipo: Optional[str], resultado: Optional[str]) -> str:
     return label_status(resultado)
 
 
+def texto_resultado(tipo: Optional[str], resultado: Optional[str],
+                    detalhe: Optional[str] = None) -> str:
+    """Como `label_resultado`, mas usa o texto livre quando o resultado é 'outro'."""
+    if resultado in RESULTADOS_COM_DETALHE_LIVRE and (detalhe or "").strip():
+        return detalhe.strip().upper()
+    return label_resultado(tipo, resultado)
+
+
+def listar_militares_aptos_pendentes(limite: int = 200):
+    """
+    LTS cujo prazo já venceu, sem exigência de reavaliação, e que ainda são o
+    ÚLTIMO registro do militar — ou seja, o militar já está apto "de fato"
+    (calcular_status_atual devolveria APTO), mas isso nunca virou um parecer
+    formal de APTO, então nunca vai aparecer na nota do BG sozinho.
+
+    É o "lembrete" pra Junta: antes de fechar o dia, olha se não tem gente
+    aqui que precisa de um lançamento de APTO pra entrar na nota.
+    """
+    hoje = date.today()
+
+    numerado = (
+        database.session.query(
+            Licencas,
+            sa_func.row_number().over(
+                partition_by=Licencas.militar_id,
+                order_by=(Licencas.data_inicio.desc(), Licencas.id.desc())
+            ).label("rn")
+        )
+        .subquery()
+    )
+    ultimo = aliased(Licencas, numerado)
+
+    query = (
+        database.session.query(ultimo)
+        .join(Militar, ultimo.militar_id == Militar.id)
+        .options(
+            joinedload(ultimo.militar).joinedload(Militar.posto_grad),
+            joinedload(ultimo.militar).joinedload(Militar.quadro),
+        )
+        .filter(
+            numerado.c.rn == 1,
+            ultimo.tipo_licenca == "LTS",
+            ultimo.data_fim < hoje,
+            Militar.inativo.isnot(True),
+        )
+        .order_by(ultimo.data_fim.asc())
+        .limit(limite)
+    )
+
+    resultado = []
+    for reg in query.all():
+        if exige_inspecao_pos_lts(
+            reg.tipo_licenca, reg.qtd_dias, reg.reavaliar_ao_termino
+        ):
+            continue
+        resultado.append(reg)
+
+    return resultado
+
+
+def listar_sessoes_pendentes():
+    """
+    Sessões da Junta com lançamentos ainda sem nota de BG, agrupadas por
+    (sessao, data_sessao) — a mesma dupla que o operador preenche uma vez por
+    sessão e que passa a valer pra todo mundo lançado naquela reunião.
+
+    Cada sessão é fechada numa nota separada: é assim que a Junta pode fazer
+    quantas notas quiser, em dias e sessões diferentes, sem misturar.
+    """
+    linhas = (
+        database.session.query(
+            Licencas.sessao,
+            Licencas.data_sessao,
+            database.func.count(Licencas.id).label("qtd"),
+        )
+        .filter(Licencas.fechamento_bg_id.is_(None))
+        .group_by(Licencas.sessao, Licencas.data_sessao)
+        .order_by(Licencas.data_sessao.desc(), Licencas.sessao.desc())
+        .all()
+    )
+
+    return [
+        {"sessao": sessao, "data_sessao": data_sessao, "quantidade": qtd}
+        for sessao, data_sessao, qtd in linhas
+    ]
+
+
 def listar_tipos_restricao(somente_ativos: bool = True):
     query = JuntaRestricaoTipo.query
     if somente_ativos:
@@ -172,7 +290,10 @@ def obter_ou_criar_tipo_restricao(nome: str) -> Optional[JuntaRestricaoTipo]:
     if existente:
         return existente
 
-    novo = JuntaRestricaoTipo(nome=nome, ativo=True, ordem=999)
+    # Mesmo `ordem` do catálogo padrão: a lista inteira ordena só por nome
+    # (ordem.asc(), nome.asc() com todo mundo empatado em `ordem` vira,
+    # na prática, ordem alfabética — inclusive pras restrições novas).
+    novo = JuntaRestricaoTipo(nome=nome, ativo=True, ordem=100)
     database.session.add(novo)
     database.session.flush()
     return novo
@@ -337,7 +458,10 @@ def calcular_status_atual(registros, hoje: Optional[date] = None) -> Optional[st
     if hoje <= ultimo.data_fim:
         return ultimo.status
 
-    if exige_inspecao_pos_lts(ultimo.tipo_licenca, ultimo.qtd_dias):
+    if exige_inspecao_pos_lts(
+        ultimo.tipo_licenca, ultimo.qtd_dias,
+        getattr(ultimo, "reavaliar_ao_termino", None)
+    ):
         return "AGUARDANDO_INSPECAO"
 
     return "APTO"

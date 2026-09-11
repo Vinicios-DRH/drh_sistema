@@ -167,6 +167,9 @@ def _linha_vazia(ano: int, mes: int):
         "licencas_vigentes": 0,
         "dias_licenca": 0,
 
+        "online": 0,
+        "presencial": 0,
+
         "militares": set(),
         "por_tipo": {},
         "por_restricao": {},
@@ -184,7 +187,8 @@ def montar_estatisticas_mensais(inicio: date, fim: date, filtro_quadro_id="",
 
     if not competencias:
         return {"linhas": [], "totais": _totais_vazios(), "tipos": [],
-                "restricoes": [], "registros": []}
+                "restricoes": [], "registros": [],
+                "grafico": _montar_dados_grafico([], [], [])}
 
     ini_periodo = primeiro_dia(*competencias[0])
     fim_periodo = ultimo_dia(*competencias[-1])
@@ -214,6 +218,11 @@ def montar_estatisticas_mensais(inicio: date, fim: date, filtro_quadro_id="",
             linha["por_tipo"][reg.tipo_licenca] = linha["por_tipo"].get(
                 reg.tipo_licenca, 0) + 1
             tipos_vistos.add(reg.tipo_licenca)
+
+            if reg.online:
+                linha["online"] += 1
+            else:
+                linha["presencial"] += 1
 
             if reg.tipo_licenca in TIPOS_LICENCA:
                 linha["licencas_lancadas"] += 1
@@ -247,14 +256,16 @@ def montar_estatisticas_mensais(inicio: date, fim: date, filtro_quadro_id="",
     totais = _consolidar_totais(linhas_ordenadas, registros)
 
     tipos = sorted(tipos_vistos, key=lambda t: label_tipo(t))
+    tipos_com_label = [(t, label_tipo(t)) for t in tipos]
     restricoes = sorted(restricoes_vistas, key=str.lower)
 
     return {
         "linhas": linhas_ordenadas,
         "totais": totais,
-        "tipos": [(t, label_tipo(t)) for t in tipos],
+        "tipos": tipos_com_label,
         "restricoes": restricoes,
         "registros": registros,
+        "grafico": _montar_dados_grafico(linhas_ordenadas, tipos_com_label, restricoes),
     }
 
 
@@ -266,9 +277,37 @@ def _totais_vazios():
         "dias_licenca": 0,
         "militares_distintos": 0,
         "meses_com_licenca": 0,
+        "online": 0,
+        "presencial": 0,
+        "pct_online": 0.0,
         "por_tipo": {},
         "por_restricao": {},
         "media_dias_mes": 0,
+    }
+
+
+def _montar_dados_grafico(linhas, tipos, restricoes):
+    """
+    Séries já no formato que o Chart.js consome (rótulos + arrays paralelos),
+    pra não montar objeto nenhum no template — só `{{ grafico | tojson }}`.
+    """
+    return {
+        "rotulos": [l["rotulo"] for l in linhas],
+        "licencas": [l["licencas_lancadas"] for l in linhas],
+        "restricoes": [l["restricoes_lancadas"] for l in linhas],
+        "inspecoes": [l["inspecoes_lancadas"] for l in linhas],
+        "dias": [l["dias_licenca"] for l in linhas],
+        "vigentes": [l["licencas_vigentes"] for l in linhas],
+        "online": [l["online"] for l in linhas],
+        "presencial": [l["presencial"] for l in linhas],
+        "por_tipo": {
+            label: [l["por_tipo"].get(tipo, 0) for l in linhas]
+            for tipo, label in tipos
+        },
+        "por_restricao_totais": {
+            nome: sum(l["por_restricao"].get(nome, 0) for l in linhas)
+            for nome in restricoes
+        },
     }
 
 
@@ -285,6 +324,8 @@ def _consolidar_totais(linhas, registros):
         totais["restricoes_lancadas"] += linha["restricoes_lancadas"]
         totais["inspecoes_lancadas"] += linha["inspecoes_lancadas"]
         totais["dias_licenca"] += linha["dias_licenca"]
+        totais["online"] += linha["online"]
+        totais["presencial"] += linha["presencial"]
 
         if linha["licencas_vigentes"]:
             totais["meses_com_licenca"] += 1
@@ -301,6 +342,11 @@ def _consolidar_totais(linhas, registros):
     if linhas:
         totais["media_dias_mes"] = round(
             totais["dias_licenca"] / len(linhas), 1)
+
+    total_inspecoes = totais["online"] + totais["presencial"]
+    if total_inspecoes:
+        totais["pct_online"] = round(
+            (totais["online"] * 100.0) / total_inspecoes, 1)
 
     return totais
 

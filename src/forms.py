@@ -1038,7 +1038,7 @@ class FormLicencas(FlaskForm):
         "Tipo de inspeção",
         choices=[
             ("LTS", "INCAPAZ TEMPORARIAMENTE PARA SERVIÇO (LTS)"),
-            ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA"),
+            ("LTSPF", "LICENÇA PARA TRATAMENTO DE SAÚDE DE PESSOA DA FAMÍLIA (LTSPF)"),
             ("LM", "LICENÇA MATERNIDADE"),
             ("APTO_RESTR", "APTO COM RESTRIÇÕES PARA O SERVIÇO DO CBMAM"),
             ("APTO_RECOM", "APTO COM RECOMENDAÇÕES PARA O SERVIÇO DO CBMAM"),
@@ -1050,6 +1050,17 @@ class FormLicencas(FlaskForm):
         ],
         validators=[DataRequired()]
     )
+
+    # Só é lido/exibido quando tipo_licenca == LTS. Marcado (padrão) preserva
+    # o comportamento de sempre exigir retorno à Junta; desmarcado avisa que,
+    # ao terminar, o militar já é apto — e deve entrar na próxima nota do BG.
+    reavaliar_ao_termino = BooleanField(
+        "Reavaliar ao término", default=True, validators=[Optional()])
+
+    # Não entra na nota do BG — é só pra estatística de quantas inspeções
+    # foram feitas remotamente. Sem marcar, considera-se presencial.
+    online = BooleanField(
+        "Inspeção on-line", default=False, validators=[Optional()])
 
     qtd_dias = IntegerField(
         "Quantidade de dias",
@@ -1082,6 +1093,7 @@ class FormLicencas(FlaskForm):
             ("CURSO_APTO", "APTO PARA FINS DE CURSO"),
             ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL PARA FINS DE CURSO"),
             ("CURSO_INAPTO", "INAPTO PARA FINS DE CURSO"),
+            ("CURSO_OUTRO", "OUTRO RESULTADO PARA FINS DE CURSO"),
             ("TAF_APTO", "APTO PARA O TAF"),
             ("TAF_ALTERNATIVO", "TAF ALTERNATIVO"),
             ("TAF_INAPTO", "INAPTO PARA O TAF"),
@@ -1102,6 +1114,7 @@ class FormLicencas(FlaskForm):
             ("CURSO_REGIME_ESPECIAL", "REGIME ESPECIAL"),
             ("CURSO_APTO", "APTO"),
             ("CURSO_INAPTO", "INAPTO"),
+            ("CURSO_OUTRO", "OUTRO"),
             ("TAF_APTO", "APTO"),
             ("TAF_ALTERNATIVO", "ALTERNATIVO"),
             ("TAF_INAPTO", "INAPTO"),
@@ -1111,6 +1124,10 @@ class FormLicencas(FlaskForm):
         validators=[Optional()],
         validate_choice=False
     )
+
+    # Texto livre quando resultado_inspecao == CURSO_OUTRO.
+    resultado_detalhe = StringField(
+        "Qual o resultado?", validators=[Optional()])
 
     # Curso da inspeção "CURSO": vem do catálogo (`curso`) ou, quando o
     # operador escolhe "Outros", do texto digitado em curso_outro.

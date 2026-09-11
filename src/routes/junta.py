@@ -2,9 +2,9 @@ from io import BytesIO
 from math import ceil
 from pathlib import Path
 
-from flask import Blueprint, jsonify, render_template, request, redirect, send_file, url_for, flash, send_from_directory
+from flask import Blueprint, jsonify, render_template, request, redirect, send_file, url_for, flash, send_from_directory, session as flask_session
 from flask_login import login_required, current_user
-from sqlalchemy import or_, func, case
+from sqlalchemy import or_, case
 from sqlalchemy.orm import joinedload
 
 from src import database
@@ -31,23 +31,28 @@ from src.services.junta_medica import (
     calcular_situacao_atual,
     calcular_status_registro,
     contar_efetivo_ativo,
+    exige_inspecao_pos_lts,
     label_status,
     label_tipo,
+    listar_militares_aptos_pendentes,
+    listar_sessoes_pendentes,
     listar_tipos_restricao,
     montar_dados_licencas,
     obter_ou_criar_tipo_restricao,
     resultado_valido,
+    RESULTADOS_COM_DETALHE_LIVRE,
     RESULTADOS_POR_TIPO,
     STATUS_LABELS,
     TIPO_LICENCA_LABELS,
     TIPOS_COM_RESTRICAO,
+    TIPOS_DATA_UNICA,
     TIPOS_PONTUAIS,
 )
 from src.services.junta_bg_generator import gerar_nota_bg_docx
 from src.services.junta_periodos import montar_blocos_por_militar
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from calendar import monthrange
 from zoneinfo import ZoneInfo
 
@@ -133,28 +138,107 @@ def _aplicar_restricoes(licenca, ids_tipos, restricao_outra=""):
     return adicionadas
 
 
-def _contexto_nova_licenca(form, hoje, data_extenso_hoje):
-    pendentes_hoje = (
-        Licencas.query
-        .filter(
-            func.date(Licencas.created_at) == hoje,
-            Licencas.fechamento_bg_id.is_(None)
+# Chaves do cookie de sessão do Flask (current_user já usa "session" pra
+# outra coisa — daqui pra baixo, "sessão ativa" é sempre isto: a sessão da
+# JUNTA que o operador está preenchendo agora, não a sessão de login).
+_CHAVE_SESSAO_ATIVA = "junta_sessao_ativa"
+_CHAVE_DATA_SESSAO_ATIVA = "junta_data_sessao_ativa"
+
+
+def _sessao_ativa():
+    """
+    Sessão da Junta "em andamento" pra este operador (guardada no cookie).
+    Preenchida uma vez no primeiro lançamento e reaproveitada nos seguintes,
+    até ele trocar — é o que evita digitar sessão/data pra cada militar.
+    """
+    sessao = flask_session.get(_CHAVE_SESSAO_ATIVA)
+    data_str = flask_session.get(_CHAVE_DATA_SESSAO_ATIVA)
+
+    if not sessao or not data_str:
+        return None
+
+    try:
+        data_sessao = datetime.strptime(data_str, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+    return {"sessao": sessao, "data_sessao": data_sessao}
+
+
+def _definir_sessao_ativa(sessao: str, data_sessao):
+    flask_session[_CHAVE_SESSAO_ATIVA] = sessao
+    flask_session[_CHAVE_DATA_SESSAO_ATIVA] = data_sessao.isoformat()
+
+
+def _limpar_sessao_ativa():
+    flask_session.pop(_CHAVE_SESSAO_ATIVA, None)
+    flask_session.pop(_CHAVE_DATA_SESSAO_ATIVA, None)
+
+
+def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None):
+    sessao_ja_fechada = False
+    if sessao_ativa:
+        # Aviso pra quem esquece de trocar de sessão: se essa mesma dupla
+        # sessão+data já tem algum lançamento FECHADO, um lançamento novo
+        # aqui vai abrir uma nota adicional pra ela — não vai entrar na nota
+        # já gerada. Se for correção, o caminho é a errata.
+        sessao_ja_fechada = (
+            Licencas.query
+            .filter_by(
+                sessao=sessao_ativa["sessao"],
+                data_sessao=sessao_ativa["data_sessao"]
+            )
+            .filter(Licencas.fechamento_bg_id.isnot(None))
+            .first() is not None
         )
-        .count()
-    )
 
     return dict(
         form=form,
         tipo_labels=TIPO_LICENCA_LABELS,
         status_labels=STATUS_LABELS,
-        pendentes_hoje=pendentes_hoje,
+        sessoes_pendentes=listar_sessoes_pendentes(),
+        sessao_ativa=sessao_ativa,
+        sessao_ja_fechada=sessao_ja_fechada,
         hoje=hoje,
         data_extenso_hoje=data_extenso_hoje,
         cursos=_listar_cursos(),
         tipos_restricao=listar_tipos_restricao(),
         resultados_por_tipo=RESULTADOS_POR_TIPO,
+        resultados_com_detalhe_livre=sorted(RESULTADOS_COM_DETALHE_LIVRE),
         tipos_pontuais=sorted(TIPOS_PONTUAIS),
         tipos_com_restricao=sorted(TIPOS_COM_RESTRICAO),
+        tipos_com_reavaliar=sorted(("LTS", "APTO_RESTR", "APTO_RECOM")),
+        tipos_data_unica=sorted(TIPOS_DATA_UNICA),
+        aptos_pendentes=_listar_aptos_pendentes_para_tela(),
+        fechamentos_anteriores=_listar_fechamentos_para_errata(),
+    )
+
+
+def _listar_aptos_pendentes_para_tela():
+    """
+    Mesma lista de `listar_militares_aptos_pendentes`, mas já com a data em
+    que o militar passou a ser considerado apto — Jinja não faz conta de
+    data, então isso vem pronto do Python.
+    """
+    itens = []
+    for reg in listar_militares_aptos_pendentes():
+        itens.append({
+            "registro": reg,
+            "militar": reg.militar,
+            "apto_desde": reg.data_fim + timedelta(days=1),
+        })
+    return itens
+
+
+def _listar_fechamentos_para_errata(limite: int = 60):
+    """Notas de BG já finalizadas — pra escolher qual será corrigida na errata."""
+    return (
+        JuntaFechamentoBg.query
+        .filter(JuntaFechamentoBg.eh_errata.is_(False))
+        .order_by(JuntaFechamentoBg.data_referencia.desc(),
+                 JuntaFechamentoBg.id.desc())
+        .limit(limite)
+        .all()
     )
 
 
@@ -162,9 +246,19 @@ def _contexto_nova_licenca(form, hoje, data_extenso_hoje):
 @login_required
 @require_perm("JUNTA_CREATE")
 def nova_licenca():
+    if request.method == "GET" and request.args.get("trocar_sessao"):
+        _limpar_sessao_ativa()
+        return redirect(url_for("junta.nova_licenca"))
+
     form = FormLicencas()
     hoje = hoje_manaus()
     data_extenso_hoje = data_por_extenso_maiuscula(hoje)
+
+    sessao_ativa = _sessao_ativa()
+
+    if request.method == "GET" and sessao_ativa:
+        form.sessao.data = sessao_ativa["sessao"]
+        form.data_sessao.data = sessao_ativa["data_sessao"]
 
     if form.validate_on_submit():
         try:
@@ -193,6 +287,11 @@ def nova_licenca():
             data_extenso_curso = None
             curso_id = None
             curso_nome = None
+            resultado_detalhe = None
+            # Só é relevante pra LTS — pros demais tipos fica no default do
+            # modelo (True) e nunca é consultado.
+            reavaliar_ao_termino = True
+            online = bool(form.online.data)
 
             if tipo in TIPOS_PONTUAIS:
                 # CURSO / TAF / PROMOÇÃO: parecer pontual, com resultado
@@ -205,6 +304,15 @@ def nova_licenca():
                         "danger"
                     )
                     return redirect(url_for("junta.nova_licenca"))
+
+                if resultado in RESULTADOS_COM_DETALHE_LIVRE:
+                    resultado_detalhe = (
+                        form.resultado_detalhe.data or "").strip()
+
+                    if not resultado_detalhe:
+                        flash(
+                            "Informe qual foi o resultado (opção 'Outro').", "danger")
+                        return redirect(url_for("junta.nova_licenca"))
 
                 if tipo == "CURSO":
                     curso_id, curso_nome = _resolver_curso(form)
@@ -243,6 +351,18 @@ def nova_licenca():
                 data_fim = data_inicio
                 status_registro = calcular_status_registro(tipo)
 
+            elif tipo == "APTO":
+                # Só uma data: o militar está apto a partir dela, sem prazo.
+                data_inicio = form.data_inicio.data
+
+                if not data_inicio:
+                    flash("Informe a data.", "danger")
+                    return redirect(url_for("junta.nova_licenca"))
+
+                qtd_dias = 1
+                data_fim = data_inicio
+                status_registro = calcular_status_registro(tipo)
+
             else:
                 data_inicio = form.data_inicio.data
                 qtd_dias = form.qtd_dias.data
@@ -258,6 +378,14 @@ def nova_licenca():
                 data_fim = calcular_data_fim(data_inicio, qtd_dias)
                 status_registro = calcular_status_registro(tipo)
 
+                # O checkbox também vale pra APTO_RESTR/APTO_RECOM: é o mesmo
+                # padrão que a nota oficial da JOIS usa nesses pareceres
+                # ("REAVALIAR AO TÉRMINO" x "PRONTO PARA SV"), então a tela
+                # deixa marcar nos três. Pra LTSPF/LM não existe essa decisão
+                # — passado o prazo, sempre voltam a ser aptos sozinhos.
+                if tipo in ("LTS", "APTO_RESTR", "APTO_RECOM"):
+                    reavaliar_ao_termino = bool(form.reavaliar_ao_termino.data)
+
             nova = Licencas(
                 militar_id=militar.id,
                 tipo_licenca=tipo,
@@ -272,6 +400,9 @@ def nova_licenca():
                 data_extenso_curso=data_extenso_curso,
                 curso_id=curso_id,
                 curso_nome=curso_nome,
+                resultado_detalhe=resultado_detalhe,
+                reavaliar_ao_termino=reavaliar_ao_termino,
+                online=online,
                 observacao=form.observacao.data.strip() if form.observacao.data else None,
                 usuario_id=current_user.id
             )
@@ -288,6 +419,10 @@ def nova_licenca():
 
             database.session.commit()
 
+            # Trava a sessão pro próximo lançamento — só precisa digitar de
+            # novo se clicar em "Trocar sessão".
+            _definir_sessao_ativa(form.sessao.data.strip(), data_sessao)
+
             flash("Registro da Junta Médica adicionado com sucesso!", "success")
             return redirect(url_for("junta.nova_licenca"))
 
@@ -303,7 +438,8 @@ def nova_licenca():
 
     return render_template(
         "junta/nova_licenca.html",
-        **_contexto_nova_licenca(form, hoje, data_extenso_hoje)
+        **_contexto_nova_licenca(form, hoje, data_extenso_hoje,
+                                 sessao_ativa=sessao_ativa)
     )
 
 
@@ -717,32 +853,50 @@ def relatorio_licencas():
 @login_required
 @require_perm("JUNTA_BG_FECHAR")
 def finalizar_bg_dia():
+    eh_errata = request.form.get("eh_errata") == "on"
+
+    if eh_errata:
+        return _finalizar_errata()
+    return _finalizar_fechamento_dia()
+
+
+def _finalizar_fechamento_dia():
+    """
+    Fechamento normal: agrupa os lançamentos pendentes de UMA sessão da Junta
+    (sessao + data_sessao) numa nota. Não usa a data em que foi digitado no
+    sistema — usa a sessão de verdade, escolhida entre as que ainda têm
+    lançamento pendente. É assim que dá pra fazer quantas notas quiser, em
+    dias e sessões diferentes, sem misturar uma coisa com a outra.
+    """
     fechamento = None
 
     try:
-        data_ref_str = (request.form.get("data_referencia") or "").strip()
+        chave = (request.form.get("sessao_data_pendente") or "").strip()
         nota_bg = (request.form.get("nota_bg") or "").strip()
-        sessao_bg = (request.form.get("sessao_bg") or "").strip()
         observacao_bg = (request.form.get("observacao_bg") or "").strip()
 
-        if not data_ref_str:
-            flash("Informe a data de referência do fechamento.", "danger")
+        if not chave or "||" not in chave:
+            flash("Selecione a sessão que será fechada.", "danger")
             return redirect(url_for("junta.nova_licenca"))
+
+        sessao_pendente, data_pendente_str = chave.split("||", 1)
 
         if not nota_bg:
             flash("Informe a nota para BG.", "danger")
             return redirect(url_for("junta.nova_licenca"))
 
-        if not sessao_bg:
-            flash("Informe a sessão do fechamento.", "danger")
+        try:
+            data_pendente = datetime.strptime(
+                data_pendente_str, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Sessão selecionada é inválida.", "danger")
             return redirect(url_for("junta.nova_licenca"))
-
-        data_referencia = datetime.strptime(data_ref_str, "%Y-%m-%d").date()
 
         pendentes = (
             Licencas.query
             .filter(
-                func.date(Licencas.created_at) == data_referencia,
+                Licencas.sessao == sessao_pendente,
+                Licencas.data_sessao == data_pendente,
                 Licencas.fechamento_bg_id.is_(None)
             )
             .order_by(Licencas.created_at.asc(), Licencas.id.asc())
@@ -751,13 +905,16 @@ def finalizar_bg_dia():
 
         if not pendentes:
             flash(
-                "Não há lançamentos pendentes para finalizar nessa data e sessão.", "warning")
+                "Não há mais lançamentos pendentes para essa sessão — "
+                "talvez ela já tenha sido fechada. Atualize a página.",
+                "warning"
+            )
             return redirect(url_for("junta.nova_licenca"))
 
         fechamento = JuntaFechamentoBg(
-            data_referencia=data_referencia,
+            data_referencia=data_pendente,
             nota_bg=nota_bg,
-            sessao=sessao_bg,
+            sessao=sessao_pendente,
             observacao=observacao_bg or None,
             usuario_id=current_user.id
         )
@@ -775,7 +932,8 @@ def finalizar_bg_dia():
         database.session.commit()
 
         flash(
-            f"Fechamento realizado com sucesso. {len(pendentes)} lançamento(s) vinculados à nota BG {nota_bg}.",
+            f"Fechamento realizado com sucesso. {len(pendentes)} lançamento(s) "
+            f"da sessão {sessao_pendente} vinculados à nota BG {nota_bg}.",
             "success"
         )
 
@@ -789,6 +947,99 @@ def finalizar_bg_dia():
             "junta.baixar_docx_fechamento",
             fechamento_id=fechamento.id
         )
+    )
+
+
+def _finalizar_errata():
+    """
+    Errata: corrige uma nota já publicada. Não mexe em lançamentos pendentes
+    — é um documento à parte, referenciando a nota original e o Boletim Geral
+    onde ela de fato saiu (que nem sempre é do mesmo dia da sessão).
+    """
+    fechamento = None
+
+    try:
+        nota_bg = (request.form.get("nota_bg") or "").strip()
+        sessao_bg = (request.form.get("sessao_bg") or "").strip()
+        fechamento_original_id = request.form.get(
+            "fechamento_original_id", type=int)
+        numero_bg_publicacao = (
+            request.form.get("numero_bg_publicacao") or "").strip()
+        data_bg_publicacao_str = (
+            request.form.get("data_bg_publicacao") or "").strip()
+        onde_se_le = (request.form.get("onde_se_le") or "").strip()
+        leia_se = (request.form.get("leia_se") or "").strip()
+        observacao_bg = (request.form.get("observacao_bg") or "").strip()
+
+        if not nota_bg:
+            flash("Informe a nota para BG da errata.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not sessao_bg:
+            flash("Informe a sessão.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not fechamento_original_id:
+            flash("Selecione a nota que está sendo corrigida.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        original = JuntaFechamentoBg.query.get(fechamento_original_id)
+        if not original:
+            flash("Nota original não encontrada.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not numero_bg_publicacao:
+            flash(
+                "Informe o número do Boletim Geral onde a nota original foi publicada.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not data_bg_publicacao_str:
+            flash("Informe a data do Boletim Geral.", "danger")
+            return redirect(url_for("junta.nova_licenca"))
+
+        if not onde_se_le or not leia_se:
+            flash(
+                "Preencha o que estava escrito (\"onde se lê\") e a correção (\"leia-se\").",
+                "danger"
+            )
+            return redirect(url_for("junta.nova_licenca"))
+
+        data_bg_publicacao = datetime.strptime(
+            data_bg_publicacao_str, "%Y-%m-%d").date()
+
+        fechamento = JuntaFechamentoBg(
+            data_referencia=hoje_manaus(),
+            nota_bg=nota_bg,
+            sessao=sessao_bg,
+            observacao=observacao_bg or None,
+            usuario_id=current_user.id,
+            eh_errata=True,
+            fechamento_original_id=original.id,
+            numero_bg_publicacao=numero_bg_publicacao,
+            data_bg_publicacao=data_bg_publicacao,
+            onde_se_le=onde_se_le,
+            leia_se=leia_se,
+        )
+
+        database.session.add(fechamento)
+        database.session.flush()
+
+        arquivo = gerar_nota_bg_docx(fechamento.id, commit_db=False)
+        fechamento.arquivo_docx = arquivo
+        database.session.commit()
+
+        flash(
+            f"Errata da nota BG {original.nota_bg} registrada com sucesso.",
+            "success"
+        )
+
+    except Exception as e:
+        database.session.rollback()
+        flash(f"Erro ao registrar errata: {str(e)}", "danger")
+        return redirect(url_for("junta.nova_licenca"))
+
+    return redirect(
+        url_for("junta.baixar_docx_fechamento", fechamento_id=fechamento.id)
     )
 
 
@@ -905,6 +1156,7 @@ def estatisticas_mensais():
         tipos_presentes=resultado["tipos"],
         restricoes_presentes=resultado["restricoes"],
         registros=resultado["registros"],
+        grafico=resultado["grafico"],
         ranking=ranking,
         militar=militar,
         situacao=situacao,
