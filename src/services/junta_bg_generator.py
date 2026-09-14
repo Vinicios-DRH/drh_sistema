@@ -21,6 +21,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 import docx
+from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 from sqlalchemy.orm import joinedload
@@ -230,6 +231,14 @@ def _paragrafo(doc, texto="", negrito=False, sublinhado=False,
     return p
 
 
+def _centralizar_celula(cell):
+    """Conteúdo sempre centralizado (horizontal e vertical) — é o padrão
+    de toda tabela da nota, cabeçalho ou dado."""
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    for p in cell.paragraphs:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
 def _paragrafo_multilinha(cell, linhas: list[str], negrito_primeira=False):
     """Escreve várias linhas numa célula de tabela, cada uma seu parágrafo."""
     cell.text = ""
@@ -241,6 +250,8 @@ def _paragrafo_multilinha(cell, linhas: list[str], negrito_primeira=False):
         _aplicar_fonte(run, negrito=(primeiro and negrito_primeira))
         primeiro = False
 
+    _centralizar_celula(cell)
+
 
 def _tabela(doc, cabecalho: list[str]):
     tabela = doc.add_table(rows=1, cols=len(cabecalho))
@@ -251,7 +262,7 @@ def _tabela(doc, cabecalho: list[str]):
         cell.text = ""
         run = cell.paragraphs[0].add_run(texto)
         _aplicar_fonte(run, negrito=True)
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _centralizar_celula(cell)
 
     return tabela
 
@@ -270,6 +281,7 @@ def _linha_tabela(tabela, valores: list):
             cell.text = ""
             run = cell.paragraphs[0].add_run(str(valor))
             _aplicar_fonte(run)
+            _centralizar_celula(cell)
     return row
 
 

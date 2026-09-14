@@ -18,22 +18,36 @@
                     </div>
                     <div>
                         <span class="jm-eyebrow">Junta Médica</span>
+                        {% if modo_edicao %}
+                        <h1 class="jm-title">Editar Lançamento</h1>
+                        <p class="jm-subtitle">
+                            Corrija o que for preciso — militar, tipo, datas ou restrições — e salve. Só dá pra
+                            editar enquanto o lançamento não entrar numa nota de BG.
+                        </p>
+                        {% else %}
                         <h1 class="jm-title">Nova Inspeção / Licença</h1>
                         <p class="jm-subtitle">
                             Comece pela sessão e pela data da Junta. Os campos seguintes se ajustam ao tipo de
                             inspeção escolhido, com cálculo automático de término e alerta de inspeção posterior
                             em LTS prolongada.
                         </p>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="jm-hero-actions">
+                    {% if modo_edicao %}
+                    <a href="{{ url_for('junta.nova_licenca') }}" class="btn btn-hero">
+                        <i class="bi bi-x-lg me-1"></i>Cancelar edição
+                    </a>
+                    {% else %}
                     <a href="{{ url_for('junta.estatisticas_mensais') }}" class="btn btn-hero">
                         <i class="bi bi-bar-chart-line me-1"></i>Consolidado
                     </a>
                     <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-hero">
                         <i class="bi bi-list-ul me-1"></i>Registros
                     </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -49,6 +63,7 @@
             </div>
         </section>
 
+        {% if not modo_edicao %}
         <!-- ===== SESSÕES AGUARDANDO NOTA DE BG ===== -->
         <div class="jm-panel">
             <div class="jm-panel-head">
@@ -114,6 +129,91 @@
             {% endif %}
         </div>
 
+        <!-- ===== CONFERIR LANÇAMENTOS PENDENTES ===== -->
+        {% if lancamentos_pendentes %}
+        <div class="jm-panel">
+            <div class="jm-panel-head">
+                <div>
+                    <h2 class="jm-panel-title">
+                        <i class="bi bi-list-check"></i>Conferir lançamentos pendentes
+                    </h2>
+                    <p class="jm-panel-subtitle mb-0">
+                        Revise antes de fechar a sessão — dá pra corrigir ou remover qualquer um deles aqui
+                        (ex.: LTS lançada pro militar errado).
+                    </p>
+                </div>
+                <span class="jm-pill jm-pill-info">{{ lancamentos_pendentes|length }} pendente(s)</span>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table jm-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sessão</th>
+                            <th>Militar</th>
+                            <th>Tipo</th>
+                            <th>Período</th>
+                            <th>Restrições</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in lancamentos_pendentes %}
+                        {% set reg = item.registro %}
+                        <tr>
+                            <td class="jm-sub">
+                                {{ reg.sessao }}<br>
+                                {{ reg.data_sessao.strftime('%d/%m/%Y') if reg.data_sessao else '—' }}
+                            </td>
+                            <td>
+                                <div class="jm-nome">
+                                    {{ reg.militar.posto_grad.sigla if reg.militar.posto_grad else '' }}
+                                    {{ reg.militar.nome_completo }}
+                                </div>
+                                <div class="jm-sub">
+                                    {{ reg.militar.quadro.quadro if reg.militar.quadro else '—' }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="jm-pill jm-pill-info">{{ item.tipo_label }}</span>
+                                {% if reg.curso_nome %}
+                                <div class="jm-sub">{{ reg.curso_nome }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ reg.data_inicio.strftime('%d/%m/%Y') if reg.data_inicio else '' }}
+                                {% if reg.data_fim and reg.data_fim != reg.data_inicio %}
+                                — {{ reg.data_fim.strftime('%d/%m/%Y') }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for nome in item.restricoes %}
+                                <span class="jm-tag">{{ nome }}</span>
+                                {% else %}
+                                <span class="jm-zero">—</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ url_for('junta.editar_licenca', licenca_id=reg.id) }}"
+                                    class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST"
+                                    action="{{ url_for('junta.excluir_licenca', licenca_id=reg.id) }}"
+                                    class="d-inline form-excluir-lancamento">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ===== APTOS AGUARDANDO LANÇAMENTO ===== -->
         {% if aptos_pendentes %}
         <div class="jm-panel">
@@ -170,6 +270,7 @@
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
         <!-- ===== FORMULÁRIO ===== -->
         <div class="jm-panel jm-form">
@@ -187,7 +288,9 @@
                 </span>
             </div>
 
-            <form method="POST" action="{{ url_for('junta.nova_licenca') }}" id="form-licenca" autocomplete="off">
+            <form method="POST"
+                action="{{ url_for('junta.editar_licenca', licenca_id=licenca_id) if modo_edicao else url_for('junta.nova_licenca') }}"
+                id="form-licenca" autocomplete="off">
                 {{ form.hidden_tag() }}
                 {{ form.militar_id(id="militar_id") }}
 
@@ -266,6 +369,7 @@
                         </label>
                         <div class="jm-autocomplete">
                             <input type="text" id="busca_militar" class="form-control"
+                                value="{{ form.militar_nome.data or '' }}"
                                 placeholder="Digite o nome do militar...">
                             <div id="resultados_militar" class="jm-resultados"></div>
                         </div>
@@ -279,19 +383,21 @@
 
                     <div class="col-md-4">
                         <label class="form-label">{{ form.posto_grad_id.label.text }}</label>
-                        <div class="form-control jm-readonly" id="posto_grad_preview">—</div>
+                        <div class="form-control jm-readonly" id="posto_grad_preview">{{ form.posto_grad_id.data or
+                            '—' }}</div>
                         {{ form.posto_grad_id(class="d-none", id="posto_grad_id", readonly=true) }}
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">{{ form.quadro_id.label.text }}</label>
-                        <div class="form-control jm-readonly" id="quadro_preview">—</div>
+                        <div class="form-control jm-readonly" id="quadro_preview">{{ form.quadro_id.data or '—' }}
+                        </div>
                         {{ form.quadro_id(class="d-none", id="quadro_id", readonly=true) }}
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">{{ form.obm_id_1.label.text }}</label>
-                        <div class="form-control jm-readonly" id="obm_preview">—</div>
+                        <div class="form-control jm-readonly" id="obm_preview">{{ form.obm_id_1.data or '—' }}</div>
                         {{ form.obm_id_1(class="d-none", id="obm_id_1", readonly=true) }}
                     </div>
                 </div>
@@ -413,8 +519,9 @@
 
                         <div class="jm-check-grid">
                             {% for tipo in tipos_restricao %}
-                            <label class="jm-check">
-                                <input type="checkbox" name="restricoes" value="{{ tipo.id }}">
+                            <label class="jm-check {{ 'is-checked' if tipo.id in restricoes_marcadas else '' }}">
+                                <input type="checkbox" name="restricoes" value="{{ tipo.id }}"
+                                    {% if tipo.id in restricoes_marcadas %}checked{% endif %}>
                                 <span>{{ tipo.nome }}</span>
                             </label>
                             {% endfor %}
@@ -449,9 +556,14 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-4">
+                    {% if modo_edicao %}
+                    {{ form.botao_submit(class="btn btn-primary", value="Salvar alterações") }}
+                    <a href="{{ url_for('junta.nova_licenca') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    {% else %}
                     {{ form.botao_submit(class="btn btn-primary") }}
                     <button type="button" class="btn btn-outline-secondary" id="btn_limpar">Limpar</button>
                     <a href="{{ url_for('junta.listar_licencas') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -512,8 +624,8 @@
                                 <option value="">Selecione a nota original...</option>
                                 {% for f in fechamentos_anteriores %}
                                 <option value="{{ f.id }}">
-                                    BG {{ f.nota_bg }} — {{ f.data_referencia.strftime('%d/%m/%Y') }} — Sessão
-                                    {{ f.sessao }}
+                                    Nota para BG {{ f.nota_bg }} — {{ f.data_referencia.strftime('%d/%m/%Y') }} —
+                                    Sessão {{ f.sessao }}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -894,6 +1006,16 @@
             });
         });
 
+        // Confirmação antes de excluir um lançamento pendente — não dá pra
+        // desfazer.
+        document.querySelectorAll(".form-excluir-lancamento").forEach(f => {
+            f.addEventListener("submit", function (e) {
+                if (!confirm("Excluir este lançamento pendente? Essa ação não pode ser desfeita.")) {
+                    e.preventDefault();
+                }
+            });
+        });
+
         dataSessao.addEventListener("change", function () {
             dataExtensoCurso.value = dataPorExtenso(this.value);
 
@@ -965,17 +1087,21 @@
             }
         });
 
-        btnLimpar.addEventListener("click", function () {
-            document.getElementById("form-licenca").reset();
-            limparMilitar();
-            buscaMilitar.value = "";
-            dataTermino.value = "";
-            esconderResultados();
-            alertaInspecao.classList.add("d-none");
-            document.querySelectorAll(".jm-check")
-                .forEach(el => el.classList.remove("is-checked"));
-            calcularTerminoEStatus();
-        });
+        // Não existe em modo edição (não faz sentido "limpar" um lançamento
+        // que já está carregado pra corrigir).
+        if (btnLimpar) {
+            btnLimpar.addEventListener("click", function () {
+                document.getElementById("form-licenca").reset();
+                limparMilitar();
+                buscaMilitar.value = "";
+                dataTermino.value = "";
+                esconderResultados();
+                alertaInspecao.classList.add("d-none");
+                document.querySelectorAll(".jm-check")
+                    .forEach(el => el.classList.remove("is-checked"));
+                calcularTerminoEStatus();
+            });
+        }
 
         calcularTerminoEStatus();
 

@@ -30,6 +30,9 @@ instance/
 # --- Relatórios gerados (dados pessoais sensíveis, não versionar) ---
 relatorios/
 
+# --- Notas de BG geradas pela Junta Médica (nome/RG real de militares) ---
+src/static/junta_bg/*.docx
+
 # --- IDE/OS ---
 .vscode/
 .idea/

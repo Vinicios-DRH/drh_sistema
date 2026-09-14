@@ -175,7 +175,9 @@ def _limpar_sessao_ativa():
     flask_session.pop(_CHAVE_DATA_SESSAO_ATIVA, None)
 
 
-def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None):
+def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None,
+                           restricoes_marcadas=None):
+    restricoes_marcadas = restricoes_marcadas or set()
     sessao_ja_fechada = False
     if sessao_ativa:
         # Aviso pra quem esquece de trocar de sessão: se essa mesma dupla
@@ -211,7 +213,40 @@ def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None):
         tipos_data_unica=sorted(TIPOS_DATA_UNICA),
         aptos_pendentes=_listar_aptos_pendentes_para_tela(),
         fechamentos_anteriores=_listar_fechamentos_para_errata(),
+        lancamentos_pendentes=_listar_lancamentos_pendentes(),
+        restricoes_marcadas=restricoes_marcadas,
     )
+
+
+def _listar_lancamentos_pendentes():
+    """
+    Todo lançamento ainda sem nota de BG, com militar/tipo/restrições — é a
+    conferência antes de fechar qualquer sessão. Cada linha tem ação de
+    editar ou excluir, pra corrigir engano (ex.: LTS lançada pro militar
+    errado) antes de virar nota — depois disso o histórico é imutável.
+    """
+    registros = (
+        Licencas.query
+        .filter(Licencas.fechamento_bg_id.is_(None))
+        .options(
+            joinedload(Licencas.militar).joinedload(Militar.posto_grad),
+            joinedload(Licencas.militar).joinedload(Militar.quadro),
+            joinedload(Licencas.restricoes).joinedload(LicencaRestricao.tipo),
+        )
+        .order_by(Licencas.data_sessao.desc(), Licencas.sessao.desc(),
+                 Licencas.created_at.asc())
+        .all()
+    )
+
+    itens = []
+    for reg in registros:
+        itens.append({
+            "registro": reg,
+            "tipo_label": label_tipo(reg.tipo_licenca),
+            "restricoes": sorted(
+                (v.tipo.nome for v in reg.restricoes if v.tipo), key=str.lower),
+        })
+    return itens
 
 
 def _listar_aptos_pendentes_para_tela():
@@ -242,6 +277,124 @@ def _listar_fechamentos_para_errata(limite: int = 60):
     )
 
 
+class _ErroValidacaoLicenca(Exception):
+    """Erro de validação específico do tipo de inspeção (flash pronto)."""
+
+
+def _calcular_campos_por_tipo(form, tipo, data_sessao, status_atual):
+    """
+    Calcula os campos que dependem do tipo de inspeção — dias, datas, status,
+    curso, resultado, reavaliação. Usado tanto ao CRIAR quanto ao EDITAR um
+    lançamento, pra não duplicar essa lógica (e correr o risco de um dia
+    corrigir só num lugar).
+    """
+    campos = {
+        "numero_bg_curso": None,
+        "data_extenso_curso": None,
+        "curso_id": None,
+        "curso_nome": None,
+        "resultado_detalhe": None,
+        # Só é lido pra LTS/APTO_RESTR/APTO_RECOM — pros demais tipos esse
+        # valor nunca é consultado.
+        "reavaliar_ao_termino": True,
+        "online": bool(form.online.data),
+    }
+
+    if tipo in TIPOS_PONTUAIS:
+        # CURSO / TAF / PROMOÇÃO: parecer pontual, com resultado próprio e
+        # valendo pela data da sessão da Junta.
+        resultado = (form.resultado_inspecao.data or "").strip()
+
+        if not resultado_valido(tipo, resultado):
+            raise _ErroValidacaoLicenca(
+                f"Informe um resultado válido para a inspeção de {label_tipo(tipo)}.")
+
+        if resultado in RESULTADOS_COM_DETALHE_LIVRE:
+            resultado_detalhe = (form.resultado_detalhe.data or "").strip()
+
+            if not resultado_detalhe:
+                raise _ErroValidacaoLicenca(
+                    "Informe qual foi o resultado (opção 'Outro').")
+
+            campos["resultado_detalhe"] = resultado_detalhe
+
+        if tipo == "CURSO":
+            curso_id, curso_nome = _resolver_curso(form)
+
+            if not curso_nome:
+                raise _ErroValidacaoLicenca("Informe qual o curso da inspeção.")
+
+            numero_bg_curso = (form.numero_bg_curso.data or "").strip()
+
+            if not numero_bg_curso:
+                raise _ErroValidacaoLicenca(
+                    "Informe o número do BG para fins de curso.")
+
+            campos["curso_id"] = curso_id
+            campos["curso_nome"] = curso_nome
+            campos["numero_bg_curso"] = numero_bg_curso
+        else:
+            campos["numero_bg_curso"] = (
+                form.numero_bg_curso.data or "").strip() or None
+
+        campos["qtd_dias"] = 1
+        campos["data_inicio"] = data_sessao
+        campos["data_fim"] = data_sessao
+        campos["status_registro"] = resultado
+        campos["data_extenso_curso"] = data_por_extenso_maiuscula(data_sessao)
+
+    elif tipo == "AGREGADO":
+        data_inicio = form.data_inicio.data or data_sessao
+
+        if status_atual != "APTO_RESTR":
+            raise _ErroValidacaoLicenca(
+                "A agregação manual só pode ser registrada quando a situação "
+                "atual do militar estiver como APTO COM RESTRIÇÕES.")
+
+        campos["qtd_dias"] = 1
+        campos["data_inicio"] = data_inicio
+        campos["data_fim"] = data_inicio
+        campos["status_registro"] = calcular_status_registro(tipo)
+
+    elif tipo == "APTO":
+        # Só uma data: o militar está apto a partir dela, sem prazo.
+        data_inicio = form.data_inicio.data
+
+        if not data_inicio:
+            raise _ErroValidacaoLicenca("Informe a data.")
+
+        campos["qtd_dias"] = 1
+        campos["data_inicio"] = data_inicio
+        campos["data_fim"] = data_inicio
+        campos["status_registro"] = calcular_status_registro(tipo)
+
+    else:
+        data_inicio = form.data_inicio.data
+        qtd_dias = form.qtd_dias.data
+
+        if not data_inicio:
+            raise _ErroValidacaoLicenca("Informe a data de início.")
+
+        if not qtd_dias:
+            raise _ErroValidacaoLicenca("Informe a quantidade de dias.")
+
+        campos["qtd_dias"] = qtd_dias
+        campos["data_inicio"] = data_inicio
+        campos["data_fim"] = calcular_data_fim(data_inicio, qtd_dias)
+        campos["status_registro"] = calcular_status_registro(tipo)
+
+        # O checkbox também vale pra APTO_RESTR/APTO_RECOM: é o mesmo padrão
+        # que a nota oficial da JOIS usa nesses pareceres ("REAVALIAR AO
+        # TÉRMINO" x "PRONTO PARA SV"), então a tela deixa marcar nos três.
+        # Pra LTSPF/LM não existe essa decisão — passado o prazo, sempre
+        # voltam a ser aptos sozinhos.
+        if tipo in ("LTS", "APTO_RESTR", "APTO_RECOM"):
+            campos["reavaliar_ao_termino"] = bool(
+                form.reavaliar_ao_termino.data)
+
+    return campos
+
+
 @junta_bp.route("/nova-licenca", methods=["GET", "POST"])
 @login_required
 @require_perm("JUNTA_CREATE")
@@ -270,6 +423,7 @@ def nova_licenca():
                 return redirect(url_for("junta.nova_licenca"))
 
             data_sessao = form.data_sessao.data
+            tipo = form.tipo_licenca.data
 
             historico = (
                 Licencas.query
@@ -281,128 +435,26 @@ def nova_licenca():
             situacao = calcular_situacao_atual(historico)
             status_atual = situacao["status_atual"]
 
-            tipo = form.tipo_licenca.data
-
-            numero_bg_curso = None
-            data_extenso_curso = None
-            curso_id = None
-            curso_nome = None
-            resultado_detalhe = None
-            # Só é relevante pra LTS — pros demais tipos fica no default do
-            # modelo (True) e nunca é consultado.
-            reavaliar_ao_termino = True
-            online = bool(form.online.data)
-
-            if tipo in TIPOS_PONTUAIS:
-                # CURSO / TAF / PROMOÇÃO: parecer pontual, com resultado
-                # próprio e valendo pela data da sessão da Junta.
-                resultado = (form.resultado_inspecao.data or "").strip()
-
-                if not resultado_valido(tipo, resultado):
-                    flash(
-                        f"Informe um resultado válido para a inspeção de {label_tipo(tipo)}.",
-                        "danger"
-                    )
-                    return redirect(url_for("junta.nova_licenca"))
-
-                if resultado in RESULTADOS_COM_DETALHE_LIVRE:
-                    resultado_detalhe = (
-                        form.resultado_detalhe.data or "").strip()
-
-                    if not resultado_detalhe:
-                        flash(
-                            "Informe qual foi o resultado (opção 'Outro').", "danger")
-                        return redirect(url_for("junta.nova_licenca"))
-
-                if tipo == "CURSO":
-                    curso_id, curso_nome = _resolver_curso(form)
-
-                    if not curso_nome:
-                        flash("Informe qual o curso da inspeção.", "danger")
-                        return redirect(url_for("junta.nova_licenca"))
-
-                    numero_bg_curso = (form.numero_bg_curso.data or "").strip()
-
-                    if not numero_bg_curso:
-                        flash(
-                            "Informe o número do BG para fins de curso.", "danger")
-                        return redirect(url_for("junta.nova_licenca"))
-                else:
-                    numero_bg_curso = (
-                        form.numero_bg_curso.data or "").strip() or None
-
-                qtd_dias = 1
-                data_inicio = data_sessao
-                data_fim = data_sessao
-                status_registro = resultado
-                data_extenso_curso = data_por_extenso_maiuscula(data_sessao)
-
-            elif tipo == "AGREGADO":
-                data_inicio = form.data_inicio.data or data_sessao
-
-                if status_atual != "APTO_RESTR":
-                    flash(
-                        "A agregação manual só pode ser registrada quando a situação atual do militar estiver como APTO COM RESTRIÇÕES.",
-                        "danger"
-                    )
-                    return redirect(url_for("junta.nova_licenca"))
-
-                qtd_dias = 1
-                data_fim = data_inicio
-                status_registro = calcular_status_registro(tipo)
-
-            elif tipo == "APTO":
-                # Só uma data: o militar está apto a partir dela, sem prazo.
-                data_inicio = form.data_inicio.data
-
-                if not data_inicio:
-                    flash("Informe a data.", "danger")
-                    return redirect(url_for("junta.nova_licenca"))
-
-                qtd_dias = 1
-                data_fim = data_inicio
-                status_registro = calcular_status_registro(tipo)
-
-            else:
-                data_inicio = form.data_inicio.data
-                qtd_dias = form.qtd_dias.data
-
-                if not data_inicio:
-                    flash("Informe a data de início.", "danger")
-                    return redirect(url_for("junta.nova_licenca"))
-
-                if not qtd_dias:
-                    flash("Informe a quantidade de dias.", "danger")
-                    return redirect(url_for("junta.nova_licenca"))
-
-                data_fim = calcular_data_fim(data_inicio, qtd_dias)
-                status_registro = calcular_status_registro(tipo)
-
-                # O checkbox também vale pra APTO_RESTR/APTO_RECOM: é o mesmo
-                # padrão que a nota oficial da JOIS usa nesses pareceres
-                # ("REAVALIAR AO TÉRMINO" x "PRONTO PARA SV"), então a tela
-                # deixa marcar nos três. Pra LTSPF/LM não existe essa decisão
-                # — passado o prazo, sempre voltam a ser aptos sozinhos.
-                if tipo in ("LTS", "APTO_RESTR", "APTO_RECOM"):
-                    reavaliar_ao_termino = bool(form.reavaliar_ao_termino.data)
+            campos = _calcular_campos_por_tipo(
+                form, tipo, data_sessao, status_atual)
 
             nova = Licencas(
                 militar_id=militar.id,
                 tipo_licenca=tipo,
                 recebimento_bg=None,
-                qtd_dias=qtd_dias,
-                data_inicio=data_inicio,
-                data_fim=data_fim,
-                status=status_registro,
+                qtd_dias=campos["qtd_dias"],
+                data_inicio=campos["data_inicio"],
+                data_fim=campos["data_fim"],
+                status=campos["status_registro"],
                 sessao=form.sessao.data.strip(),
                 data_sessao=data_sessao,
-                numero_bg_curso=numero_bg_curso,
-                data_extenso_curso=data_extenso_curso,
-                curso_id=curso_id,
-                curso_nome=curso_nome,
-                resultado_detalhe=resultado_detalhe,
-                reavaliar_ao_termino=reavaliar_ao_termino,
-                online=online,
+                numero_bg_curso=campos["numero_bg_curso"],
+                data_extenso_curso=campos["data_extenso_curso"],
+                curso_id=campos["curso_id"],
+                curso_nome=campos["curso_nome"],
+                resultado_detalhe=campos["resultado_detalhe"],
+                reavaliar_ao_termino=campos["reavaliar_ao_termino"],
+                online=campos["online"],
                 observacao=form.observacao.data.strip() if form.observacao.data else None,
                 usuario_id=current_user.id
             )
@@ -426,6 +478,9 @@ def nova_licenca():
             flash("Registro da Junta Médica adicionado com sucesso!", "success")
             return redirect(url_for("junta.nova_licenca"))
 
+        except _ErroValidacaoLicenca as e:
+            database.session.rollback()
+            flash(str(e), "danger")
         except Exception as e:
             database.session.rollback()
             flash(f"Erro ao salvar licença: {str(e)}", "danger")
@@ -441,6 +496,169 @@ def nova_licenca():
         **_contexto_nova_licenca(form, hoje, data_extenso_hoje,
                                  sessao_ativa=sessao_ativa)
     )
+
+
+@junta_bp.route("/licenca/<int:licenca_id>/editar", methods=["GET", "POST"])
+@login_required
+@require_perm("JUNTA_CREATE")
+def editar_licenca(licenca_id):
+    """
+    Corrige um lançamento pendente — ex.: LTS lançada pro militar errado.
+    Só é permitido enquanto o lançamento não tiver entrado numa nota de BG
+    (histórico vira imutável a partir daí; depois disso é errata).
+    """
+    licenca = Licencas.query.get_or_404(licenca_id)
+
+    if licenca.fechamento_bg_id is not None:
+        flash(
+            "Este lançamento já foi fechado numa nota de BG e não pode mais "
+            "ser editado. Se for pra corrigir algo já publicado, use errata.",
+            "warning"
+        )
+        return redirect(url_for("junta.listar_licencas"))
+
+    form = FormLicencas(obj=licenca)
+    hoje = hoje_manaus()
+    data_extenso_hoje = data_por_extenso_maiuscula(hoje)
+
+    if request.method == "GET":
+        # `obj=licenca` já populou o que tem nome igual à coluna (sessao,
+        # data_sessao, tipo_licenca, qtd_dias, data_inicio, observacao,
+        # numero_bg_curso, resultado_detalhe, reavaliar_ao_termino, online).
+        # O resto precisa de ajuste manual porque não bate 1:1 com o modelo.
+        form.militar_id.data = str(licenca.militar_id)
+        form.militar_nome.data = licenca.militar.nome_completo
+        form.posto_grad_id.data = (
+            licenca.militar.posto_grad.sigla if licenca.militar.posto_grad else "")
+        form.quadro_id.data = (
+            licenca.militar.quadro.quadro if licenca.militar.quadro else "")
+        form.obm_id_1.data = _obter_obm_atual(licenca.militar)
+
+        if licenca.tipo_licenca in TIPOS_PONTUAIS:
+            form.resultado_inspecao.data = licenca.status
+
+        if licenca.tipo_licenca == "CURSO":
+            if licenca.curso_id:
+                form.curso_id.data = str(licenca.curso_id)
+            elif licenca.curso_nome:
+                form.curso_id.data = "OUTRO"
+                form.curso_outro.data = licenca.curso_nome
+
+    if form.validate_on_submit():
+        try:
+            militar_id = int(form.militar_id.data)
+            militar = Militar.query.get(militar_id)
+
+            if not militar:
+                flash("Militar não encontrado.", "danger")
+                return redirect(url_for("junta.editar_licenca", licenca_id=licenca.id))
+
+            data_sessao = form.data_sessao.data
+            tipo = form.tipo_licenca.data
+
+            historico = (
+                Licencas.query
+                .filter(Licencas.militar_id == militar.id,
+                       Licencas.id != licenca.id)
+                .order_by(Licencas.data_inicio.desc(), Licencas.id.desc())
+                .all()
+            )
+
+            situacao = calcular_situacao_atual(historico)
+            status_atual = situacao["status_atual"]
+
+            campos = _calcular_campos_por_tipo(
+                form, tipo, data_sessao, status_atual)
+
+            licenca.militar_id = militar.id
+            licenca.tipo_licenca = tipo
+            licenca.qtd_dias = campos["qtd_dias"]
+            licenca.data_inicio = campos["data_inicio"]
+            licenca.data_fim = campos["data_fim"]
+            licenca.status = campos["status_registro"]
+            licenca.sessao = form.sessao.data.strip()
+            licenca.data_sessao = data_sessao
+            licenca.numero_bg_curso = campos["numero_bg_curso"]
+            licenca.data_extenso_curso = campos["data_extenso_curso"]
+            licenca.curso_id = campos["curso_id"]
+            licenca.curso_nome = campos["curso_nome"]
+            licenca.resultado_detalhe = campos["resultado_detalhe"]
+            licenca.reavaliar_ao_termino = campos["reavaliar_ao_termino"]
+            licenca.online = campos["online"]
+            licenca.observacao = form.observacao.data.strip() if form.observacao.data else None
+
+            # Restrições: limpa os vínculos antigos e reaplica do zero — mais
+            # simples e seguro do que tentar diferenciar checkbox por
+            # checkbox. `.clear()` na coleção (não uma query bulk) é de
+            # propósito: o relacionamento tem cascade="delete-orphan", então
+            # o SQLAlchemy apaga as linhas órfãs sozinho E mantém o estado em
+            # memória sincronizado — importante porque `_aplicar_restricoes`
+            # olha `licenca.restricoes` em seguida pra não duplicar.
+            licenca.restricoes.clear()
+            database.session.flush()
+
+            if tipo in TIPOS_COM_RESTRICAO:
+                _aplicar_restricoes(
+                    licenca,
+                    _ids_restricoes_do_form(),
+                    form.restricao_outra.data or ""
+                )
+
+            database.session.commit()
+
+            flash("Lançamento atualizado com sucesso!", "success")
+            return redirect(url_for("junta.nova_licenca"))
+
+        except _ErroValidacaoLicenca as e:
+            database.session.rollback()
+            flash(str(e), "danger")
+        except Exception as e:
+            database.session.rollback()
+            flash(f"Erro ao atualizar lançamento: {str(e)}", "danger")
+
+    elif request.method == "POST":
+        for campo, erros in form.errors.items():
+            rotulo = getattr(form, campo).label.text if hasattr(
+                form, campo) else campo
+            flash(f"{rotulo}: {'; '.join(erros)}", "danger")
+
+    restricoes_marcadas = {v.restricao_tipo_id for v in licenca.restricoes}
+
+    return render_template(
+        "junta/nova_licenca.html",
+        **_contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None,
+                                 restricoes_marcadas=restricoes_marcadas),
+        modo_edicao=True,
+        licenca_id=licenca.id,
+    )
+
+
+@junta_bp.route("/licenca/<int:licenca_id>/excluir", methods=["POST"])
+@login_required
+@require_perm("JUNTA_CREATE")
+def excluir_licenca(licenca_id):
+    """Remove um lançamento pendente por engano — só antes de virar nota."""
+    licenca = Licencas.query.get_or_404(licenca_id)
+
+    if licenca.fechamento_bg_id is not None:
+        flash(
+            "Este lançamento já foi fechado numa nota de BG e não pode mais "
+            "ser excluído.", "warning"
+        )
+        return redirect(url_for("junta.nova_licenca"))
+
+    try:
+        militar_nome = licenca.militar.nome_completo
+        # A relação tem cascade="delete-orphan" — apagar a licença já apaga
+        # as restrições vinculadas a ela sozinho.
+        database.session.delete(licenca)
+        database.session.commit()
+        flash(f"Lançamento de {militar_nome} excluído.", "success")
+    except Exception as e:
+        database.session.rollback()
+        flash(f"Erro ao excluir lançamento: {str(e)}", "danger")
+
+    return redirect(url_for("junta.nova_licenca"))
 
 
 def _resolver_curso(form):

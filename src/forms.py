@@ -1051,11 +1051,11 @@ class FormLicencas(FlaskForm):
         validators=[DataRequired()]
     )
 
-    # Só é lido/exibido quando tipo_licenca == LTS. Marcado (padrão) preserva
-    # o comportamento de sempre exigir retorno à Junta; desmarcado avisa que,
-    # ao terminar, o militar já é apto — e deve entrar na próxima nota do BG.
+    # Lido/exibido em LTS, APTO_RESTR e APTO_RECOM. Desmarcado (padrão) já
+    # deixa o militar apto ao terminar o prazo, entrando na próxima nota do
+    # BG sozinho; marcado exige retorno à Junta pra reavaliação.
     reavaliar_ao_termino = BooleanField(
-        "Reavaliar ao término", default=True, validators=[Optional()])
+        "Reavaliar ao término", default=False, validators=[Optional()])
 
     # Não entra na nota do BG — é só pra estatística de quantas inspeções
     # foram feitas remotamente. Sem marcar, considera-se presencial.
