@@ -915,6 +915,12 @@
     function validarRegrasInstantaneas(row, { modoSalvar = false } = {}) {
       const militarId = row.dataset.militarId;
       const direitoDias = obterDireitoDias(row);
+      // Mesma regra do servidor (`validar_periodos_ferias`): virar de ano só
+      // é erro se a exceção não estiver ligada pra esse militar/ano — e o
+      // Super User não tem essa restrição em hipótese nenhuma. Antes essa
+      // checagem ignorava os dois e travava o período mesmo com a chave
+      // ligada.
+      const isExcecao = (row.dataset.excecao === 'true') || Boolean(window.IS_SUPER_USER);
 
       const periodos = [
         lerPeriodo(row, militarId, 1),
@@ -957,14 +963,17 @@
         }
 
         /*
-         * A validade é pelo ano do PAF, e não pela data atual,
-         * pelo usuário ou pela OBM do chefe.
+         * O início é sempre pelo ano do PAF, não pela data atual, pelo
+         * usuário ou pela OBM do chefe. O término pode cair no ano seguinte
+         * quando a exceção de virada de ano está ligada pra esse militar —
+         * é exatamente pra isso que a chave existe.
          */
-        if (
-          periodo.inicio.getFullYear() !== ANO_ATUAL ||
-          periodo.fim.getFullYear() !== ANO_ATUAL
-        ) {
-          return `ANO INVÁLIDO: o ${periodo.numero}º período deve começar e terminar dentro de ${ANO_ATUAL}.`;
+        if (periodo.inicio.getFullYear() !== ANO_ATUAL) {
+          return `ANO INVÁLIDO: o ${periodo.numero}º período deve começar dentro de ${ANO_ATUAL}.`;
+        }
+
+        if (periodo.fim.getFullYear() !== ANO_ATUAL && !isExcecao) {
+          return `VIRADA DE ANO: o ${periodo.numero}º período não pode terminar em ${periodo.fim.getFullYear()} sem a exceção de virada de ano ligada pra este militar.`;
         }
 
         const fimEsperado = adicionarDias(
