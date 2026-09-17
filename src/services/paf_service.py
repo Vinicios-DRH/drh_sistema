@@ -623,7 +623,15 @@ def validar_periodos_ferias(periodos: list, *, direito_dias: int, excecao_virada
     oferecidos na tela, a soma dos períodos não pode passar do direito de
     férias do militar (30 ou 40 dias), e nenhum período pode virar de um
     ano pro outro sem a exceção de virada de ano estar ligada pra esse
-    militar/ano."""
+    militar/ano.
+
+    Super User não tem nenhuma restrição de férias — nem de data, nem de
+    saldo, nem de virada de ano — a pedido explícito do usuário: ele é quem
+    decide lançar um período fora do padrão (ex.: fazer o militar cruzar de
+    ano sem precisar antes ligar a exceção pra esse militar/ano)."""
+    if is_super():
+        return
+
     total_dias = 0
 
     for periodo in periodos:
