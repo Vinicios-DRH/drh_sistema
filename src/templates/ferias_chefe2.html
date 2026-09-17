@@ -912,7 +912,7 @@
       );
     }
 
-    function validarRegrasInstantaneas(row) {
+    function validarRegrasInstantaneas(row, { modoSalvar = false } = {}) {
       const militarId = row.dataset.militarId;
       const direitoDias = obterDireitoDias(row);
 
@@ -1010,9 +1010,21 @@
       }
 
       /*
-       * O saldo deve ser exatamente igual ao direito do militar.
+       * Passar do direito é sempre erro, em qualquer momento — mas exigir
+       * que o saldo já esteja EXATO enquanto o chefe ainda está preenchendo
+       * período por período (ex.: acabou de marcar os 20 dias do 1º período
+       * e ainda vai abrir o 2º) interrompia a digitação inteira com um modal
+       * a cada campo, antes mesmo de dar chance de completar a divisão. Por
+       * isso só o clique em Salvar (`modoSalvar`) exige o saldo fechado; a
+       * validação ao vivo (nos listeners de `change`) segue avisando de
+       * excesso, ordem errada, data quebrada etc., só sem travar por saldo
+       * ainda incompleto.
        */
-      if (totalDias !== direitoDias) {
+      if (totalDias > direitoDias) {
+        return `SALDO EXCEDIDO: o militar possui direito a ${direitoDias} dias, mas foram distribuídos ${totalDias} dias.`;
+      }
+
+      if (modoSalvar && totalDias !== direitoDias) {
         return `SALDO INCORRETO: o militar possui direito a ${direitoDias} dias, mas foram distribuídos ${totalDias} dias.`;
       }
 
@@ -1060,14 +1072,16 @@
         const s = row.querySelector(`[name="qtd_dias_${p}_${mid}"]`);
         const i = row.querySelector(`[name="inicio_${p}_${mid}"]`);
 
+        // Enquanto o chefe ainda está preenchendo (escolheu a quantidade mas
+        // ainda não colocou a data, preencheu o 1º período e vai abrir o
+        // 2º, etc.) não interrompe com modal — isso é o meio do caminho de
+        // dividir as férias, não um erro. `auditarLinha` já deixa a linha em
+        // vermelho quando algo ainda está incompleto ou inconsistente; o
+        // modal (`dispararModalInconsistencia`) fica só pro clique em Salvar.
         if (i) {
           i.addEventListener('change', () => {
             calcularFim(row, mid, p);
             refreshRow(row);
-
-            const erro = validarRegrasInstantaneas(row);
-            if (erro) dispararModalInconsistencia(erro);
-
             auditarLinha(row);
           });
         }
@@ -1076,10 +1090,6 @@
             if (!s.value) clearPeriodo(row, mid, p);
             else calcularFim(row, mid, p);
             refreshRow(row);
-
-            const erro = validarRegrasInstantaneas(row);
-            if (erro) dispararModalInconsistencia(erro);
-
             auditarLinha(row);
           });
         }
@@ -1087,7 +1097,8 @@
 
       row.querySelectorAll('.botao-salvar').forEach(btn => {
         btn.addEventListener('click', () => {
-          const erroBloqueante = validarRegrasInstantaneas(row);
+          // aqui sim, salvar exige o saldo fechado (ver comentário na função)
+          const erroBloqueante = validarRegrasInstantaneas(row, { modoSalvar: true });
 
           if (erroBloqueante) {
             dispararModalInconsistencia(erroBloqueante);
@@ -1127,7 +1138,9 @@
     }
 
     function auditarLinha(row) {
-      const erro = validarRegrasInstantaneas(row);
+      // é só destaque visual (sem modal) — pode continuar cobrando saldo
+      // fechado, pra sinalizar quem ainda não terminou de dividir as férias
+      const erro = validarRegrasInstantaneas(row, { modoSalvar: true });
 
       if (erro) {
         row.classList.add('table-danger');

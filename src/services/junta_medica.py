@@ -99,6 +99,42 @@ TIPOS_COM_LIMITE = set(LIMITES_AGREGACAO.keys())
 TIPOS_DECISAO = {"APTO", "APTO_RECOM", "APTO_RESTR", "AGREGADO"}
 TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO", "TAF", "PROMOCAO"}
 
+# Hierarquia de posto/graduação, do mais antigo (topo) pro mais moderno —
+# usada pra ordenar as planilhas exportadas pela Junta. Cobre variações de
+# sigla que aparecem em `posto_grad.sigla` pro mesmo posto ("SUBTENENTE"/
+# "ST", "AL OF"/"ALUNO OFICIAL"/"CAD"). Uma sigla fora da escala (ex.:
+# "AL SGT", "FUNC. CIVIL") não é um posto militar da hierarquia — cai depois
+# de todos os postos conhecidos, ordenada por nome, em vez de sumir da
+# planilha ou quebrar a exportação.
+ORDEM_POSTO_GRAD = {
+    "CEL": 1,
+    "TC": 2,
+    "MAJ": 3,
+    "CAP": 4,
+    "1º TEN": 5,
+    "2º TEN": 6,
+    "ASP OF": 7, "ASP": 7,
+    "CAD": 8, "CADETE": 8, "AL OF": 8, "ALUNO OFICIAL": 8,
+    "ST": 9, "SUBTENENTE": 9,
+    "1º SGT": 10,
+    "2º SGT": 11,
+    "3º SGT": 12,
+    "CB": 13,
+    "SD": 14,
+    "AL SD": 15,
+}
+
+
+def ordem_hierarquica_militar(militar) -> tuple:
+    """
+    Chave de ordenação (peso_do_posto, nome) pra tabelas que listam vários
+    militares — do mais antigo pro mais moderno, e por nome dentro do mesmo
+    posto/graduação.
+    """
+    sigla = militar.posto_grad.sigla if militar and militar.posto_grad else ""
+    peso = ORDEM_POSTO_GRAD.get((sigla or "").strip().upper(), 99)
+    return (peso, militar.nome_completo if militar else "")
+
 
 def calcular_data_fim(data_inicio: date, qtd_dias: int) -> date:
     if not data_inicio:

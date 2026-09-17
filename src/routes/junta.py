@@ -39,6 +39,7 @@ from src.services.junta_medica import (
     listar_tipos_restricao,
     montar_dados_licencas,
     obter_ou_criar_tipo_restricao,
+    ordem_hierarquica_militar,
     resultado_valido,
     RESULTADOS_COM_DETALHE_LIVRE,
     RESULTADOS_POR_TIPO,
@@ -938,6 +939,11 @@ def get_militar_info(militar_id):
 def exportar_licencas_excel():
     filtros = _ler_filtros_listagem()
     dados, resumo = montar_dados_licencas(**filtros)
+
+    # Planilha organizada por hierarquia de posto/graduação — do mais antigo
+    # (Coronel) pro mais moderno (Aluno-Soldado) — em vez da ordem de
+    # lançamento que a tela usa.
+    dados.sort(key=lambda item: ordem_hierarquica_militar(item["registro"].militar))
 
     wb = Workbook()
     ws = wb.active

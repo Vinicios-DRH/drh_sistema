@@ -28,6 +28,7 @@ from sqlalchemy.orm import joinedload
 
 from src import database
 from src.models import JuntaFechamentoBg, Licencas, LicencaRestricao, Militar
+from src.services.junta_medica import ordem_hierarquica_militar
 
 MANAUS_TZ = ZoneInfo("America/Manaus")
 
@@ -551,6 +552,14 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
         .order_by(Licencas.tipo_licenca.asc(), Licencas.militar_id.asc())
         .all()
     )
+
+    # Cada tabela da nota lista os BMs do mais antigo pro mais moderno na
+    # hierarquia (CEL primeiro, AL SD por último) — não na ordem de
+    # lançamento. `agrupar_por_secao` só distribui pra cada seção mantendo a
+    # ordem recebida, e os `sorted(..., key=...)` dentro das seções de CURSO/
+    # TAF/PROMOÇÃO/AGREGADO/APTO são estáveis (ordenam só por curso/data),
+    # então basta ordenar a lista uma vez aqui pra ela valer em toda seção.
+    licencas.sort(key=lambda lic: ordem_hierarquica_militar(lic.militar))
 
     grupos = agrupar_por_secao(licencas)
 
