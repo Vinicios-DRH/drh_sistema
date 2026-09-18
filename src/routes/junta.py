@@ -177,8 +177,10 @@ def _limpar_sessao_ativa():
 
 
 def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None,
-                           restricoes_marcadas=None):
+                           restricoes_marcadas=None,
+                           atestados_extra_repopular=None):
     restricoes_marcadas = restricoes_marcadas or set()
+    atestados_extra_repopular = atestados_extra_repopular or []
     sessao_ja_fechada = False
     if sessao_ativa:
         # Aviso pra quem esquece de trocar de sessão: se essa mesma dupla
@@ -212,6 +214,8 @@ def _contexto_nova_licenca(form, hoje, data_extenso_hoje, sessao_ativa=None,
         tipos_com_restricao=sorted(TIPOS_COM_RESTRICAO),
         tipos_com_reavaliar=sorted(("LTS", "APTO_RESTR", "APTO_RECOM")),
         tipos_data_unica=sorted(TIPOS_DATA_UNICA),
+        tipos_multiplos_atestados=sorted(TIPOS_MULTIPLOS_ATESTADOS),
+        atestados_extra_repopular=atestados_extra_repopular,
         aptos_pendentes=_listar_aptos_pendentes_para_tela(),
         fechamentos_anteriores=_listar_fechamentos_para_errata(),
         lancamentos_pendentes=_listar_lancamentos_pendentes(),
@@ -396,6 +400,102 @@ def _calcular_campos_por_tipo(form, tipo, data_sessao, status_atual):
     return campos
 
 
+# LTS/LTSPF costumam chegar com vários atestados de uma vez pro mesmo
+# militar (às vezes uns 5) — cada atestado vira um lançamento próprio, com
+# dias e término calculados do mesmo jeito que o principal.
+TIPOS_MULTIPLOS_ATESTADOS = ("LTS", "LTSPF")
+
+
+def _extrair_atestados_extra(tipo):
+    """
+    Lê os pares (data_inicio, qtd_dias) extras enviados pelo "+" da tela.
+    Não faz parte do WTForms porque a quantidade é dinâmica — lê direto do
+    request e valida na mão, no mesmo padrão de erro dos outros campos.
+    """
+    if tipo not in TIPOS_MULTIPLOS_ATESTADOS:
+        return []
+
+    inicios = request.form.getlist("extra_data_inicio")
+    quantidades = request.form.getlist("extra_qtd_dias")
+
+    periodos = []
+    for i, (data_str, dias_str) in enumerate(zip(inicios, quantidades), start=1):
+        data_str = (data_str or "").strip()
+        dias_str = (dias_str or "").strip()
+
+        if not data_str and not dias_str:
+            continue
+
+        if not data_str or not dias_str:
+            raise _ErroValidacaoLicenca(
+                f"Atestado extra {i}: informe a data de início e a "
+                "quantidade de dias.")
+
+        try:
+            data_inicio = datetime.strptime(data_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise _ErroValidacaoLicenca(f"Atestado extra {i}: data inválida.")
+
+        try:
+            qtd_dias = int(dias_str)
+        except ValueError:
+            qtd_dias = 0
+
+        if qtd_dias <= 0:
+            raise _ErroValidacaoLicenca(
+                f"Atestado extra {i}: informe uma quantidade de dias válida.")
+
+        periodos.append({"data_inicio": data_inicio, "qtd_dias": qtd_dias})
+
+    return periodos
+
+
+def _atestados_extra_para_repopular():
+    """
+    Se o formulário voltar por erro de validação, o(s) atestado(s) extra(s)
+    que o operador já tinha digitado seriam perdidos (não fazem parte do
+    WTForms, então não voltam sozinhos no re-render). Lê os valores crus do
+    request — sem validar — só pra devolver pra tela e o JS recriar as
+    linhas com o que já tinha sido digitado.
+    """
+    inicios = request.form.getlist("extra_data_inicio")
+    quantidades = request.form.getlist("extra_qtd_dias")
+
+    itens = []
+    for data_str, dias_str in zip(inicios, quantidades):
+        data_str = (data_str or "").strip()
+        dias_str = (dias_str or "").strip()
+        if data_str or dias_str:
+            itens.append({"data_inicio": data_str, "qtd_dias": dias_str})
+    return itens
+
+
+def _criar_lancamento_atestado(*, militar_id, tipo, sessao, data_sessao,
+                               data_inicio, qtd_dias, status_registro,
+                               reavaliar_ao_termino, online, observacao,
+                               usuario_id):
+    return Licencas(
+        militar_id=militar_id,
+        tipo_licenca=tipo,
+        recebimento_bg=None,
+        qtd_dias=qtd_dias,
+        data_inicio=data_inicio,
+        data_fim=calcular_data_fim(data_inicio, qtd_dias),
+        status=status_registro,
+        sessao=sessao,
+        data_sessao=data_sessao,
+        numero_bg_curso=None,
+        data_extenso_curso=None,
+        curso_id=None,
+        curso_nome=None,
+        resultado_detalhe=None,
+        reavaliar_ao_termino=reavaliar_ao_termino,
+        online=online,
+        observacao=observacao,
+        usuario_id=usuario_id,
+    )
+
+
 @junta_bp.route("/nova-licenca", methods=["GET", "POST"])
 @login_required
 @require_perm("JUNTA_CREATE")
@@ -438,6 +538,7 @@ def nova_licenca():
 
             campos = _calcular_campos_por_tipo(
                 form, tipo, data_sessao, status_atual)
+            atestados_extra = _extrair_atestados_extra(tipo)
 
             nova = Licencas(
                 militar_id=militar.id,
@@ -470,13 +571,37 @@ def nova_licenca():
                     form.restricao_outra.data or ""
                 )
 
+            # Atestados extras do mesmo militar/tipo/sessão — cada um gera
+            # seu próprio lançamento, com dias e término calculados igual ao
+            # de cima.
+            for periodo in atestados_extra:
+                database.session.add(_criar_lancamento_atestado(
+                    militar_id=militar.id,
+                    tipo=tipo,
+                    sessao=form.sessao.data.strip(),
+                    data_sessao=data_sessao,
+                    data_inicio=periodo["data_inicio"],
+                    qtd_dias=periodo["qtd_dias"],
+                    status_registro=campos["status_registro"],
+                    reavaliar_ao_termino=campos["reavaliar_ao_termino"],
+                    online=campos["online"],
+                    observacao=form.observacao.data.strip() if form.observacao.data else None,
+                    usuario_id=current_user.id,
+                ))
+
             database.session.commit()
 
             # Trava a sessão pro próximo lançamento — só precisa digitar de
             # novo se clicar em "Trocar sessão".
             _definir_sessao_ativa(form.sessao.data.strip(), data_sessao)
 
-            flash("Registro da Junta Médica adicionado com sucesso!", "success")
+            qtd_total = 1 + len(atestados_extra)
+            if qtd_total > 1:
+                flash(
+                    f"{qtd_total} lançamentos adicionados com sucesso "
+                    f"({label_tipo(tipo)})!", "success")
+            else:
+                flash("Registro da Junta Médica adicionado com sucesso!", "success")
             return redirect(url_for("junta.nova_licenca"))
 
         except _ErroValidacaoLicenca as e:
@@ -494,8 +619,10 @@ def nova_licenca():
 
     return render_template(
         "junta/nova_licenca.html",
-        **_contexto_nova_licenca(form, hoje, data_extenso_hoje,
-                                 sessao_ativa=sessao_ativa)
+        **_contexto_nova_licenca(
+            form, hoje, data_extenso_hoje, sessao_ativa=sessao_ativa,
+            atestados_extra_repopular=_atestados_extra_para_repopular(),
+        )
     )
 
 

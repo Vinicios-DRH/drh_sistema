@@ -510,6 +510,22 @@
                         {{ form.status(class="form-select jm-readonly", id="status", disabled=true) }}
                     </div>
 
+                    {% if not modo_edicao %}
+                    <div class="col-12 d-none" id="grupo_atestados_extra">
+                        <label class="form-label">Outros atestados deste militar</label>
+                        <p class="jm-sub mb-2">
+                            Chegou com mais de um atestado? Adicione quantos precisar — cada
+                            um vira um lançamento próprio, com dias e término calculados
+                            igual ao de cima.
+                        </p>
+                        <div id="lista_atestados_extra"></div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                            id="btn_add_atestado">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar atestado
+                        </button>
+                    </div>
+                    {% endif %}
+
                     <!-- Restrições -->
                     <div class="col-12 d-none" id="grupo_restricoes">
                         <label class="form-label">Tipos de restrição</label>
@@ -701,6 +717,8 @@
     const TIPOS_COM_RESTRICAO = {{ tipos_com_restricao | tojson }};
     const TIPOS_COM_REAVALIAR = {{ tipos_com_reavaliar | tojson }};
     const TIPOS_DATA_UNICA = {{ tipos_data_unica | tojson }};
+    const TIPOS_MULTIPLOS_ATESTADOS = {{ tipos_multiplos_atestados | tojson }};
+    const ATESTADOS_EXTRA_REPOPULAR = {{ atestados_extra_repopular | tojson }};
     const DATA_EXTENSO_HOJE = {{ data_extenso_hoje | tojson }};
     const MESES_PT = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
         "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
@@ -748,6 +766,10 @@
         const grupoOnline = document.getElementById("grupo_online");
         const grupoResultadoDetalhe = document.getElementById("grupo_resultado_detalhe");
         const resultadoDetalhe = document.getElementById("resultado_detalhe");
+
+        const grupoAtestadosExtra = document.getElementById("grupo_atestados_extra");
+        const listaAtestadosExtra = document.getElementById("lista_atestados_extra");
+        const btnAddAtestado = document.getElementById("btn_add_atestado");
 
         const chkRestricaoOutra = document.getElementById("chk_restricao_outra");
         const grupoRestricaoOutraTexto = document.getElementById("grupo_restricao_outra_texto");
@@ -884,6 +906,64 @@
             if (!ehOutro) cursoOutro.value = "";
         }
 
+        // "+" de atestado extra (LTS/LTSPF): cada linha vira um lançamento
+        // próprio pro mesmo militar, com dias/término calculados igual ao
+        // do formulário principal.
+        let contadorAtestadoExtra = 0;
+
+        function calcularTerminoAtestadoExtra(linha) {
+            const inicio = linha.querySelector(".extra-data-inicio").value;
+            const dias = parseInt(linha.querySelector(".extra-qtd-dias").value || "0", 10);
+            const termino = linha.querySelector(".extra-data-termino");
+
+            if (inicio && dias > 0) {
+                const d = new Date(inicio + "T00:00:00");
+                d.setDate(d.getDate() + (dias - 1));
+                termino.value = d.toISOString().split("T")[0];
+            } else {
+                termino.value = "";
+            }
+        }
+
+        function adicionarAtestadoExtra() {
+            contadorAtestadoExtra += 1;
+
+            const linha = document.createElement("div");
+            linha.className = "row g-2 align-items-end jm-atestado-extra mb-2";
+            linha.innerHTML = `
+                <div class="col-lg-3">
+                    <label class="form-label">Data de início</label>
+                    <input type="date" class="form-control extra-data-inicio" name="extra_data_inicio">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Dias</label>
+                    <input type="number" min="1" class="form-control extra-qtd-dias" name="extra_qtd_dias" placeholder="0">
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">Término</label>
+                    <input type="date" class="form-control jm-readonly extra-data-termino" readonly>
+                </div>
+                <div class="col-lg-2">
+                    <button type="button" class="btn btn-outline-danger btn-remover-atestado" title="Remover">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            linha.querySelector(".extra-data-inicio").addEventListener(
+                "change", () => calcularTerminoAtestadoExtra(linha));
+            linha.querySelector(".extra-qtd-dias").addEventListener(
+                "input", () => calcularTerminoAtestadoExtra(linha));
+            linha.querySelector(".btn-remover-atestado").addEventListener(
+                "click", () => linha.remove());
+
+            listaAtestadosExtra.appendChild(linha);
+        }
+
+        if (btnAddAtestado) {
+            btnAddAtestado.addEventListener("click", adicionarAtestadoExtra);
+        }
+
         function calcularTerminoEStatus() {
             const tipo = tipoLicenca.value;
             const dias = parseInt(qtdDias.value || "0", 10);
@@ -912,6 +992,12 @@
             grupoRestricoes.classList.toggle("d-none", !temRestricao);
             grupoReavaliar.classList.toggle("d-none", !podeReavaliar);
             grupoOnline.classList.toggle("d-none", tipo === "AGREGADO");
+
+            if (grupoAtestadosExtra) {
+                const permiteMultiplos = TIPOS_MULTIPLOS_ATESTADOS.includes(tipo);
+                grupoAtestadosExtra.classList.toggle("d-none", !permiteMultiplos);
+                if (!permiteMultiplos) listaAtestadosExtra.innerHTML = "";
+            }
 
             if (ehPontual) {
                 montarResultados(tipo);
@@ -1104,6 +1190,19 @@
         }
 
         calcularTerminoEStatus();
+
+        // Reformulário depois de um erro de validação: recria as linhas de
+        // atestado extra com o que o operador já tinha digitado, em vez de
+        // fazer ele perder e redigitar tudo de novo.
+        if (btnAddAtestado && ATESTADOS_EXTRA_REPOPULAR.length) {
+            ATESTADOS_EXTRA_REPOPULAR.forEach(item => {
+                adicionarAtestadoExtra();
+                const linha = listaAtestadosExtra.lastElementChild;
+                linha.querySelector(".extra-data-inicio").value = item.data_inicio || "";
+                linha.querySelector(".extra-qtd-dias").value = item.qtd_dias || "";
+                calcularTerminoAtestadoExtra(linha);
+            });
+        }
 
         // ---- Modal de fechamento: alterna entre fechar sessão e errata ----
         const modalFinalizar = document.getElementById("modalFinalizarBg");
