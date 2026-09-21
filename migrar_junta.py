@@ -75,6 +75,12 @@ DDL = [
     "ALTER TABLE junta_fechamento_bg ADD COLUMN IF NOT EXISTS data_bg_publicacao DATE",
     "ALTER TABLE junta_fechamento_bg ADD COLUMN IF NOT EXISTS onde_se_le TEXT",
     "ALTER TABLE junta_fechamento_bg ADD COLUMN IF NOT EXISTS leia_se TEXT",
+
+    # --- AO (Exame de Controle de Atestado de Origem) e ISO (Parecer
+    # Técnico de Inquérito Sanitário de Origem) ---
+    "ALTER TABLE licencas ADD COLUMN IF NOT EXISTS portaria VARCHAR(255)",
+    "ALTER TABLE licencas ADD COLUMN IF NOT EXISTS data_publicacao DATE",
+    "ALTER TABLE licencas ADD COLUMN IF NOT EXISTS data_acidente DATE",
 ]
 
 # Postgres não tem "ADD CONSTRAINT IF NOT EXISTS" — cada FK checa antes.

@@ -2061,6 +2061,18 @@ class Licencas(database.Model):
     # digitou quando nenhum resultado padrão da lista serve.
     resultado_detalhe = database.Column(database.String(160), nullable=True)
 
+    # AO (Exame de Controle de Atestado de Origem) e ISO (Parecer Técnico de
+    # Inquérito Sanitário de Origem): referência da portaria (texto livre,
+    # digitado à mão — ainda não existe uma base de BGs pra puxar sozinho) e
+    # a data em que ela foi publicada, que sai por extenso na nota do BG.
+    portaria = database.Column(database.String(255), nullable=True)
+    data_publicacao = database.Column(database.Date, nullable=True)
+
+    # Só ISO usa: data do acidente que originou o inquérito — entra no texto
+    # do parecer quando o resultado é sobre relação de causa e efeito com um
+    # acidente específico.
+    data_acidente = database.Column(database.Date, nullable=True)
+
     # Reavaliação ao término da LTS: se marcado, o militar precisa voltar à
     # Junta quando o prazo acabar (vira AGUARDANDO_INSPECAO). Se desmarcado,
     # ele já é considerado apto automaticamente no término — e a nota do BG

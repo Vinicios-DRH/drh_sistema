@@ -1047,6 +1047,8 @@ class FormLicencas(FlaskForm):
             ("TAF", "TAF"),
             ("PROMOCAO", "PROMOÇÃO"),
             ("AGREGADO", "AGREGADO"),
+            ("AO", "EXAME DE CONTROLE DE ATESTADO DE ORIGEM (AO)"),
+            ("ISO", "PARECER TÉCNICO DE INQUÉRITO SANITÁRIO DE ORIGEM (ISO)"),
         ],
         validators=[DataRequired()]
     )
@@ -1100,6 +1102,14 @@ class FormLicencas(FlaskForm):
             ("PROMOCAO_APTO", "APTO PARA FINS DE PROMOÇÃO"),
             ("PROMOCAO_INAPTO", "INAPTO PARA FINS DE PROMOÇÃO"),
             ("AGREGADO", "AGREGADO"),
+            ("AO_HA_RELACAO", "AO - HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("AO_NAO_HA_RELACAO", "AO - NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("AO_HA_VESTIGIOS", "AO - HÁ VESTÍGIOS ANATÔMICOS/FUNCIONAIS"),
+            ("AO_NAO_HA_VESTIGIOS", "AO - NÃO HÁ VESTÍGIOS ANATÔMICOS/FUNCIONAIS"),
+            ("ISO_HA_RELACAO", "ISO - HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("ISO_NAO_HA_RELACAO", "ISO - NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("ISO_HA_RELACAO_SERVICO", "ISO - HÁ RELAÇÃO COM O SERVIÇO"),
+            ("ISO_NAO_HA_RELACAO_SERVICO", "ISO - NÃO HÁ RELAÇÃO COM O SERVIÇO"),
         ],
         validators=[Optional()]
     )
@@ -1120,6 +1130,14 @@ class FormLicencas(FlaskForm):
             ("TAF_INAPTO", "INAPTO"),
             ("PROMOCAO_APTO", "APTO"),
             ("PROMOCAO_INAPTO", "INAPTO"),
+            ("AO_HA_RELACAO", "HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("AO_NAO_HA_RELACAO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("AO_HA_VESTIGIOS", "HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO"),
+            ("AO_NAO_HA_VESTIGIOS", "NÃO HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO"),
+            ("ISO_HA_RELACAO", "HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("ISO_NAO_HA_RELACAO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+            ("ISO_HA_RELACAO_SERVICO", "HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO SERVIÇO"),
+            ("ISO_NAO_HA_RELACAO_SERVICO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO SERVIÇO"),
         ],
         validators=[Optional()],
         validate_choice=False
@@ -1128,6 +1146,21 @@ class FormLicencas(FlaskForm):
     # Texto livre quando resultado_inspecao == CURSO_OUTRO.
     resultado_detalhe = StringField(
         "Qual o resultado?", validators=[Optional()])
+
+    # AO / ISO: referência da portaria (texto livre) e data em que foi
+    # publicada — sai por extenso na nota do BG. `data_acidente` só é usada
+    # pelo ISO, e só nos resultados que tratam de um acidente específico.
+    portaria = StringField("Portaria", validators=[Optional()])
+    data_publicacao = DateField(
+        "Data de Publicação",
+        format="%Y-%m-%d",
+        validators=[Optional()]
+    )
+    data_acidente = DateField(
+        "Data do Acidente",
+        format="%Y-%m-%d",
+        validators=[Optional()]
+    )
 
     # Curso da inspeção "CURSO": vem do catálogo (`curso`) ou, quando o
     # operador escolhe "Outros", do texto digitado em curso_outro.

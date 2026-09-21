@@ -486,6 +486,29 @@
                         readonly=true, value=data_extenso_hoje) }}
                     </div>
 
+                    <div class="col-lg-5 d-none" id="grupo_portaria">
+                        <label class="form-label" for="portaria">
+                            {{ form.portaria.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.portaria(class="form-control", id="portaria",
+                        placeholder="Ex.: 552/SCMT GERAL, DE 29 DE SETEMBRO DE 2025, PUBLICADA NO BOLETIM GERAL Nº 183") }}
+                    </div>
+
+                    <div class="col-lg-3 d-none" id="grupo_data_publicacao">
+                        <label class="form-label" for="data_publicacao">
+                            {{ form.data_publicacao.label.text }} <span class="jm-req">*</span>
+                        </label>
+                        {{ form.data_publicacao(class="form-control", id="data_publicacao") }}
+                    </div>
+
+                    <div class="col-lg-3 d-none" id="grupo_data_acidente">
+                        <label class="form-label" for="data_acidente">
+                            {{ form.data_acidente.label.text }}
+                        </label>
+                        {{ form.data_acidente(class="form-control", id="data_acidente") }}
+                        <p class="jm-sub mb-0">Só quando o resultado tratar de um acidente específico.</p>
+                    </div>
+
                     <div class="col-lg-2" id="grupo_qtd_dias">
                         <label class="form-label" for="qtd_dias">
                             {{ form.qtd_dias.label.text }} <span class="jm-req">*</span>
@@ -760,6 +783,9 @@
         const grupoCursoOutro = document.getElementById("grupo_curso_outro");
         const grupoNumeroBgCurso = document.getElementById("grupo_numero_bg_curso");
         const grupoDataExtensoCurso = document.getElementById("grupo_data_extenso_curso");
+        const grupoPortaria = document.getElementById("grupo_portaria");
+        const grupoDataPublicacao = document.getElementById("grupo_data_publicacao");
+        const grupoDataAcidente = document.getElementById("grupo_data_acidente");
         const grupoRestricoes = document.getElementById("grupo_restricoes");
         const grupoStatus = document.getElementById("grupo_status");
         const grupoReavaliar = document.getElementById("grupo_reavaliar");
@@ -971,23 +997,30 @@
 
             const ehPontual = TIPOS_PONTUAIS.includes(tipo);
             const ehCurso = tipo === "CURSO";
+            const ehAoOuIso = tipo === "AO" || tipo === "ISO";
             const ehDataUnica = TIPOS_DATA_UNICA.includes(tipo);
             const temRestricao = TIPOS_COM_RESTRICAO.includes(tipo);
             const podeReavaliar = TIPOS_COM_REAVALIAR.includes(tipo);
 
             // Período (dias/término) só faz sentido pra licenças com prazo —
-            // pontuais (curso/TAF/promoção) e "data única" (apto/agregado)
-            // não têm quantidade de dias nem término, só uma data.
+            // pontuais (curso/TAF/promoção/AO/ISO) e "data única" (apto/
+            // agregado) não têm quantidade de dias nem término, só uma data.
             grupoQtdDias.classList.toggle("d-none", ehPontual || ehDataUnica);
             grupoDataInicio.classList.toggle("d-none", ehPontual);
             grupoDataTermino.classList.toggle("d-none", ehPontual || ehDataUnica);
             grupoStatus.classList.toggle("d-none", ehPontual);
 
             grupoResultado.classList.toggle("d-none", !ehPontual);
-            grupoNumeroBgCurso.classList.toggle("d-none", !ehPontual);
-            grupoDataExtensoCurso.classList.toggle("d-none", !ehPontual);
+            // Número do BG / data por extenso genéricos são pra CURSO/TAF/
+            // PROMOÇÃO — AO/ISO usam portaria + data de publicação próprios.
+            grupoNumeroBgCurso.classList.toggle("d-none", !ehPontual || ehAoOuIso);
+            grupoDataExtensoCurso.classList.toggle("d-none", !ehPontual || ehAoOuIso);
             grupoCurso.classList.toggle("d-none", !ehCurso);
             reqNumeroBg.classList.toggle("d-none", !ehCurso);
+
+            grupoPortaria.classList.toggle("d-none", !ehAoOuIso);
+            grupoDataPublicacao.classList.toggle("d-none", !ehAoOuIso);
+            grupoDataAcidente.classList.toggle("d-none", tipo !== "ISO");
 
             grupoRestricoes.classList.toggle("d-none", !temRestricao);
             grupoReavaliar.classList.toggle("d-none", !podeReavaliar);

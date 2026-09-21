@@ -42,6 +42,7 @@ from src.services.junta_medica import (
     ordem_hierarquica_militar,
     resultado_valido,
     RESULTADOS_COM_DETALHE_LIVRE,
+    RESULTADOS_ISO_COM_ACIDENTE,
     RESULTADOS_POR_TIPO,
     STATUS_LABELS,
     TIPO_LICENCA_LABELS,
@@ -92,7 +93,7 @@ MESES_PT = [
 def data_por_extenso_maiuscula(dt):
     if not dt:
         return ""
-    return f"{dt.day} DE {MESES_PT[dt.month - 1]} DE {dt.year}"
+    return f"{dt.day:02d} DE {MESES_PT[dt.month - 1]} DE {dt.year}"
 
 
 def _listar_cursos():
@@ -299,6 +300,9 @@ def _calcular_campos_por_tipo(form, tipo, data_sessao, status_atual):
         "curso_id": None,
         "curso_nome": None,
         "resultado_detalhe": None,
+        "portaria": None,
+        "data_publicacao": None,
+        "data_acidente": None,
         # Só é lido pra LTS/APTO_RESTR/APTO_RECOM — pros demais tipos esse
         # valor nunca é consultado.
         "reavaliar_ao_termino": True,
@@ -338,6 +342,25 @@ def _calcular_campos_por_tipo(form, tipo, data_sessao, status_atual):
             campos["curso_id"] = curso_id
             campos["curso_nome"] = curso_nome
             campos["numero_bg_curso"] = numero_bg_curso
+        elif tipo in ("AO", "ISO"):
+            portaria = (form.portaria.data or "").strip()
+
+            if not portaria:
+                raise _ErroValidacaoLicenca(
+                    "Informe a portaria que originou a inspeção.")
+
+            if not form.data_publicacao.data:
+                raise _ErroValidacaoLicenca(
+                    "Informe a data de publicação da portaria.")
+
+            campos["portaria"] = portaria
+            campos["data_publicacao"] = form.data_publicacao.data
+
+            if tipo == "ISO" and resultado in RESULTADOS_ISO_COM_ACIDENTE:
+                if not form.data_acidente.data:
+                    raise _ErroValidacaoLicenca(
+                        "Informe a data do acidente.")
+                campos["data_acidente"] = form.data_acidente.data
         else:
             campos["numero_bg_curso"] = (
                 form.numero_bg_curso.data or "").strip() or None
@@ -555,6 +578,9 @@ def nova_licenca():
                 curso_id=campos["curso_id"],
                 curso_nome=campos["curso_nome"],
                 resultado_detalhe=campos["resultado_detalhe"],
+                portaria=campos["portaria"],
+                data_publicacao=campos["data_publicacao"],
+                data_acidente=campos["data_acidente"],
                 reavaliar_ao_termino=campos["reavaliar_ao_termino"],
                 online=campos["online"],
                 observacao=form.observacao.data.strip() if form.observacao.data else None,
@@ -711,6 +737,9 @@ def editar_licenca(licenca_id):
             licenca.curso_id = campos["curso_id"]
             licenca.curso_nome = campos["curso_nome"]
             licenca.resultado_detalhe = campos["resultado_detalhe"]
+            licenca.portaria = campos["portaria"]
+            licenca.data_publicacao = campos["data_publicacao"]
+            licenca.data_acidente = campos["data_acidente"]
             licenca.reavaliar_ao_termino = campos["reavaliar_ao_termino"]
             licenca.online = campos["online"]
             licenca.observacao = form.observacao.data.strip() if form.observacao.data else None

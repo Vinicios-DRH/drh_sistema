@@ -69,7 +69,13 @@ def fmt_data_ponto(dt) -> str:
 def data_por_extenso(dt) -> str:
     if not dt:
         return ""
-    return f"{dt.day} de {MESES_PT[dt.month - 1]} de {dt.year}"
+    return f"{dt.day:02d} de {MESES_PT[dt.month - 1]} de {dt.year}"
+
+
+def _data_por_extenso_maiuscula(dt) -> str:
+    """Como `data_por_extenso`, mas em caixa alta — pro meio de frases que
+    já são todas em maiúsculo (AO/ISO)."""
+    return data_por_extenso(dt).upper()
 
 
 def safe_getattr(obj, attr, default=""):
@@ -414,6 +420,106 @@ def _secao_promocao(doc, itens: list[Licencas]):
 
 
 # ---------------------------------------------------------------------------
+# AO (Exame de Controle de Atestado de Origem) e ISO (Parecer Técnico de
+# Inquérito Sanitário de Origem) — pontuais, agrupados por portaria/data de
+# publicação (é o que muda o cabeçalho da seção).
+# ---------------------------------------------------------------------------
+
+TEXTOS_RESULTADO_AO = {
+    "AO_HA_RELACAO": (
+        "HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE O ACIDENTE SOFRIDO E AS "
+        "CONDIÇÕES MÓRBIDAS ATUAIS EXPRESSAS PELOS DIAGNÓSTICOS."),
+    "AO_NAO_HA_RELACAO": (
+        "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO "
+        "SERVIÇO E O ESTADO MÓRBIDO ATUAL EXPRESSO PELO DIAGNÓSTICO."),
+    "AO_HA_VESTIGIOS":
+        "HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO.",
+    "AO_NAO_HA_VESTIGIOS":
+        "NÃO HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO.",
+}
+
+
+def _texto_resultado_iso(lic: Licencas) -> str:
+    """
+    ISO_HA_RELACAO/ISO_NAO_HA_RELACAO tratam de um acidente específico — o
+    texto cita a data dele. Os "_SERVICO" tratam de condições inerentes ao
+    serviço em geral, sem data nenhuma.
+    """
+    data_ac = _data_por_extenso_maiuscula(lic.data_acidente)
+
+    if lic.status == "ISO_HA_RELACAO":
+        return (
+            f"HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE O ACIDENTE SOFRIDO NO DIA "
+            f"{data_ac} E AS CONDIÇÕES MÓRBIDAS ATUAIS EXPRESSAS PELOS "
+            f"DIAGNÓSTICOS."
+        )
+    if lic.status == "ISO_NAO_HA_RELACAO":
+        return (
+            f"NÃO HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE O ACIDENTE SOFRIDO NO "
+            f"DIA {data_ac} E AS CONDIÇÕES MÓRBIDAS ATUAIS EXPRESSAS PELOS "
+            f"DIAGNÓSTICOS."
+        )
+    if lic.status == "ISO_HA_RELACAO_SERVICO":
+        return (
+            "HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO "
+            "SERVIÇO E O ESTADO MÓRBIDO ATUAL EXPRESSO PELOS DIAGNÓSTICOS."
+        )
+    if lic.status == "ISO_NAO_HA_RELACAO_SERVICO":
+        return (
+            "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES "
+            "AO SERVIÇO E O ESTADO MÓRBIDO ATUAL EXPRESSO PELOS "
+            "DIAGNÓSTICOS."
+        )
+    return ""
+
+
+def _titulo_ao(portaria: str, data_publicacao) -> str:
+    return (
+        f"COMPARECEU A JOIS/CBMAM: FINS INSPEÇÃO DE SAÚDE PARA EXAME DE "
+        f"CONTROLE DO ATESTADO DE ORIGEM, CONFORME PORTARIA Nº {portaria}, "
+        f"DE {_data_por_extenso_maiuscula(data_publicacao)}, COM SEU "
+        f"RESPECTIVO PARECER MÉDICO."
+    )
+
+
+def _titulo_iso(portaria: str, data_publicacao) -> str:
+    return (
+        f"COMPARECEU A JOIS/CBMAM: FINS INSPEÇÃO DE SAÚDE PARA PARECER "
+        f"TÉCNICO DO INQUÉRITO SANITÁRIO DE ORIGEM - ISO, CONFORME PORTARIA "
+        f"Nº {portaria}, DE {_data_por_extenso_maiuscula(data_publicacao)}, "
+        f"COM SEU RESPECTIVO PARECER MÉDICO."
+    )
+
+
+def _secao_ao_iso(doc, tipo: str, itens: list[Licencas]):
+    if not itens:
+        return
+
+    titulo_fn = _titulo_ao if tipo == "AO" else _titulo_iso
+    chave = lambda lic: (lic.portaria or "", lic.data_publicacao or date.min)
+
+    for (portaria, data_publicacao), grupo in groupby(
+        sorted(itens, key=chave), key=chave
+    ):
+        _paragrafo(doc, titulo_fn(portaria, data_publicacao), espaco_depois=4)
+
+        tabela = _tabela(doc, ["POSTO/GRAD", "NOME", "IDT"])
+        for lic in grupo:
+            ident = _identidade_militar(lic)
+            texto_resultado = (
+                TEXTOS_RESULTADO_AO.get(lic.status, "") if tipo == "AO"
+                else _texto_resultado_iso(lic)
+            )
+            _linha_tabela(tabela, [
+                ident["posto_grad_quadro"],
+                [ident["nome_completo"], texto_resultado],
+                ident["idt"].split("\n"),
+            ])
+
+        _paragrafo(doc, "", espaco_depois=10)
+
+
+# ---------------------------------------------------------------------------
 # AGREGADO e APTO (individuais, "a contar de" / "agregado a partir de")
 # ---------------------------------------------------------------------------
 
@@ -516,12 +622,14 @@ def agrupar_por_secao(licencas: list[Licencas]):
     grupos = {
         "lts": [], "ltspf": [], "lm": [], "apto_recom": [], "apto_restr": [],
         "apto": [], "agregado": [], "curso": [], "taf": [], "promocao": [],
+        "ao": [], "iso": [],
     }
     chave_por_tipo = {
         "LTS": "lts", "LTSPF": "ltspf", "LM": "lm",
         "APTO_RECOM": "apto_recom", "APTO_RESTR": "apto_restr",
         "APTO": "apto", "AGREGADO": "agregado",
         "CURSO": "curso", "TAF": "taf", "PROMOCAO": "promocao",
+        "AO": "ao", "ISO": "iso",
     }
     for lic in licencas:
         chave = chave_por_tipo.get(lic.tipo_licenca)
@@ -594,6 +702,8 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
         _secao_curso(doc, grupos["curso"])
         _secao_taf(doc, grupos["taf"])
         _secao_promocao(doc, grupos["promocao"])
+        _secao_ao_iso(doc, "AO", grupos["ao"])
+        _secao_ao_iso(doc, "ISO", grupos["iso"])
         _secao_agrupada_por_data(doc, grupos["agregado"], "AGREGADO")
         _secao_agrupada_por_data(doc, grupos["apto"], "APTO AO SERVIÇO DO CBMAM")
     else:

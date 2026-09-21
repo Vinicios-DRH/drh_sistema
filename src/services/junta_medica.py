@@ -26,6 +26,8 @@ TIPO_LICENCA_LABELS = {
     "TAF": "TAF",
     "PROMOCAO": "PROMOÇÃO",
     "AGREGADO": "AGREGADO",
+    "AO": "EXAME DE CONTROLE DE ATESTADO DE ORIGEM (AO)",
+    "ISO": "PARECER TÉCNICO DE INQUÉRITO SANITÁRIO DE ORIGEM (ISO)",
 }
 
 STATUS_LABELS = {
@@ -45,6 +47,14 @@ STATUS_LABELS = {
     "PROMOCAO_APTO": "APTO PARA FINS DE PROMOÇÃO",
     "PROMOCAO_INAPTO": "INAPTO PARA FINS DE PROMOÇÃO",
     "AGREGADO": "AGREGADO",
+    "AO_HA_RELACAO": "AO - HÁ RELAÇÃO DE CAUSA E EFEITO",
+    "AO_NAO_HA_RELACAO": "AO - NÃO HÁ RELAÇÃO DE CAUSA E EFEITO",
+    "AO_HA_VESTIGIOS": "AO - HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE",
+    "AO_NAO_HA_VESTIGIOS": "AO - NÃO HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE",
+    "ISO_HA_RELACAO": "ISO - HÁ RELAÇÃO DE CAUSA E EFEITO",
+    "ISO_NAO_HA_RELACAO": "ISO - NÃO HÁ RELAÇÃO DE CAUSA E EFEITO",
+    "ISO_HA_RELACAO_SERVICO": "ISO - HÁ RELAÇÃO DE CAUSA E EFEITO COM O SERVIÇO",
+    "ISO_NAO_HA_RELACAO_SERVICO": "ISO - NÃO HÁ RELAÇÃO DE CAUSA E EFEITO COM O SERVIÇO",
 }
 
 # Tipos de inspeção que não são licença/decisão médica de situação: o parecer
@@ -70,7 +80,24 @@ RESULTADOS_POR_TIPO = {
         ("PROMOCAO_APTO", "APTO"),
         ("PROMOCAO_INAPTO", "INAPTO"),
     ],
+    "AO": [
+        ("AO_HA_RELACAO", "HÁ RELAÇÃO DE CAUSA E EFEITO"),
+        ("AO_NAO_HA_RELACAO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+        ("AO_HA_VESTIGIOS", "HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO"),
+        ("AO_NAO_HA_VESTIGIOS", "NÃO HÁ VESTÍGIOS ANATÔMICOS OU FUNCIONAIS DO ACIDENTE SOFRIDO"),
+    ],
+    "ISO": [
+        ("ISO_HA_RELACAO", "HÁ RELAÇÃO DE CAUSA E EFEITO"),
+        ("ISO_NAO_HA_RELACAO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO"),
+        ("ISO_HA_RELACAO_SERVICO", "HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO SERVIÇO"),
+        ("ISO_NAO_HA_RELACAO_SERVICO", "NÃO HÁ RELAÇÃO DE CAUSA E EFEITO ENTRE AS CONDIÇÕES INERENTES AO SERVIÇO"),
+    ],
 }
+
+# ISO: só os resultados que tratam de um acidente específico (a/b) usam a
+# data do acidente no texto do parecer — os de "condições inerentes ao
+# serviço" (c/d) não citam data nenhuma.
+RESULTADOS_ISO_COM_ACIDENTE = {"ISO_HA_RELACAO", "ISO_NAO_HA_RELACAO"}
 
 # Resultados cujo texto exibido não é fixo — vem do que o operador digitou em
 # `resultado_detalhe`.
@@ -97,7 +124,7 @@ LIMITES_AGREGACAO = {
 
 TIPOS_COM_LIMITE = set(LIMITES_AGREGACAO.keys())
 TIPOS_DECISAO = {"APTO", "APTO_RECOM", "APTO_RESTR", "AGREGADO"}
-TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO", "TAF", "PROMOCAO"}
+TIPOS_IGNORADOS_STATUS_ATUAL = {"CURSO", "TAF", "PROMOCAO", "AO", "ISO"}
 
 # Hierarquia de posto/graduação, do mais antigo (topo) pro mais moderno —
 # usada pra ordenar as planilhas exportadas pela Junta. Cobre variações de
