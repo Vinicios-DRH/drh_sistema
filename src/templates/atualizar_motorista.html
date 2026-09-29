@@ -177,13 +177,16 @@
                                     </div>
                                 </div>
                             </div>
+                        </form>
 
-                            <!-- Modal de confirmação -->
-                            <div class="modal fade" id="confirmDesclassificarModal" tabindex="-1" aria-labelledby="confirmDesclassificarModalLabel" aria-hidden="true">
+                        <!-- Modal de confirmação: precisa ficar FORA do form principal.
+                             Form aninhado é inválido em HTML e fazia o hidden "action=desclassificar"
+                             ser enviado junto com o botão Salvar. -->
+                        <div class="modal fade" id="confirmDesclassificarModal" tabindex="-1" aria-labelledby="confirmDesclassificarModalLabel" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content">
-                                <form method="POST" id="desclassificarForm" class="p-0">  <!-- vai submeter o mesmo form por POST -->
-                                    {{ form_motorista.csrf_token }}
+                                <form method="POST" id="desclassificarForm" class="p-0">
+                                    {{ form_motorista.csrf_token(id="csrf_token_desclassificar") }}
                                     <div class="modal-header">
                                     <h5 class="modal-title" id="confirmDesclassificarModalLabel">Confirmar desclassificação</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -207,9 +210,7 @@
                                 </form>
                                 </div>
                             </div>
-                            </div>
-
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
