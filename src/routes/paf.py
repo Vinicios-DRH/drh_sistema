@@ -4,8 +4,8 @@ from flask import Blueprint, render_template, request, redirect, send_file, url_
 from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select, text
 from src import database
-from src.decorators.control import has_perm
 from src.formatar_cpf import get_militar_por_user
+from src.services.paf_service import pode_enviar_paf
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from src.utils.utils import registrar_log_download
 from zoneinfo import ZoneInfo
@@ -234,15 +234,18 @@ def _cached_obms_postos():
 @bp_paf.route("/novo", methods=["GET", "POST"])
 @login_required
 def novo():
-    # liberação do PAF em etapas é feita pela permissão (SUPER passa direto)
-    if not has_perm("NAV_PAF_NOVO"):
-        flash("O preenchimento do PAF ainda não foi liberado para você.", "warning")
-        return redirect(url_for("home"))
-
     # militar padrão é o próprio
     militar = get_militar_por_user(current_user)
     if not militar:
         flash("Não foi possível localizar seus dados.", "danger")
+        return redirect(url_for("home"))
+
+    # só conta ATUALIZACAO CADASTRAL + posto liberado na etapa atual; vale pro GET e pro POST
+    if not pode_enviar_paf(current_user, militar):
+        if int(getattr(current_user, "funcao_user_id", 0) or 0) != 12:
+            flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral).", "warning")
+        else:
+            flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
         return redirect(url_for("home"))
 
     ano = request.values.get("ano", type=int) or _ano_atual_manaus()

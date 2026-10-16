@@ -41,6 +41,27 @@ from src.models import (
 # Vigência e datas
 # ---------------------------------------------------------------------------
 
+# Quem envia o PAF: SOMENTE conta do tipo ATUALIZACAO CADASTRAL (a conta pessoal
+# do militar) — chefe, diretor, DRH e super não enviam por essas contas.
+FUNCAO_USER_ATUALIZACAO_CADASTRAL = 12
+
+# Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
+#   Etapa 1 (atual): só oficiais superiores.
+#   Etapa 2: para liberar a tropa toda, troque para  PAF_POSTOS_LIBERADOS = None
+PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ"})
+
+
+def pode_enviar_paf(user, militar) -> bool:
+    if not user or not militar:
+        return False
+    if int(getattr(user, "funcao_user_id", 0) or 0) != FUNCAO_USER_ATUALIZACAO_CADASTRAL:
+        return False
+    if PAF_POSTOS_LIBERADOS is None:
+        return True
+    sigla = militar.posto_grad.sigla if militar.posto_grad else ""
+    return (sigla or "").strip().upper() in PAF_POSTOS_LIBERADOS
+
+
 def paf_ano_vigente() -> int:
     return current_app.config.get('PAF_ANO_VIGENTE') or datetime.now(ZoneInfo('America/Manaus')).year
 

@@ -43,10 +43,15 @@ def _rule_user_id_is(uid: int) -> bool:
 
 
 def _rule_paf_solicitante() -> bool:
-    # Quem pode preencher o PAF é controlado só pelas permissões NAV_PAF_*
-    # (liberação em etapas: primeiro oficiais superiores, depois a tropa).
-    # Antes exigia função 12, o que escondia o menu de chefes/diretores.
-    return bool(getattr(current_user, "is_authenticated", False))
+    # Mesma regra da rota /paf/novo (paf_service.pode_enviar_paf): só conta
+    # ATUALIZACAO CADASTRAL e só os postos liberados na etapa atual.
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+    if int(getattr(current_user, "funcao_user_id", 0) or 0) != 12:
+        return False  # evita consultar o militar pra quem nunca vai ver o menu
+    from src.formatar_cpf import get_militar_por_user
+    from src.services.paf_service import pode_enviar_paf
+    return pode_enviar_paf(current_user, get_militar_por_user(current_user))
 
 
 def _rule_alunos_total() -> bool:
@@ -243,12 +248,10 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         _mk_group(
             "Plano Anual de Férias",
             icon="fas fa-user-friends",
-            perm="NAV_PAF_SOLICITANTE",
-            rule=(lambda: is_super or pode_paf),
+            rule=(lambda: pode_paf),
             children=[
-                _mk_item("Solicitação", "paf.novo", perm="NAV_PAF_NOVO"),
-                _mk_item("Minhas Solicitações", "paf.minhas",
-                         perm="NAV_PAF_MINHAS"),
+                _mk_item("Solicitação", "paf.novo"),
+                _mk_item("Minhas Solicitações", "paf.minhas"),
             ],
         )
     )
