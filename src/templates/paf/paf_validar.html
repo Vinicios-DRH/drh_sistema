@@ -180,7 +180,7 @@
                 {% if is_opt %}<span class="chip">opção</span>{% endif %}
               </div>
               <div class="small mt-1">
-                limite <strong>{{ cap }}</strong> · usados <strong>{{ ocup }}</strong> · disp <strong>{{ disp
+                limite <strong>{{ cap }}</strong> · ocupadas <strong>{{ ocup }}</strong> · disp <strong>{{ disp
                   }}</strong>
               </div>
             </div>
@@ -188,6 +188,7 @@
           </div>
 
           <h3 class="h6 m-0 mb-2"><i class="bi bi-hand-index-thumb me-1"></i> Alocação manual</h3>
+          <div class="small-muted mb-2">Contagem sem este PAF. A DP pode escolher qualquer mês, mesmo cheio.</div>
           <form method="post" class="row g-3">
             <input type="hidden" name="acao" value="manual">
             <div class="col-12">
@@ -196,9 +197,10 @@
                 <option value="">Selecione...</option>
                 {% for m in range(1,13) %}
                 {% set cap, ocup, disp = caps[m] %}
-                <option value="{{ m }}" {{ 'disabled' if (cap==0 or (cap and disp<=0)) else '' }}>
-                  {{ meses_full[m-1] }} — limite {{ cap }}, usados {{ ocup }}, disp {{ disp }}{% if cap==0 %} (sem
-                  configuração){% elif cap and disp<=0 %} (cheio){% endif %} </option>
+                {# a DP pode alocar em qualquer mês, inclusive cheio (fica acima do limite) #}
+                <option value="{{ m }}" {{ 'selected' if paf.mes_definido == m else '' }}>
+                  {{ meses_full[m-1] }} — limite {{ cap }}, ocupadas {{ ocup }}, disp {{ disp }}{% if cap==0 %} (sem
+                  configuração){% elif disp<=0 %} (cheio — ficará acima do limite){% endif %} </option>
                     {% endfor %}
               </select>
             </div>

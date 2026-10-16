@@ -118,8 +118,12 @@
                             <label class="form-label">{{ idx }}ª opção</label>
                             <select class="form-select mes" name="opcao_{{ idx }}" required>
                                 <option value="">Selecione...</option>
-                                {% for m in range(10,13) %}
+                                {% for m in range(1,13) %}
+                                {% set rest = vagas[m].restantes if (idx == 1 and vagas) else none %}
+                                {# na 1ª opção, mês lotado some (exceto o que o militar já tem) #}
+                                {% if rest is none or rest > 0 or selected_val|int == m %}
                                 <option value="{{ m }}" {% if selected_val|int == m %}selected{% endif %}>{{ meses_full[m-1] }}</option>
+                                {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
@@ -129,92 +133,6 @@
                     <div class="mt-3 small text-danger d-none" id="msg-duplicado">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
                         As três opções devem ser <strong>diferentes</strong>.
-                    </div>
-
-                    <hr class="my-4">
-
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                        <h2 class="h6 m-0">
-                            <i class="bi bi-calendar3-range me-1"></i>
-                            Planejamento dos Períodos de Férias — {{ ano }}
-                        </h2>
-                        <div class="small-muted">
-                            {% if militar.id in militares_40 %}
-                                Direito total:
-                                <span class="chip text-warning"><i class="bi bi-sun me-1"></i><span id="lbl-direito">40</span> dias</span>
-                            {% else %}
-                                Direito total:
-                                <span class="chip"><i class="bi bi-sun me-1"></i><span id="lbl-direito">30</span> dias</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <input type="hidden" name="ano_referencia" value="{{ ano }}">
-                    <input type="hidden" name="direito_total_dias" id="direito_total_dias" value="{% if militar.id in militares_40 %}40{% else %}30{% endif %}">
-
-                    <div class="row g-3" id="bloco-ferias">
-                        {% for p in [1,2,3] %}
-                            {% if p == 1 %}
-                                {% set q_sel = qtd1|default(None) %}
-                                {% set inicio_sel = inicio1|default('') %}
-                                {% set fim_sel = fim1|default('') %}
-                            {% elif p == 2 %}
-                                {% set q_sel = qtd2|default(None) %}
-                                {% set inicio_sel = inicio2|default('') %}
-                                {% set fim_sel = fim2|default('') %}
-                            {% else %}
-                                {% set q_sel = qtd3|default(None) %}
-                                {% set inicio_sel = inicio3|default('') %}
-                                {% set fim_sel = fim3|default('') %}
-                            {% endif %}
-                        <div class="col-12" id="periodo-box-{{p}}">
-                            <div class="p-3 rounded border" style="border-color:var(--glass-brd)">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <strong>{{ p }}º Período</strong>
-                                    <span class="small-muted" id="p{{p}}-restante"></span>
-                                </div>
-                                <div class="row g-3 align-items-end">
-                                    <div class="col-12 col-md-3">
-                                        <label class="form-label">Quantidade de dias</label>
-                                        <select class="form-select" id="qtd{{p}}" name="qtd{{p}}">
-                                            {% if militar.id in militares_40 %}
-                                                {# para 40 dias permitimos apenas 20 em p1/p2; p3 ficará escondido pelo JS #}
-                                                {% for d in [20] %}
-                                                <option value="{{ d }}" {% if q_sel is not none and q_sel|int == d %}selected{% endif %}>{{ d }} dias</option>
-                                                {% endfor %}
-                                            {% else %}
-                                                {% for d in [10,15,20,30] %}
-                                                <option value="{{ d }}" {% if q_sel is not none and q_sel|int == d %}selected{% endif %}>{{ d }} dias</option>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">Início</label>
-                                        <input type="date" class="form-control" id="inicio{{p}}" name="inicio{{p}}"
-                                            value="{{ inicio_sel }}" min="2024-01-01" max="2026-12-31">
-                                    </div>
-
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">Fim</label>
-                                        <input type="date" class="form-control" id="fim{{p}}" name="fim{{p}}"
-                                            value="{{ fim_sel }}" readonly>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        <div class="col-12">
-                            <div id="p2-gap-msg" class="small text-warning mt-2 d-none">
-                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                Para 40 dias, deve haver intervalo mínimo de 6 meses entre o início do 1º e 2º períodos.
-                            </div>
-                            <div id="msg-erro-ferias" class="mt-2 text-danger d-none">
-                                <i class="bi bi-x-circle me-1"></i>
-                                Verifique os períodos: combinação inválida para o direito total.
-                            </div>
-                        </div>
                     </div>
 
                     <div class="mt-4">
@@ -233,11 +151,8 @@
                 <div class="glass-card p-3 p-md-4">
                     <h6 class="mb-3"><i class="bi bi-info-circle me-1"></i> Instruções para preenchimento</h6>
                     <ul class="small-muted ps-3">
-                        <li>Selecione <strong>três opções diferentes</strong> de meses para recebimento do pagamento das férias.</li>
-                        <li>Informe a <strong>quantidade de dias</strong> e as <strong>datas de início</strong> dos períodos desejados.</li>
-                        <li>O sistema calcula automaticamente a data de término.</li>
-                        <li>Militares com <strong>40 dias</strong> têm direito a <strong>dois períodos de 20 dias</strong> cada.</li>
-                        <li>Deve haver <strong>intervalo mínimo de 6 meses</strong> entre o fim do 1º e o início do 2º período.</li>
+                        <li>Selecione <strong>três opções diferentes</strong> de meses, em ordem de preferência.</li>
+                        <li>O mês homologado pela DP é o mês de <strong>recebimento</strong> das suas férias.</li>
                         <li>Revise as informações antes de reenviar o PAF.</li>
                     </ul>
                 </div>
@@ -249,255 +164,39 @@
 
 <script>
 (function () {
-    // dados do servidor
-    const MILITARES_40 = {{ militares_40|tojson }};
-    const MILITAR_ID = {{ (militar.id if militar else 'null') }};
-    const direito = parseInt(document.getElementById('direito_total_dias').value) || 30;
-    const DATA_MIN = '2024-01-01';
-    const DATA_MAX = '2026-12-31';
-
-    // elementos
     const selectsMes = document.querySelectorAll('.mes');
     const msgDup = document.getElementById('msg-duplicado');
     const btn = document.getElementById('btn-submit');
-    const msgErro = document.getElementById('msg-erro-ferias');
-    const p2GapMsg = document.getElementById('p2-gap-msg');
 
-    const qtd1 = document.getElementById('qtd1'), inicio1 = document.getElementById('inicio1'), fim1 = document.getElementById('fim1');
-    const qtd2 = document.getElementById('qtd2'), inicio2 = document.getElementById('inicio2'), fim2 = document.getElementById('fim2');
-    const qtd3 = document.getElementById('qtd3'), inicio3 = document.getElementById('inicio3'), fim3 = document.getElementById('fim3');
-
-    const boxP2 = document.getElementById('periodo-box-2');
-    const boxP3 = document.getElementById('periodo-box-3');
-
-    // utilitários de data
-    const pad = v => String(v).padStart(2, '0');
-    const addDaysISO = (iso, n) => {
-        if (!iso) return "";
-        const d = new Date(iso + "T00:00:00");
-        d.setDate(d.getDate() + n);
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    };
-    const endDateInclusive = (startISO, dias) => {
-        if (!startISO || !dias) return "";
-        const fim = addDaysISO(startISO, Number(dias)-1);
-        // se fim > DATA_MAX, retorna DATA_MAX (mas form validation deve impedir envio)
-        if (fim > DATA_MAX) return DATA_MAX;
-        return fim;
-    };
-    function validarIntervaloFerias() {
-        if (!MILITARES_40.includes(MILITAR_ID)) return true; // só aplica a quem tem 40 dias
-        if (!inicio1.value || !fim1.value || !inicio2.value) return true;
-
-        const fimPrimeiro = new Date(fim1.value + "T00:00:00");
-        const inicioSegundo = new Date(inicio2.value + "T00:00:00");
-
-        const diffMeses = (inicioSegundo.getFullYear() - fimPrimeiro.getFullYear()) * 12 +
-                            (inicioSegundo.getMonth() - fimPrimeiro.getMonth());
-
-        const ok = diffMeses >= 6;
-        p2GapMsg.classList.toggle('d-none', ok);
-        return ok;
-    }
-    const monthFromISO = iso => {
-        if (!iso) return "";
-        const d = new Date(iso + "T00:00:00");
-        return (d.getMonth()+1).toString();
-    };
-    const addMonthsISO = (iso, months) => {
-        if (!iso) return "";
-        const d = new Date(iso + "T00:00:00");
-        const day = d.getDate();
-        d.setMonth(d.getMonth() + months);
-        // ajusta mês com dias
-        while (d.getDate() < day) d.setDate(d.getDate() - 1);
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    };
-
-    // bloqueio de meses duplicados (meses de pagamento)
+    // mês já escolhido em outra opção fica bloqueado
     function updateMonthLocks() {
         const chosen = new Set(Array.from(selectsMes).map(s => s.value).filter(Boolean));
         selectsMes.forEach(sel => {
-        Array.from(sel.options).forEach(opt => {
-            if (!opt.value) return;
-            const mine = sel.value === opt.value;
-            opt.disabled = !mine && chosen.has(opt.value);
-        });
+            Array.from(sel.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = sel.value !== opt.value && chosen.has(opt.value);
+            });
         });
     }
     function validateDistinctMonths() {
         const vals = Array.from(selectsMes).map(s => s.value).filter(Boolean);
         const ok = (new Set(vals).size === vals.length) && vals.length === 3;
-        msgDup.classList.toggle('d-none', ok);
+        msgDup.classList.toggle('d-none', new Set(vals).size === vals.length);
         return ok;
     }
     selectsMes.forEach(s => s.addEventListener('change', () => { updateMonthLocks(); validateDistinctMonths(); }));
     updateMonthLocks();
     validateDistinctMonths();
 
-    // função para preencher options preservando seleção
-    function setOptionsPreserve(selectEl, vals) {
-        const cur = selectEl.value;
-        let html = '<option value="">Selecione...</option>';
-        vals.forEach(v => { html += `<option value="${v}">${v} dias</option>`; });
-        selectEl.innerHTML = html;
-        if (cur && vals.map(String).includes(String(parseInt(cur)))) selectEl.value = cur;
-    }
-
-    // Enforce regras: 40 dias -> só 20+20, oculta p3; 30 dias -> combos possíveis
-    function enforceRules() {
-        const v1 = parseInt(qtd1?.value || 0), v2 = parseInt(qtd2?.value || 0), v3 = parseInt(qtd3?.value || 0);
-
-        if (direito === 40) {
-        // apenas 20 em p1/p2, oculta p3
-        if (qtd1) setOptionsPreserve(qtd1, [20]);
-        if (qtd2) setOptionsPreserve(qtd2, [20]);
-        if (qtd3) setOptionsPreserve(qtd3, []);
-        boxP3 && boxP3.classList.add('d-none');
-        // exige início para p1 e p2 e intervalo de 6 meses entre inicios (verificação separada)
-        p2GapMsg && p2GapMsg.classList.toggle('d-none', !(inicio1.value && inicio2.value));
-        } else {
-        // 30 dias: permite 10,15,20,30 e p3 pode aparecer dependendo das escolhas
-        if (qtd1) setOptionsPreserve(qtd1, [10,15,20,30]);
-        // decide q2/q3 options conforme v1
-        if (v1 === 30) {
-            setOptionsPreserve(qtd2, []);
-            setOptionsPreserve(qtd3, []);
-            boxP2 && boxP2.classList.add('d-none');
-            boxP3 && boxP3.classList.add('d-none');
-        } else if (v1 === 20) {
-            setOptionsPreserve(qtd2, [10]);
-            setOptionsPreserve(qtd3, []);
-            boxP2 && boxP2.classList.remove('d-none');
-            boxP3 && boxP3.classList.add('d-none');
-        } else if (v1 === 15) {
-            setOptionsPreserve(qtd2, [15]);
-            setOptionsPreserve(qtd3, []);
-            boxP2 && boxP2.classList.remove('d-none');
-            boxP3 && boxP3.classList.add('d-none');
-        } else if (v1 === 10) {
-            setOptionsPreserve(qtd2, [10,20]);
-            boxP2 && boxP2.classList.remove('d-none');
-            if (v2 === 20) {
-            setOptionsPreserve(qtd3, []);
-            boxP3 && boxP3.classList.add('d-none');
-            } else if (v2 === 10) {
-            setOptionsPreserve(qtd3, [10]);
-            boxP3 && boxP3.classList.remove('d-none');
-            } else {
-            setOptionsPreserve(qtd3, []);
-            boxP3 && boxP3.classList.add('d-none');
-            }
-        } else {
-            setOptionsPreserve(qtd2, []);
-            setOptionsPreserve(qtd3, []);
-            boxP2 && boxP2.classList.add('d-none');
-            boxP3 && boxP3.classList.add('d-none');
-        }
-        p2GapMsg && p2GapMsg.classList.add('d-none');
-        }
-
-        // recalcula fim automaticamente
-        if (inicio1 && qtd1 && fim1) fim1.value = endDateInclusive(inicio1.value, qtd1.value);
-        if (inicio2 && qtd2 && fim2) fim2.value = endDateInclusive(inicio2.value, qtd2.value);
-        if (inicio3 && qtd3 && fim3) fim3.value = endDateInclusive(inicio3.value, qtd3.value);
-
-        // atualiza dias restantes exibidos (se existir)
-        const restEl = document.getElementById('p1-restante'); // placeholder; not used extensively here
-        // mostra/oculta erro principal conforme combinação válida
-        const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3) : validCombo30(v1, v2, v3);
-        const rest = direito - ( (v1||0) + (v2||0) + (v3||0) );
-        // comboOK true and rest == 0 => OK
-        const ok = comboOK && rest === 0;
-        msgErro && msgErro.classList.toggle('d-none', ok);
-    }
-
-    function validCombo30(v1, v2, v3) {
-        // aceita: '30' , '20+10', '10+20', '15+15', '10+10+10'
-        const arr = [v1||0, v2||0, v3||0].filter(Boolean);
-        if (arr.length === 1 && arr[0] === 30) return true;
-        if (arr.length === 2 && ((arr[0] === 20 && arr[1] === 10) || (arr[0] === 10 && arr[1] === 20) || (arr[0] === 15 && arr[1] === 15))) return true;
-        if (arr.length === 3 && arr[0] === 10 && arr[1] === 10 && arr[2] === 10) return true;
-        return false;
-    }
-
-    // listeners para recalcular fim, validar e aplicar regras
-    [qtd1,qtd2,qtd3,inicio1,inicio2,inicio3].forEach(el=>{
-        if(!el) return;
-        el.addEventListener('change', () => {
-        // limita datas ao range
-        if ((el.type === 'date') && el.value) {
-            if (el.value < DATA_MIN) el.value = DATA_MIN;
-            if (el.value > DATA_MAX) el.value = DATA_MAX;
-        }
-        // se for início, atualiza mês hidden if present (not used here)
-        if (el === inicio1 && inicio1.value && (direito === 40)) {
-            // ajusta min do inicio2 para 6 meses depois
-            inicio2.min = addMonthsISO(inicio1.value, 6);
-        }
-        enforceRules();
-        });
-    });
-
-    // checa intervalo 6 meses para 40 dias
-    function checkSixMonthsInterval() {
-        if (direito !== 40) return true;
-        if (!inicio1.value || !inicio2.value) return false;
-        const min2 = addMonthsISO(inicio1.value, 6);
-        return inicio2.value >= min2;
-    }
-
-    // validação final antes do submit
     document.getElementById('form-paf').addEventListener('submit', (e) => {
-        // meses distintos
-        const monthsOk = validateDistinctMonths();
-        if (!monthsOk) { e.preventDefault(); alert('Escolha três meses distintos para pagamento.'); return; }
-
-        // combinação de períodos
-        const v1 = parseInt(qtd1?.value || 0), v2 = parseInt(qtd2?.value || 0), v3 = parseInt(qtd3?.value || 0);
-        const comboOK = (direito === 40) ? (v1 === 20 && v2 === 20 && !v3 && inicio1.value && inicio2.value && checkSixMonthsInterval()) : validCombo30(v1,v2,v3);
-        const rest = direito - ((v1||0)+(v2||0)+(v3||0));
-        if (!comboOK || rest !== 0) {
-        e.preventDefault();
-        msgErro.classList.remove('d-none');
-        alert('Combinação de períodos inválida para o seu direito (veja mensagens).');
-        return;
+        if (!validateDistinctMonths()) {
+            e.preventDefault();
+            alert('Escolha três meses distintos.');
+            return;
         }
-        // data limites
-        const allDates = [inicio1?.value, inicio2?.value, inicio3?.value, fim1?.value, fim2?.value, fim3?.value].filter(Boolean);
-        if (allDates.some(d => d < DATA_MIN || d > DATA_MAX)) {
-        e.preventDefault();
-        alert('Alguma data está fora do intervalo permitido (2024-01-01 até 2026-12-31).');
-        return;
-        }
-
-        // se ok, UX
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
     });
-
-    [inicio1, fim1, inicio2].forEach(el => el.addEventListener('change', validarIntervaloFerias));
-
-    document.getElementById('form-paf').addEventListener('submit', function(e) {
-    if (!validarIntervaloFerias()) {
-        e.preventDefault();
-        window.scrollTo({ top: p2GapMsg.offsetTop - 120, behavior: 'smooth' });
-    }
-    });
-
-    // init: se militar tem direito 40, força visibilidade dos boxes
-    (function init() {
-        // se militar é da lista 40, mostra p1/p2 e esconde p3
-        if (MILITAR_ID !== null && MILITARES_40.includes(Number(MILITAR_ID))) {
-        // ensure p3 hidden
-        if (boxP3) boxP3.classList.add('d-none');
-        } else {
-        // p3 pode estar visível dependendo do valor
-        // nothing special here, enforceRules will set it
-        }
-        enforceRules();
-    }());
-
 })();
 </script>
 {% endblock %}

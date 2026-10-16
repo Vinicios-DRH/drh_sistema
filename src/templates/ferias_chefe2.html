@@ -726,8 +726,9 @@
     window.IS_SUPER_USER = {{ (current_user.funcao_user_id == 6) | tojson }};
     window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
 
-    window.MILITARES_40 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
-    window.MILITARES_20_20 = [513, 768, 946, 1, 251, 506, 410, 1026, 356, 798, 702, 463, 387, 888, 902, 948, 749, 612, 676];
+    // lista única (paf_service.MILITARES_40_DIAS_IDS): 40 dias = 20 + 20 obrigatório
+    window.MILITARES_40 = {{ militares_40 | tojson }};
+    window.MILITARES_20_20 = window.MILITARES_40;
 
     const BASE_URL = "{{ request.script_root }}";
     const CAN_EDIT = Boolean(window.CAN_EDIT);
@@ -850,7 +851,13 @@
         aplicarOpcoesSegundo(row, mid, podeTer40, forcar20x20);
         let min2 = firstDayNextMonth();
         const vf1 = parseInputDate(f1?.value || '');
-        if (vf1) { const d = new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate() + 1); if (d > min2) min2 = d; }
+        if (vf1) {
+          // 40 dias: 2º período só mais de 6 meses após o fim do 1º (mesma regra do servidor)
+          const d = (forcar20x20 && ANO_ATUAL >= {{ ano_regra_40 | tojson }})
+            ? new Date(vf1.getFullYear(), vf1.getMonth() + 6, vf1.getDate() + 1)
+            : new Date(vf1.getFullYear(), vf1.getMonth(), vf1.getDate() + 1);
+          if (d > min2) min2 = d;
+        }
         if (i2) setMinMax(i2, min2, row);
         if (f2) f2.disabled = true;
         const v2 = parseInputDate(i2?.value || '');

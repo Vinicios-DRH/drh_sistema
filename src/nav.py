@@ -43,16 +43,10 @@ def _rule_user_id_is(uid: int) -> bool:
 
 
 def _rule_paf_solicitante() -> bool:
-    if not getattr(current_user, "is_authenticated", False):
-        return False
-
-    funcao_id = int(getattr(current_user, "funcao_user_id", 0) or 0)
-    if funcao_id != 12:
-        return False
-
-    PG_SUP = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-    pg_id = _get_pg_id_user()
-    return (pg_id in PG_SUP) if pg_id is not None else False
+    # Quem pode preencher o PAF é controlado só pelas permissões NAV_PAF_*
+    # (liberação em etapas: primeiro oficiais superiores, depois a tropa).
+    # Antes exigia função 12, o que escondia o menu de chefes/diretores.
+    return bool(getattr(current_user, "is_authenticated", False))
 
 
 def _rule_alunos_total() -> bool:
@@ -139,11 +133,26 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     pode_recebimento = funcao_id in {1, 2, 5, 6, 7}
     pode_ver_validacoes = pode_recebimento or _rule_user_id_is(394)
     pode_paf = _rule_paf_solicitante()
+    # DIRETOR, CHEFE, DRH/DP, SUPER USER, DIRETOR DRH
+    pode_paf_efetivo = funcao_id in {1, 2, 5, 6, 7}
 
     nav: List[Dict[str, Any]] = []
 
     # Início
     nav.append(_mk_item("Início", "home", icon="fas fa-home"))
+
+    # PAF do Efetivo: chefe acompanha/encaminha o PAF da sua OBM e a DP homologa.
+    # Sem `perm` de propósito (mesmo motivo do "Meus Cursos CBMAM"): nenhum
+    # chefe tinha NAV_VALIDACOES_PAF liberado e o item ficava escondido. A rota
+    # já limita o chefe às OBMs dele.
+    nav.append(
+        _mk_item(
+            "PAF do Efetivo",
+            "paf.recebimento",
+            icon="fas fa-calendar-check",
+            rule=(lambda: is_super or pode_paf_efetivo),
+        )
+    )
 
     # Declaração de Vínculo (no antigo, estava “apagado” / comentado)
     # Aqui eu deixo como item controlável por permissão, mas respeitando o "pode_novo".
@@ -188,12 +197,6 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
                     "Declarações — Recebimento",
                     "acumulo.recebimento",
                     perm="NAV_VALIDACOES_RECEBIMENTO",
-                ),
-                _mk_item(
-                    "Validação PAF",
-                    "paf.recebimento",
-                    perm="NAV_VALIDACOES_PAF",
-                    rule=(lambda: is_super or pode_recebimento),
                 ),
                 _mk_item(
                     "Processos Inclusão de Dependentes",

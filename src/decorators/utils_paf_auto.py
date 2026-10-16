@@ -19,7 +19,8 @@ def _capacidade_por_mes(session, ano: int):
     """
     Retorna dict:
       { mes: {"limite": int, "usado": int, "restante": int} }
-    'usado' considera NovoPaf.mes_definido (setado pela DRH).
+    'usado' segue a mesma regra do formulário: mes_definido (setado pela DP)
+    ou, enquanto não definido, a 1ª opção do militar.
     """
     caps = {m: {"limite": 0, "usado": 0, "restante": 0} for m in range(1, 13)}
 
@@ -27,14 +28,15 @@ def _capacidade_por_mes(session, ano: int):
     for row in session.query(PafCapacidade).filter(PafCapacidade.ano == ano):
         caps[row.mes]["limite"] = row.limite
 
-    # usados (já definidos)
+    # usados (definido pela DP ou 1ª opção)
+    mes_expr = func.coalesce(NovoPaf.mes_definido, NovoPaf.opcao_1)
     usados = (
-        session.query(NovoPaf.mes_definido, func.count(NovoPaf.id))
+        session.query(mes_expr, func.count(NovoPaf.id))
         .filter(
             NovoPaf.ano_referencia == ano,
-            NovoPaf.mes_definido.isnot(None)
+            mes_expr.isnot(None)
         )
-        .group_by(NovoPaf.mes_definido)
+        .group_by(mes_expr)
         .all()
     )
     for mes, qtd in usados:
@@ -136,8 +138,9 @@ def montar_propostas(session, ano: int, usuario_id: int):
             "meses_pagamento": [m1, m2, m3],
             "plano": plano,
         })
-        # NÃO decremento capacidade aqui, pois só conta mes_definido.
-        # (Se você quiser “reservar” para a próxima escolha, pode decrementar caps[m1]["restante"] -= 1 etc.)
+        # a 1ª opção já ocupa vaga, então reserva pra próxima proposta não estourar o mês
+        caps[m1]["usado"] += 1
+        caps[m1]["restante"] = max(0, caps[m1]["restante"] - 1)
     return propostas
 
 def aplicar_propostas(session, ano: int, usuario_id: int, propostas):

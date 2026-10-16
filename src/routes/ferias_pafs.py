@@ -36,6 +36,8 @@ from src.services.paf_service import (
     usuario_pode_atualizar_paf,
     usuario_tem_escopo_sobre_militar,
     calcular_direito_dias_ferias,
+    MILITARES_40_DIAS_IDS,
+    ANO_INICIO_REGRA_40,
     usuario_pode_salvar_apesar_da_excecao,
 )
 from src.authz import is_super_or_perm, can_ferias_bypass_janela
@@ -76,7 +78,8 @@ def exibir_ferias():
     if not is_super_or_perm("NAV_FERIAS_SUPER"):
         abort(403)
 
-    anos_disponiveis = [2025, 2026]
+    # inclui o ano seguinte: o PAF homologado num ano já lança as férias do próximo
+    anos_disponiveis = list(range(2025, paf_ano_vigente() + 2))
     return render_template(
         'ferias.html',
         ano_atual=datetime.now().year,
@@ -133,6 +136,8 @@ def exibir_ferias_chefe():
     return render_template(
         'ferias_chefe2.html',
         lista_obms=lista_obms,
+        militares_40=sorted(MILITARES_40_DIAS_IDS),
+        ano_regra_40=ANO_INICIO_REGRA_40,
         ano_atual=datetime.now().year,
         dia_atual=dia_atual,
         ano_vigente=paf_ano_vigente(),
@@ -158,6 +163,8 @@ def carregar_tabela_obm(obm_id):
     return render_template(
         'partial_tabela_obm.html',
         obm=obm,
+        militares_40=MILITARES_40_DIAS_IDS,
+        ano_regra_40=ANO_INICIO_REGRA_40,
         militares_pafs=militares_pafs,
         meses=NOMES_MESES,
         current_month=datetime.now().month,
@@ -263,6 +270,7 @@ def update_paf():
             periodos,
             direito_dias=calcular_direito_dias_ferias(militar),
             excecao_virada_ano=bool(paf_existente and paf_existente.excecao_virada_ano),
+            ano=ano,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

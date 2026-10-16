@@ -10,28 +10,28 @@
     --glass-brd: rgba(255, 255, 255, .16);
     --ink-200: #e8eef6;
     --ink-400: #c0cfda;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --full: #ef4444;
   }
 
   body {
     background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
   }
 
-  .brand-header {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-    border: 1px solid var(--glass-brd);
-    border-radius: 16px;
-    color: var(--ink-200);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-  }
-
+  .brand-header,
   .glass-card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-brd);
     border-radius: 16px;
     color: var(--ink-200);
     box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  .brand-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   .btn-primary {
@@ -48,343 +48,578 @@
     color: #94a3b8;
   }
 
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .15rem .6rem;
-    font-size: .78rem;
-    border-radius: 999px;
+  .section-title {
+    font-size: .8rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: .5rem;
+  }
+
+  /* ---- KPIs (clicáveis = filtro de status) ---- */
+  .kpi {
+    display: block;
+    text-decoration: none;
+    color: var(--ink-200);
+    background: var(--glass-bg);
     border: 1px solid var(--glass-brd);
-    background: rgba(255, 255, 255, .06)
+    border-radius: 14px;
+    padding: .7rem .8rem;
+    height: 100%;
+    transition: border-color .15s, background .15s;
+  }
+
+  .kpi:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .35);
+  }
+
+  .kpi.active {
+    border-color: var(--brand-red);
+    background: rgba(181, 18, 27, .18);
+  }
+
+  .kpi .lbl {
+    font-size: .75rem;
+    color: #94a3b8;
+  }
+
+  .kpi .val {
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi.destaque .val {
+    color: #fbbf24;
+  }
+
+  /* ---- Vagas por mês ---- */
+  .vagas-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+
+  @media (min-width: 576px) {
+    .vagas-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 992px) {
+    .vagas-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+
+  .vaga {
+    display: block;
+    text-decoration: none;
+    color: var(--ink-200);
+    border: 1px solid var(--glass-brd);
+    border-radius: 12px;
+    padding: .55rem .65rem;
+    background: rgba(255, 255, 255, .04);
+  }
+
+  .vaga:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .35);
+  }
+
+  .vaga.active {
+    border-color: var(--brand-red);
+    background: rgba(181, 18, 27, .18);
+  }
+
+  .vaga .nome {
+    font-weight: 600;
+    font-size: .85rem;
+  }
+
+  .vaga .num {
+    font-variant-numeric: tabular-nums;
+    font-size: .8rem;
+  }
+
+  .vaga .barra {
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, .12);
+    overflow: hidden;
+    margin: .35rem 0 .25rem;
+  }
+
+  .vaga .barra>span {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--ok);
+  }
+
+  .vaga.quase .barra>span {
+    background: var(--warn);
+  }
+
+  .vaga.cheio .barra>span {
+    background: var(--full);
+  }
+
+  .vaga .rest {
+    font-size: .72rem;
+    color: #94a3b8;
+  }
+
+  .vaga.cheio .rest {
+    color: #fca5a5;
+  }
+
+  /* ---- Filtros ---- */
+  .filtros .form-label {
+    font-size: .75rem;
+    color: #94a3b8;
+    margin-bottom: .2rem;
+  }
+
+  /* ---- Tabela ---- */
+  .table {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(255, 255, 255, .04);
+    --bs-table-hover-color: #e5eef9;
   }
 
   .table thead th {
     color: #cbd5e1;
     font-weight: 600;
-    border-color: rgba(255, 255, 255, .14)
+    font-size: .8rem;
+    border-color: rgba(255, 255, 255, .14);
+    white-space: nowrap;
   }
 
   .table td,
   .table th {
     color: #e5eef9;
-    border-color: rgba(255, 255, 255, .08)
+    border-color: rgba(255, 255, 255, .08);
   }
 
-  /* pílulas dos períodos (plano) */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .1rem .5rem;
+    font-size: .75rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-brd);
+    background: rgba(255, 255, 255, .06);
+    margin: 0 .2rem .2rem 0;
+    white-space: nowrap;
+  }
+
+  .chip .ord {
+    opacity: .6;
+  }
+
+  .chip.vaga-atual {
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, .15);
+  }
+
   .period-pill {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    padding: .25rem .6rem;
-    border-radius: 10px;
+    gap: .35rem;
+    padding: .15rem .5rem;
+    border-radius: 8px;
     border: 1px dashed var(--glass-brd);
     background: rgba(255, 255, 255, .05);
-    font-size: .78rem;
-    margin: 0 .25rem .25rem 0;
+    font-size: .74rem;
+    margin: 0 .2rem .2rem 0;
+    white-space: nowrap;
   }
 
-  .period-pill i {
-    opacity: .85;
+  .homologa {
+    min-width: 230px;
   }
 
-  @media (max-width: 576px) {
+  .homologa .form-select {
+    min-width: 150px;
+  }
 
-    .brand-header form .form-select-sm,
-    .brand-header form .form-control-sm {
-      min-width: 100% !important;
-    }
+  .homologado-em {
+    font-size: .74rem;
+    color: #86efac;
+  }
+
+  .nota {
+    font-size: .74rem;
+    margin-top: .3rem;
+    max-width: 320px;
   }
 </style>
 {% endblock %}
 
 {% block body %}
-<section class="py-3 py-md-4">
-  <div class="xxl">
+{% set meses_curto = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"] %}
+{% macro mes_nome(v) -%}{{ meses[v] if v and 1 <= v <= 12 else '—' }}{%- endmacro %}
+{% set badge_cls = {
+  'nao_enviou':'text-bg-secondary',
+  'pendente':'text-bg-warning',
+  'enviado':'text-bg-warning',
+  'aprovado_chefe':'text-bg-info',
+  'reprovado_chefe':'text-bg-danger',
+  'aguardando_drh':'text-bg-light',
+  'validado_drh':'text-bg-success'
+} %}
+{# link pros filtros atuais trocando um parâmetro (sem perder os outros) #}
+{% macro link_com(chave, valor) -%}
+{%- set args = dict(qs) -%}
+{%- if valor in (none, '', 'todos') -%}{%- set _ = args.pop(chave, none) -%}{%- else -%}{%- set _ = args.update({chave: valor}) -%}{%- endif -%}
+{{ url_for('paf.recebimento', **args) }}
+{%- endmacro %}
 
-    <!-- Cabeçalho / Filtros -->
+<section class="py-3 py-md-4">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <!-- Cabeçalho -->
     <div class="brand-header p-3 p-md-4 mb-3">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded"
+          <img src="{{ url_for('static', filename='img/logobm.png') }}" width="52" height="52" class="rounded"
             alt="CBMAM">
           <div>
-            <h1 class="h5 m-0">Recebimento de PAF — {{ ano }}</h1>
-            <div class="small opacity-75">Filtre por nome, matrícula, Posto/Graduação, OBM.</div>
+            <h1 class="h5 m-0">
+              {{ 'Homologação do PAF' if is_drh else 'Recebimento de PAF' }} — {{ f.ano }}
+            </h1>
+            <div class="small opacity-75">
+              {% if is_drh %}
+              Confira as opções de cada militar e homologue o mês. A vaga conta pelo mês homologado ou, até lá, pela 1ª opção.
+              {% else %}
+              Avalie os PAFs dos militares da sua OBM e encaminhe para a DP.
+              {% endif %}
+            </div>
           </div>
         </div>
-
-        <form class="d-grid d-sm-flex gap-2" method="get">
-          <input type="hidden" name="ano" value="{{ ano }}">
-          <input class="form-control form-control-sm" name="q" value="{{ q or '' }}"
-            placeholder="Buscar nome, matrícula, PG" style="min-width:260px">
-
-          <select class="form-select form-select-sm" name="status">
-            {% set status_val = status or 'todos' %}
-            {% set status_opts = {
-            'todos':'Todos',
-            'nao_enviou':'Não enviou',
-            'pendente':'Pendente',
-            'aprovado_chefe':'Aprovado chefia',
-            'reprovado_chefe':'Reprovado chefia',
-            'aguardando_drh':'Aguardando DRH',
-            'validado_drh':'Validado DRH'
-            } %}
-            {% for val,label in status_opts.items() %}
-            <option value="{{ val }}" {{ 'selected' if status_val==val else '' }}>{{ label }}</option>
-            {% endfor %}
-          </select>
-
-          <select class="form-select form-select-sm" name="obm_id">
-            <option value="">Todas OBMs</option>
-            {% for o in obms %}
-            <option value="{{ o.id }}" {{ 'selected' if obm_id and o.id==obm_id else '' }}>{{ o.sigla }}</option>
-            {% endfor %}
-          </select>
-
-          <!-- NOVO: filtro de Posto/Graduação -->
-          <select class="form-select form-select-sm" name="pg_id">
-            <option value="">Posto/Graduação</option>
-            {% for p in postos %}
-            <option value="{{ p.id }}" {{ 'selected' if pg_id and p.id==pg_id else '' }}>
-              {{ p.sigla }}
-            </option>
-            {% endfor %}
-          </select>
-
-          {% set sort_val = sort or 'chegada' %}
-          {% set dir_val = dir or 'desc' %}
-          <select class="form-select form-select-sm" name="sort" title="Ordenar por">
-            <option value="chegada" {{ 'selected' if sort_val=='chegada' else '' }}>Ordem de chegada</option>
-            <option value="nome" {{ 'selected' if sort_val=='nome' else '' }}>Nome</option>
-            <option value="pg" {{ 'selected' if sort_val=='pg' else '' }}>PG</option>
-            <option value="obm" {{ 'selected' if sort_val=='obm' else '' }}>OBM</option>
-            <option value="status" {{ 'selected' if sort_val=='status' else '' }}>Status</option>
-            <option value="paf" {{ 'selected' if sort_val=='paf' else '' }}>#PAF</option>
-          </select>
-
-          <select class="form-select form-select-sm" name="dir" title="Direção">
-            <option value="asc" {{ 'selected' if dir_val=='asc' else '' }}>Asc</option>
-            <option value="desc" {{ 'selected' if dir_val=='desc' else '' }}>Desc</option>
-          </select>
-
-          <button class="btn btn-sm btn-primary" type="submit">
-            <i class="bi bi-funnel me-1"></i> Filtrar
-          </button>
-        </form>
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="btn btn-success" href="{{ url_for('paf.recebimento_excel', **qs) }}">
+            <i class="bi bi-file-earmark-excel me-1"></i> Baixar Excel
+          </a>
+          {% if is_drh %}
+          <a class="btn btn-outline-light" href="{{ url_for('paf.capacidade', ano=f.ano) }}">
+            <i class="bi bi-sliders me-1"></i> Capacidade
+          </a>
+          {% endif %}
+        </div>
       </div>
     </div>
 
-    {% if kpi %}
-    <div class="row g-3 mb-3">
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Total militares</div>
-          <div class="h4 m-0">{{ kpi.total }}</div>
-        </div>
+    <!-- KPIs -->
+    {% set kpis = [
+      ('todos', 'Total militares', kpi.total, false),
+      ('nao_enviou', 'Não enviaram', kpi.nao_enviaram, false),
+      ('pendente', 'Pendentes (chefia)', kpi.pendentes, false),
+      ('aprovado_chefe', 'Aprovados (chefia)', kpi.aprovados_chefe, false),
+      ('a_homologar', 'A homologar (DP)', kpi.a_homologar, is_drh),
+      ('validado_drh', 'Homologados', kpi.validados, false),
+      ('reprovado_chefe', 'Reprovados', kpi.reprovados, false),
+    ] %}
+    <div class="row g-2 mb-3">
+      {% for val, label, num, destaque in kpis %}
+      <div class="col-6 col-md-3 col-xl">
+        <a class="kpi {{ 'active' if f.status == val else '' }} {{ 'destaque' if destaque else '' }}"
+          href="{{ link_com('status', val) }}">
+          <div class="lbl">{{ label }}</div>
+          <div class="val">{{ num }}</div>
+        </a>
       </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Não enviaram</div>
-          <div class="h4 m-0">{{ kpi.nao_enviaram }}</div>
-        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Vagas por mês (DP) -->
+    {% if vagas %}
+    <div class="glass-card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="section-title m-0"><i class="bi bi-calendar-range me-1"></i> Vagas por mês — {{ f.ano }}</div>
+        {% if f.mes %}
+        <a class="small text-decoration-none" href="{{ link_com('mes', none) }}"><i class="bi bi-x-circle me-1"></i>Ver todos os meses</a>
+        {% else %}
+        <span class="small-muted small">Clique num mês para ver quem está nele.</span>
+        {% endif %}
       </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Pendentes (chefia)</div>
-          <div class="h4 m-0">{{ kpi.pendentes }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Aguard. DRH</div>
-          <div class="h4 m-0">{{ kpi.aguardando }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Validados DRH</div>
-          <div class="h4 m-0">{{ kpi.validados }}</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4 col-xl-2">
-        <div class="glass-card p-3 text-center">
-          <div class="small-muted">Reprovados</div>
-          <div class="h4 m-0">{{ kpi.reprovados }}</div>
-        </div>
+      <div class="vagas-grid">
+        {% for m in range(1, 13) %}
+        {% set v = vagas[m] %}
+        {% set lim = v.limite %}
+        {% set pct = ((v.ocupadas / lim * 100) if lim else (100 if v.ocupadas else 0))|round(0, 'floor')|int %}
+        {% set cls = 'cheio' if (lim is not none and v.ocupadas >= lim) else ('quase' if pct >= 85 else '') %}
+        <a class="vaga {{ cls }} {{ 'active' if f.mes == m else '' }}" href="{{ link_com('mes', m) }}"
+          title="{{ meses[m] }}: {{ v.ocupadas }} ocupadas{% if lim is not none %} de {{ lim }}{% endif %}">
+          <div class="d-flex justify-content-between align-items-baseline">
+            <span class="nome">{{ meses[m] }}</span>
+            <span class="num">{{ v.ocupadas }}{% if lim is not none %}/{{ lim }}{% endif %}</span>
+          </div>
+          <div class="barra"><span style="width: {{ [pct, 100]|min }}%"></span></div>
+          <div class="rest">
+            {% if lim is none %}sem limite
+            {% elif v.ocupadas > lim %}acima do limite (+{{ v.ocupadas - lim }})
+            {% elif v.ocupadas == lim %}lotado
+            {% else %}restam {{ v.restantes }}{% endif %}
+          </div>
+        </a>
+        {% endfor %}
       </div>
     </div>
     {% endif %}
 
-    {% set meses_full =
-    ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-    %}
-    {% macro mes_nome(v) -%}
-    {%- if v is not none and (v|string)|int>=1 and (v|string)|int<=12 -%} {{ meses_full[(v|string)|int-1] }} {%- else
-      -%} — {%- endif -%} {%- endmacro %} {# helpers para datas e pílulas #} {% macro d(v) -%} {{ v.strftime('%d/%m') if
-      v else '—' }} {%- endmacro %} {% macro pill(n,qd,ini,fim) -%} {% if qd and ini and fim %} <span
-      class="period-pill"><i class="bi bi-calendar3"></i>{{ n }}º: {{ qd }}d · {{ d(ini) }}–{{ d(fim) }}</span>
-      {% endif %}
-      {%- endmacro %}
-
-      {% set badge_cls = {
-      'nao_enviou':'badge text-bg-secondary',
-      'pendente':'badge text-bg-warning text-dark',
-      'enviado':'badge text-bg-warning text-dark',
-      'aprovado_chefe':'badge text-bg-info',
-      'reprovado_chefe':'badge text-bg-danger',
-      'aguardando_drh':'badge text-bg-secondary',
-      'validado_drh':'badge text-bg-success'
-      } %}
-
-      <div class="small-muted mb-2">
-        Ordenado por: <strong>
-          {{ 'ordem de chegada' if sort_val=='chegada'
-          else ('nome' if sort_val=='nome'
-          else ('PG' if sort_val=='pg'
-          else ('OBM' if sort_val=='obm'
-          else ('status' if sort_val=='status' else '#PAF'))) ) }}
-        </strong> ({{ 'desc' if dir_val=='desc' else 'asc' }})
-      </div>
-
-      <!-- Tabela -->
-      <div class="glass-card p-3 p-md-4">
-        {% if linhas and linhas|length %}
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead>
-              <tr>
-                <th style="width:90px">#</th>
-                <th>Militar</th>
-                <th style="width:120px">Posto/Graduação</th>
-                <th style="width:140px">OBM</th>
-                <th>Opções (pagamento)</th>
-                <th style="min-width:260px">Períodos solicitados</th> {# NOVO #}
-                <th style="width:160px">Status</th>
-                <th style="width:200px">Recebido em</th>
-                <th style="width:220px">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {# item: (M, pg_sigla, obm_sigla,
-              paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at,
-              plano_id, plano_status, direito_total_dias,
-              q1,i1,f1, q2,i2,f2, q3,i3,f3) #}
-              {% for m, pg_sigla, obm_sigla,
-              paf_id, paf_status, opc1, opc2, opc3, mes_def, recebido_em, created_at, updated_at,
-              plano_id, plano_status, direito_total,
-              q1, i1, f1, q2, i2, f2, q3, i3, f3, justificativa, observacoes in linhas %}
-              {% set st = (paf_status or 'nao_enviou')|lower %}
-              <tr>
-                <td class="text-muted">{{ '#' ~ (paf_id if paf_id else '—') }}</td>
-                <td>
-                  <div class="fw-semibold">{{ m.nome_completo }}</div>
-                  <div class="small-muted">{{ m.matricula }}</div>
-                </td>
-                <td>{{ pg_sigla or '—' }}</td>
-                <td>{{ obm_sigla or '—' }}</td>
-
-                <td>
-                  {% if paf_id %}
-                  <span class="chip">{{ mes_nome(opc1) }}</span>
-                  <span class="chip">{{ mes_nome(opc2) }}</span>
-                  <span class="chip">{{ mes_nome(opc3) }}</span>
-                  {% else %}<span class="small-muted">—</span>{% endif %}
-                </td>
-
-                <td>
-                  {% if plano_id %}
-                  {{ pill(1, q1, i1, f1) }}
-                  {{ pill(2, q2, i2, f2) }}
-                  {{ pill(3, q3, i3, f3) }}
-                  {% if not (q1 and i1 and f1) %}<span class="small-muted">—</span>{% endif %}
-                  {% else %}<span class="small-muted">—</span>{% endif %}
-                </td>
-
-                {% set label_st = 'Não enviou' if st=='nao_enviou' else ('Pendente' if st in ['pendente','enviado'] else
-                (paf_status or '—')) %}
-                <td><span class="{{ badge_cls.get(st, 'badge text-bg-secondary') }}">{{ label_st }}</span></td>
-
-                <td class="small">
-                  {% if recebido_em %}
-                  {{ recebido_em.strftime('%d/%m/%Y %H:%M') }}
-                  {% elif created_at %}
-                  {{ created_at.strftime('%d/%m/%Y %H:%M') }}
-                  {% else %} — {% endif %}
-                </td>
-
-                <td class="text-nowrap">
-                  {% if paf_id %}
-
-                  {# Ação principal muda conforme o perfil #}
-                  {% if is_drh %}
-                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('paf.validar', paf_id=paf_id) }}">
-                    <i class="bi bi-clipboard-check me-1"></i> Validar
-                  </a>
-                  {% else %}
-                  <form method="post" action="{{ url_for('paf.aprovar', paf_id=paf_id) }}" class="d-inline">
-                    <input type="hidden" name="acao" value="aprovar">
-                    <button class="btn btn-sm btn-success" type="submit" {{ 'disabled' if st in
-                      ['aprovado_chefe','aguardando_drh','validado_drh'] else '' }}>
-                      <i class="bi bi-send-check me-1"></i> Encaminhar DRH
-                    </button>
-                  </form>
-                  {% endif %}
-
-                  {# Reprovar: visível para todos os perfis habilitados #}
-                  <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-open-reprovar"
-                    data-paf-id="{{ paf_id }}" {{ 'disabled' if st in ['reprovado_chefe','validado_drh'] else '' }}>
-                    <i class="bi bi-x-circle me-1"></i> Reprovar
-                  </button>
-
-                  {% else %}
-                  <span class="small-muted">—</span>
-                  {% endif %}
-                </td>
-
-                <td>
-                  {% if observacoes is defined and observacoes %}
-                  <div class="small text-danger mt-1">
-                    <i class="bi bi-exclamation-octagon me-1"></i>
-                    Reprovação (chefia): {{ observacoes }}
-                  </div>
-                  {% endif %}
-
-                  {% if justificativa is defined and justificativa %}
-                  <div class="small-muted mt-1">
-                    <i class="bi bi-chat-square-text me-1"></i>
-                    Justificativa do solicitante: {{ justificativa }}
-                  </div>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- Filtros -->
+    <form class="glass-card p-3 mb-3 filtros" method="get" action="{{ url_for('paf.recebimento') }}">
+      <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2 col-xl-1">
+          <label class="form-label">Ano</label>
+          <select class="form-select form-select-sm" name="ano">
+            {% for a in anos %}<option value="{{ a }}" {{ 'selected' if a == f.ano else '' }}>{{ a }}</option>{% endfor %}
+          </select>
         </div>
-        {% else %}
-        <div class="small-muted">Nenhum PAF encontrado para {{ ano }}.</div>
-        {% endif %}
+        <div class="col-12 col-md-4 col-xl-3">
+          <label class="form-label">Buscar</label>
+          <input class="form-control form-control-sm" name="q" value="{{ f.q }}"
+            placeholder="Nome, matrícula, PG ou OBM">
+        </div>
+        <div class="col-6 col-md-3 col-xl-2">
+          <label class="form-label">Status</label>
+          <select class="form-select form-select-sm" name="status">
+            {% set status_opts = [
+              ('todos', 'Todos'),
+              ('a_homologar', 'A homologar (DP)'),
+              ('nao_enviou', 'Não enviou'),
+              ('pendente', 'Pendente (chefia)'),
+              ('aprovado_chefe', 'Aprovado (chefia)'),
+              ('reprovado_chefe', 'Reprovado (chefia)'),
+              ('aguardando_drh', 'Aguardando DP'),
+              ('validado_drh', 'Homologado (DP)'),
+            ] %}
+            {% for val, label in status_opts %}
+            <option value="{{ val }}" {{ 'selected' if f.status == val else '' }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-xl-1">
+          <label class="form-label">Mês da vaga</label>
+          <select class="form-select form-select-sm" name="mes">
+            <option value="">Todos</option>
+            {% for m in range(1, 13) %}<option value="{{ m }}" {{ 'selected' if f.mes == m else '' }}>{{ meses[m] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-xl-1">
+          <label class="form-label">OBM</label>
+          <select class="form-select form-select-sm" name="obm_id">
+            <option value="">Todas</option>
+            {% for o in obms %}<option value="{{ o.id }}" {{ 'selected' if f.obm_id == o.id else '' }}>{{ o.sigla }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-xl-1">
+          <label class="form-label">Posto/Grad.</label>
+          <select class="form-select form-select-sm" name="pg_id">
+            <option value="">Todos</option>
+            {% for p in postos %}<option value="{{ p.id }}" {{ 'selected' if f.pg_id == p.id else '' }}>{{ p.sigla }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-xl-1">
+          <label class="form-label">Ordenar por</label>
+          <select class="form-select form-select-sm" name="sort">
+            {% for val, label in [('chegada','Chegada'), ('nome','Nome'), ('pg','Posto/Grad.'), ('obm','OBM'), ('mes','Mês da vaga'), ('status','Status'), ('paf','Nº PAF')] %}
+            <option value="{{ val }}" {{ 'selected' if f.sort == val else '' }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2 col-xl-1">
+          <label class="form-label">Ordem</label>
+          <select class="form-select form-select-sm" name="dir">
+            <option value="asc" {{ 'selected' if f.dir == 'asc' else '' }}>Crescente</option>
+            <option value="desc" {{ 'selected' if f.dir == 'desc' else '' }}>Decrescente</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2 col-xl-1">
+          <label class="form-label">Por página</label>
+          <select class="form-select form-select-sm" name="per_page">
+            {% for n in [25, 50, 100, 200] %}<option value="{{ n }}" {{ 'selected' if per_page == n else '' }}>{{ n }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-auto d-flex gap-2">
+          <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+          <a class="btn btn-sm btn-outline-light" href="{{ url_for('paf.recebimento', ano=f.ano) }}">Limpar</a>
+        </div>
       </div>
-      <!-- Depois da tabela, antes do fechamento do card -->
-      <nav aria-label="Paginação PAF" class="mt-3">
-        <ul class="pagination pagination-sm">
-          <li class="page-item {{ 'disabled' if page<=1 else '' }}">
-            <a class="page-link" href="{{ url_for('paf.recebimento', page=page-1, per_page=per_page, q=q, obm_id=obm_id, pg_id=pg_id, status=status, sort=sort, dir=dir) }}">Anterior</a>
-          </li>
-          <li class="page-item disabled"><span class="page-link">Página {{ page }} / {{ total_pages }}</span></li>
-          <li class="page-item {{ 'disabled' if page>=total_pages else '' }}">
-            <a class="page-link" href="{{ url_for('paf.recebimento', page=page+1, per_page=per_page, q=q, obm_id=obm_id, pg_id=pg_id, status=status, sort=sort, dir=dir) }}">Próxima</a>
-          </li>
-        </ul>
-        <div class="small-muted">Mostrando {{ linhas|length }} de {{ total }} militares</div>
-      </nav>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <div class="small-muted small">
+        <strong class="text-light">{{ total }}</strong> militar{{ 'es' if total != 1 else '' }} encontrado{{ 's' if total != 1 else '' }}
+        {% if f.mes %} · vaga em <strong class="text-light">{{ meses[f.mes] }}</strong>{% endif %}
+      </div>
+      {% if is_drh %}
+      <div class="small-muted small"><span class="chip vaga-atual m-0">mês</span> = mês em que o militar ocupa vaga hoje</div>
+      {% endif %}
+    </div>
+
+    <!-- Tabela -->
+    <div class="glass-card p-2 p-md-3">
+      {% if linhas %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>PAF</th>
+              <th>Militar</th>
+              <th>Opções</th>
+              <th>Status</th>
+              <th>Enviado em</th>
+              <th>{{ 'Homologar mês' if is_drh else 'Ações' }}</th>
+              {% if is_drh %}<th></th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in linhas %}
+            {% set m = r[0] %}
+            {% set st = (r.paf_status or 'nao_enviou')|lower %}
+            <tr>
+              <td class="small-muted">{{ '#' ~ r.paf_id if r.paf_id else '—' }}</td>
+
+              <td>
+                <div class="fw-semibold">{{ m.nome_completo }}</div>
+                <div class="small-muted small">
+                  {{ r.pg_sigla or '—' }} · {{ m.matricula }} · {{ r.obm_sigla or '—' }}
+                </div>
+              </td>
+
+              <td>
+                {% if r.paf_id %}
+                {% for ordem, op in [(1, r.opcao_1), (2, r.opcao_2), (3, r.opcao_3)] %}
+                <span class="chip {{ 'vaga-atual' if op and op == r.mes_vaga else '' }}"><span class="ord">{{ ordem }}ª</span>{{ meses_curto[op] if op else '—' }}</span>
+                {% endfor %}
+                {% else %}<span class="small-muted">—</span>{% endif %}
+              </td>
+
+              <td>
+                <span class="badge {{ badge_cls.get(st, 'text-bg-secondary') }}">{{ status_label.get(st, r.paf_status) }}</span>
+                {% if r.observacoes %}
+                <div class="nota text-danger-emphasis" style="color:#fca5a5"><i class="bi bi-exclamation-octagon me-1"></i>Reprovação: {{ r.observacoes }}</div>
+                {% endif %}
+                {% if r.justificativa %}
+                <div class="nota small-muted"><i class="bi bi-chat-square-text me-1"></i>{{ r.justificativa }}</div>
+                {% endif %}
+              </td>
+
+              <td class="small text-nowrap">
+                {% set chegada = r.recebido_em or r.created_at %}
+                {{ chegada.strftime('%d/%m/%Y %H:%M') if chegada else '—' }}
+              </td>
+
+              {% if is_drh %}
+              <td class="homologa">
+                {% if r.paf_id %}
+                {% if st == 'validado_drh' and r.mes_definido %}
+                <div class="homologado-em mb-1"><i class="bi bi-check2-circle me-1"></i>Homologado em {{ meses[r.mes_definido] }}{% if r.validado_em %} · {{ r.validado_em.strftime('%d/%m') }}{% endif %}</div>
+                {% endif %}
+                <form method="post" action="{{ url_for('paf.validar', paf_id=r.paf_id) }}" class="d-flex gap-1">
+                  <input type="hidden" name="acao" value="manual">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  <select class="form-select form-select-sm" name="mes_definido" required aria-label="Mês">
+                    {% for mm in range(1, 13) %}
+                    {% set vv = vagas[mm] %}
+                    {% set tag = '1ª opção' if mm == r.opcao_1 else ('2ª opção' if mm == r.opcao_2 else ('3ª opção' if mm == r.opcao_3 else '')) %}
+                    {% set lotado = vv.restantes is not none and vv.restantes <= 0 and mm != r.mes_vaga %}
+                    <option value="{{ mm }}" {{ 'selected' if mm == r.mes_vaga else '' }}>
+                      {{ meses[mm] }}{% if tag %} · {{ tag }}{% endif %}{% if lotado %} (lotado){% endif %}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm {{ 'btn-outline-light' if st == 'validado_drh' else 'btn-success' }} text-nowrap" type="submit"
+                    title="{{ 'Alterar mês homologado' if st == 'validado_drh' else 'Homologar no mês selecionado' }}">
+                    <i class="bi {{ 'bi-arrow-repeat' if st == 'validado_drh' else 'bi-check2' }}"></i>
+                    {{ 'Alterar' if st == 'validado_drh' else 'Homologar' }}
+                  </button>
+                </form>
+                {% else %}<span class="small-muted">—</span>{% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if r.paf_id %}
+                <a class="btn btn-sm btn-outline-light" href="{{ url_for('paf.validar', paf_id=r.paf_id) }}" title="Detalhes e capacidade">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-open-reprovar" data-paf-id="{{ r.paf_id }}"
+                  data-nome="{{ m.nome_completo }}" title="Reprovar"
+                  {{ 'disabled' if st in ['reprovado_chefe', 'validado_drh'] else '' }}>
+                  <i class="bi bi-x-circle"></i>
+                </button>
+                {% endif %}
+              </td>
+              {% else %}
+              <td class="text-nowrap">
+                {% if r.paf_id %}
+                <form method="post" action="{{ url_for('paf.aprovar', paf_id=r.paf_id) }}" class="d-inline">
+                  <input type="hidden" name="acao" value="aprovar">
+                  <button class="btn btn-sm btn-success" type="submit"
+                    {{ 'disabled' if st in ['aprovado_chefe', 'aguardando_drh', 'validado_drh'] else '' }}>
+                    <i class="bi bi-send-check me-1"></i> Encaminhar à DP
+                  </button>
+                </form>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-open-reprovar"
+                  data-paf-id="{{ r.paf_id }}" data-nome="{{ m.nome_completo }}"
+                  {{ 'disabled' if st in ['reprovado_chefe', 'validado_drh'] else '' }}>
+                  <i class="bi bi-x-circle me-1"></i> Reprovar
+                </button>
+                {% else %}<span class="small-muted">—</span>{% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 small-muted">
+        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+        Nenhum militar encontrado com esses filtros em {{ f.ano }}.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Paginação -->
+    {% if total_pages > 1 %}
+    {% set args = dict(qs) %}
+    <nav aria-label="Paginação PAF" class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <ul class="pagination pagination-sm m-0">
+        <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+          <a class="page-link" href="{{ url_for('paf.recebimento', page=1, **args) }}" aria-label="Primeira">&laquo;</a>
+        </li>
+        <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+          <a class="page-link" href="{{ url_for('paf.recebimento', page=page-1, **args) }}">Anterior</a>
+        </li>
+        {% for p in range([1, page - 2]|max, [total_pages, page + 2]|min + 1) %}
+        <li class="page-item {{ 'active' if p == page else '' }}">
+          <a class="page-link" href="{{ url_for('paf.recebimento', page=p, **args) }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+          <a class="page-link" href="{{ url_for('paf.recebimento', page=page+1, **args) }}">Próxima</a>
+        </li>
+        <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+          <a class="page-link" href="{{ url_for('paf.recebimento', page=total_pages, **args) }}" aria-label="Última">&raquo;</a>
+        </li>
+      </ul>
+      <div class="small-muted small">Página {{ page }} de {{ total_pages }} · mostrando {{ linhas|length }} de {{ total }}</div>
+    </nav>
+    {% endif %}
   </div>
 
+  <!-- Modal reprovar -->
   <div id="modal-reprovar" class="modal-backdrop-custom" style="display:none;">
-    <div class="modal-card" style="max-width:640px;">
+    <div class="modal-card" style="max-width:640px; width:calc(100% - 32px);">
       <div class="p-3 border-bottom">
         <h5 class="m-0"><i class="bi bi-x-circle text-danger me-1"></i> Reprovar PAF</h5>
+        <div class="small text-muted mt-1" id="reprovar-nome"></div>
         <div class="small text-muted mt-1">
           Informe a justificativa da reprovação. O militar visualizará esse motivo.
         </div>
@@ -430,26 +665,24 @@
     const form = document.getElementById('form-reprovar');
     const motivo = document.getElementById('motivo-reprovar');
     const fechar = document.getElementById('fechar-reprovar');
+    const nome = document.getElementById('reprovar-nome');
 
-    // abre modal e aponta a action para o paf certo
     document.querySelectorAll('.btn-open-reprovar').forEach(btn => {
       btn.addEventListener('click', () => {
         const pafId = btn.getAttribute('data-paf-id');
-        form.action = "{{ url_for('paf.aprovar', paf_id=0) }}".replace('/0', '/' + pafId);
+        form.action = "{{ url_for('paf.aprovar', paf_id=0) }}".replace(/\/0$/, '/' + pafId);
+        nome.textContent = btn.getAttribute('data-nome') || '';
         motivo.value = '';
         modal.style.display = 'flex';
         motivo.focus();
       });
     });
 
-    fechar?.addEventListener('click', () => { modal.style.display = 'none'; });
+    const fecharModal = () => { modal.style.display = 'none'; };
+    fechar?.addEventListener('click', fecharModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) fecharModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharModal(); });
 
-    // fecha clicando fora do cartão
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
-    });
-
-    // valida motivo
     form?.addEventListener('submit', (e) => {
       if (!motivo.value.trim()) {
         e.preventDefault();
@@ -458,5 +691,4 @@
     });
   })();
 </script>
-
 {% endblock %}

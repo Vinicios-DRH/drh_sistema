@@ -512,13 +512,8 @@
 
             <tbody>
                 {% for militar, paf in militares_pafs %}
-                {% set pode_ter_40 = militar.obm_funcoes
-                | selectattr('obm_id', 'equalto', 48)
-                | selectattr('data_fim', 'equalto', none)
-                | list
-                | length > 0
-                and militar.especialidade_id == 12
-                %}
+                {# lista única de 40 dias (raio-x): MILITARES_40_DIAS_IDS em paf_service #}
+                {% set pode_ter_40 = militar.id in militares_40 %}
                 {% set direito_dias = 40 if pode_ter_40 else 30 %}
 
                 <tr id="militar-{{ militar.id }}" data-militar-id="{{ militar.id }}"
@@ -586,7 +581,8 @@
                             data-period="1">
                             <option value="">---</option>
 
-                            {% set opcoes = [10, 20, 30] if pode_ter_40 else [10, 15, 20, 30] %}
+                            {# 40 dias: 20 + 20 obrigatório a partir do PAF {{ ano_regra_40 }} #}
+                            {% if pode_ter_40 %}{% set opcoes = [20] if ano >= ano_regra_40 else [10, 20, 30] %}{% else %}{% set opcoes = [10, 15, 20, 30] %}{% endif %}
 
                             {% for dias in opcoes %}
                             <option value="{{ dias }}" {% if paf and paf.qtd_dias_primeiro_periodo==dias %}selected{%

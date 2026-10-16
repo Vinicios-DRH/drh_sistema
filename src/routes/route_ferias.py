@@ -10,11 +10,7 @@ from src import database
 bp_ferias = Blueprint("ferias", __name__)
 # teste
 
-MILITARES_40_IDS = {
-    513, 768, 946, 1, 251, 506, 410, 1026,
-    356, 798, 702, 463, 387, 888, 902, 948,
-    749, 768, 612
-}
+from src.services.paf_service import MILITARES_40_DIAS_IDS as MILITARES_40_IDS
 
 
 def total_dias_expr():

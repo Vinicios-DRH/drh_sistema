@@ -35,7 +35,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_use_lifo": True,
 }
 
-app.config['PAF_ANO_VIGENTE'] = 2026
+# PAF_ANO_VIGENTE não é mais fixo: o módulo de Férias acompanha o ano corrente
+# (o PAF escolhido num ano vale para o seguinte). Defina aqui só para forçar um ano.
 app.config["PUBLIC_BASE_URL"] = "https://drhsistema-production.up.railway.app"
 # --- flags para rodar só uma vez por worker ---
 _pool_warmed = False

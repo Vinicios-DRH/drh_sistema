@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from io import BytesIO
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+from dateutil.relativedelta import relativedelta
 
 import matplotlib.pyplot as plt
 from flask import current_app
@@ -39,7 +42,7 @@ from src.models import (
 # ---------------------------------------------------------------------------
 
 def paf_ano_vigente() -> int:
-    return current_app.config.get('PAF_ANO_VIGENTE', datetime.now().year)
+    return current_app.config.get('PAF_ANO_VIGENTE') or datetime.now(ZoneInfo('America/Manaus')).year
 
 
 def parse_date(date_string):
@@ -64,21 +67,24 @@ def validate_vacation_period(start_date, days):
         raise ValueError("As férias não podem ultrapassar 31 de dezembro.")
 
 
-OBM_DIREITO_40_DIAS_ID = 48
-ESPECIALIDADE_DIREITO_40_DIAS_ID = 12
+# Militares com direito a 40 dias de férias (trabalham expostos a raio-x:
+# dentistas, técnicos de RX...). Fonte ÚNICA para o PAF (/paf) e para o módulo
+# de Férias (/ferias-chefe) — antes cada tela tinha a sua lista/regra.
+MILITARES_40_DIAS_IDS = frozenset({
+    1, 251, 356, 387, 410, 463, 506, 513, 612,
+    676, 702, 749, 768, 798, 888, 902, 946, 948, 1026,
+})
+
+# 40 dias = 20 + 20, obrigatoriamente, com o 2º período começando mais de
+# 6 meses depois do FIM do 1º e terminando até 31/12 do mesmo ano.
+DIAS_PERIODO_40 = 20
+INTERVALO_MESES_40 = 6
+# Vale a partir do PAF 2027; férias de anos anteriores já lançadas ficam como estão.
+ANO_INICIO_REGRA_40 = 2027
 
 
 def pode_ter_40_dias(militar) -> bool:
-    """Mesma regra usada na tela da chefia (ver template
-    partial_tabela_obm.html): vínculo ativo na OBM 48 + especialidade 12 dá
-    direito a 40 dias de férias em vez dos 30 padrão. Existia só no
-    template — precisa estar aqui também porque é o servidor, não o HTML,
-    quem decide o que é salvo."""
-    tem_vinculo = any(
-        f.obm_id == OBM_DIREITO_40_DIAS_ID and f.data_fim is None
-        for f in (militar.obm_funcoes or [])
-    )
-    return tem_vinculo and militar.especialidade_id == ESPECIALIDADE_DIREITO_40_DIAS_ID
+    return bool(militar) and militar.id in MILITARES_40_DIAS_IDS
 
 
 def calcular_direito_dias_ferias(militar) -> int:
@@ -596,6 +602,28 @@ class PeriodoFerias:
     fim: Optional[date]
 
 
+def inicio_minimo_2o_periodo_40(fim_1: date) -> date:
+    """2º período de quem tem 40 dias: mais de 6 meses depois do fim do 1º."""
+    return fim_1 + relativedelta(months=INTERVALO_MESES_40) + timedelta(days=1)
+
+
+def _validar_regra_40_dias(periodos: list) -> None:
+    p1, p2, p3 = periodos
+    if not any(p.qtd_dias for p in periodos):
+        return  # nada lançado ainda
+    if p1.qtd_dias != DIAS_PERIODO_40 or p2.qtd_dias != DIAS_PERIODO_40 or p3.qtd_dias:
+        raise ValueError("Militar com direito a 40 dias (raio-x): as férias são obrigatoriamente "
+                         "20 + 20 dias, sem 3º período.")
+    if p1.fim and p2.inicio and p2.inicio < inicio_minimo_2o_periodo_40(p1.fim):
+        raise ValueError(
+            "Militar com direito a 40 dias: o 2º período deve começar a partir de "
+            f"{inicio_minimo_2o_periodo_40(p1.fim).strftime('%d/%m/%Y')} "
+            "(mais de 6 meses após o fim do 1º).")
+    if p1.inicio and p2.fim and p2.fim > date(p1.inicio.year, 12, 31):
+        raise ValueError("Militar com direito a 40 dias: o 2º período precisa terminar até "
+                         f"31/12/{p1.inicio.year}.")
+
+
 def extrair_periodos_ferias(form) -> list:
     """Lê os 3 períodos de férias enviados pelo formulário de lançamento do
     PAF. O "fim" de cada período NUNCA vem do formulário — é sempre
@@ -613,7 +641,8 @@ def extrair_periodos_ferias(form) -> list:
     return periodos
 
 
-def validar_periodos_ferias(periodos: list, *, direito_dias: int, excecao_virada_ano: bool) -> None:
+def validar_periodos_ferias(periodos: list, *, direito_dias: int, excecao_virada_ano: bool,
+                            ano: Optional[int] = None) -> None:
     """Levanta ValueError no primeiro período inválido (mesmo comportamento
     de curto-circuito da validação original: para na primeira falha).
 
@@ -631,6 +660,9 @@ def validar_periodos_ferias(periodos: list, *, direito_dias: int, excecao_virada
     ano sem precisar antes ligar a exceção pra esse militar/ano)."""
     if is_super():
         return
+
+    if direito_dias == 40 and (ano is None or ano >= ANO_INICIO_REGRA_40):
+        _validar_regra_40_dias(periodos)
 
     total_dias = 0
 
