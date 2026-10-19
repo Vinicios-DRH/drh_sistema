@@ -98,6 +98,16 @@ def _obm_subtree_ids(root_id: int) -> list[int]:
     return ids or [root_id]
 
 
+# DIRETOR, CHEFE, DRH/DP, SUPER USER, DIRETOR DRH — mesma regra do menu "PAF do Efetivo"
+FUNCOES_PAF_EFETIVO = {1, 2, 5, 6, 7}
+
+
+def _pode_ver_efetivo() -> bool:
+    """Tela do efetivo (/paf/recebimento), Excel e aprovação: só chefia e DP.
+    A conta pessoal do militar (ATUALIZACAO CADASTRAL) não entra."""
+    return _is_drh_like() or int(getattr(current_user, "funcao_user_id", 0) or 0) in FUNCOES_PAF_EFETIVO
+
+
 def _ano_atual_manaus():
     return datetime.now(ZoneInfo("America/Manaus")).year + 1
 
@@ -316,6 +326,12 @@ def minhas():
 
     ano = request.args.get("ano", type=int) or _ano_atual_manaus()
 
+    # quem ainda não foi liberado só entra se já tiver PAF no ano (ex.: corrigir um reprovado)
+    ja_tem = database.session.query(NovoPaf.id).filter_by(militar_id=militar.id, ano_referencia=ano).first()
+    if not (pode_enviar_paf(current_user, militar) or ja_tem):
+        flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
+        return redirect(url_for("home"))
+
     # opções (NovoPaf)
     pafs = (database.session.query(NovoPaf)
             .filter(NovoPaf.militar_id == militar.id, NovoPaf.ano_referencia == ano)
@@ -331,6 +347,10 @@ def minhas():
 @bp_paf.route("/aprovar/<int:paf_id>", methods=["POST"])
 @login_required
 def aprovar(paf_id):
+    if not _pode_ver_efetivo():
+        flash("Você não pode aprovar/reprovar PAF.", "danger")
+        return redirect(url_for("home"))
+
     paf = database.session.get(NovoPaf, paf_id)
     if not paf:
         flash("Registro não encontrado.", "danger")
@@ -680,6 +700,10 @@ def _anos_paf() -> list[int]:
 @bp_paf.route("/recebimento", methods=["GET"])
 @login_required
 def recebimento():
+    if not _pode_ver_efetivo():
+        flash("Acesso restrito à chefia e à DP.", "danger")
+        return redirect(url_for("home"))
+
     f = _recebimento_filtros()
     page = max(1, request.args.get("page", type=int) or 1)
     per_page = min(200, request.args.get("per_page", type=int) or 50)
@@ -714,6 +738,10 @@ def recebimento():
 @bp_paf.route("/recebimento/excel", methods=["GET"])
 @login_required
 def recebimento_excel():
+    if not _pode_ver_efetivo():
+        flash("Acesso restrito à chefia e à DP.", "danger")
+        return redirect(url_for("home"))
+
     f = _recebimento_filtros()
     rows_q, _kpi = _recebimento_consulta(f)
     ano = f["ano"]
@@ -867,7 +895,7 @@ def detalhe(paf_id):
         sou_dono = bool(meu_militar and meu_militar.id == paf.militar_id)
     except Exception:
         pass
-    pode_ver = is_drh or sou_dono or _eh_chefe_do(paf.militar_id)
+    pode_ver = is_drh or sou_dono or (_pode_ver_efetivo() and _eh_chefe_do(paf.militar_id))
     if not pode_ver:
         flash("Você não tem permissão para ver este PAF.", "warning")
         return redirect(url_for("paf.minhas"))
