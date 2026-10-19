@@ -10,13 +10,13 @@ from datetime import date
 from io import BytesIO
 
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from src import database
-from src.models import LicencaEspecial, Militar, MilitaresADisposicao, MilitaresAgregados
+from src.models import LicencaEspecial, Militar, MilitarObmFuncao, MilitaresADisposicao, MilitaresAgregados, Obm
 from src.querys import _periodo_vigente_expr
 from src.services.militar_situacao_service import (
     ids_alto_comando_excluidos_de_agregado_disposicao,
@@ -277,6 +277,179 @@ def gerar_planilha_situacao(titulo: str, registros, campo_fim: str, status_venci
             r.status or "",
             r.publicacao_bg.boletim_geral if r.publicacao_bg else "",
         ])
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+
+# Colunas que podem ir no Excel de /militares-a-disposicao, agrupadas como no
+# modal "Personalizar planilha" (mesma ideia do Mapa da Força). A ordem aqui é
+# a ordem das colunas no arquivo.
+GRUPOS_COLUNAS_DISPOSICAO = [
+    ("Identificação", [
+        "Posto/Graduação", "Nome Completo", "Nome de Guerra", "Matrícula", "CPF", "RG",
+        "Quadro", "Sexo", "Data de Nascimento", "Inclusão", "Especialidade", "Localidade",
+    ]),
+    ("Lotação", ["OBM atual", "Função atual"]),
+    ("Disposição", [
+        "Destino", "Modalidade", "Situação atual do militar", "A contar de", "Término",
+        "Dias", "Status", "Documento Autorizador",
+    ]),
+    ("Situação no momento", ["Também em situação extra", "De férias agora"]),
+]
+COLUNAS_DISPOSICAO_DISPONIVEIS = [c for _, cols in GRUPOS_COLUNAS_DISPOSICAO for c in cols]
+# marcadas por padrão no modal (as que a tabela da tela mostra + OBM e badges)
+COLUNAS_DISPOSICAO_PADRAO = [
+    "Posto/Graduação", "Nome Completo", "Matrícula", "Quadro", "OBM atual", "Destino",
+    "Situação atual do militar", "A contar de", "Término", "Dias", "Status",
+    "Documento Autorizador", "Também em situação extra", "De férias agora",
+]
+ABAS_EXTRAS_DISPOSICAO = ["Resumo", "Por destino", "Pendências"]
+STATUS_DISPOSICAO = ["Vigente", "A iniciar", "Venceu", "Inativo"]
+
+
+def _lotacao_atual_por_militar(militar_ids) -> dict:
+    """OBM(s) e função(ões) com vínculo ativo de cada militar, numa consulta só."""
+    if not militar_ids:
+        return {}
+    from src.models import Funcao
+    linhas = (
+        database.session.query(MilitarObmFuncao.militar_id, Obm.sigla, Funcao.ocupacao)
+        .outerjoin(Obm, Obm.id == MilitarObmFuncao.obm_id)
+        .outerjoin(Funcao, Funcao.id == MilitarObmFuncao.funcao_id)
+        .filter(MilitarObmFuncao.militar_id.in_(set(militar_ids)))
+        .filter(MilitarObmFuncao.data_fim.is_(None))
+        .all()
+    )
+    lotacao = {}
+    for mid, sigla, funcao in linhas:
+        item = lotacao.setdefault(mid, {"obms": [], "funcoes": []})
+        if sigla and sigla not in item["obms"]:
+            item["obms"].append(sigla)
+        if funcao and funcao not in item["funcoes"]:
+            item["funcoes"].append(funcao)
+    return {mid: {"obm": " / ".join(v["obms"]), "funcao": " / ".join(v["funcoes"])}
+            for mid, v in lotacao.items()}
+
+
+def _aba(wb, titulo, colunas, linhas, primeira=False):
+    """Cria uma aba com cabeçalho em destaque, filtro, painel congelado e
+    largura de coluna ajustada ao conteúdo."""
+    ws = wb.active if primeira else wb.create_sheet()
+    ws.title = titulo[:31]
+    ws.append(colunas)
+    for linha in linhas:
+        ws.append(linha)
+    destaque = PatternFill("solid", fgColor="0B385E")
+    for cel in ws[1]:
+        cel.font = Font(bold=True, color="FFFFFF")
+        cel.fill = destaque
+        cel.alignment = Alignment(vertical="center")
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}{max(len(linhas) + 1, 1)}"
+    for i, col in enumerate(colunas, start=1):
+        maior = max([len(str(col))] + [len(str(l[i - 1])) for l in linhas[:500] if l[i - 1] is not None])
+        ws.column_dimensions[get_column_letter(i)].width = min(maior + 2, 50)
+    return ws
+
+
+def gerar_planilha_disposicao_completa(registros, pendencias, situacoes_extras_por_militar,
+                                       ferias_por_militar, colunas=None, abas_extras=None) -> BytesIO:
+    """Excel da tela /militares-a-disposicao montado pelo usuário: só as
+    `colunas` escolhidas (na ordem de GRUPOS_COLUNAS_DISPOSICAO) e, se pedidas,
+    as abas extras de resumo, contagem por destino e pendências."""
+    colunas = [c for c in COLUNAS_DISPOSICAO_DISPONIVEIS if c in (colunas or COLUNAS_DISPOSICAO_PADRAO)]
+    abas_extras = ABAS_EXTRAS_DISPOSICAO if abas_extras is None else abas_extras
+    hoje = date.today()
+    fmt = lambda d: d.strftime("%d/%m/%Y") if d else ""
+    lotacao = _lotacao_atual_por_militar([r.militar_id for r in registros])
+
+    def sexo(m):
+        s = (m.sexo or "").strip().lower()
+        return "Masculino" if s.startswith("m") else "Feminino" if s.startswith("f") else (m.sexo or "")
+
+    linhas = []
+    for r in registros:
+        m = r.militar
+        extra = situacoes_extras_por_militar.get(r.militar_id)
+        ferias = ferias_por_militar.get(r.militar_id)
+        texto_extra = ""
+        if extra:
+            texto_extra = extra["label"]
+            if extra.get("destino"):
+                texto_extra += f" — {extra['destino']}"
+            texto_extra += f" ({fmt(extra['inicio'])} a {fmt(extra['fim']) or 'sem término'})"
+        lot = lotacao.get(r.militar_id, {})
+        valores = {
+            "Posto/Graduação": r.posto_grad.sigla if r.posto_grad else "",
+            "Nome Completo": m.nome_completo if m else "",
+            "Nome de Guerra": (m.nome_guerra or "") if m else "",
+            "Matrícula": (m.matricula or "") if m else "",
+            "CPF": (m.cpf or "") if m else "",
+            "RG": (m.rg or "") if m else "",
+            "Quadro": r.quadro.quadro if r.quadro else "",
+            "Sexo": sexo(m) if m else "",
+            "Data de Nascimento": fmt(m.data_nascimento) if m else "",
+            "Inclusão": fmt(m.inclusao) if m else "",
+            "Especialidade": m.especialidade.ocupacao if m and m.especialidade else "",
+            "Localidade": m.localidade.sigla if m and m.localidade else "",
+            "OBM atual": lot.get("obm", ""),
+            "Função atual": lot.get("funcao", ""),
+            "Destino": r.destino.local if r.destino else "",
+            "Modalidade": r.modalidade.descricao if r.modalidade else
+                          (m.modalidade.descricao if m and m.modalidade else ""),
+            "Situação atual do militar": (m.situacao or "") if m else "",
+            "A contar de": fmt(r.inicio_periodo),
+            "Término": fmt(r.fim_periodo_disposicao),
+            "Dias": _dias_texto(r.status, r.inicio_periodo, r.fim_periodo_disposicao, hoje, "Venceu"),
+            "Status": r.status or "",
+            "Documento Autorizador": r.publicacao_bg.boletim_geral if r.publicacao_bg else "",
+            "Também em situação extra": texto_extra,
+            "De férias agora": (f"{ferias['numero']}º período: {fmt(ferias['inicio'])} a {fmt(ferias['fim'])}"
+                                if ferias else ""),
+        }
+        linhas.append([valores[c] for c in colunas])
+
+    wb = Workbook()
+    _aba(wb, "Militares à disposição", colunas, linhas, primeira=True)
+
+    if "Resumo" in abas_extras:
+        resumo = montar_resumo_dashboard(registros, campo_fim="fim_periodo_disposicao")
+        _aba(wb, "Resumo", ["Indicador", "Quantidade"], [
+            ["Data da extração", hoje.strftime("%d/%m/%Y")],
+            ["Total de militares na planilha", resumo["total"]],
+            ["Vigentes", resumo["vigentes"]],
+            [f"Vencendo em até {DIAS_ALERTA_VENCIMENTO} dias", resumo["vencendo_em_breve"]],
+            ["A iniciar", resumo["a_iniciar"]],
+            ["Vencidos", resumo["vencidos"]],
+            ["Sem dados (sem data de início)", resumo["sem_dados"]],
+            ["Pendências (vencida aguardando decisão)", len(pendencias)],
+        ])
+
+    if "Por destino" in abas_extras:
+        total = len(registros)
+        por_destino = Counter(r.destino.local if r.destino else "Sem destino informado" for r in registros)
+        _aba(wb, "Por destino", ["Destino", "Militares", "% do total"],
+             [[nome, qtd, f"{round(qtd / total * 100) if total else 0}%"] for nome, qtd in por_destino.most_common()])
+
+    if "Pendências" in abas_extras:
+        linhas_pend = []
+        for p in pendencias:
+            m, d = p["militar"], p["disposicao"]
+            linhas_pend.append([
+                d.posto_grad.sigla if d.posto_grad else "",
+                m.matricula or "",
+                m.nome_completo,
+                d.destino.local if d.destino else "",
+                fmt(d.fim_periodo_disposicao),
+                p["dias_vencido"],
+                "Sim" if p["dual"] else "Não",
+                d.publicacao_bg.boletim_geral if d.publicacao_bg else "",
+            ])
+        _aba(wb, "Pendências", ["Posto/Graduação", "Matrícula", "Nome Completo", "Destino", "Término",
+                                "Dias vencido", "Tem agregação aberta", "Documento Autorizador"], linhas_pend)
 
     output = BytesIO()
     wb.save(output)

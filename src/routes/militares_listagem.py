@@ -37,7 +37,13 @@ from src.services.situacoes_militares_service import (
     listar_licencas_especiais,
     montar_resumo_dashboard,
     gerar_planilha_situacao,
+    gerar_planilha_disposicao_completa,
     COLUNAS_EXPORTACAO_SITUACAO,
+    GRUPOS_COLUNAS_DISPOSICAO,
+    COLUNAS_DISPOSICAO_DISPONIVEIS,
+    COLUNAS_DISPOSICAO_PADRAO,
+    ABAS_EXTRAS_DISPOSICAO,
+    STATUS_DISPOSICAO,
 )
 from src.decorators.business_logic import (
     processar_militares_agregados,
@@ -339,7 +345,11 @@ def militares_a_disposicao():
 
     return render_template(
         'militares_a_disposicao.html', militares=militares, resumo=resumo, pendencias=pendencias,
-        situacoes_extras_por_militar=situacoes_extras_por_militar, ferias_por_militar=ferias_por_militar)
+        situacoes_extras_por_militar=situacoes_extras_por_militar, ferias_por_militar=ferias_por_militar,
+        # modal "Personalizar planilha"
+        grupos_colunas=GRUPOS_COLUNAS_DISPOSICAO, colunas_padrao=COLUNAS_DISPOSICAO_PADRAO,
+        abas_extras=ABAS_EXTRAS_DISPOSICAO, status_disposicao=STATUS_DISPOSICAO,
+        destinos_disposicao=sorted({m.destino.local for m in militares if m.destino and m.destino.local}))
 
 
 @app.route("/militares-agregados")
@@ -416,22 +426,59 @@ def reverter_disposicao_route(militar_id):
     return redirect(proxima_pagina)
 
 
-@app.route("/exportar-militares-a-disposicao")
+@app.route("/exportar-militares-a-disposicao", methods=["GET", "POST"])
 @login_required
 @checar_ocupacao('DIRETOR', 'CHEFE', 'MAPA DA FORÇA', 'DRH', 'SUPER USER', 'DIRETOR DRH')
 def exportar_militares_a_disposicao():
+    # POST = modal "Personalizar planilha" (colunas, abas e filtros escolhidos);
+    # GET = link direto, com a seleção padrão.
+    if request.method == "POST":
+        colunas = [c for c in request.form.getlist("colunas") if c in COLUNAS_DISPOSICAO_DISPONIVEIS]
+        if not colunas:
+            flash("Selecione ao menos uma coluna para gerar a planilha.", "warning")
+            return redirect(url_for("militares_a_disposicao"))
+        abas = [a for a in request.form.getlist("abas") if a in ABAS_EXTRAS_DISPOSICAO]
+        status_sel = set(request.form.getlist("status")) or set(STATUS_DISPOSICAO)
+        destino_sel = (request.form.get("destino") or "").strip()
+    else:
+        colunas, abas = COLUNAS_DISPOSICAO_PADRAO, ABAS_EXTRAS_DISPOSICAO
+        status_sel, destino_sel = set(STATUS_DISPOSICAO), ""
+
+    # mesmo recálculo da tela, pra planilha bater com o que está sendo visto
+    processar_militares_a_disposicao()
+    processar_inicio_situacoes_extras()
+    database.session.commit()
+
     militares = listar_militares_a_disposicao()
-    output = gerar_planilha_situacao(
-        "Militares a Disposição", militares, campo_fim="fim_periodo_disposicao", status_vencido="Venceu")
+    militares = [
+        m for m in militares
+        if (m.status if m.status in STATUS_DISPOSICAO else "Inativo") in status_sel
+        and (not destino_sel or (m.destino.local if m.destino else "") == destino_sel)
+    ]
+    ids_militares = [m.militar_id for m in militares]
+    output = gerar_planilha_disposicao_completa(
+        militares,
+        pendencias=listar_pendencias_disposicao_vencida(),
+        situacoes_extras_por_militar=mapa_situacoes_extras_vigentes(ids_militares),
+        ferias_por_militar=mapa_ferias_vigentes(ids_militares),
+        colunas=colunas,
+        abas_extras=abas,
+    )
 
     registrar_log_download(
         nome_relatorio="Militares a Disposição",
-        colunas_lista=COLUNAS_EXPORTACAO_SITUACAO,
-        filtros_dict="Nenhum filtro aplicado — um registro por militar (o mais recente)",
+        colunas_lista=list(colunas),
+        filtros_dict={
+            "status": sorted(status_sel),
+            "destino": destino_sel or "Todos",
+            "abas_extras": abas or "nenhuma",
+            "registros": len(militares),
+        },
     )
 
+    nome = f"militares_a_disposicao_{date.today().strftime('%Y-%m-%d')}.xlsx"
     response = make_response(output.read())
-    response.headers["Content-Disposition"] = "attachment; filename=militares_a_disposicao.xlsx"
+    response.headers["Content-Disposition"] = f"attachment; filename={nome}"
     response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return response
 

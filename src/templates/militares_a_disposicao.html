@@ -721,6 +721,51 @@
         color: #fcd34d;
         background: rgba(217, 119, 6, .22);
     }
+
+    /* ---- Modal "Personalizar planilha" ---- */
+    #modalExportarDisposicao .modal-content {
+        background: var(--app-surface, #fff);
+        color: var(--app-text, #111827);
+        border: 1px solid var(--app-border, rgba(0, 0, 0, .1));
+        border-radius: 16px;
+    }
+
+    #modalExportarDisposicao .modal-header,
+    #modalExportarDisposicao .modal-footer {
+        border-color: var(--app-border, rgba(0, 0, 0, .1));
+    }
+
+    .exp-grupo {
+        border: 1px solid var(--app-border, rgba(0, 0, 0, .1));
+        border-radius: 12px;
+        padding: .75rem .9rem;
+        background: var(--app-surface-soft, transparent);
+        height: 100%;
+    }
+
+    .exp-grupo-titulo {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        font-size: .85rem;
+        margin-bottom: .45rem;
+    }
+
+    .exp-grupo-titulo button {
+        font-size: .72rem;
+        padding: 0 .35rem;
+        text-decoration: none;
+    }
+
+    .exp-grupo .form-check-label {
+        font-size: .86rem;
+    }
+
+    .exp-muted {
+        color: var(--app-muted, #6b7280);
+        font-size: .8rem;
+    }
 </style>
 {% endblock %}
 
@@ -745,6 +790,9 @@
                         </p>
                     </div>
                 </div>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalExportarDisposicao">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Gerar Excel
+                </button>
             </div>
         </section>
 
@@ -766,9 +814,9 @@
                     <input id="searchTable" class="form-control" placeholder="Filtra imediatamente em todas as colunas">
                 </div>
                 <div class="col-12 col-md-6 d-flex justify-content-md-end">
-                    <a class="btn btn-outline-success btn-sm" href="{{ url_for('exportar_militares_a_disposicao') }}">
+                    <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalExportarDisposicao">
                         <i class="bi bi-file-earmark-excel me-1"></i>Baixar Excel
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -832,7 +880,178 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal: personalizar planilha (mesma ideia do Mapa da Força) -->
+    <div class="modal fade" id="modalExportarDisposicao" tabindex="-1" aria-labelledby="modalExportarDisposicaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <form class="modal-content" method="POST" action="{{ url_for('exportar_militares_a_disposicao') }}" id="formExportarDisposicao">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalExportarDisposicaoLabel">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Personalizar planilha
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <p class="exp-muted m-0">
+                            Marque os dados que devem vir no arquivo. As colunas saem na ordem abaixo.
+                            Sua escolha fica salva neste navegador para a próxima vez.
+                        </p>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-exp-acao="todas">Marcar todas</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-exp-acao="nenhuma">Desmarcar todas</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-exp-acao="padrao">Padrão</button>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-2"><i class="bi bi-layout-three-columns me-1"></i>Colunas</h6>
+                    <div class="row g-2 mb-3">
+                        {% for grupo, colunas in grupos_colunas %}
+                        <div class="col-12 col-md-6 col-xl-3">
+                            <div class="exp-grupo" data-exp-grupo>
+                                <div class="exp-grupo-titulo">
+                                    <span>{{ grupo }}</span>
+                                    <span>
+                                        <button type="button" class="btn btn-link btn-sm" data-exp-grupo-acao="todas">todas</button>
+                                        <button type="button" class="btn btn-link btn-sm" data-exp-grupo-acao="nenhuma">nenhuma</button>
+                                    </span>
+                                </div>
+                                {% for col in colunas %}
+                                <div class="form-check">
+                                    <input class="form-check-input exp-coluna" type="checkbox" name="colunas" value="{{ col }}"
+                                        id="exp_col_{{ loop.index }}_{{ grupo|replace(' ', '_') }}" {{ 'checked' if col in colunas_padrao else '' }}>
+                                    <label class="form-check-label" for="exp_col_{{ loop.index }}_{{ grupo|replace(' ', '_') }}">{{ col }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-12 col-md-4">
+                            <div class="exp-grupo">
+                                <div class="exp-grupo-titulo"><span><i class="bi bi-funnel me-1"></i>Status da disposição</span></div>
+                                {% for st in status_disposicao %}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input exp-status" type="checkbox" name="status" value="{{ st }}" id="exp_st_{{ loop.index }}" checked>
+                                    <label class="form-check-label" for="exp_st_{{ loop.index }}">{{ st }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="exp-grupo">
+                                <div class="exp-grupo-titulo"><span><i class="bi bi-signpost-split me-1"></i>Destino</span></div>
+                                <select class="form-select form-select-sm" name="destino" id="exp_destino">
+                                    <option value="">Todos os destinos</option>
+                                    {% for d in destinos_disposicao %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="exp-grupo">
+                                <div class="exp-grupo-titulo"><span><i class="bi bi-files me-1"></i>Abas extras no arquivo</span></div>
+                                {% for aba in abas_extras %}
+                                <div class="form-check">
+                                    <input class="form-check-input exp-aba" type="checkbox" name="abas" value="{{ aba }}" id="exp_aba_{{ loop.index }}" checked>
+                                    <label class="form-check-label" for="exp_aba_{{ loop.index }}">{{ aba }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                    <span class="exp-muted" id="exp_resumo"></span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success" id="exp_gerar">
+                            <i class="bi bi-download me-1"></i>Gerar planilha
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </main>
+
+<script>
+    // Modal "Personalizar planilha": marcar/desmarcar, contagem e seleção salva no navegador
+    (() => {
+        const form = document.getElementById('formExportarDisposicao');
+        if (!form) return;
+        const CHAVE = 'exportar_disposicao_preferencias_v1';
+        const PADRAO = {{ colunas_padrao | tojson }};
+        const caixas = (sel) => Array.from(form.querySelectorAll(sel));
+        const resumo = document.getElementById('exp_resumo');
+        const gerar = document.getElementById('exp_gerar');
+
+        function atualizar() {
+            const qtd = caixas('.exp-coluna:checked').length;
+            const status = caixas('.exp-status:checked').length;
+            resumo.textContent = `${qtd} coluna${qtd === 1 ? '' : 's'} selecionada${qtd === 1 ? '' : 's'}`;
+            gerar.disabled = qtd === 0 || status === 0;
+        }
+
+        function salvar() {
+            try {
+                localStorage.setItem(CHAVE, JSON.stringify({
+                    colunas: caixas('.exp-coluna:checked').map(c => c.value),
+                    status: caixas('.exp-status:checked').map(c => c.value),
+                    abas: caixas('.exp-aba:checked').map(c => c.value),
+                    destino: document.getElementById('exp_destino').value,
+                }));
+            } catch (e) { /* navegador sem armazenamento: segue com o padrão */ }
+        }
+
+        function restaurar() {
+            let pref = null;
+            try { pref = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { pref = null; }
+            if (!pref) return;
+            if (Array.isArray(pref.colunas)) caixas('.exp-coluna').forEach(c => c.checked = pref.colunas.includes(c.value));
+            if (Array.isArray(pref.status)) caixas('.exp-status').forEach(c => c.checked = pref.status.includes(c.value));
+            if (Array.isArray(pref.abas)) caixas('.exp-aba').forEach(c => c.checked = pref.abas.includes(c.value));
+            const destino = document.getElementById('exp_destino');
+            if (pref.destino && Array.from(destino.options).some(o => o.value === pref.destino)) destino.value = pref.destino;
+        }
+
+        form.addEventListener('click', (ev) => {
+            const geral = ev.target.closest('[data-exp-acao]');
+            if (geral) {
+                const acao = geral.dataset.expAcao;
+                caixas('.exp-coluna').forEach(c => {
+                    c.checked = acao === 'todas' ? true : acao === 'nenhuma' ? false : PADRAO.includes(c.value);
+                });
+            }
+            const doGrupo = ev.target.closest('[data-exp-grupo-acao]');
+            if (doGrupo) {
+                const marcar = doGrupo.dataset.expGrupoAcao === 'todas';
+                doGrupo.closest('[data-exp-grupo]').querySelectorAll('.exp-coluna').forEach(c => c.checked = marcar);
+            }
+            atualizar();
+        });
+        form.addEventListener('change', atualizar);
+
+        form.addEventListener('submit', (ev) => {
+            if (!caixas('.exp-coluna:checked').length || !caixas('.exp-status:checked').length) {
+                ev.preventDefault();
+                return;
+            }
+            salvar();
+            // o download não troca de página: fecha o modal logo após enviar
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalExportarDisposicao'));
+                if (modal) modal.hide();
+            }, 300);
+        });
+
+        restaurar();
+        atualizar();
+    })();
+</script>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
