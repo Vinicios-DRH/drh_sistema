@@ -46,9 +46,9 @@ from src.models import (
 FUNCAO_USER_ATUALIZACAO_CADASTRAL = 12
 
 # Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
-#   Etapa atual: oficiais superiores (CEL, TC, MAJ) e intermediários (CAP).
-#   Para liberar a tropa toda, troque para  PAF_POSTOS_LIBERADOS = None
-PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ", "CAP"})
+#   Etapa atual: só oficiais superiores (CEL, TC, MAJ).
+#   Próximas etapas: acrescente postos (ex.: "CAP"); para a tropa toda, use None.
+PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ"})
 
 
 def pode_enviar_paf(user, militar) -> bool:
