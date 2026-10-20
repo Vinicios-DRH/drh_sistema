@@ -41,9 +41,13 @@ from src.models import (
 # Vigência e datas
 # ---------------------------------------------------------------------------
 
-# Quem envia o PAF: SOMENTE conta do tipo ATUALIZACAO CADASTRAL (a conta pessoal
-# do militar) — chefe, diretor, DRH e super não enviam por essas contas.
+# Quem envia o PAF: a conta pessoal do militar (ATUALIZACAO CADASTRAL) e a conta
+# de CHEFE — sempre respeitando os postos liberados abaixo. Diretor, DRH e super
+# não enviam por essas contas. Como é 1 PAF por militar/ano, quem tem as duas
+# contas envia por uma só.
 FUNCAO_USER_ATUALIZACAO_CADASTRAL = 12
+FUNCAO_USER_CHEFE = 2
+FUNCOES_USER_ENVIAM_PAF = frozenset({FUNCAO_USER_ATUALIZACAO_CADASTRAL, FUNCAO_USER_CHEFE})
 
 # Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
 #   Etapa atual: oficiais superiores (CEL, TC, MAJ) e intermediários (CAP).
@@ -54,7 +58,7 @@ PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ", "CAP"
 def pode_enviar_paf(user, militar) -> bool:
     if not user or not militar:
         return False
-    if int(getattr(user, "funcao_user_id", 0) or 0) != FUNCAO_USER_ATUALIZACAO_CADASTRAL:
+    if int(getattr(user, "funcao_user_id", 0) or 0) not in FUNCOES_USER_ENVIAM_PAF:
         return False
     if PAF_POSTOS_LIBERADOS is None:
         return True

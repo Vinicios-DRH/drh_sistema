@@ -1,4 +1,5 @@
 from flask import request
+import re
 import pytz
 from sqlalchemy.orm import backref, foreign
 
@@ -421,6 +422,30 @@ def load_usuario(id_usuario):
     return User.query.get(int(id_usuario))
 
 
+# Tipo de conta (User.tipo_perfil). O mesmo militar pode ter uma conta de
+# cada tipo: ADMIN pra gestão (chefe, DP...) e MILITAR pra área do militar
+# (atualização cadastral). A função (funcao_user_id) diz o papel dentro dela.
+PERFIL_ADMIN = "ADMIN"
+PERFIL_MILITAR = "MILITAR"
+PERFIL_EXTERNO = "EXTERNO"
+
+FUNCAO_ATUALIZACAO_CADASTRAL_ID = 12
+FUNCAO_PUBLICO_EXTERNO_ID = 14
+
+
+def perfil_da_funcao(funcao_user_id):
+    """Tipo de conta que uma função pede."""
+    try:
+        funcao_user_id = int(funcao_user_id)
+    except (TypeError, ValueError):
+        return PERFIL_ADMIN
+    if funcao_user_id == FUNCAO_ATUALIZACAO_CADASTRAL_ID:
+        return PERFIL_MILITAR
+    if funcao_user_id == FUNCAO_PUBLICO_EXTERNO_ID:
+        return PERFIL_EXTERNO
+    return PERFIL_ADMIN
+
+
 class User(database.Model, UserMixin):
     __tablename__ = "user"
     id = database.Column(database.Integer, primary_key=True)
@@ -428,11 +453,12 @@ class User(database.Model, UserMixin):
     email = database.Column(database.String(50))
     # NÃO usa mais unique aqui
     cpf = database.Column(database.String(50), index=True)
-    cpf_norm = database.Column(database.String(
-        11), index=True, unique=True)  # CPF só números, único
+    # CPF só números. Único por tipo de conta, não globalmente (ver
+    # uq_user_cpf_norm_tipo) — um militar pode ter conta ADMIN e MILITAR.
+    cpf_norm = database.Column(database.String(11), index=True)
 
-    tipo_perfil = database.Column(database.String(20), default="MILITAR")
-    # "MILITAR" | "ADMIN"
+    tipo_perfil = database.Column(database.String(20), default=PERFIL_MILITAR)
+    # "MILITAR" | "ADMIN" | "EXTERNO"
 
     militar_id = database.Column(
         database.Integer, database.ForeignKey("militar.id"), index=True)
@@ -461,6 +487,53 @@ class User(database.Model, UserMixin):
     permissoes = database.relationship(
         "UserPermissao", backref="user", lazy="select")
     militar = database.relationship('Militar', foreign_keys=[militar_id])
+
+    __table_args__ = (
+        Index(
+            "uq_user_cpf_norm_tipo", "cpf_norm", "tipo_perfil", unique=True,
+            postgresql_where=text(
+                "cpf_norm IS NOT NULL AND tipo_perfil IS NOT NULL"),
+        ),
+    )
+
+    @classmethod
+    def contas_por_cpf(cls, cpf):
+        """Todas as contas do CPF (com ou sem máscara), contas ADMIN primeiro."""
+        cpf = (cpf or "").strip()
+        digitos = re.sub(r"\D", "", cpf)
+        if not digitos:
+            return []
+        return (
+            cls.query
+            .filter((cls.cpf == cpf) | (cls.cpf_norm == digitos))
+            .order_by((cls.tipo_perfil == PERFIL_ADMIN).desc(), cls.id)
+            .all()
+        )
+
+    @classmethod
+    def conta_por_cpf(cls, cpf, perfil):
+        """Conta do CPF no tipo pedido. Se o CPF só tem conta de outro tipo,
+        devolve ela — quem tem uma conta só continua entrando por qualquer login."""
+        contas = cls.contas_por_cpf(cpf)
+        for conta in contas:
+            if conta.tipo_perfil == perfil:
+                return conta
+        return contas[0] if contas else None
+
+    def outra_conta(self, perfil):
+        """Conta desse mesmo CPF no tipo pedido, se for outra que não esta."""
+        for conta in User.contas_por_cpf(self.cpf):
+            if conta.id != self.id and conta.tipo_perfil == perfil:
+                return conta
+        return None
+
+
+@listens_for(User, "before_insert")
+@listens_for(User, "before_update")
+def user_sincroniza_cpf_norm(mapper, connection, target):
+    # cpf_norm é o que garante 1 conta por tipo; não pode ficar pra trás do cpf.
+    if target.cpf:
+        target.cpf_norm = re.sub(r"\D", "", target.cpf)
 
 
 class Comportamento(database.Model):

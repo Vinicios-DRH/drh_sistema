@@ -7,7 +7,7 @@ from flask import render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, login_required, current_user
 from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, IdentificacaoForm, FormLogin, MatriculaConfirmForm)
-from src.models import (Militar, SegundoVinculo, User, FichaAlunos)
+from src.models import (Militar, SegundoVinculo, User, FichaAlunos, PERFIL_MILITAR)
 
 from src.routes.helpers import _limpa_sessao_validacao
 
@@ -32,9 +32,10 @@ def atualizacao_cadastral():
 
         session['email_atualizacao'] = email_digitado
 
-        # Já existe User com esse CPF?
-        user = User.query.filter_by(cpf=cpf_formatado).first()
-        if user:
+        # Já existe conta de militar com esse CPF? (conta de gestão — chefe
+        # etc. — não impede: o mesmo militar pode ter as duas)
+        user = User.conta_por_cpf(cpf_formatado, PERFIL_MILITAR)
+        if user and user.tipo_perfil == PERFIL_MILITAR:
             flash(
                 "⚠️ Já existe uma conta vinculada a este CPF. Faça login para continuar.", "warning")
             return redirect(url_for('login_atualizacao'))
@@ -147,7 +148,11 @@ def formulario_atualizacao_cadastral():
 
 @app.route("/login-militar", methods=['GET', 'POST'])
 def login_atualizacao():
-    if current_user.is_authenticated:
+    # Logado na conta de gestão mas tem conta de militar: mostra o login pra
+    # poder trocar de conta.
+    if current_user.is_authenticated and not (
+            current_user.tipo_perfil != PERFIL_MILITAR
+            and current_user.outra_conta(PERFIL_MILITAR)):
         militar = get_militar_por_user(current_user)
         session['militar_id'] = militar.id
         if not militar:
@@ -159,7 +164,8 @@ def login_atualizacao():
 
     if form_login.validate_on_submit() and 'botao_submit_login' in request.form:
         cpf_formatado = form_login.cpf.data.strip()
-        usuario = User.query.filter_by(cpf=cpf_formatado).first()
+        # Quem tem conta de gestão e de militar entra aqui na de militar.
+        usuario = User.conta_por_cpf(cpf_formatado, PERFIL_MILITAR)
 
         if usuario and bcrypt.check_password_hash(usuario.senha, form_login.senha.data):
             if usuario.funcao_user_id == 12:

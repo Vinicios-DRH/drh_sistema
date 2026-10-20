@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from src.routes.helpers import somente_numeros
 from src import app, database, bcrypt
 from src.forms import (FormCriarUsuario)
-from src.models import (Militar, Obm, Localidade, User, FuncaoUser)
+from src.models import (Militar, Obm, Localidade, User, FuncaoUser, perfil_da_funcao)
 from src.decorators.control import checar_ocupacao, _is_super_user
 from src.authz import eh_publico_externo
 
@@ -45,13 +45,15 @@ def criar_conta():
             )
         ).first()
 
-        usuario_existente = User.query.filter(
-            or_(
-                User.cpf == cpf_limpo,
-                User.cpf == form_criar_usuario.cpf.data,
-                User.cpf_norm == cpf_limpo
-            )
-        ).first()
+        # O mesmo militar pode ter uma conta de gestão (chefe, DP...) e uma de
+        # militar (atualização cadastral). Só atualiza se já existir conta do
+        # mesmo tipo da função escolhida; senão cria a outra conta.
+        perfil = perfil_da_funcao(form_criar_usuario.funcao_user_id.data)
+        usuario_existente = next(
+            (u for u in User.contas_por_cpf(form_criar_usuario.cpf.data)
+             if u.tipo_perfil == perfil),
+            None
+        )
 
         if usuario_existente:
             # Atualiza o usuário já existente
@@ -76,7 +78,7 @@ def criar_conta():
                 usuario_existente.senha = senha_cript
 
             database.session.commit()
-            flash("Usuário já existia. Dados atualizados com sucesso!",
+            flash(f"Este CPF já tinha conta {perfil}. Dados atualizados com sucesso!",
                   "alert-warning")
             return redirect(url_for('home'))
 
@@ -90,6 +92,7 @@ def criar_conta():
             email=form_criar_usuario.email.data,
             cpf=cpf_limpo,
             cpf_norm=cpf_limpo,
+            tipo_perfil=perfil,
             funcao_user_id=form_criar_usuario.funcao_user_id.data,
             obm_id_1=form_criar_usuario.obm_id_1.data or None,
             obm_id_2=form_criar_usuario.obm_id_2.data or None,
@@ -105,7 +108,7 @@ def criar_conta():
             militar.usuario_id = novo_usuario.id
 
         database.session.commit()
-        flash("Usuário cadastrado com sucesso!", "alert-success")
+        flash(f"Conta {perfil} cadastrada com sucesso!", "alert-success")
         return redirect(url_for('home'))
 
     return render_template('criar_conta.html', form_criar_usuario=form_criar_usuario)
@@ -122,6 +125,7 @@ def usuarios():
         User.nome,
         User.cpf,
         User.ativo,
+        User.tipo_perfil,
         FuncaoUser.ocupacao.label('funcao_ocupacao')
     ).order_by(User.nome.asc()).all()
 
@@ -160,6 +164,23 @@ def exibir_usuario(id_usuario):
          Localidade.query.all()]
 
     if form.validate_on_submit():
+        # Trocar a função pode mudar o tipo de conta (gestão <-> militar); se
+        # o militar já tem conta do outro tipo, a edição é nela.
+        perfil = perfil_da_funcao(form.funcao_user_id.data)
+        if perfil != usuario.tipo_perfil:
+            outra = next(
+                (u for u in User.contas_por_cpf(form.cpf.data)
+                 if u.id != usuario.id and u.tipo_perfil == perfil),
+                None
+            )
+            if outra:
+                flash(
+                    f'Este CPF já tem uma conta {perfil} (usuário #{outra.id}). '
+                    'Edite aquela conta em vez de trocar a função desta.',
+                    'alert-danger')
+                return render_template('usuario_detalhes.html', usuario=usuario_info, form=form)
+            usuario.tipo_perfil = perfil
+
         usuario.nome = form.nome.data
         usuario.email = form.email.data
         usuario.cpf = form.cpf.data

@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from src import app, bcrypt, database
 from src.authz import FUNCAO_PUBLICO_EXTERNO_ID
 from src.forms import FormCadastroExterno, FormLogin
-from src.models import Forca, PessoaExterna, User
+from src.models import Forca, PessoaExterna, User, PERFIL_EXTERNO
 from src.routes.helpers import _somente_numeros, formatar_telefone
 from src.formatar_cpf import formatar_cpf
 
@@ -118,7 +118,7 @@ def login_externo():
 
     if form_login.validate_on_submit() and 'botao_submit_login' in request.form:
         cpf_formatado = form_login.cpf.data.strip()
-        usuario = User.query.filter_by(cpf=cpf_formatado).first()
+        usuario = User.conta_por_cpf(cpf_formatado, PERFIL_EXTERNO)
 
         if usuario and bcrypt.check_password_hash(usuario.senha, form_login.senha.data):
             if usuario.funcao_user_id == FUNCAO_PUBLICO_EXTERNO_ID:

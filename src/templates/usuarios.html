@@ -59,6 +59,7 @@
                             <th>Nome</th>
                             <th>CPF</th>
                             <th>Função</th>
+                            <th>Conta</th>
                             <th class="text-center">Status</th>
                             <th class="acoes-col">Ações</th>
                         </tr>
@@ -69,6 +70,15 @@
                             <td class="fw-medium">{{ u.nome }}</td>
                             <td>{{ u.cpf }}</td>
                             <td><span class="text-muted">{{ u.funcao_ocupacao }}</span></td>
+                            <td>
+                                {% if u.tipo_perfil == 'MILITAR' %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Militar</span>
+                                {% elif u.tipo_perfil == 'EXTERNO' %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info">Externo</span>
+                                {% else %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Gestão</span>
+                                {% endif %}
+                            </td>
 
                             <td class="text-center">
                                 {% if u.ativo %}

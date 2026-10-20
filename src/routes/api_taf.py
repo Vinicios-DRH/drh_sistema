@@ -204,19 +204,22 @@ def login():
     if not cpf or not senha:
         return jsonify({"ok": False, "error": "CPF e senha são obrigatórios."}), 400
 
-    user = db.session.query(User).filter(User.cpf_norm == cpf).first()
+    # O mesmo CPF pode ter conta de gestão e de militar: entra na que bate a
+    # senha e tem permissão pro app (de gestão primeiro).
+    contas_ok = []
+    for conta in User.contas_por_cpf(cpf):
+        try:
+            if bcrypt.check_password_hash(conta.senha, senha):
+                contas_ok.append(conta)
+        except Exception:
+            pass
+
+    if not contas_ok:
+        return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
+
+    user = next(
+        (c for c in contas_ok if user_has_perm(c.id, "APP_TAF_LOGIN")), None)
     if user is None:
-        return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
-
-    try:
-        ok = bcrypt.check_password_hash(user.senha, senha)
-    except Exception:
-        ok = False
-
-    if not ok:
-        return jsonify({"ok": False, "error": "Credenciais inválidas."}), 401
-
-    if not user_has_perm(user.id, "APP_TAF_LOGIN"):
         return jsonify({"ok": False, "error": "Usuário sem permissão para o App TAF."}), 403
 
     # atividades liberadas (para UI)

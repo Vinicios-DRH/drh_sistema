@@ -7,7 +7,7 @@ from flask import render_template, redirect, url_for, request, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from src import app, database, bcrypt
 from src.forms import (CriarSenhaForm, FormEsqueciSenha, FormResetarSenhaPublica, FormLogin)
-from src.models import (Militar, User, FichaAlunos)
+from src.models import (Militar, User, FichaAlunos, PERFIL_ADMIN, PERFIL_MILITAR)
 from src.querys import login_usuario
 from datetime import datetime
 from src.decorators.email_utils import send_reset_password_email, verify_password_reset_token
@@ -40,14 +40,9 @@ def criar_senha(cpf):
 
     form = CriarSenhaForm()
 
-    # Já tem conta?
-    usuario_existente = (
-        User.query
-        .filter(
-            (User.cpf == cpf) | (User.cpf_norm == cpf_norm)
-        )
-        .first()
-    )
+    # Já tem conta de militar? (conta de gestão — chefe etc. — não impede)
+    usuario_existente = any(
+        u.tipo_perfil == PERFIL_MILITAR for u in User.contas_por_cpf(cpf))
     if usuario_existente:
         flash("⚠️ Este CPF já possui uma conta ativa. Tente fazer login.", "warning")
         _limpa_sessao_validacao()
@@ -194,7 +189,7 @@ def esqueci_senha_admin():
         cpf_informado = form.cpf.data.strip()
 
         # mesma lógica do login admin
-        usuario = User.query.filter_by(cpf=cpf_informado).first()
+        usuario = User.conta_por_cpf(cpf_informado, PERFIL_ADMIN)
 
         # resposta genérica para não ficar revelando conta válida/inválida
         if usuario and usuario.email and usuario.funcao_user_id != 12:
@@ -220,10 +215,9 @@ def esqueci_senha_militar():
         cpf_formatado = form.cpf.data.strip()
 
         # mesma lógica do login militar
-        usuario = User.query.filter_by(
-            cpf=cpf_formatado, funcao_user_id=12).first()
+        usuario = User.conta_por_cpf(cpf_formatado, PERFIL_MILITAR)
 
-        if usuario and usuario.email:
+        if usuario and usuario.funcao_user_id == 12 and usuario.email:
             try:
                 send_reset_password_email(usuario, area="militar")
             except Exception as e:
@@ -273,7 +267,11 @@ def resetar_senha_publica(token):
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
+    # Logado na conta de militar mas tem conta de gestão: mostra o login pra
+    # poder trocar de conta, em vez de mandar pra home com a conta errada.
+    if current_user.is_authenticated and not (
+            current_user.tipo_perfil == PERFIL_MILITAR
+            and current_user.outra_conta(PERFIL_ADMIN)):
         militar = get_militar_por_user(current_user)
         session['militar_id'] = militar.id
         flash('Você já está logado.', 'alert-info')
@@ -281,7 +279,8 @@ def login():
 
     form_login = FormLogin()
     if form_login.validate_on_submit() and 'botao_submit_login' in request.form:
-        cpf = User.query.filter_by(cpf=form_login.cpf.data).first()
+        # Quem tem conta de gestão e de militar entra aqui na de gestão.
+        cpf = User.conta_por_cpf(form_login.cpf.data, PERFIL_ADMIN)
 
         if cpf and bcrypt.check_password_hash(cpf.senha, form_login.senha.data):
             login_user(cpf, remember=form_login.lembrar_dados.data)

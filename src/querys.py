@@ -15,6 +15,7 @@ from src.models import (
     User,
     Obm,
     MilitarObmFuncao,
+    PERFIL_ADMIN,
 )
 
 
@@ -319,7 +320,7 @@ def get_user_ip():
 
 
 def login_usuario(cpf, senha):
-    user = User.query.filter_by(cpf=cpf).first()
+    user = User.conta_por_cpf(cpf, PERFIL_ADMIN)
 
     if user and bcrypt.check_password_hash(user.senha, senha):
         fuso_horario = pytz.timezone("America/Manaus")
