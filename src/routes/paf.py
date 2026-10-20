@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select, text
 from src import database
 from src.formatar_cpf import get_militar_por_user
-from src.services.paf_service import FUNCOES_USER_ENVIAM_PAF, pode_enviar_paf
+from src.services.paf_service import conta_envia_paf, pode_enviar_paf
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from src.utils.utils import registrar_log_download
 from zoneinfo import ZoneInfo
@@ -250,10 +250,11 @@ def novo():
         flash("Não foi possível localizar seus dados.", "danger")
         return redirect(url_for("home"))
 
-    # conta ATUALIZACAO CADASTRAL ou CHEFE + posto liberado na etapa atual; vale pro GET e pro POST
+    # conta ATUALIZACAO CADASTRAL ou de comando + posto liberado na etapa atual; vale pro GET e pro POST
     if not pode_enviar_paf(current_user, militar):
-        if int(getattr(current_user, "funcao_user_id", 0) or 0) not in FUNCOES_USER_ENVIAM_PAF:
-            flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) ou de chefe.", "warning")
+        if not conta_envia_paf(current_user):
+            flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) "
+                  "ou pela conta de chefe/diretor.", "warning")
         else:
             flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
         return redirect(url_for("home"))

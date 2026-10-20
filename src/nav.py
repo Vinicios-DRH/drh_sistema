@@ -44,11 +44,12 @@ def _rule_user_id_is(uid: int) -> bool:
 
 def _rule_paf_solicitante() -> bool:
     # Mesma regra da rota /paf/novo (paf_service.pode_enviar_paf): conta
-    # ATUALIZACAO CADASTRAL ou CHEFE, e só os postos liberados na etapa atual.
+    # ATUALIZACAO CADASTRAL ou de comando (chefe/diretor/subdiretor...), e só
+    # os postos liberados na etapa atual.
     if not getattr(current_user, "is_authenticated", False):
         return False
-    from src.services.paf_service import FUNCOES_USER_ENVIAM_PAF, pode_enviar_paf
-    if int(getattr(current_user, "funcao_user_id", 0) or 0) not in FUNCOES_USER_ENVIAM_PAF:
+    from src.services.paf_service import conta_envia_paf, pode_enviar_paf
+    if not conta_envia_paf(current_user):
         return False  # evita consultar o militar pra quem nunca vai ver o menu
     from src.formatar_cpf import get_militar_por_user
     return pode_enviar_paf(current_user, get_militar_por_user(current_user))
