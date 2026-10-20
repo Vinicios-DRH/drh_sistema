@@ -1,6 +1,6 @@
 from src.decorators.utils_cpf import so_digitos
 from src.models import Militar, TarefaAtualizacaoCadete
-from sqlalchemy import func, cast, String
+from sqlalchemy import case, func, cast, String
 
 
 def formatar_cpf(cpf):
@@ -21,8 +21,19 @@ def get_militar_por_user(user):
     # Compara a versão "só dígitos" do campo Militar.cpf
     # - cast para texto: cobre caso Militar.cpf seja numeric
     # - regexp_replace: remove qualquer coisa que não for dígito no BD
+    #
+    # Pode haver mais de um cadastro com o mesmo CPF (ex.: o antigo como FUNC.
+    # CIVIL, já inativo, e o atual como CAP). Sem ordem, o .first() devolvia
+    # qualquer um — e o PAF lia o posto do cadastro errado. Prioridade:
+    # o militar vinculado à conta, depois o ativo, depois o mais recente.
+    militar_id_conta = getattr(user, "militar_id", None) or 0
     return (Militar.query
             .filter(func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g') == cpf_num)
+            .order_by(
+                case((Militar.id == militar_id_conta, 0), else_=1),
+                case((Militar.inativo.is_(True), 1), else_=0),
+                Militar.id.desc(),
+            )
             .first())
 
 
