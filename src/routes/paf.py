@@ -254,7 +254,7 @@ def novo():
     if not pode_enviar_paf(current_user, militar):
         if not conta_envia_paf(current_user):
             flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) "
-                  "ou pela conta de chefe/diretor.", "warning")
+                  "ou pela conta de chefe/diretor/comandante.", "warning")
         else:
             flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
         return redirect(url_for("home"))

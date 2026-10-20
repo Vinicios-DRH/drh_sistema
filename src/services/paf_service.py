@@ -42,12 +42,13 @@ from src.models import (
 # ---------------------------------------------------------------------------
 
 # Quem envia o PAF: a conta pessoal do militar (ATUALIZACAO CADASTRAL) e as
-# contas de comando — toda função com "CHEFE" ou "DIRETOR" no nome (chefe,
-# diretor, subdiretor, diretor DRH, chefe DRH...) — sempre respeitando os postos
+# contas de comando — toda função com "CHEFE", "DIRETOR" ou "COMANDANTE"/"CMT"
+# no nome (chefe, diretor, subdiretor, comandante, subcomandante, diretor DRH,
+# chefe DRH...) — sempre respeitando os postos
 # liberados abaixo. DRH, super, suporte etc. não enviam por essas contas. Como é
 # 1 PAF por militar/ano, quem tem mais de uma conta envia por uma só.
 FUNCAO_USER_ATUALIZACAO_CADASTRAL = 12
-TERMOS_FUNCAO_COMANDO = ("CHEFE", "DIRETOR")
+TERMOS_FUNCAO_COMANDO = ("CHEFE", "DIRETOR", "COMANDANTE", "CMT")
 
 
 def conta_envia_paf(user) -> bool:
