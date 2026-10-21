@@ -6,7 +6,10 @@ from flask import request, session
 from flask_login import current_user
 from src import database
 from src.models import (DocumentoMilitar, Militar, PostoGrad, Quadro, Obm, MilitarObmFuncao,
-                        MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude)
+                        MilitaresAgregados, MilitaresADisposicao, LicencaEspecial, LicencaParaTratamentoDeSaude,
+                        User, PERFIL_MILITAR, FUNCAO_ATUALIZACAO_CADASTRAL_ID)
+from src.formatar_cpf import formatar_cpf
+from src.permissoes import conceder_permissoes_dependentes
 from src.decorators.control import checar_ocupacao
 from src.services.militar_situacao_service import militares_com_doe_contendo
 from src.services.situacoes_militares_service import (
@@ -94,6 +97,33 @@ def _obms_do_militar_por_vinculos(militar):
     obm_id_1 = obm_ids[0] if len(obm_ids) > 0 else None
     obm_id_2 = obm_ids[1] if len(obm_ids) > 1 else None
     return obm_id_1, obm_id_2
+
+
+def criar_conta_militar(militar, cpf, senha_hash, email=None):
+    """Cria a conta MILITAR (atualização cadastral) do militar. Não comita."""
+    obm_id_1, obm_id_2 = _obms_do_militar_por_vinculos(militar)
+
+    novo_usuario = User(
+        nome=militar.nome_completo or '',
+        email=email,
+        cpf=formatar_cpf(cpf),  # com máscara
+        senha=senha_hash,
+        funcao_user_id=FUNCAO_ATUALIZACAO_CADASTRAL_ID,
+        tipo_perfil=PERFIL_MILITAR,
+        militar_id=militar.id,
+        obm_id_1=obm_id_1,
+        obm_id_2=obm_id_2,
+        localidade_id=militar.localidade_id,
+    )
+    database.session.add(novo_usuario)
+    database.session.flush()
+
+    militar.usuario_id = novo_usuario.id
+
+    # Já nasce com o menu de Inclusão de Dependentes liberado — sem isso, só
+    # apareceria depois de um admin conceder a permissão manualmente.
+    conceder_permissoes_dependentes(novo_usuario.id)
+    return novo_usuario
 
 
 def _periodo_vigente_expr(inicio_col, fim_col):

@@ -9,7 +9,7 @@ from src import app, database, bcrypt
 from src.forms import (AtualizacaoCadastralForm, IdentificacaoForm, FormLogin, MatriculaConfirmForm)
 from src.models import (Militar, SegundoVinculo, User, FichaAlunos, PERFIL_MILITAR)
 
-from src.routes.helpers import _limpa_sessao_validacao
+from src.routes.helpers import _limpa_sessao_validacao, criar_conta_militar
 
 
 @app.route('/atualizacao-cadastral', methods=['GET', 'POST'])
@@ -148,16 +148,15 @@ def formulario_atualizacao_cadastral():
 
 @app.route("/login-militar", methods=['GET', 'POST'])
 def login_atualizacao():
-    # Logado na conta de gestão mas tem conta de militar: mostra o login pra
-    # poder trocar de conta.
-    if current_user.is_authenticated and not (
-            current_user.tipo_perfil != PERFIL_MILITAR
-            and current_user.outra_conta(PERFIL_MILITAR)):
+    # Logado numa conta que não é de militar (ex.: a de chefe): mostra o
+    # login pra entrar (ou criar) a conta de militar, em vez de mandar pra
+    # área do militar com a conta errada.
+    if current_user.is_authenticated and current_user.funcao_user_id == 12:
         militar = get_militar_por_user(current_user)
-        session['militar_id'] = militar.id
         if not militar:
             flash("Não foi possível localizar seus dados de militar.", "danger")
             return redirect(url_for("home"))
+        session['militar_id'] = militar.id
         return redirect(url_for('home_atualizacao'))
 
     form_login = FormLogin()
@@ -168,6 +167,16 @@ def login_atualizacao():
         usuario = User.conta_por_cpf(cpf_formatado, PERFIL_MILITAR)
 
         if usuario and bcrypt.check_password_hash(usuario.senha, form_login.senha.data):
+            # Militar que só tem conta de gestão (a de atualização cadastral
+            # virou chefe/diretor, ou nunca existiu): cria a conta de militar
+            # com a mesma senha. A de gestão continua intacta pro /login.
+            if usuario.tipo_perfil != PERFIL_MILITAR:
+                militar = get_militar_por_user(usuario)
+                if militar:
+                    usuario = criar_conta_militar(
+                        militar, usuario.cpf, usuario.senha, email=usuario.email)
+                    database.session.commit()
+
             if usuario.funcao_user_id == 12:
                 login_user(usuario, remember=form_login.lembrar_dados.data)
                 militar = get_militar_por_user(usuario)

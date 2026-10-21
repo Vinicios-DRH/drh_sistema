@@ -11,12 +11,11 @@ from src.models import (Militar, User, FichaAlunos, PERFIL_ADMIN, PERFIL_MILITAR
 from src.querys import login_usuario
 from datetime import datetime
 from src.decorators.email_utils import send_reset_password_email, verify_password_reset_token
-from src.permissoes import conceder_permissoes_dependentes
 
 from src.routes.helpers import (
     get_user_ip,
     _somente_numeros,
-    _obms_do_militar_por_vinculos,
+    criar_conta_militar,
     _limpa_sessao_validacao,
 )
 
@@ -73,46 +72,24 @@ def criar_senha(cpf):
                 form.senha.data
             ).decode('utf-8')
 
-            novo_usuario = User(
-                nome=nome_user,
-                email=session.get('email_atualizacao'),
-                cpf=cpf,                 # com máscara
-                cpf_norm=cpf_norm,      # só números
-                senha=senha_hash,
-                funcao_user_id=12,      # USUÁRIO COMUM
-            )
-
             if pessoa_tipo == 'militar':
-                obm_id_1, obm_id_2 = _obms_do_militar_por_vinculos(pessoa)
-
-                novo_usuario.tipo_perfil = "MILITAR"
-                novo_usuario.militar_id = pessoa.id
-                novo_usuario.obm_id_1 = obm_id_1
-                novo_usuario.obm_id_2 = obm_id_2
-                novo_usuario.localidade_id = getattr(
-                    pessoa, 'localidade_id', None)
-
-                # importante: antes do commit
-                if hasattr(pessoa, 'usuario_id'):
-                    pessoa.usuario_id = novo_usuario.id  # ainda não existe aqui, então flush abaixo
+                criar_conta_militar(
+                    pessoa, cpf, senha_hash,
+                    email=session.get('email_atualizacao'))
             else:
-                novo_usuario.tipo_perfil = "MILITAR"  # ou "ALUNO", se teu sistema usar isso
-                novo_usuario.militar_id = None
-                novo_usuario.obm_id_1 = 26
-                novo_usuario.obm_id_2 = None
-                novo_usuario.localidade_id = None
-
-            database.session.add(novo_usuario)
-            database.session.flush()
-
-            if pessoa_tipo == 'militar' and hasattr(pessoa, 'usuario_id'):
-                pessoa.usuario_id = novo_usuario.id
-
-            if pessoa_tipo == 'militar':
-                # Já nasce com o menu de Inclusão de Dependentes liberado —
-                # sem isso, só apareceria depois de um admin conceder a
-                # permissão manualmente.
-                conceder_permissoes_dependentes(novo_usuario.id)
+                database.session.add(User(
+                    nome=nome_user,
+                    email=session.get('email_atualizacao'),
+                    cpf=cpf,                 # com máscara
+                    cpf_norm=cpf_norm,      # só números
+                    senha=senha_hash,
+                    funcao_user_id=12,      # USUÁRIO COMUM
+                    tipo_perfil="MILITAR",  # ou "ALUNO", se teu sistema usar isso
+                    militar_id=None,
+                    obm_id_1=26,
+                    obm_id_2=None,
+                    localidade_id=None,
+                ))
 
             database.session.commit()
 
