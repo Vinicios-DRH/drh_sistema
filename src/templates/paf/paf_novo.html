@@ -110,16 +110,19 @@
                 <option value="">Selecione...</option>
                 {% set ns = namespace(livres=0) %}
                 {% for m in range(1,13) %}
-                {# mês lotado some da 1ª opção (é ela que ocupa a vaga) #}
-                {% set rest = vagas[m].restantes if (idx == 1 and vagas) else none %}
+                {# mês lotado não aparece em nenhuma das 3 opções #}
+                {% set rest = vagas[m].restantes if vagas else none %}
                 {% if rest is none or rest > 0 %}
                 {% set ns.livres = ns.livres + 1 %}
                 <option value="{{ m }}">{{ meses_full[m-1] }}</option>
                 {% endif %}
                 {% endfor %}
               </select>
-              {% if idx == 1 and ns.livres == 0 %}
-              <div class="small text-warning mt-1">Todos os meses estão sem vagas. Procure a DP.</div>
+              {% if idx == 1 and ns.livres < 3 %}
+              <div class="small text-warning mt-1">
+                {% if ns.livres == 0 %}Todos os meses estão sem vagas.{% else %}Só há {{ ns.livres }} mês(es) com vaga — não dá para escolher 3 opções.{% endif %}
+                Procure a DP.
+              </div>
               {% endif %}
             </div>
             {% endfor %}

@@ -119,9 +119,9 @@
                             <select class="form-select mes" name="opcao_{{ idx }}" required>
                                 <option value="">Selecione...</option>
                                 {% for m in range(1,13) %}
-                                {% set rest = vagas[m].restantes if (idx == 1 and vagas) else none %}
-                                {# na 1ª opção, mês lotado some (exceto o que o militar já tem) #}
-                                {% if rest is none or rest > 0 or selected_val|int == m %}
+                                {% set rest = vagas[m].restantes if vagas else none %}
+                                {# mês lotado some das 3 opções (exceto os que o militar já tinha escolhido) #}
+                                {% if rest is none or rest > 0 or m in [opcao_1|default(0)|int, opcao_2|default(0)|int, opcao_3|default(0)|int] %}
                                 <option value="{{ m }}" {% if selected_val|int == m %}selected{% endif %}>{{ meses_full[m-1] }}</option>
                                 {% endif %}
                                 {% endfor %}

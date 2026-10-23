@@ -221,6 +221,12 @@ def _tem_vaga_1a_opcao(ano: int, mes: int, excluir_paf_id: int | None = None) ->
     return restantes is None or restantes > 0
 
 
+def _meses_lotados(ano: int, excluir_paf_id: int | None = None) -> set[int]:
+    """Meses sem vaga — não podem ser escolhidos em NENHUMA das 3 opções."""
+    return {m for m, v in _vagas_por_mes(ano, excluir_paf_id).items()
+            if v["restantes"] is not None and v["restantes"] <= 0}
+
+
 def _capacidade_disponivel(ano: int, mes: int, excluir_paf_id: int | None = None) -> tuple[int, int, int]:
     """retorna (limite, ocupadas, disponíveis)"""
     v = _vagas_por_mes(ano, excluir_paf_id)[mes]
@@ -339,6 +345,12 @@ def novo():
             database.session.rollback()
             flash("O mês escolhido como 1ª opção não tem mais vagas. Escolha outro.", "warning")
             return redirect(request.url)
+        lotados = _meses_lotados(ano)
+        for ordem, mes in ((2, o2), (3, o3)):
+            if mes in lotados:
+                database.session.rollback()
+                flash(f"{MESES_PT[mes]} está lotado e não pode ser escolhido como {ordem}ª opção. Escolha outro.", "warning")
+                return redirect(request.url)
 
         agora_manaus = datetime.now(ZoneInfo("America/Manaus"))
         paf = NovoPaf(
@@ -876,6 +888,7 @@ def editar(paf_id):
     if request.method == "POST":
         # --- Meses (pagamento) ---
         opcao_1_anterior = paf.opcao_1
+        opcoes_anteriores = {paf.opcao_1, paf.opcao_2, paf.opcao_3}
         try:
             paf.opcao_1 = int(request.form.get("opcao_1"))
             paf.opcao_2 = int(request.form.get("opcao_2"))
@@ -895,6 +908,14 @@ def editar(paf_id):
             database.session.rollback()
             flash("O mês escolhido como 1ª opção não tem mais vagas. Escolha outro.", "warning")
             return redirect(request.url)
+
+        # 2ª/3ª opção: mês novo (que ele ainda não tinha) não pode estar lotado
+        lotados = _meses_lotados(paf.ano_referencia, paf.id)
+        for ordem, mes in ((2, paf.opcao_2), (3, paf.opcao_3)):
+            if mes in lotados and mes not in opcoes_anteriores:
+                database.session.rollback()
+                flash(f"{MESES_PT[mes]} está lotado e não pode ser escolhido como {ordem}ª opção. Escolha outro.", "warning")
+                return redirect(request.url)
 
         paf.justificativa = (request.form.get("observacoes") or "").strip()
 
