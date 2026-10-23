@@ -184,7 +184,7 @@
                 <strong>{{ v.ocupadas }}</strong>{% if v.limite is not none %}/{{ v.limite }}{% endif %} ocupadas
                 · {% if v.limite is none %}sem limite{% elif lotado %}<strong>lotado</strong>{% else %}restam <strong>{{ v.restantes }}</strong>{% endif %}
               </div>
-              <div class="small-muted" style="font-size:.75rem">{{ v.homologadas }} homologados · <strong>faltam homologar {{ v.a_homologar }}</strong>{% if v.reprovados %} · {{ v.reprovados }} reprovados{% endif %}</div>
+              <div class="small-muted" style="font-size:.75rem">{{ v.homologadas }}{% if v.limite is not none %}/{{ v.limite }}{% endif %} homologados{% if v.limite is not none %} · <strong>faltam {{ v.faltam_finalizar }} p/ finalizar</strong>{% endif %} · na fila {{ v.a_homologar }}{% if v.reprovados %} · {{ v.reprovados }} reprov.{% endif %}</div>
             </div>
             {% endfor %}
           </div>

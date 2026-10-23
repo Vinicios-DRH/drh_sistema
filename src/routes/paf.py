@@ -195,7 +195,9 @@ def _vagas_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, dic
         vagas[m] = {"limite": lim, "ocupadas": oc, "homologadas": h, "a_homologar": a,
                     # reprovado continua segurando a vaga até o militar corrigir
                     "reprovados": max(oc - h - a, 0),
-                    "restantes": None if lim is None else max(lim - oc, 0)}
+                    "restantes": None if lim is None else max(lim - oc, 0),
+                    # quantas homologações faltam para o mês ficar completo (homologados = limite)
+                    "faltam_finalizar": None if lim is None else max(lim - h, 0)}
     return vagas
 
 
