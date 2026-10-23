@@ -296,7 +296,7 @@
               {% if is_drh %}
               Confira as opções de cada militar e homologue o mês. A vaga conta pelo mês homologado ou, até lá, pela 1ª opção.
               {% else %}
-              Avalie os PAFs dos militares da sua OBM e encaminhe para a DP.
+              Acompanhe os PAFs dos militares da sua OBM. O PAF vai direto para a DP, que faz a homologação.
               {% endif %}
             </div>
           </div>
@@ -318,8 +318,6 @@
     {% set kpis = [
       ('todos', 'Total militares', kpi.total, false),
       ('nao_enviou', 'Não enviaram', kpi.nao_enviaram, false),
-      ('pendente', 'Pendentes (chefia)', kpi.pendentes, false),
-      ('aprovado_chefe', 'Aprovados (chefia)', kpi.aprovados_chefe, false),
       ('a_homologar', 'A homologar (DP)', kpi.a_homologar, is_drh),
       ('validado_drh', 'Homologados', kpi.validados, false),
       ('reprovado_chefe', 'Reprovados', kpi.reprovados, false),
@@ -393,11 +391,8 @@
               ('todos', 'Todos'),
               ('a_homologar', 'A homologar (DP)'),
               ('nao_enviou', 'Não enviou'),
-              ('pendente', 'Pendente (chefia)'),
-              ('aprovado_chefe', 'Aprovado (chefia)'),
-              ('reprovado_chefe', 'Reprovado (chefia)'),
-              ('aguardando_drh', 'Aguardando DP'),
               ('validado_drh', 'Homologado (DP)'),
+              ('reprovado_chefe', 'Reprovado'),
             ] %}
             {% for val, label in status_opts %}
             <option value="{{ val }}" {{ 'selected' if f.status == val else '' }}>{{ label }}</option>
@@ -475,8 +470,7 @@
               <th>Opções</th>
               <th>Status</th>
               <th>Enviado em</th>
-              <th>{{ 'Homologar mês' if is_drh else 'Ações' }}</th>
-              {% if is_drh %}<th></th>{% endif %}
+              {% if is_drh %}<th>Homologar mês</th><th></th>{% endif %}
             </tr>
           </thead>
           <tbody>
@@ -554,23 +548,6 @@
                   <i class="bi bi-x-circle"></i>
                 </button>
                 {% endif %}
-              </td>
-              {% else %}
-              <td class="text-nowrap">
-                {% if r.paf_id %}
-                <form method="post" action="{{ url_for('paf.aprovar', paf_id=r.paf_id) }}" class="d-inline">
-                  <input type="hidden" name="acao" value="aprovar">
-                  <button class="btn btn-sm btn-success" type="submit"
-                    {{ 'disabled' if st in ['aprovado_chefe', 'aguardando_drh', 'validado_drh'] else '' }}>
-                    <i class="bi bi-send-check me-1"></i> Encaminhar à DP
-                  </button>
-                </form>
-                <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-open-reprovar"
-                  data-paf-id="{{ r.paf_id }}" data-nome="{{ m.nome_completo }}"
-                  {{ 'disabled' if st in ['reprovado_chefe', 'validado_drh'] else '' }}>
-                  <i class="bi bi-x-circle me-1"></i> Reprovar
-                </button>
-                {% else %}<span class="small-muted">—</span>{% endif %}
               </td>
               {% endif %}
             </tr>

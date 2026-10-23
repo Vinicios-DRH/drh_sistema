@@ -62,9 +62,9 @@ def conta_envia_paf(user) -> bool:
     return any(termo in nome for termo in TERMOS_FUNCAO_COMANDO)
 
 # Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
-#   Etapa atual: oficiais superiores (CEL, TC, MAJ) e intermediários (CAP).
-#   Próximas etapas: acrescente postos (ex.: "1º TEN", "2º TEN"); para a tropa toda, use None.
-PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ", "CAP"})
+#   Etapa atual: oficiais superiores (CEL, TC, MAJ), intermediários (CAP) e
+#   subalternos (1º TEN, 2º TEN). Para a tropa toda, use None.
+PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({"CEL", "TC", "MAJ", "CAP", "1º TEN", "2º TEN"})
 
 
 def pode_enviar_paf(user, militar) -> bool:

@@ -159,12 +159,24 @@
                   <span class="chip">{{ mes_nome(p.opcao_2) }}</span>
                   <span class="chip">{{ mes_nome(p.opcao_3) }}</span>
                 </td>
-                {% if st == 'reprovado_chefe' %}
-                <a class="btn btn-sm btn-warning ms-2" href="{{ url_for('paf.editar', paf_id=p.id) }}">
-                  <i class="bi bi-pencil-square me-1"></i> Editar & reenviar
-                </a>
-                {% endif %}
-                <td><span class="{{ badge_cls.get(st, 'badge text-bg-secondary') }}">{{ p.status or '—' }}</span></td>
+                {% set status_paf = {
+                  'enviado': ('Aguardando DP', 'badge text-bg-warning text-dark'),
+                  'pendente': ('Aguardando DP', 'badge text-bg-warning text-dark'),
+                  'aprovado_chefe': ('Aguardando DP', 'badge text-bg-warning text-dark'),
+                  'aguardando_drh': ('Aguardando DP', 'badge text-bg-warning text-dark'),
+                  'validado_drh': ('Homologado pela DP', 'badge text-bg-success'),
+                  'reprovado_chefe': ('Reprovado', 'badge text-bg-danger'),
+                } %}
+                {% set rotulo, classe = status_paf.get(st, (p.status or '—', 'badge text-bg-secondary')) %}
+                <td>
+                  <span class="{{ classe }}">{{ rotulo }}</span>
+                  {% if st == 'reprovado_chefe' %}
+                  <a class="btn btn-sm btn-warning ms-2" href="{{ url_for('paf.editar', paf_id=p.id) }}">
+                    <i class="bi bi-pencil-square me-1"></i> Editar & reenviar
+                  </a>
+                  {% if p.observacoes %}<div class="small text-danger mt-1">Motivo: {{ p.observacoes }}</div>{% endif %}
+                  {% endif %}
+                </td>
                 <td>
                   {% if p.mes_definido %}
                   <span class="chip"><i class="bi bi-check2-circle me-1"></i>{{ mes_nome(p.mes_definido) }}</span>

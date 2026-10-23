@@ -311,7 +311,7 @@ def novo():
         )
         database.session.add(paf)
         database.session.commit()
-        flash("Solicitação enviada ao seu chefe para avaliação.", "success")
+        flash("PAF enviado à DP para homologação.", "success")
         return redirect(url_for("paf.minhas", ano=ano))
 
     return render_template("paf/paf_novo.html", militar=militar, ano=ano, vagas=_vagas_por_mes(ano))
@@ -348,19 +348,16 @@ def minhas():
 @bp_paf.route("/aprovar/<int:paf_id>", methods=["POST"])
 @login_required
 def aprovar(paf_id):
-    if not _pode_ver_efetivo():
-        flash("Você não pode aprovar/reprovar PAF.", "danger")
+    # O PAF não passa mais pela chefia: vai direto para a DP. Só a DP reprova
+    # (devolvendo ao militar para corrigir) — a homologação é em /paf/validar.
+    if not _is_drh_like():
+        flash("O PAF é avaliado diretamente pela DP.", "danger")
         return redirect(url_for("home"))
 
     paf = database.session.get(NovoPaf, paf_id)
     if not paf:
         flash("Registro não encontrado.", "danger")
-        return redirect(url_for("paf.minhas"))
-
-    # permitir chefe do militar OU DRH-like OU super
-    if not (_eh_chefe_do(paf.militar_id) or _is_drh_like() or _is_super_user()):
-        flash("Você não pode aprovar/reprovar este PAF.", "danger")
-        return redirect(url_for("paf.minhas"))
+        return redirect(url_for("paf.recebimento"))
 
     acao = (request.form.get("acao") or "").lower()
     motivo = (request.form.get("justificativa") or "").strip()
@@ -516,13 +513,15 @@ def capacidade():
     )
 
 
+# O PAF vai direto para a DP (sem etapa da chefia). "pendente"/"aprovado_chefe"
+# ficaram só em registros antigos e contam como aguardando a DP.
 STATUS_LABEL = {
     "nao_enviou": "Não enviou",
-    "enviado": "Pendente (chefia)",
-    "pendente": "Pendente (chefia)",
-    "aprovado_chefe": "Aprovado (chefia)",
-    "reprovado_chefe": "Reprovado (chefia)",
+    "enviado": "Aguardando DP",
+    "pendente": "Aguardando DP",
+    "aprovado_chefe": "Aguardando DP",
     "aguardando_drh": "Aguardando DP",
+    "reprovado_chefe": "Reprovado",
     "validado_drh": "Homologado (DP)",
 }
 # PAF enviado que a DP ainda não homologou (reprovado volta pro militar corrigir)
@@ -860,7 +859,7 @@ def editar(paf_id):
         paf.validado_em = None
 
         database.session.commit()
-        flash("Alterações salvas e reenviadas para aprovação.", "success")
+        flash("Alterações salvas e reenviadas à DP.", "success")
         return redirect(url_for("paf.minhas"))
 
     # GET — renderiza
