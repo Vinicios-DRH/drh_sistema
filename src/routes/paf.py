@@ -152,17 +152,49 @@ def _ocupacao_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, 
     return {int(m): int(c) for m, c in q.group_by(mes_expr).all()}
 
 
+def _homologadas_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, int]:
+    q = (database.session.query(NovoPaf.mes_definido, func.count(NovoPaf.id))
+         .filter(NovoPaf.ano_referencia == ano, NovoPaf.status == "validado_drh",
+                 NovoPaf.mes_definido.isnot(None)))
+    if excluir_paf_id:
+        q = q.filter(NovoPaf.id != excluir_paf_id)
+    return {int(m): int(c) for m, c in q.group_by(NovoPaf.mes_definido).all()}
+
+
+def _a_homologar_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, int]:
+    """Fila da DP por mês: PAFs enviados e ainda não homologados, no mês em que
+    ocupam vaga (1ª opção). Reprovados não entram — dependem do militar corrigir."""
+    mes_expr = _mes_ocupado_expr()
+    q = (database.session.query(mes_expr, func.count(NovoPaf.id))
+         .filter(NovoPaf.ano_referencia == ano, mes_expr.isnot(None),
+                 NovoPaf.status.in_(STATUS_A_HOMOLOGAR)))
+    if excluir_paf_id:
+        q = q.filter(NovoPaf.id != excluir_paf_id)
+    return {int(m): int(c) for m, c in q.group_by(mes_expr).all()}
+
+
 def _vagas_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, dict]:
-    """{mes: {limite, ocupadas, restantes}} — limite None = mês sem capacidade
-    cadastrada, tratado como sem limite na escolha do militar."""
+    """{mes: {limite, ocupadas, homologadas, a_homologar, reprovados, restantes}}.
+
+    `ocupadas` NÃO é "quantos foram homologados": o militar ocupa a vaga já no
+    envio, pela 1ª opção. Por isso homologar alguém no mês da 1ª opção dele
+    não muda o total (só passa de "a homologar" para "homologada"), e homologar
+    em outro mês tira 1 do mês da 1ª opção. limite None = mês sem capacidade
+    cadastrada, tratado como sem limite."""
     limites = {r.mes: r.limite for r in database.session.query(PafCapacidade)
                .filter(PafCapacidade.ano == ano)}
     ocup = _ocupacao_por_mes(ano, excluir_paf_id)
+    homol = _homologadas_por_mes(ano, excluir_paf_id)
+    fila = _a_homologar_por_mes(ano, excluir_paf_id)
     vagas = {}
     for m in range(1, 13):
         lim = limites.get(m)
         oc = ocup.get(m, 0)
-        vagas[m] = {"limite": lim, "ocupadas": oc,
+        h = homol.get(m, 0)
+        a = fila.get(m, 0)
+        vagas[m] = {"limite": lim, "ocupadas": oc, "homologadas": h, "a_homologar": a,
+                    # reprovado continua segurando a vaga até o militar corrigir
+                    "reprovados": max(oc - h - a, 0),
                     "restantes": None if lim is None else max(lim - oc, 0)}
     return vagas
 
@@ -199,6 +231,7 @@ def _homologar(paf: NovoPaf, mes: int) -> None:
 def _alocar_automaticamente(paf: NovoPaf) -> bool:
     """tenta alocar no 1º mês disponível dentre as 3 opções; retorna True se alocou"""
     for mes in [paf.opcao_1, paf.opcao_2, paf.opcao_3]:
+        _travar_mes(paf.ano_referencia, mes)
         cap, ocup, disp = _capacidade_disponivel(paf.ano_referencia, mes, paf.id)
         if cap == 0:
             continue  # sem configuração ou zero de limite => considere indisponível
@@ -400,8 +433,6 @@ def validar(paf_id):
         return redirect(url_for("paf.minhas"))
 
     ano = paf.ano_referencia
-    # mapa de capacidade pra tela (sem contar a vaga que este PAF já ocupa)
-    caps = {m: _capacidade_disponivel(ano, m, paf.id) for m in range(1, 13)}
 
     if request.method == "POST":
         # homologação feita direto da lista (/paf/recebimento) volta pra lista
@@ -426,21 +457,24 @@ def validar(paf_id):
             flash("Selecione um mês válido.", "warning")
             return redirect(destino)
 
-        # A DP tem a palavra final: pode alocar mesmo em mês cheio (só avisa).
+        # Mês lotado bloqueia também a DP. A conta exclui a vaga que o próprio
+        # militar já ocupa — quem já está no mês (pela 1ª opção) pode ser
+        # homologado nele. A trava evita duas homologações na última vaga.
+        _travar_mes(ano, mes_sel)
         v = _vagas_por_mes(ano, paf.id)[mes_sel]
-        acima_limite = v["restantes"] is not None and v["restantes"] <= 0
+        mes_txt = MESES_PT[mes_sel]
+        if v["restantes"] is not None and v["restantes"] <= 0:
+            database.session.rollback()
+            flash(f"{mes_txt} está lotado ({v['ocupadas']}/{v['limite']}). {nome} não foi homologado — "
+                  "escolha outro mês ou aumente o limite em Capacidade.", "danger")
+            return redirect(destino)
 
         _homologar(paf, mes_sel)
         database.session.commit()
-        mes_txt = MESES_PT[mes_sel]
-        if acima_limite:
-            flash(f"{nome}: homologado em {mes_txt}, acima do limite do mês "
-                  f"({v['ocupadas'] + 1}/{v['limite']}).", "warning")
-        else:
-            flash(f"{nome}: homologado em {mes_txt}.", "success")
+        flash(f"{nome}: homologado em {mes_txt}.", "success")
         return redirect(destino)
 
-    return render_template("paf/paf_validar.html", paf=paf, caps=caps)
+    return render_template("paf/paf_validar.html", paf=paf, vagas=_vagas_por_mes(ano, paf.id))
 
 
 @bp_paf.route("/capacidade", methods=["GET", "POST"])

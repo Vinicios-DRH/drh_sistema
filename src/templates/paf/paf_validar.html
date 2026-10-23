@@ -172,23 +172,26 @@
 
           <div class="cap-grid mb-3">
             {% for m in range(1,13) %}
-            {% set cap, ocup, disp = caps[m] %}
+            {% set v = vagas[m] %}
+            {% set lotado = v.restantes is not none and v.restantes <= 0 %}
             {% set is_opt = m in [paf.opcao_1, paf.opcao_2, paf.opcao_3] %}
-            <div class="cap-tile {{ 'full' if cap and disp<=0 else '' }}">
+            <div class="cap-tile {{ 'full' if lotado else '' }}">
               <div class="d-flex justify-content-between">
                 <div class="ttl">{{ meses_full[m-1] }}</div>
                 {% if is_opt %}<span class="chip">opção</span>{% endif %}
               </div>
               <div class="small mt-1">
-                limite <strong>{{ cap }}</strong> · ocupadas <strong>{{ ocup }}</strong> · disp <strong>{{ disp
-                  }}</strong>
+                <strong>{{ v.ocupadas }}</strong>{% if v.limite is not none %}/{{ v.limite }}{% endif %} ocupadas
+                · {% if v.limite is none %}sem limite{% elif lotado %}<strong>lotado</strong>{% else %}restam <strong>{{ v.restantes }}</strong>{% endif %}
               </div>
+              <div class="small-muted" style="font-size:.75rem">{{ v.homologadas }} homologados · <strong>faltam homologar {{ v.a_homologar }}</strong>{% if v.reprovados %} · {{ v.reprovados }} reprovados{% endif %}</div>
             </div>
             {% endfor %}
           </div>
 
           <h3 class="h6 m-0 mb-2"><i class="bi bi-hand-index-thumb me-1"></i> Alocação manual</h3>
-          <div class="small-muted mb-2">Contagem sem este PAF. A DP pode escolher qualquer mês, mesmo cheio.</div>
+          <div class="small-muted mb-2">Contagem sem este PAF. Meses lotados não podem ser escolhidos —
+            para abrir vaga, aumente o limite em Capacidade.</div>
           <form method="post" class="row g-3">
             <input type="hidden" name="acao" value="manual">
             <div class="col-12">
@@ -196,11 +199,10 @@
               <select class="form-select" name="mes_definido" required>
                 <option value="">Selecione...</option>
                 {% for m in range(1,13) %}
-                {% set cap, ocup, disp = caps[m] %}
-                {# a DP pode alocar em qualquer mês, inclusive cheio (fica acima do limite) #}
-                <option value="{{ m }}" {{ 'selected' if paf.mes_definido == m else '' }}>
-                  {{ meses_full[m-1] }} — limite {{ cap }}, ocupadas {{ ocup }}, disp {{ disp }}{% if cap==0 %} (sem
-                  configuração){% elif disp<=0 %} (cheio — ficará acima do limite){% endif %} </option>
+                {% set v = vagas[m] %}
+                {% set lotado = v.restantes is not none and v.restantes <= 0 %}
+                <option value="{{ m }}" {{ 'selected' if paf.mes_definido == m else '' }} {{ 'disabled' if lotado else '' }}>
+                  {{ meses_full[m-1] }} — {% if v.limite is none %}sem limite{% else %}{{ v.ocupadas }}/{{ v.limite }}, restam {{ v.restantes }}{% endif %}{% if lotado %} (lotado){% endif %} </option>
                     {% endfor %}
               </select>
             </div>

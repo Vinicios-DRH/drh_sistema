@@ -176,6 +176,27 @@
     color: #fca5a5;
   }
 
+  .vaga .falta {
+    margin-top: .3rem;
+    padding: .2rem .45rem;
+    border-radius: 8px;
+    font-size: .78rem;
+    color: #fde68a;
+    background: rgba(251, 191, 36, .14);
+    border: 1px solid rgba(251, 191, 36, .35);
+  }
+
+  .vaga .falta strong {
+    font-size: .95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vaga .falta.zero {
+    color: #86efac;
+    background: rgba(34, 197, 94, .10);
+    border-color: rgba(34, 197, 94, .3);
+  }
+
   /* ---- Filtros ---- */
   .filtros .form-label {
     font-size: .75rem;
@@ -342,7 +363,10 @@
         {% if f.mes %}
         <a class="small text-decoration-none" href="{{ link_com('mes', none) }}"><i class="bi bi-x-circle me-1"></i>Ver todos os meses</a>
         {% else %}
-        <span class="small-muted small">Clique num mês para ver quem está nele.</span>
+        <span class="small-muted small">
+          Faltam homologar: <strong class="text-light">{{ vagas.values()|sum(attribute='a_homologar') }}</strong> no total.
+          Clique num mês para ver quem falta homologar nele.
+        </span>
         {% endif %}
       </div>
       <div class="vagas-grid">
@@ -351,8 +375,9 @@
         {% set lim = v.limite %}
         {% set pct = ((v.ocupadas / lim * 100) if lim else (100 if v.ocupadas else 0))|round(0, 'floor')|int %}
         {% set cls = 'cheio' if (lim is not none and v.ocupadas >= lim) else ('quase' if pct >= 85 else '') %}
-        <a class="vaga {{ cls }} {{ 'active' if f.mes == m else '' }}" href="{{ link_com('mes', m) }}"
-          title="{{ meses[m] }}: {{ v.ocupadas }} ocupadas{% if lim is not none %} de {{ lim }}{% endif %}">
+        {% set args_mes = dict(qs) %}{% set _ = args_mes.update({'mes': m, 'status': 'a_homologar'}) %}
+        <a class="vaga {{ cls }} {{ 'active' if f.mes == m else '' }}" href="{{ url_for('paf.recebimento', **args_mes) }}"
+          title="{{ meses[m] }}: {{ v.ocupadas }} vagas ocupadas{% if lim is not none %} de {{ lim }}{% endif %} = {{ v.homologadas }} homologados + {{ v.a_homologar }} faltam homologar{% if v.reprovados %} + {{ v.reprovados }} reprovados (aguardando correção do militar){% endif %}">
           <div class="d-flex justify-content-between align-items-baseline">
             <span class="nome">{{ meses[m] }}</span>
             <span class="num">{{ v.ocupadas }}{% if lim is not none %}/{{ lim }}{% endif %}</span>
@@ -364,6 +389,10 @@
             {% elif v.ocupadas == lim %}lotado
             {% else %}restam {{ v.restantes }}{% endif %}
           </div>
+          <div class="falta {{ 'zero' if not v.a_homologar else '' }}">
+            {% if v.a_homologar %}Faltam homologar: <strong>{{ v.a_homologar }}</strong>{% else %}<i class="bi bi-check2-all me-1"></i>Nada a homologar{% endif %}
+          </div>
+          <div class="rest">{{ v.homologadas }} homologados{% if v.reprovados %} · {{ v.reprovados }} reprov.{% endif %}</div>
         </a>
         {% endfor %}
       </div>
@@ -523,8 +552,9 @@
                     {% for mm in range(1, 13) %}
                     {% set vv = vagas[mm] %}
                     {% set tag = '1ª opção' if mm == r.opcao_1 else ('2ª opção' if mm == r.opcao_2 else ('3ª opção' if mm == r.opcao_3 else '')) %}
+                    {# lotado = sem vaga para ELE (o mês em que ele já ocupa vaga continua livre pra ele) #}
                     {% set lotado = vv.restantes is not none and vv.restantes <= 0 and mm != r.mes_vaga %}
-                    <option value="{{ mm }}" {{ 'selected' if mm == r.mes_vaga else '' }}>
+                    <option value="{{ mm }}" {{ 'selected' if mm == r.mes_vaga else '' }} {{ 'disabled' if lotado else '' }}>
                       {{ meses[mm] }}{% if tag %} · {{ tag }}{% endif %}{% if lotado %} (lotado){% endif %}
                     </option>
                     {% endfor %}
