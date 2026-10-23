@@ -143,9 +143,16 @@ def _mes_ocupado_expr():
     return func.coalesce(NovoPaf.mes_definido, NovoPaf.opcao_1)
 
 
+def _so_militar_ativo(q):
+    # PAF de militar inativo não ocupa vaga nem entra na fila: a vaga volta pro
+    # mês. Mesmo critério da lista em /paf/recebimento — senão o painel conta
+    # gente que a DP não consegue achar na lista.
+    return q.join(Militar, Militar.id == NovoPaf.militar_id).filter(Militar.inativo.isnot(True))
+
+
 def _ocupacao_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, int]:
     mes_expr = _mes_ocupado_expr()
-    q = (database.session.query(mes_expr, func.count(NovoPaf.id))
+    q = _so_militar_ativo(database.session.query(mes_expr, func.count(NovoPaf.id))
          .filter(NovoPaf.ano_referencia == ano, mes_expr.isnot(None)))
     if excluir_paf_id:
         q = q.filter(NovoPaf.id != excluir_paf_id)
@@ -153,7 +160,7 @@ def _ocupacao_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, 
 
 
 def _homologadas_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, int]:
-    q = (database.session.query(NovoPaf.mes_definido, func.count(NovoPaf.id))
+    q = _so_militar_ativo(database.session.query(NovoPaf.mes_definido, func.count(NovoPaf.id))
          .filter(NovoPaf.ano_referencia == ano, NovoPaf.status == "validado_drh",
                  NovoPaf.mes_definido.isnot(None)))
     if excluir_paf_id:
@@ -165,7 +172,7 @@ def _a_homologar_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[in
     """Fila da DP por mês: PAFs enviados e ainda não homologados, no mês em que
     ocupam vaga (1ª opção). Reprovados não entram — dependem do militar corrigir."""
     mes_expr = _mes_ocupado_expr()
-    q = (database.session.query(mes_expr, func.count(NovoPaf.id))
+    q = _so_militar_ativo(database.session.query(mes_expr, func.count(NovoPaf.id))
          .filter(NovoPaf.ano_referencia == ano, mes_expr.isnot(None),
                  NovoPaf.status.in_(STATUS_A_HOMOLOGAR)))
     if excluir_paf_id:
@@ -617,11 +624,15 @@ def _recebimento_consulta(f: dict):
         .subquery()
     )
 
-    # ---- BASE: militares com vínculo ativo (escopo + filtros) ----
+    # ---- BASE: militares ativos com vínculo ativo em OBM — ou, mesmo sem
+    # vínculo, com PAF no ano (senão o PAF conta no painel de vagas e some
+    # da lista). Chefe continua limitado às OBMs dele (filtro abaixo). ----
+    tem_paf_no_ano = exists().where(and_(D.militar_id == M.id, D.ano_referencia == ano))
     base_q = (
         database.session.query(M.id.label("m_id"))
-        .join(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
-        .filter(M.inativo.is_(False))
+        .outerjoin(MOF, and_(MOF.militar_id == M.id, MOF.data_fim.is_(None)))
+        .filter(M.inativo.isnot(True))
+        .filter(or_(MOF.id.isnot(None), tem_paf_no_ano))
     )
     if f["obm_id"]:
         base_q = base_q.filter(MOF.obm_id.in_(_obm_subtree_ids(f["obm_id"])))
@@ -638,7 +649,7 @@ def _recebimento_consulta(f: dict):
         base_q = (
             base_q
             .join(PG, PG.id == M.posto_grad_id, isouter=True)
-            .join(O, O.id == MOF.obm_id)
+            .join(O, O.id == MOF.obm_id, isouter=True)
             .filter(or_(
                 M.nome_completo.ilike(ilike),
                 M.matricula.ilike(ilike),
