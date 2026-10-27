@@ -52,10 +52,12 @@ TERMOS_FUNCAO_COMANDO = ("CHEFE", "DIRETOR", "COMANDANTE", "CMT")
 # contas da DP que também enviam o próprio PAF (nome exato da função)
 FUNCOES_DP_ENVIAM_PAF = frozenset({"DRH"})
 
-# Únicas funções que veem o efetivo inteiro no PAF ("PAF do Efetivo"),
-# homologam, reprovam, mexem na capacidade e na alocação em massa: DIRETOR DRH
-# e SUPER USER (obrigatório). Chefes/diretores/comandantes e contas DRH não.
+# Veem o efetivo inteiro no PAF ("PAF do Efetivo"), homologam, reprovam, mexem
+# na capacidade e na alocação em massa: DIRETOR DRH e SUPER USER (sempre) e
+# qualquer usuário com a permissão PAF_HOMOLOGAR, dada em /admin/permissoes
+# (vale para qualquer função de usuário).
 FUNCOES_HOMOLOGAM_PAF = frozenset({"DIRETOR DRH", "SUPER USER"})
+PERMISSAO_HOMOLOGAR_PAF = "PAF_HOMOLOGAR"
 
 
 def _nome_funcao(user) -> str:
@@ -64,7 +66,13 @@ def _nome_funcao(user) -> str:
 
 
 def pode_homologar_paf(user) -> bool:
-    return bool(user) and _nome_funcao(user) in FUNCOES_HOMOLOGAM_PAF
+    if not user:
+        return False
+    if _nome_funcao(user) in FUNCOES_HOMOLOGAM_PAF:
+        return True
+    # permissão individual ativa (has_perm olha o usuário logado)
+    from src.decorators.control import has_perm
+    return has_perm(PERMISSAO_HOMOLOGAR_PAF)
 
 
 def conta_envia_paf(user) -> bool:

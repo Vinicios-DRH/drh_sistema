@@ -16,6 +16,8 @@ PERMISSOES_CATALOGO = [
         "nome": "Menu: Plano Anual de Férias (solicitante)"},
     {"codigo": "NAV_PAF_NOVO", "nome": "Menu: PAF > Solicitação"},
     {"codigo": "NAV_PAF_MINHAS", "nome": "Menu: PAF > Minhas Solicitações"},
+    {"codigo": "PAF_HOMOLOGAR",
+        "nome": "PAF: Homologar o efetivo (PAF do Efetivo, vagas, capacidade, Excel)"},
 
     # Dependentes (solicitante)
     {"codigo": "NAV_DEP_SOLICITANTE",
