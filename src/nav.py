@@ -139,24 +139,23 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     pode_recebimento = funcao_id in {1, 2, 5, 6, 7}
     pode_ver_validacoes = pode_recebimento or _rule_user_id_is(394)
     pode_paf = _rule_paf_solicitante()
-    # DIRETOR, CHEFE, DRH/DP, SUPER USER, DIRETOR DRH
-    pode_paf_efetivo = funcao_id in {1, 2, 5, 6, 7}
+    # "PAF do Efetivo": só DIRETOR DRH e SUPER USER (mesma regra das rotas)
+    from src.services.paf_service import pode_homologar_paf
+    pode_paf_efetivo = pode_homologar_paf(current_user)
 
     nav: List[Dict[str, Any]] = []
 
     # Início
     nav.append(_mk_item("Início", "home", icon="fas fa-home"))
 
-    # PAF do Efetivo: chefe acompanha/encaminha o PAF da sua OBM e a DP homologa.
-    # Sem `perm` de propósito (mesmo motivo do "Meus Cursos CBMAM"): nenhum
-    # chefe tinha NAV_VALIDACOES_PAF liberado e o item ficava escondido. A rota
-    # já limita o chefe às OBMs dele.
+    # PAF do Efetivo: só DIRETOR DRH e SUPER USER (veem todo o efetivo e
+    # homologam). Chefes, diretores, comandantes e contas DRH não veem.
     nav.append(
         _mk_item(
             "PAF do Efetivo",
             "paf.recebimento",
             icon="fas fa-calendar-check",
-            rule=(lambda: is_super or pode_paf_efetivo),
+            rule=(lambda: pode_paf_efetivo),
         )
     )
 

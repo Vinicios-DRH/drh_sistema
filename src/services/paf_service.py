@@ -41,14 +41,30 @@ from src.models import (
 # Vigência e datas
 # ---------------------------------------------------------------------------
 
-# Quem envia o PAF: a conta pessoal do militar (ATUALIZACAO CADASTRAL) e as
-# contas de comando — toda função com "CHEFE", "DIRETOR" ou "COMANDANTE"/"CMT"
+# Quem envia o PAF: a conta pessoal do militar (ATUALIZACAO CADASTRAL), as
+# contas DRH e as contas de comando — toda função com "CHEFE", "DIRETOR" ou "COMANDANTE"/"CMT"
 # no nome (chefe, diretor, subdiretor, comandante, subcomandante, diretor DRH,
 # chefe DRH...) — sempre respeitando os postos
 # liberados abaixo. DRH, super, suporte etc. não enviam por essas contas. Como é
 # 1 PAF por militar/ano, quem tem mais de uma conta envia por uma só.
 FUNCAO_USER_ATUALIZACAO_CADASTRAL = 12
 TERMOS_FUNCAO_COMANDO = ("CHEFE", "DIRETOR", "COMANDANTE", "CMT")
+# contas da DP que também enviam o próprio PAF (nome exato da função)
+FUNCOES_DP_ENVIAM_PAF = frozenset({"DRH"})
+
+# Únicas funções que veem o efetivo inteiro no PAF ("PAF do Efetivo"),
+# homologam, reprovam, mexem na capacidade e na alocação em massa: DIRETOR DRH
+# e SUPER USER (obrigatório). Chefes/diretores/comandantes e contas DRH não.
+FUNCOES_HOMOLOGAM_PAF = frozenset({"DIRETOR DRH", "SUPER USER"})
+
+
+def _nome_funcao(user) -> str:
+    funcao = getattr(user, "funcao_user", None)
+    return (getattr(funcao, "ocupacao", None) or "").strip().upper()
+
+
+def pode_homologar_paf(user) -> bool:
+    return bool(user) and _nome_funcao(user) in FUNCOES_HOMOLOGAM_PAF
 
 
 def conta_envia_paf(user) -> bool:
@@ -57,9 +73,8 @@ def conta_envia_paf(user) -> bool:
         return False
     if int(getattr(user, "funcao_user_id", 0) or 0) == FUNCAO_USER_ATUALIZACAO_CADASTRAL:
         return True
-    funcao = getattr(user, "funcao_user", None)
-    nome = (getattr(funcao, "ocupacao", None) or "").strip().upper()
-    return any(termo in nome for termo in TERMOS_FUNCAO_COMANDO)
+    nome = _nome_funcao(user)
+    return nome in FUNCOES_DP_ENVIAM_PAF or any(termo in nome for termo in TERMOS_FUNCAO_COMANDO)
 
 # Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
 #   Etapa atual: oficiais (CEL, TC, MAJ, CAP, 1º TEN, 2º TEN), subtenentes e

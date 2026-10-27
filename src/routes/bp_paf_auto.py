@@ -10,10 +10,10 @@ bp_paf_auto = Blueprint("paf_auto", __name__, url_prefix="/paf/auto")
 @bp_paf_auto.route("/alocar", methods=["GET", "POST"])
 @login_required
 def alocar():
-    # cria PAF em massa para quem não enviou: só a DP
-    from src.routes.paf import _is_drh_like
-    if not _is_drh_like():
-        flash("Apenas a DP pode usar a alocação automática.", "danger")
+    # cria PAF em massa para quem não enviou: só Diretor DRH / SUPER USER
+    from src.routes.paf import _pode_homologar_paf
+    if not _pode_homologar_paf():
+        flash("Apenas o Diretor DRH (ou SUPER USER) pode usar a alocação automática.", "danger")
         return redirect(url_for("home"))
 
     ano = request.args.get("ano", type=int) or request.form.get("ano", type=int) or 2026

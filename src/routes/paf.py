@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select, text
 from src import database
 from src.formatar_cpf import get_militar_por_user
-from src.services.paf_service import conta_envia_paf, pode_enviar_paf
+from src.services.paf_service import conta_envia_paf, pode_enviar_paf, pode_homologar_paf
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from src.utils.utils import registrar_log_download
 from zoneinfo import ZoneInfo
@@ -98,14 +98,10 @@ def _obm_subtree_ids(root_id: int) -> list[int]:
     return ids or [root_id]
 
 
-# DIRETOR, CHEFE, DRH/DP, SUPER USER, DIRETOR DRH — mesma regra do menu "PAF do Efetivo"
-FUNCOES_PAF_EFETIVO = {1, 2, 5, 6, 7}
-
-
-def _pode_ver_efetivo() -> bool:
-    """Tela do efetivo (/paf/recebimento), Excel e aprovação: só chefia e DP.
-    A conta pessoal do militar (ATUALIZACAO CADASTRAL) não entra."""
-    return _is_drh_like() or int(getattr(current_user, "funcao_user_id", 0) or 0) in FUNCOES_PAF_EFETIVO
+def _pode_homologar_paf() -> bool:
+    """Só DIRETOR DRH e SUPER USER veem o efetivo inteiro (/paf/recebimento,
+    Excel), homologam, reprovam, ajustam capacidade e usam a alocação em massa."""
+    return pode_homologar_paf(current_user)
 
 
 def _ano_atual_manaus():
@@ -402,9 +398,9 @@ def minhas():
 @bp_paf.route("/aprovar/<int:paf_id>", methods=["POST"])
 @login_required
 def aprovar(paf_id):
-    # O PAF não passa mais pela chefia: vai direto para a DP. Só a DP reprova
-    # (devolvendo ao militar para corrigir) — a homologação é em /paf/validar.
-    if not _is_drh_like():
+    # O PAF não passa mais pela chefia: vai direto para a DP. Só o DIRETOR DRH
+    # reprova (devolvendo ao militar para corrigir) — a homologação é em /paf/validar.
+    if not _pode_homologar_paf():
         flash("O PAF é avaliado diretamente pela DP.", "danger")
         return redirect(url_for("home"))
 
@@ -444,7 +440,7 @@ def aprovar(paf_id):
 @bp_paf.route("/validar/<int:paf_id>", methods=["GET", "POST"])
 @login_required
 def validar(paf_id):
-    if not _is_drh_like():
+    if not _pode_homologar_paf():
         flash("Apenas a DP pode homologar.", "danger")
         return redirect(url_for("paf.minhas"))
 
@@ -501,8 +497,8 @@ def validar(paf_id):
 @bp_paf.route("/capacidade", methods=["GET", "POST"])
 @login_required
 def capacidade():
-    if not _is_drh_like():
-        flash("Apenas DRH pode alterar capacidade.", "danger")
+    if not _pode_homologar_paf():
+        flash("Apenas o Diretor DRH (ou SUPER USER) pode alterar capacidade.", "danger")
         return redirect(url_for("paf.minhas"))
 
     ano = request.values.get("ano", type=int) or _ano_atual_manaus()
@@ -650,7 +646,7 @@ def _recebimento_consulta(f: dict):
         base_q = base_q.filter(MOF.obm_id.in_(_obm_subtree_ids(f["obm_id"])))
     if f["pg_id"]:
         base_q = base_q.filter(M.posto_grad_id == f["pg_id"])
-    if not (_is_drh_like() or _is_super_user()):
+    if not _pode_homologar_paf():
         user_obms = _user_obm_ids()
         if user_obms:
             base_q = base_q.filter(MOF.obm_id.in_(user_obms))
@@ -759,8 +755,8 @@ def _anos_paf() -> list[int]:
 @bp_paf.route("/recebimento", methods=["GET"])
 @login_required
 def recebimento():
-    if not _pode_ver_efetivo():
-        flash("Acesso restrito à chefia e à DP.", "danger")
+    if not _pode_homologar_paf():
+        flash("Acesso restrito ao Diretor DRH (ou SUPER USER).", "danger")
         return redirect(url_for("home"))
 
     f = _recebimento_filtros()
@@ -773,7 +769,7 @@ def recebimento():
     rows_page = rows_q.limit(per_page).offset((page - 1) * per_page).all()
     total_pages = max(ceil(total / per_page), 1)
 
-    is_drh = _is_drh_like() or _is_super_user()
+    is_drh = _pode_homologar_paf()
     obms, postos = _cached_obms_postos()
 
     # filtros ativos (sem page) pra montar links de paginação, cards e Excel
@@ -797,8 +793,8 @@ def recebimento():
 @bp_paf.route("/recebimento/excel", methods=["GET"])
 @login_required
 def recebimento_excel():
-    if not _pode_ver_efetivo():
-        flash("Acesso restrito à chefia e à DP.", "danger")
+    if not _pode_homologar_paf():
+        flash("Acesso restrito ao Diretor DRH (ou SUPER USER).", "danger")
         return redirect(url_for("home"))
 
     f = _recebimento_filtros()
@@ -955,15 +951,15 @@ def detalhe(paf_id):
         flash("PAF não encontrado.", "danger")
         return redirect(url_for("paf.minhas"))
 
-    # Permissão: DRH/SUPER, chefe do militar, ou o próprio militar
-    is_drh = _is_drh_like() or _is_super_user()
+    # Permissão: Diretor DRH ou o próprio militar
+    is_drh = _pode_homologar_paf()
     sou_dono = False
     try:
         meu_militar = get_militar_por_user(current_user)
         sou_dono = bool(meu_militar and meu_militar.id == paf.militar_id)
     except Exception:
         pass
-    pode_ver = is_drh or sou_dono or (_pode_ver_efetivo() and _eh_chefe_do(paf.militar_id))
+    pode_ver = is_drh or sou_dono
     if not pode_ver:
         flash("Você não tem permissão para ver este PAF.", "warning")
         return redirect(url_for("paf.minhas"))
