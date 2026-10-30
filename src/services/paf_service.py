@@ -85,12 +85,9 @@ def conta_envia_paf(user) -> bool:
     return nome in FUNCOES_DP_ENVIAM_PAF or any(termo in nome for termo in TERMOS_FUNCAO_COMANDO)
 
 # Liberação em etapas, pelo POSTO do militar (usuário → militar pelo CPF).
-#   Etapa atual: oficiais (CEL, TC, MAJ, CAP, 1º TEN, 2º TEN), subtenentes e
-#   sargentos (1º, 2º e 3º SGT). Para a tropa toda, use None.
-PAF_POSTOS_LIBERADOS: Optional[frozenset] = frozenset({
-    "CEL", "TC", "MAJ", "CAP", "1º TEN", "2º TEN",
-    "SUBTENENTE", "1º SGT", "2º SGT", "3º SGT",
-})
+#   Etapa atual: aberto para TODOS os postos (None). Para voltar a limitar,
+#   use um frozenset de siglas, ex.: frozenset({"CEL", "TC", "MAJ"}).
+PAF_POSTOS_LIBERADOS: Optional[frozenset] = None
 
 
 def pode_enviar_paf(user, militar) -> bool:
@@ -98,6 +95,8 @@ def pode_enviar_paf(user, militar) -> bool:
         return False
     if not conta_envia_paf(user):
         return False
+    if militar.inativo:
+        return False  # inativo não envia (o PAF dele nem conta nas vagas)
     if PAF_POSTOS_LIBERADOS is None:
         return True
     sigla = militar.posto_grad.sigla if militar.posto_grad else ""
