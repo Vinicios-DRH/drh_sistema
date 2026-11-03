@@ -89,8 +89,15 @@ def conta_envia_paf(user) -> bool:
 #   use um frozenset de siglas, ex.: frozenset({"CEL", "TC", "MAJ"}).
 PAF_POSTOS_LIBERADOS: Optional[frozenset] = None
 
+# Período de solicitação do PAF. False = ninguém envia PAF novo (quem já enviou
+# continua vendo "Minhas Solicitações" e pode corrigir um PAF reprovado pela DP).
+# Para reabrir, troque para True.
+PAF_SOLICITACAO_ABERTA = False
+
 
 def pode_enviar_paf(user, militar) -> bool:
+    if not PAF_SOLICITACAO_ABERTA:
+        return False
     if not user or not militar:
         return False
     if not conta_envia_paf(user):

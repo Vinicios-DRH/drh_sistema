@@ -120,9 +120,13 @@
           <a class="btn btn-outline-light" href="{{ url_for('home_atualizacao') }}"><i class="bi bi-arrow-left"></i>
             Voltar</a>
           <!-- mantém como link, mas o JS intercepta se já enviou -->
+          {% if solicitacao_aberta %}
           <a class="btn btn-primary" id="btn-novo-paf" href="{{ url_for('paf.novo', ano=ano) }}">
             <i class="bi bi-plus-lg me-1"></i> Novo PAF
           </a>
+          {% else %}
+          <span class="badge text-bg-secondary align-self-center">Período de solicitação encerrado</span>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -55,6 +55,25 @@ def _rule_paf_solicitante() -> bool:
     return pode_enviar_paf(current_user, get_militar_por_user(current_user))
 
 
+def _rule_paf_minhas() -> bool:
+    """"Minhas Solicitações" continua visível com a solicitação fechada, para
+    quem já enviou PAF do ano (acompanhar a homologação / corrigir reprovado)."""
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from src.formatar_cpf import get_militar_por_user
+    from src.models import NovoPaf
+    from src.services.paf_service import conta_envia_paf
+    if not conta_envia_paf(current_user):
+        return False
+    militar = get_militar_por_user(current_user)
+    if not militar:
+        return False
+    ano = datetime.now(ZoneInfo("America/Manaus")).year + 1  # PAF é sempre do ano seguinte
+    return NovoPaf.query.filter_by(militar_id=militar.id, ano_referencia=ano).first() is not None
+
+
 def _rule_alunos_total() -> bool:
     """
     Regra original:
@@ -139,6 +158,7 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
     pode_recebimento = funcao_id in {1, 2, 5, 6, 7}
     pode_ver_validacoes = pode_recebimento or _rule_user_id_is(394)
     pode_paf = _rule_paf_solicitante()
+    pode_paf_minhas = (not pode_paf) and _rule_paf_minhas()
     # "PAF do Efetivo": só DIRETOR DRH e SUPER USER (mesma regra das rotas)
     from src.services.paf_service import pode_homologar_paf
     pode_paf_efetivo = pode_homologar_paf(current_user)
@@ -248,9 +268,9 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         _mk_group(
             "Plano Anual de Férias",
             icon="fas fa-user-friends",
-            rule=(lambda: pode_paf),
+            rule=(lambda: pode_paf or pode_paf_minhas),
             children=[
-                _mk_item("Solicitação", "paf.novo"),
+                _mk_item("Solicitação", "paf.novo", rule=(lambda: pode_paf)),
                 _mk_item("Minhas Solicitações", "paf.minhas"),
             ],
         )

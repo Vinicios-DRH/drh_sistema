@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select, text
 from src import database
 from src.formatar_cpf import get_militar_por_user
-from src.services.paf_service import conta_envia_paf, pode_enviar_paf, pode_homologar_paf
+from src.services.paf_service import PAF_SOLICITACAO_ABERTA, conta_envia_paf, pode_enviar_paf, pode_homologar_paf
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from src.utils.utils import registrar_log_download
 from zoneinfo import ZoneInfo
@@ -296,7 +296,9 @@ def novo():
 
     # conta ATUALIZACAO CADASTRAL ou de comando + posto liberado na etapa atual; vale pro GET e pro POST
     if not pode_enviar_paf(current_user, militar):
-        if not conta_envia_paf(current_user):
+        if not PAF_SOLICITACAO_ABERTA:
+            flash("O período de solicitação do PAF está encerrado.", "warning")
+        elif not conta_envia_paf(current_user):
             flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) "
                   "ou pela conta de chefe/diretor/comandante.", "warning")
         else:
@@ -380,7 +382,10 @@ def minhas():
     # quem ainda não foi liberado só entra se já tiver PAF no ano (ex.: corrigir um reprovado)
     ja_tem = database.session.query(NovoPaf.id).filter_by(militar_id=militar.id, ano_referencia=ano).first()
     if not (pode_enviar_paf(current_user, militar) or ja_tem):
-        flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
+        if not PAF_SOLICITACAO_ABERTA:
+            flash("O período de solicitação do PAF está encerrado.", "warning")
+        else:
+            flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
         return redirect(url_for("home"))
 
     # opções (NovoPaf)
@@ -391,7 +396,8 @@ def minhas():
 
     return render_template(
         "paf/paf_minhas.html",
-        pafs=pafs, ano=ano, militar=militar
+        pafs=pafs, ano=ano, militar=militar,
+        solicitacao_aberta=pode_enviar_paf(current_user, militar),
     )
 
 
