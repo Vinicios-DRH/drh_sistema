@@ -44,6 +44,40 @@ _pool_warm_lock = threading.Lock()
 
 app.jinja_env.globals.update(enumerate=enumerate)
 
+# --- MIGRAÇÃO DE ENDEREÇO (Railway -> www.cbm.am.gov.br/sigdp) ---
+# Quem acessar pelo domínio antigo do Railway é mandado para o endereço novo,
+# preservando o caminho e a query string (/login?x=1 -> .../sigdp/login?x=1).
+# Só liga quando SIGDP_REDIRECT_URL estiver definida no Railway
+# (ex.: https://www.cbm.am.gov.br/sigdp), para não derrubar o acesso antes
+# do endereço novo estar no ar.
+DOMINIO_ANTIGO = "drhsistema-production.up.railway.app"
+SIGDP_REDIRECT_URL = os.getenv("SIGDP_REDIRECT_URL", "").rstrip("/")
+
+@app.before_request
+def redirecionar_dominio_antigo():
+    if not SIGDP_REDIRECT_URL or request.path == "/diag-cabecalhos":
+        return
+    host = request.host.split(":")[0].lower()
+    # Se o novo endereço for um proxy reverso apontando pra cá, ele chega com
+    # X-Forwarded-Host do domínio novo: não redireciona, senão vira loop.
+    host_encaminhado = request.headers.get("X-Forwarded-Host", "").split(",")[0].strip().lower()
+    if host != DOMINIO_ANTIGO or (host_encaminhado and host_encaminhado != DOMINIO_ANTIGO):
+        return
+    destino = SIGDP_REDIRECT_URL + request.full_path.rstrip("?")
+    # 307 mantém o método (POST continua POST); temporário até o novo endereço
+    # estar validado, depois pode trocar para 308 (permanente).
+    return redirect(destino, code=307)
+
+# TEMPORÁRIO: mostra os cabeçalhos que chegam ao app, para descobrir como
+# distinguir o acesso vindo do proxy (cbm.am.gov.br) do acesso direto ao Railway.
+# Remover depois de configurar o redirecionamento.
+@app.route("/diag-cabecalhos")
+def diag_cabecalhos():
+    ocultos = {"cookie", "authorization"}
+    linhas = [f"request.host = {request.host}", f"remote_addr = {request.remote_addr}", ""]
+    linhas += [f"{k}: {v}" for k, v in request.headers.items() if k.lower() not in ocultos]
+    return "\n".join(linhas), 200, {"Content-Type": "text/plain; charset=utf-8"}
+
 @app.before_request
 def big_brother_log_acesso():
     # --- TRAVA DE SEGURANÇA IMEDIATA (KILL SWITCH) ---
