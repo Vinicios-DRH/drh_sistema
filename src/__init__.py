@@ -37,7 +37,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 # PAF_ANO_VIGENTE não é mais fixo: o módulo de Férias acompanha o ano corrente
 # (o PAF escolhido num ano vale para o seguinte). Defina aqui só para forçar um ano.
-app.config["PUBLIC_BASE_URL"] = "https://drhsistema-production.up.railway.app"
+app.config["PUBLIC_BASE_URL"] = "https://www.cbm.am.gov.br/sigdp"
 # --- flags para rodar só uma vez por worker ---
 _pool_warmed = False
 _pool_warm_lock = threading.Lock()
@@ -55,11 +55,12 @@ SIGDP_REDIRECT_URL = os.getenv("SIGDP_REDIRECT_URL", "").rstrip("/")
 
 @app.before_request
 def redirecionar_dominio_antigo():
-    if not SIGDP_REDIRECT_URL or request.path == "/diag-cabecalhos":
+    if not SIGDP_REDIRECT_URL:
         return
     host = request.host.split(":")[0].lower()
-    # Se o novo endereço for um proxy reverso apontando pra cá, ele chega com
-    # X-Forwarded-Host do domínio novo: não redireciona, senão vira loop.
+    # O sigdp roda no servidor do CBMAM (IIS repassando com Host www.cbm.am.gov.br),
+    # então só o acesso direto ao Railway cai aqui. A checagem do X-Forwarded-Host
+    # é proteção extra caso algum proxy venha a repassar com o host antigo.
     host_encaminhado = request.headers.get("X-Forwarded-Host", "").split(",")[0].strip().lower()
     if host != DOMINIO_ANTIGO or (host_encaminhado and host_encaminhado != DOMINIO_ANTIGO):
         return
@@ -67,16 +68,6 @@ def redirecionar_dominio_antigo():
     # 307 mantém o método (POST continua POST); temporário até o novo endereço
     # estar validado, depois pode trocar para 308 (permanente).
     return redirect(destino, code=307)
-
-# TEMPORÁRIO: mostra os cabeçalhos que chegam ao app, para descobrir como
-# distinguir o acesso vindo do proxy (cbm.am.gov.br) do acesso direto ao Railway.
-# Remover depois de configurar o redirecionamento.
-@app.route("/diag-cabecalhos")
-def diag_cabecalhos():
-    ocultos = {"cookie", "authorization"}
-    linhas = [f"request.host = {request.host}", f"remote_addr = {request.remote_addr}", ""]
-    linhas += [f"{k}: {v}" for k, v in request.headers.items() if k.lower() not in ocultos]
-    return "\n".join(linhas), 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 @app.before_request
 def big_brother_log_acesso():
