@@ -1,4 +1,5 @@
 
+import os
 from flask_login import login_required
 from flask import request
 from flask import render_template, redirect, url_for, request, flash, send_file
@@ -534,10 +535,16 @@ def motoristas_desclassificados():
     grafico_obms = pio.to_json(fig_obms)
 
     # Gráfico 3: Evolução mensal de desclassificados (últimos 12 meses)
-    # Usa date_trunc para agrupar por mês; funciona em PostgreSQL (Supabase)
+    _is_mysql = "mysql" in os.environ.get("DATABASE_URL", "")
+    if _is_mysql:
+        col_mes = database.func.date_format(
+            Motoristas.desclassificar_em, '%Y-%m-01').label('mes')
+    else:
+        col_mes = database.func.date_trunc(
+            'month', Motoristas.desclassificar_em).label('mes')
+
     mensal = database.session.query(
-        database.func.date_trunc(
-            'month', Motoristas.desclassificar_em).label('mes'),
+        col_mes,
         database.func.count(Motoristas.id)
     ).filter(
         Motoristas.desclassificar == 'SIM',
@@ -545,7 +552,10 @@ def motoristas_desclassificados():
         Motoristas.desclassificar_em.isnot(None)
     ).group_by('mes').order_by('mes').all()
 
-    meses = [row[0].strftime('%Y-%m') for row in mensal] if mensal else []
+    meses = [
+        (row[0].strftime('%Y-%m') if hasattr(row[0], 'strftime') else str(row[0])[:7])
+        for row in mensal
+    ] if mensal else []
     valores_mensais = [row[1] for row in mensal] if mensal else []
     fig_mensal = go.Figure(data=[go.Bar(x=meses, y=valores_mensais)])
     fig_mensal.update_layout(xaxis_title='Mês', yaxis_title='Desclassificados')

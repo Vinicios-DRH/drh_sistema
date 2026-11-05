@@ -4,12 +4,13 @@ def _clean_digits_sql(col):
     c = func.replace(c, "/", "")
     return func.replace(c, " ", "")
 
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, cast, String
 from sqlalchemy.orm import selectinload
 
 from src.models import (
@@ -131,12 +132,19 @@ def _aplicar_busca_texto(query, search: str):
     search_digits = re.sub(r"\D", "", search)
     digits_like = f"%{search_digits}%" if search_digits else None
 
-    def norm_text(column):
-        return func.lower(func.unaccent(func.coalesce(column, "")))
+    _is_mysql = "mysql" in os.environ.get("DATABASE_URL", "")
+    if _is_mysql:
+        def norm_text(column):
+            return func.lower(func.coalesce(column, ""))
+        search_term = func.lower(search_like)
+    else:
+        def norm_text(column):
+            return func.lower(func.unaccent(func.coalesce(column, "")))
+        search_term = func.lower(func.unaccent(search_like))
 
     filtros_busca = [
-        norm_text(Militar.nome_completo).like(func.lower(func.unaccent(search_like))),
-        norm_text(Militar.nome_guerra).like(func.lower(func.unaccent(search_like))),
+        norm_text(Militar.nome_completo).like(search_term),
+        norm_text(Militar.nome_guerra).like(search_term),
         func.coalesce(Militar.cpf, "").ilike(search_like),
         func.coalesce(Militar.rg, "").ilike(search_like),
         func.coalesce(Militar.matricula, "").ilike(search_like),

@@ -1,4 +1,5 @@
 
+import os
 from flask_login import login_required
 from flask import abort, request
 from flask import render_template, redirect, url_for, request, flash
@@ -148,22 +149,40 @@ def usuarios():
 
     if busca:
         # Cada palavra precisa aparecer em nome, e-mail, função ou CPF.
-        # unaccent (já usado na listagem de militares): "avila" acha "Ávila".
-        def sem_acento(coluna):
-            return func.lower(func.unaccent(func.coalesce(coluna, '')))
+        _is_mysql = "mysql" in os.environ.get("DATABASE_URL", "")
+        if _is_mysql:
+            def sem_acento(coluna):
+                return func.lower(func.coalesce(coluna, ''))
 
-        for palavra in busca.split():
-            termo = func.lower(func.unaccent(f"%{_escapar_like(palavra)}%"))
-            filtros = [
-                sem_acento(User.nome).like(termo, escape='\\'),
-                sem_acento(User.email).like(termo, escape='\\'),
-                sem_acento(FuncaoUser.ocupacao).like(termo, escape='\\'),
-            ]
-            digitos = somente_numeros(palavra)
-            if digitos:
-                filtros.append(User.cpf_norm.like(f"%{digitos}%"))
-                filtros.append(User.cpf.like(f"%{digitos}%"))
-            consulta = consulta.filter(or_(*filtros))
+            for palavra in busca.split():
+                termo = f"%{_escapar_like(palavra.lower())}%"
+                filtros = [
+                    sem_acento(User.nome).like(termo, escape='\\'),
+                    sem_acento(User.email).like(termo, escape='\\'),
+                    sem_acento(FuncaoUser.ocupacao).like(termo, escape='\\'),
+                ]
+                digitos = somente_numeros(palavra)
+                if digitos:
+                    filtros.append(User.cpf_norm.like(f"%{digitos}%"))
+                    filtros.append(User.cpf.like(f"%{digitos}%"))
+                consulta = consulta.filter(or_(*filtros))
+        else:
+            # unaccent (PostgreSQL): "avila" acha "Ávila".
+            def sem_acento(coluna):
+                return func.lower(func.unaccent(func.coalesce(coluna, '')))
+
+            for palavra in busca.split():
+                termo = func.lower(func.unaccent(f"%{_escapar_like(palavra)}%"))
+                filtros = [
+                    sem_acento(User.nome).like(termo, escape='\\'),
+                    sem_acento(User.email).like(termo, escape='\\'),
+                    sem_acento(FuncaoUser.ocupacao).like(termo, escape='\\'),
+                ]
+                digitos = somente_numeros(palavra)
+                if digitos:
+                    filtros.append(User.cpf_norm.like(f"%{digitos}%"))
+                    filtros.append(User.cpf.like(f"%{digitos}%"))
+                consulta = consulta.filter(or_(*filtros))
 
     if filtro_perfil in ('ADMIN', 'MILITAR', 'EXTERNO'):
         if filtro_perfil == 'ADMIN':

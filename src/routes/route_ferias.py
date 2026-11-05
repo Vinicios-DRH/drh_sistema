@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, send_file
 from io import BytesIO
 from openpyxl import Workbook
@@ -26,6 +27,12 @@ def direito_expr():
         (Militar.id.in_(MILITARES_40_IDS), 40),
         else_=30
     ).label("direito_total_dias")
+
+
+def meses_usufruidos_expr():
+    if "mysql" in os.environ.get("DATABASE_URL", ""):
+        return func.group_concat(func.distinct(Paf.mes_usufruto)).label("meses_usufruidos")
+    return func.string_agg(func.distinct(Paf.mes_usufruto), ', ').label("meses_usufruidos")
 
 
 def _build_periodos_from_pafs(pafs):
@@ -95,10 +102,7 @@ def ferias_pendentes():
             Militar,
             func.coalesce(func.sum(total_expr), 0).label("dias_usufruidos"),
             direito,
-            func.string_agg(
-                func.distinct(Paf.mes_usufruto),
-                ', '
-            ).label("meses_usufruidos"),
+            meses_usufruidos_expr(),
             Obm.sigla.label("obm_sigla")
         )
         .outerjoin(Paf, Paf.militar_id == Militar.id)
@@ -188,10 +192,7 @@ def ferias_pendentes_excel():
             Militar,
             func.coalesce(func.sum(total_expr), 0).label("dias_usufruidos"),
             direito,
-            func.string_agg(
-                func.distinct(Paf.mes_usufruto),
-                ', '
-            ).label("meses_usufruidos"),
+            meses_usufruidos_expr(),
             Obm.sigla.label("obm_sigla")
         )
         .outerjoin(Paf, Paf.militar_id == Militar.id)
