@@ -1,3 +1,4 @@
+import os
 from src.formatar_cpf import get_militar_por_user
 from src import app
 from io import BytesIO
@@ -5,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import login_required, current_user
 from openpyxl import Workbook
 from sqlalchemy import case, exists, literal, or_, and_, func
+import os
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, build_prefix
 from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
@@ -150,7 +152,7 @@ def home_atualizacao():
         minhas_declaracoes = (
             db.session.query(D)
             .filter(D.militar_id == militar_id, D.ano_referencia == ano_atual)
-            .order_by(D.updated_at.desc().nullslast(), D.id.desc())
+            .order_by(case((D.updated_at.is_(None), 1), else_=0), D.updated_at.desc(), D.id.desc())
             .limit(6)
             .all()
         )
@@ -1328,25 +1330,48 @@ def recebimento():
     IS_SUPER = _is_super_user()
     IS_PRIV = _is_privilegiado() or IS_AUDITOR      # <- “vê tudo” nas regras DRH
 
-    rn = func.row_number().over(
-        partition_by=D.militar_id,
-        order_by=(D.updated_at.desc().nullslast(), D.id.desc())
-    ).label("rn")
-
-    ultimo_subq = (
-        db.session.query(
-            D.militar_id.label("m_id"),
-            D.id.label("decl_id"),
-            D.status.label("decl_status"),
-            D.tipo.label("decl_tipo"),
-            D.meio_entrega.label("decl_meio"),
-            D.arquivo_declaracao.label("decl_arquivo_modelo"),
-            D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),
-            rn
+    _is_mysql = "mysql" in os.environ.get("DATABASE_URL", "")
+    if _is_mysql:
+        sub_max = (
+            db.session.query(func.max(D.id).label("max_id"))
+            .filter(D.ano_referencia == ano)
+            .group_by(D.militar_id)
+            .subquery()
         )
-        .filter(D.ano_referencia == ano)
-        .subquery()
-    )
+        ultimo_subq = (
+            db.session.query(
+                D.militar_id.label("m_id"),
+                D.id.label("decl_id"),
+                D.status.label("decl_status"),
+                D.tipo.label("decl_tipo"),
+                D.meio_entrega.label("decl_meio"),
+                D.arquivo_declaracao.label("decl_arquivo_modelo"),
+                D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),
+                literal(1).label("rn")
+            )
+            .join(sub_max, D.id == sub_max.c.max_id)
+            .subquery()
+        )
+    else:
+        rn = func.row_number().over(
+            partition_by=D.militar_id,
+            order_by=(D.updated_at.desc().nullslast(), D.id.desc())
+        ).label("rn")
+
+        ultimo_subq = (
+            db.session.query(
+                D.militar_id.label("m_id"),
+                D.id.label("decl_id"),
+                D.status.label("decl_status"),
+                D.tipo.label("decl_tipo"),
+                D.meio_entrega.label("decl_meio"),
+                D.arquivo_declaracao.label("decl_arquivo_modelo"),
+                D.arquivo_declaracao_orgao.label("decl_arquivo_orgao"),
+                rn
+            )
+            .filter(D.ano_referencia == ano)
+            .subquery()
+        )
 
     base_q = (
         db.session.query(M.id.label("m_id"))
@@ -1472,53 +1497,105 @@ def recebimento():
                  .limit(per_page).offset((page - 1) * per_page).all())
     page_ids = [r.m_id for r in page_rows]
 
-    rn_enc = func.row_number().over(
-        partition_by=AuditoriaDeclaracao.declaracao_id,
-        order_by=AuditoriaDeclaracao.data_alteracao.desc()
-    ).label("rn")
-
-    enc_subq = (
-        db.session.query(
-            AuditoriaDeclaracao.declaracao_id.label("decl_id"),
-            AuditoriaDeclaracao.alterado_por_user_id.label("enc_uid"),
-            AuditoriaDeclaracao.data_alteracao.label("enc_quando"),
-            rn_enc
+    if _is_mysql:
+        sub_enc_max = (
+            db.session.query(func.max(AuditoriaDeclaracao.id).label("max_id"))
+            .filter(AuditoriaDeclaracao.motivo == "enviado_drh")
+            .group_by(AuditoriaDeclaracao.declaracao_id)
+            .subquery()
         )
-        .filter(AuditoriaDeclaracao.motivo == "enviado_drh")
-        .subquery()
-    )
-
-    rn_val = func.row_number().over(
-        partition_by=AuditoriaDeclaracao.declaracao_id,
-        order_by=AuditoriaDeclaracao.data_alteracao.desc()
-    ).label("rn")
-
-    val_subq = (
-        db.session.query(
-            AuditoriaDeclaracao.declaracao_id.label("decl_id"),
-            AuditoriaDeclaracao.alterado_por_user_id.label("val_uid"),
-            AuditoriaDeclaracao.data_alteracao.label("val_quando"),
-            rn_val
+        enc_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("enc_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("enc_quando"),
+                literal(1).label("rn")
+            )
+            .join(sub_enc_max, AuditoriaDeclaracao.id == sub_enc_max.c.max_id)
+            .subquery()
         )
-        .filter(AuditoriaDeclaracao.para_status == "validado")
-        .subquery()
-    )
 
-    rn_inc = func.row_number().over(
-        partition_by=AuditoriaDeclaracao.declaracao_id,
-        order_by=AuditoriaDeclaracao.data_alteracao.desc()
-    ).label("rn")
-
-    inc_subq = (
-        db.session.query(
-            AuditoriaDeclaracao.declaracao_id.label("decl_id"),
-            AuditoriaDeclaracao.alterado_por_user_id.label("inc_uid"),
-            AuditoriaDeclaracao.data_alteracao.label("inc_quando"),
-            rn_inc
+        sub_val_max = (
+            db.session.query(func.max(AuditoriaDeclaracao.id).label("max_id"))
+            .filter(AuditoriaDeclaracao.para_status == "validado")
+            .group_by(AuditoriaDeclaracao.declaracao_id)
+            .subquery()
         )
-        .filter(AuditoriaDeclaracao.para_status == "inconforme")
-        .subquery()
-    )
+        val_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("val_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("val_quando"),
+                literal(1).label("rn")
+            )
+            .join(sub_val_max, AuditoriaDeclaracao.id == sub_val_max.c.max_id)
+            .subquery()
+        )
+
+        sub_inc_max = (
+            db.session.query(func.max(AuditoriaDeclaracao.id).label("max_id"))
+            .filter(AuditoriaDeclaracao.para_status == "inconforme")
+            .group_by(AuditoriaDeclaracao.declaracao_id)
+            .subquery()
+        )
+        inc_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("inc_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("inc_quando"),
+                literal(1).label("rn")
+            )
+            .join(sub_inc_max, AuditoriaDeclaracao.id == sub_inc_max.c.max_id)
+            .subquery()
+        )
+    else:
+        rn_enc = func.row_number().over(
+            partition_by=AuditoriaDeclaracao.declaracao_id,
+            order_by=AuditoriaDeclaracao.data_alteracao.desc()
+        ).label("rn")
+
+        enc_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("enc_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("enc_quando"),
+                rn_enc
+            )
+            .filter(AuditoriaDeclaracao.motivo == "enviado_drh")
+            .subquery()
+        )
+
+        rn_val = func.row_number().over(
+            partition_by=AuditoriaDeclaracao.declaracao_id,
+            order_by=AuditoriaDeclaracao.data_alteracao.desc()
+        ).label("rn")
+
+        val_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("val_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("val_quando"),
+                rn_val
+            )
+            .filter(AuditoriaDeclaracao.para_status == "validado")
+            .subquery()
+        )
+
+        rn_inc = func.row_number().over(
+            partition_by=AuditoriaDeclaracao.declaracao_id,
+            order_by=AuditoriaDeclaracao.data_alteracao.desc()
+        ).label("rn")
+
+        inc_subq = (
+            db.session.query(
+                AuditoriaDeclaracao.declaracao_id.label("decl_id"),
+                AuditoriaDeclaracao.alterado_por_user_id.label("inc_uid"),
+                AuditoriaDeclaracao.data_alteracao.label("inc_quando"),
+                rn_inc
+            )
+            .filter(AuditoriaDeclaracao.para_status == "inconforme")
+            .subquery()
+        )
 
     U3 = aliased(User)
     U = User

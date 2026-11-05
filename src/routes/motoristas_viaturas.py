@@ -13,7 +13,7 @@ from src.decorators.control import checar_ocupacao
 from datetime import datetime
 from io import BytesIO
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, case
 from sqlalchemy.exc import IntegrityError
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -499,8 +499,11 @@ def motoristas_desclassificados():
         query = query.filter(Militar.nome_completo.ilike(f'%{search}%'))
 
     # Paginação
-    motoristas_paginados = query.order_by(Motoristas.desclassificar_em.desc(
-    ).nullslast(), Militar.nome_completo.asc()).paginate(page=page, per_page=per_page)
+    motoristas_paginados = query.order_by(
+        case((Motoristas.desclassificar_em.is_(None), 1), else_=0),
+        Motoristas.desclassificar_em.desc(),
+        Militar.nome_completo.asc()
+    ).paginate(page=page, per_page=per_page)
 
     # Contagem total de desclassificados (para resumo)
     total_desclassificados = Motoristas.query.filter(

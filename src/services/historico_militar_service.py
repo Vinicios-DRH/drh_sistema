@@ -7,6 +7,7 @@ Não inventa consulta nova onde já existe uma: reaproveita os services já
 usados pelas telas de listagem correspondentes, só filtrando por um único
 militar_id.
 """
+from sqlalchemy import case
 from sqlalchemy.orm import joinedload
 
 from src.models import (
@@ -124,7 +125,8 @@ def listar_graduacoes(militar_id: int):
         MilitarGraduacao.query
         .filter(MilitarGraduacao.militar_id == militar_id)
         .order_by(
-            MilitarGraduacao.ano_conclusao.desc().nullslast(),
+            case((MilitarGraduacao.ano_conclusao.is_(None), 1), else_=0),
+            MilitarGraduacao.ano_conclusao.desc(),
             MilitarGraduacao.criado_em.desc(),
         )
         .all()
@@ -136,7 +138,10 @@ def listar_cursos_especializacao(militar_id: int):
         MilitarCurso.query
         .options(joinedload(MilitarCurso.curso))
         .filter(MilitarCurso.militar_id == militar_id)
-        .order_by(MilitarCurso.data_conclusao.desc().nullslast())
+        .order_by(
+            case((MilitarCurso.data_conclusao.is_(None), 1), else_=0),
+            MilitarCurso.data_conclusao.desc()
+        )
         .all()
     )
 

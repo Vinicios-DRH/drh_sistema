@@ -6,6 +6,7 @@ A regra de negócio de status/ciclo de vida da LTS (quando vira "Vigente",
 src.services.militar_situacao_service — este módulo é só sobre montar a
 listagem para o template.
 """
+from sqlalchemy import case
 from sqlalchemy.orm import joinedload
 
 from src.models import LicencaParaTratamentoDeSaude
@@ -27,4 +28,7 @@ def listar_militares_lts(militar_id=None):
     )
     if militar_id is not None:
         query = query.filter(LicencaParaTratamentoDeSaude.militar_id == militar_id)
-    return query.order_by(LicencaParaTratamentoDeSaude.fim_periodo_lts.desc().nullslast()).all()
+    return query.order_by(
+        case((LicencaParaTratamentoDeSaude.fim_periodo_lts.is_(None), 1), else_=0),
+        LicencaParaTratamentoDeSaude.fim_periodo_lts.desc()
+    ).all()

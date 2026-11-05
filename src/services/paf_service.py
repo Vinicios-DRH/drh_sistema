@@ -313,7 +313,7 @@ def listar_militares_sem_paf():
         else_=99
     )
 
-    sub_militares = (
+    rows = (
         database.session.query(
             Militar.id.label("militar_id"),
             Militar.nome_completo,
@@ -321,10 +321,6 @@ def listar_militares_sem_paf():
             Quadro.quadro.label("quadro"),
             Obm.sigla.label("obm"),
             ordem_posto.label("ordem"),
-            func.row_number().over(
-                partition_by=Militar.id,
-                order_by=[prioridade_obm.asc(), MilitarObmFuncao.id.desc()]
-            ).label("linha")
         )
         .join(MilitarObmFuncao, Militar.id == MilitarObmFuncao.militar_id)
         .join(Obm, Obm.id == MilitarObmFuncao.obm_id)
@@ -332,20 +328,19 @@ def listar_militares_sem_paf():
         .join(Quadro, Quadro.id == Militar.quadro_id)
         .filter(MilitarObmFuncao.data_fim.is_(None))  # OBMs ativas
         .filter(~Militar.id.in_(subquery_pafs))  # sem PAF
-        .subquery()
-    )
-
-    return (
-        database.session.query(
-            sub_militares.c.nome_completo,
-            sub_militares.c.posto_grad,
-            sub_militares.c.quadro,
-            sub_militares.c.obm
-        )
-        .filter(sub_militares.c.linha == 1)
-        .order_by(sub_militares.c.ordem, sub_militares.c.obm)
+        .order_by(prioridade_obm.asc(), MilitarObmFuncao.id.desc())
         .all()
     )
+
+    vistos = set()
+    dedup = []
+    for r in rows:
+        if r.militar_id not in vistos:
+            vistos.add(r.militar_id)
+            dedup.append(r)
+
+    dedup.sort(key=lambda x: (x.ordem, x.obm or ""))
+    return [(r.nome_completo, r.posto_grad, r.quadro, r.obm) for r in dedup]
 
 
 # ---------------------------------------------------------------------------

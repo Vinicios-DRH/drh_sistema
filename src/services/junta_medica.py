@@ -258,32 +258,26 @@ def listar_militares_aptos_pendentes(limite: int = 200):
     """
     hoje = date.today()
 
-    numerado = (
-        database.session.query(
-            Licencas,
-            sa_func.row_number().over(
-                partition_by=Licencas.militar_id,
-                order_by=(Licencas.data_inicio.desc(), Licencas.id.desc())
-            ).label("rn")
-        )
+    sub = (
+        database.session.query(sa_func.max(Licencas.id).label("max_id"))
+        .group_by(Licencas.militar_id)
         .subquery()
     )
-    ultimo = aliased(Licencas, numerado)
 
     query = (
-        database.session.query(ultimo)
-        .join(Militar, ultimo.militar_id == Militar.id)
+        database.session.query(Licencas)
+        .join(sub, Licencas.id == sub.c.max_id)
+        .join(Militar, Licencas.militar_id == Militar.id)
         .options(
-            joinedload(ultimo.militar).joinedload(Militar.posto_grad),
-            joinedload(ultimo.militar).joinedload(Militar.quadro),
+            joinedload(Licencas.militar).joinedload(Militar.posto_grad),
+            joinedload(Licencas.militar).joinedload(Militar.quadro),
         )
         .filter(
-            numerado.c.rn == 1,
-            ultimo.tipo_licenca == "LTS",
-            ultimo.data_fim < hoje,
+            Licencas.tipo_licenca == "LTS",
+            Licencas.data_fim < hoje,
             Militar.inativo.isnot(True),
         )
-        .order_by(ultimo.data_fim.asc())
+        .order_by(Licencas.data_fim.asc())
         .limit(limite)
     )
 

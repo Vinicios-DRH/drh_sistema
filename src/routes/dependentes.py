@@ -8,7 +8,7 @@ from flask import (
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from io import BytesIO
 from flask_login import login_required, current_user
-from sqlalchemy import func, desc, or_
+from sqlalchemy import func, desc, or_, case
 from sqlalchemy.orm import aliased
 from src.decorators.control import checar_ocupacao
 from src.decorators.docx_fill import docx_fill_template_dependentes
@@ -533,7 +533,8 @@ def drh_lista_processos():
     # 1️⃣ quem tem processo primeiro
     # 2️⃣ mais recentes no topo
     query = query.order_by(
-        DP.enviado_em.desc().nullslast(),
+        case((DP.enviado_em.is_(None), 1), else_=0),
+        DP.enviado_em.desc(),
         Militar.nome_completo.asc()
     )
 

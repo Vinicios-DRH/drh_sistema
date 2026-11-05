@@ -1,8 +1,9 @@
+import os
 from datetime import date, datetime, timedelta
 from encodings import aliases
 from flask import Blueprint, render_template, request, redirect, send_file, url_for, flash, current_app
 from flask_login import login_required, current_user
-from sqlalchemy import case, exists, func, and_, literal, or_, select, text
+from sqlalchemy import case, exists, func, and_, literal, or_, select, text, literal_column
 from src import database
 from src.formatar_cpf import get_militar_por_user
 from src.services.paf_service import PAF_SOLICITACAO_ABERTA, conta_envia_paf, pode_enviar_paf, pode_homologar_paf
@@ -88,14 +89,23 @@ def _obm_subtree_ids(root_id: int) -> list[int]:
     parent_col = _obm_parent_col()
     if not parent_col:
         return [root_id]
-    # WITH RECURSIVE
-    tree = select(Obm.id).where(Obm.id == root_id).cte(
-        "obm_tree", recursive=True)
-    O2 = aliases(Obm)
-    tree = tree.union_all(select(O2.id).where(
-        getattr(O2, parent_col) == tree.c.id))
-    ids = [r[0] for r in database.session.execute(select(tree.c.id)).all()]
-    return ids or [root_id]
+    all_obms = database.session.query(Obm.id, getattr(Obm, parent_col)).all()
+    children_map = {}
+    for oid, pid in all_obms:
+        if pid:
+            children_map.setdefault(pid, []).append(oid)
+    result = []
+    queue = [root_id]
+    visited = set()
+    while queue:
+        curr = queue.pop()
+        if curr in visited:
+            continue
+        visited.add(curr)
+        result.append(curr)
+        for child in children_map.get(curr, []):
+            queue.append(child)
+    return result or [root_id]
 
 
 def _pode_homologar_paf() -> bool:
@@ -605,38 +615,72 @@ def _recebimento_consulta(f: dict):
     ano = f["ano"]
     D, M, PG, MOF, O = NovoPaf, Militar, PostoGrad, MilitarObmFuncao, Obm
 
-    rn = func.row_number().over(
-        partition_by=D.militar_id,
-        order_by=(D.updated_at.desc().nullslast(), D.id.desc())
-    ).label("rn")
-    ultimo_paf_sq = (
-        database.session.query(
-            D.militar_id.label("m_id"),
-            D.id.label("paf_id"),
-            D.status.label("paf_status"),
-            D.opcao_1, D.opcao_2, D.opcao_3,
-            D.mes_definido,
-            D.recebido_em, D.created_at, D.updated_at,
-            D.validado_em,
-            D.justificativa,
-            D.observacoes,
-            rn
-        )
-        .filter(D.ano_referencia == ano)
-        .subquery()
-    )
+    _is_mysql = "mysql" in os.environ.get("DATABASE_URL", "")
 
-    # OBMs ativas agregadas numa linha só (quem tem 2 vínculos não duplica)
-    obm_sq = (
-        database.session.query(
-            MOF.militar_id.label("m_id"),
-            func.string_agg(func.distinct(O.sigla), literal(" / ")).label("obm_sigla"),
+    if _is_mysql:
+        sub_paf_max = (
+            database.session.query(func.max(D.id).label("max_id"))
+            .filter(D.ano_referencia == ano)
+            .group_by(D.militar_id)
+            .subquery()
         )
-        .join(O, O.id == MOF.obm_id)
-        .filter(MOF.data_fim.is_(None))
-        .group_by(MOF.militar_id)
-        .subquery()
-    )
+        ultimo_paf_sq = (
+            database.session.query(
+                D.militar_id.label("m_id"),
+                D.id.label("paf_id"),
+                D.status.label("paf_status"),
+                D.opcao_1, D.opcao_2, D.opcao_3,
+                D.mes_definido,
+                D.recebido_em, D.created_at, D.updated_at,
+                D.validado_em,
+                D.justificativa,
+                D.observacoes,
+                literal(1).label("rn")
+            )
+            .join(sub_paf_max, D.id == sub_paf_max.c.max_id)
+            .subquery()
+        )
+        obm_sq = (
+            database.session.query(
+                MOF.militar_id.label("m_id"),
+                literal_column("GROUP_CONCAT(DISTINCT obm.sigla SEPARATOR ' / ')").label("obm_sigla"),
+            )
+            .join(O, O.id == MOF.obm_id)
+            .filter(MOF.data_fim.is_(None))
+            .group_by(MOF.militar_id)
+            .subquery()
+        )
+    else:
+        rn = func.row_number().over(
+            partition_by=D.militar_id,
+            order_by=(D.updated_at.desc().nullslast(), D.id.desc())
+        ).label("rn")
+        ultimo_paf_sq = (
+            database.session.query(
+                D.militar_id.label("m_id"),
+                D.id.label("paf_id"),
+                D.status.label("paf_status"),
+                D.opcao_1, D.opcao_2, D.opcao_3,
+                D.mes_definido,
+                D.recebido_em, D.created_at, D.updated_at,
+                D.validado_em,
+                D.justificativa,
+                D.observacoes,
+                rn
+            )
+            .filter(D.ano_referencia == ano)
+            .subquery()
+        )
+        obm_sq = (
+            database.session.query(
+                MOF.militar_id.label("m_id"),
+                func.string_agg(func.distinct(O.sigla), literal(" / ")).label("obm_sigla"),
+            )
+            .join(O, O.id == MOF.obm_id)
+            .filter(MOF.data_fim.is_(None))
+            .group_by(MOF.militar_id)
+            .subquery()
+        )
 
     # ---- BASE: militares ativos com vínculo ativo em OBM — ou, mesmo sem
     # vínculo, com PAF no ano (senão o PAF conta no painel de vagas e some
@@ -671,7 +715,7 @@ def _recebimento_consulta(f: dict):
                 O.sigla.ilike(ilike)
             ))
         )
-    base_cte = base_q.distinct().cte("base_militares")
+    base_cte = base_q.distinct().subquery("base_militares")
 
     paf_join = and_(ultimo_paf_sq.c.m_id == base_cte.c.m_id, ultimo_paf_sq.c.rn == 1)
     st = ultimo_paf_sq.c.paf_status
@@ -745,8 +789,12 @@ def _recebimento_consulta(f: dict):
         "mes": mes_vaga,
         "paf": ultimo_paf_sq.c.paf_id,
     }.get(f["sort"], M.nome_completo)
-    ob = ordem.desc().nullslast() if desc else ordem.asc().nullslast()
-    rows_q = rows_q.order_by(ob, M.nome_completo.asc())
+    if _is_mysql:
+        ob = (case((ordem.is_(None), 1), else_=0), ordem.desc() if desc else ordem.asc())
+        rows_q = rows_q.order_by(*ob, M.nome_completo.asc())
+    else:
+        ob = ordem.desc().nullslast() if desc else ordem.asc().nullslast()
+        rows_q = rows_q.order_by(ob, M.nome_completo.asc())
 
     return rows_q, kpi
 

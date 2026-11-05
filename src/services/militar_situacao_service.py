@@ -110,22 +110,16 @@ def _mapa_publicacao_bg_atual(militar_ids, tipo_bg) -> dict:
     if not ids:
         return {}
 
-    linhas = (
-        database.session.query(
-            PublicacaoBg.militar_id,
-            PublicacaoBg.boletim_geral,
-            func.row_number().over(
-                partition_by=PublicacaoBg.militar_id,
-                order_by=PublicacaoBg.id.desc(),
-            ).label("linha"),
-        )
+    max_ids = (
+        database.session.query(func.max(PublicacaoBg.id).label("max_id"))
         .filter(PublicacaoBg.tipo_bg == tipo_bg, PublicacaoBg.militar_id.in_(ids))
+        .group_by(PublicacaoBg.militar_id)
         .subquery()
     )
 
     linhas_mais_recentes = (
-        database.session.query(linhas.c.militar_id, linhas.c.boletim_geral)
-        .filter(linhas.c.linha == 1)
+        database.session.query(PublicacaoBg.militar_id, PublicacaoBg.boletim_geral)
+        .join(max_ids, PublicacaoBg.id == max_ids.c.max_id)
         .all()
     )
 

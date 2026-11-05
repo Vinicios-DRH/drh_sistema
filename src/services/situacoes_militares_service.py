@@ -12,7 +12,7 @@ from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
-from sqlalchemy import func
+from sqlalchemy import func, case
 from sqlalchemy.orm import joinedload
 
 from src import database
@@ -46,18 +46,13 @@ def _ids_mais_recentes_por_militar(model):
 
     Usado pra telas de listagem mostrarem um único registro por militar,
     mesmo tendo várias linhas de histórico no banco pra ele."""
-    linhas = (
-        database.session.query(
-            model.id,
-            func.row_number().over(
-                partition_by=model.militar_id,
-                order_by=model.id.desc(),
-            ).label("linha"),
-        )
+    sub = (
+        database.session.query(func.max(model.id).label("max_id"))
         .filter(model.inicio_periodo.isnot(None))
+        .group_by(model.militar_id)
         .subquery()
     )
-    return database.session.query(linhas.c.id).filter(linhas.c.linha == 1)
+    return database.session.query(sub.c.max_id)
 
 
 def _ids_militares_com_registro_vigente(model, campo_inicio, campo_fim, filtro_situacao_atual):
@@ -130,7 +125,10 @@ def listar_militares_agregados(militar_id=None):
         excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
         if excluidos:
             query = query.filter(MilitaresAgregados.militar_id.notin_(excluidos))
-    return query.order_by(MilitaresAgregados.fim_periodo_agregacao.desc().nullslast()).all()
+    return query.order_by(
+        case((MilitaresAgregados.fim_periodo_agregacao.is_(None), 1), else_=0),
+        MilitaresAgregados.fim_periodo_agregacao.desc()
+    ).all()
 
 
 def listar_militares_a_disposicao(militar_id=None):
@@ -154,7 +152,10 @@ def listar_militares_a_disposicao(militar_id=None):
         excluidos = ids_alto_comando_excluidos_de_agregado_disposicao()
         if excluidos:
             query = query.filter(MilitaresADisposicao.militar_id.notin_(excluidos))
-    return query.order_by(MilitaresADisposicao.fim_periodo_disposicao.desc().nullslast()).all()
+    return query.order_by(
+        case((MilitaresADisposicao.fim_periodo_disposicao.is_(None), 1), else_=0),
+        MilitaresADisposicao.fim_periodo_disposicao.desc()
+    ).all()
 
 
 def montar_resumo_dashboard(registros, campo_fim: str, status_vencido: str = "Venceu") -> dict:
@@ -465,4 +466,7 @@ def listar_licencas_especiais(militar_id=None):
     )
     if militar_id is not None:
         query = query.filter(LicencaEspecial.militar_id == militar_id)
-    return query.order_by(LicencaEspecial.fim_periodo_le.desc().nullslast()).all()
+    return query.order_by(
+        case((LicencaEspecial.fim_periodo_le.is_(None), 1), else_=0),
+        LicencaEspecial.fim_periodo_le.desc()
+    ).all()
