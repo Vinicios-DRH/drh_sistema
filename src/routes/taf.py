@@ -1,6 +1,7 @@
 # routes_taf.py
 from __future__ import annotations
 
+import os
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
 
@@ -88,25 +89,47 @@ def _obm_atual_subquery():
     return mof_atual
 
 
+def _is_mysql():
+    return "mysql" in os.environ.get("DATABASE_URL", "")
+
+
 def agg_valores_sql(atividade: str):
-    sql = f"""
-    array_to_string(
-        array_agg((taf_avaliacao.valor::text) ORDER BY taf_avaliacao.criado_em)
-        FILTER (WHERE taf_avaliacao.atividade = '{atividade}'),
-        ' | '
-    )
-    """
+    if _is_mysql():
+        sql = f"""
+        GROUP_CONCAT(
+            CASE WHEN taf_avaliacao.atividade = '{atividade}' THEN CAST(taf_avaliacao.valor AS CHAR) ELSE NULL END
+            ORDER BY taf_avaliacao.criado_em
+            SEPARATOR ' | '
+        )
+        """
+    else:
+        sql = f"""
+        array_to_string(
+            array_agg((taf_avaliacao.valor::text) ORDER BY taf_avaliacao.criado_em)
+            FILTER (WHERE taf_avaliacao.atividade = '{atividade}'),
+            ' | '
+        )
+        """
     return literal_column(sql)
 
 
 def agg_scores_sql(atividade: str):
-    sql = f"""
-    array_to_string(
-        array_agg((taf_avaliacao.score_linha) ORDER BY taf_avaliacao.criado_em)
-        FILTER (WHERE taf_avaliacao.atividade = '{atividade}'),
-        ' | '
-    )
-    """
+    if _is_mysql():
+        sql = f"""
+        GROUP_CONCAT(
+            CASE WHEN taf_avaliacao.atividade = '{atividade}' THEN CAST(taf_avaliacao.score_linha AS CHAR) ELSE NULL END
+            ORDER BY taf_avaliacao.criado_em
+            SEPARATOR ' | '
+        )
+        """
+    else:
+        sql = f"""
+        array_to_string(
+            array_agg((taf_avaliacao.score_linha) ORDER BY taf_avaliacao.criado_em)
+            FILTER (WHERE taf_avaliacao.atividade = '{atividade}'),
+            ' | '
+        )
+        """
     return literal_column(sql)
 
 

@@ -1,4 +1,5 @@
 from flask import request
+import os
 import re
 import pytz
 from sqlalchemy.orm import backref, foreign
@@ -1538,7 +1539,11 @@ class PafCapacidade(database.Model):
         'ano', 'mes', name='uq_pafcap_ano_mes'),)
 
 
-MANAUS_NOW = text("timezone('America/Manaus', now())")
+_db_url = os.environ.get("DATABASE_URL", "")
+if "mysql" in _db_url:
+    MANAUS_NOW = func.now()
+else:
+    MANAUS_NOW = text("timezone('America/Manaus', now())")
 
 
 class NovoPaf(database.Model):

@@ -161,8 +161,16 @@ with app.app_context():
     @event.listens_for(database.engine, "connect")
     def set_tz_manaus(dbapi_conn, _):
         cur = dbapi_conn.cursor()
-        cur.execute("SET TIME ZONE 'America/Manaus'")
-        cur.close()
+        db_url = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+        try:
+            if "mysql" in db_url:
+                cur.execute("SET time_zone = '-04:00'")
+            else:
+                cur.execute("SET TIME ZONE 'America/Manaus'")
+        except Exception as e:
+            logger.warning(f"Erro ao definir timezone no banco: {e}")
+        finally:
+            cur.close()
 
 @event.listens_for(Pool, "checkout")
 def on_checkout(dbapi_con, con_record, con_proxy):
