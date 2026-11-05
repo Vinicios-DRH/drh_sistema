@@ -568,14 +568,11 @@ def atualizar_user_admin_por_militar(militar_id: int):
     database.session.add(u_admin)
 
 
-@listens_for(MilitarObmFuncao, "after_insert")
-def _sync_user_admin_insert(mapper, connection, target):
-    atualizar_user_admin_por_militar(target.militar_id)
-
-
-@listens_for(MilitarObmFuncao, "after_update")
-def _sync_user_admin_update(mapper, connection, target):
-    atualizar_user_admin_por_militar(target.militar_id)
+# A sincronização automática OBM do militar -> User.obm_id_1/obm_id_2 fica em
+# models.py (_sync_obm_aplicar, no commit da sessão). Os listeners
+# after_insert/after_update que existiam aqui foram removidos: só pegavam a
+# conta ADMIN, não respeitavam o tipo (OBM 2 podia cair em obm_id_1) e
+# alteravam outro objeto no meio do flush.
 
 
 # Essa função vai ser chamada lá na rota de atualização do militar (/exibir-militar/<id>)

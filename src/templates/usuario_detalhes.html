@@ -1,270 +1,230 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ usuario.nome }} | Gestão de Acessos{% endblock %}
+
 {% block head %}
-<title>Detalhes do Usuário | {{ usuario.nome }}</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-<style>
-    .perfil-card {
-        border: none;
-        border-radius: 0.75rem;
-        background: linear-gradient(145deg, #ffffff, #f8f9fa);
-    }
-
-    .info-label {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #6c757d;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-
-    .info-value {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #212529;
-    }
-
-    .avatar-placeholder {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background-color: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2.5rem;
-        color: #adb5bd;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css', v='20261104') }}">
 {% endblock %}
 
+{% macro campo(field, tipo='input', col='col-md-6', ajuda=None) -%}
+<div class="{{ col }}">
+    <label class="form-label" for="{{ field.id }}">{{ field.label.text }}</label>
+    {% set classe = ('form-select' if tipo == 'select' else 'form-control') ~ (' is-invalid' if field.errors else '') %}
+    {{ field(class=classe, **kwargs) }}
+    {% if field.errors %}
+    <div class="invalid-feedback d-block">{{ field.errors|join(' ') }}</div>
+    {% elif ajuda %}
+    <div class="form-text" style="color: var(--app-muted)">{{ ajuda }}</div>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro campo_senha(field, placeholder) -%}
+<div class="col-md-6">
+    <label class="form-label" for="{{ field.id }}">{{ field.label.text }}</label>
+    <div class="usr-senha-wrap">
+        {{ field(class='form-control' ~ (' is-invalid' if field.errors else ''), placeholder=placeholder,
+                 autocomplete='new-password') }}
+        <button type="button" class="usr-senha-toggle" data-alvo="{{ field.id }}" aria-label="Mostrar senha">
+            <i class="bi bi-eye"></i>
+        </button>
+    </div>
+    {% if field.errors %}
+    <div class="invalid-feedback d-block">{{ field.errors|join(' ') }}</div>
+    {% endif %}
+</div>
+{%- endmacro %}
+
 {% block body %}
-<section class="container-xl mt-4 mb-5">
+{% set partes = (usuario.nome or '?').split() %}
+{% set iniciais = (partes[0][0] ~ (partes[-1][0] if partes|length > 1 else ''))|upper %}
+{% set d = usuario.cpf_norm or '' %}
+{% set cpf_exibicao = (d[0:3] ~ '.' ~ d[3:6] ~ '.' ~ d[6:9] ~ '-' ~ d[9:11]) if d|length == 11 else (usuario.cpf or '—') %}
+{% set voltar = request.referrer if request.referrer and '/usuarios' in request.referrer else url_for('usuarios') %}
 
-    <div class="d-flex align-items-center mb-4">
-        <a href="{{ url_for('usuarios') }}" class="btn btn-outline-secondary btn-sm me-3">
-            <i class="bi bi-arrow-left"></i> Voltar
-        </a>
-        <h2 class="h4 mb-0 fw-bold text-gray-800">Perfil do Usuário</h2>
-    </div>
+<main class="usr-page">
+    <a href="{{ voltar }}" class="usr-voltar"><i class="bi bi-arrow-left"></i>Voltar para usuários</a>
 
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card shadow-sm perfil-card h-100">
-                <div class="card-body p-4 text-center">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="avatar-placeholder shadow-sm">
-                            <i class="bi bi-person-fill"></i>
-                        </div>
-                    </div>
-                    <h4 class="fw-bold mb-1">{{ usuario.nome }}</h4>
-                    <p class="text-primary fw-medium mb-4">{{ usuario.funcao_ocupacao }}</p>
+    <div class="usr-detalhe-grid">
 
-                    <hr class="text-muted opacity-25">
-
-                    <div class="text-start mt-4">
-                        <div class="mb-3">
-                            <div class="info-label"><i class="bi bi-envelope me-2"></i>E-mail</div>
-                            <div class="info-value">{{ usuario.email }}</div>
-                        </div>
-                        <div class="mb-4">
-                            <div class="info-label"><i class="bi bi-person-badge me-2"></i>CPF</div>
-                            <div class="info-value">{{ usuario.cpf }}</div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2 mt-4">
-                        <button class="btn btn-primary" id="btn-editar">
-                            <i class="bi bi-pencil-square me-2"></i>Editar Usuário
-                        </button>
-                        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#excluirModal">
-                            <i class="bi bi-trash3 me-2"></i>Excluir Conta
-                        </button>
-                    </div>
+        {# ---------- Resumo do usuário ---------- #}
+        <aside class="usr-card usr-perfil">
+            <div class="usr-perfil-topo">
+                <span class="usr-avatar{{ '' if usuario.ativo else ' is-off' }}" aria-hidden="true">{{ iniciais }}</span>
+                <h2>{{ usuario.nome or 'Sem nome' }}</h2>
+                <div class="usr-perfil-funcao">{{ usuario.funcao_user.ocupacao if usuario.funcao_user else 'Sem função' }}</div>
+                <div class="usr-chips">
+                    {% if usuario.ativo %}
+                    <span class="usr-chip usr-chip-ativo"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+                    {% else %}
+                    <span class="usr-chip usr-chip-bloqueado"><i class="bi bi-slash-circle-fill"></i>Bloqueado</span>
+                    {% endif %}
+                    {% if usuario.tipo_perfil == 'MILITAR' %}
+                    <span class="usr-chip usr-chip-militar">Conta Militar</span>
+                    {% elif usuario.tipo_perfil == 'EXTERNO' %}
+                    <span class="usr-chip usr-chip-externo">Conta Externa</span>
+                    {% else %}
+                    <span class="usr-chip usr-chip-gestao">Conta de Gestão</span>
+                    {% endif %}
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-8" id="card-formulario-edicao" style="display: none;">
-            <div class="card shadow-sm border-0" style="border-radius: 0.75rem;">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                    <h5 class="fw-bold mb-0 text-primary">Atualizar Dados</h5>
-                    <p class="text-muted small">Altere as informações necessárias abaixo.</p>
+            <dl class="usr-dados">
+                <div>
+                    <dt>E-mail</dt>
+                    <dd>{{ usuario.email or '—' }}</dd>
                 </div>
-                <div class="card-body p-4">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
+                <div>
+                    <dt>CPF</dt>
+                    <dd style="font-variant-numeric: tabular-nums">{{ cpf_exibicao }}</dd>
+                </div>
+                <div>
+                    <dt>Lotação</dt>
+                    <dd>
+                        {{ usuario.obm1.sigla if usuario.obm1 else '—' }}
+                        {% if usuario.obm2 %} · {{ usuario.obm2.sigla }}{% endif %}
+                        {% if usuario.localidade %}<span style="color: var(--app-muted)"> ({{ usuario.localidade.sigla }})</span>{% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt>Último acesso</dt>
+                    <dd>{{ usuario.data_ultimo_acesso.strftime('%d/%m/%Y %H:%M') if usuario.data_ultimo_acesso else '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Conta criada em</dt>
+                    <dd>{{ usuario.data_criacao.strftime('%d/%m/%Y') if usuario.data_criacao else '—' }}</dd>
+                </div>
+            </dl>
 
+            <div class="usr-perfil-acoes">
+                {% if usuario.id != current_user.id %}
+                <form action="{{ url_for('toggle_status_usuario', id_usuario=usuario.id) }}" method="POST">
+                    {% if usuario.ativo %}
+                    <button type="submit" class="btn usr-btn-outline-danger"
+                        data-confirmar="Tem certeza que deseja BLOQUEAR o acesso de {{ usuario.nome }}?">
+                        <i class="bi bi-person-x-fill"></i>Bloquear acesso
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn usr-btn-outline-success">
+                        <i class="bi bi-person-check-fill"></i>Desbloquear acesso
+                    </button>
+                    {% endif %}
+                </form>
+                <button type="button" class="btn usr-btn-ghost" data-bs-toggle="modal" data-bs-target="#excluirModal">
+                    <i class="bi bi-trash3"></i>Excluir conta
+                </button>
+                {% endif %}
+            </div>
+        </aside>
+
+        {# ---------- Edição ---------- #}
+        <section class="usr-card">
+            <form method="POST" action="" id="usrFormEdicao" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="usr-form-header">
+                    <h2>Editar informações</h2>
+                    <p>As alterações só são aplicadas ao clicar em “Salvar alterações”.</p>
+                </div>
+
+                <div class="usr-form-body">
+                    <div class="usr-secao">
+                        <div class="usr-secao-titulo"><i class="bi bi-person-vcard"></i>Dados pessoais</div>
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.nome.errors %}
-                                    {{ form.nome(class="form-control is-invalid", placeholder="Nome") }}
-                                    <div class="invalid-feedback">{% for erro in form.nome.errors %}{{ erro }}{% endfor
-                                        %}</div>
-                                    {% else %}
-                                    {{ form.nome(class="form-control", placeholder="Nome") }}
-                                    {% endif %}
-                                    {{ form.nome.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.email.errors %}
-                                    {{ form.email(class="form-control is-invalid", placeholder="E-mail") }}
-                                    <div class="invalid-feedback">{% for erro in form.email.errors %}{{ erro }}{% endfor
-                                        %}</div>
-                                    {% else %}
-                                    {{ form.email(class="form-control", placeholder="E-mail") }}
-                                    {% endif %}
-                                    {{ form.email.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.cpf.errors %}
-                                    {{ form.cpf(class="form-control is-invalid", placeholder="CPF", readonly=True) }}
-                                    <div class="invalid-feedback">{% for erro in form.cpf.errors %}{{ erro }}{% endfor
-                                        %}</div>
-                                    {% else %}
-                                    {{ form.cpf(class="form-control bg-light", placeholder="CPF", readonly=True) }}
-                                    {% endif %}
-                                    {{ form.cpf.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.funcao_user_id.errors %}
-                                    {{ form.funcao_user_id(class="form-select is-invalid") }}
-                                    <div class="invalid-feedback">{% for erro in form.funcao_user_id.errors %}{{ erro
-                                        }}{% endfor %}</div>
-                                    {% else %}
-                                    {{ form.funcao_user_id(class="form-select") }}
-                                    {% endif %}
-                                    {{ form.funcao_user_id.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.obm_id_1.errors %}
-                                    {{ form.obm_id_1(class="form-select is-invalid") }}
-                                    <div class="invalid-feedback">{% for erro in form.obm_id_1.errors %}{{ erro }}{%
-                                        endfor %}</div>
-                                    {% else %}
-                                    {{ form.obm_id_1(class="form-select") }}
-                                    {% endif %}
-                                    {{ form.obm_id_1.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.obm_id_2.errors %}
-                                    {{ form.obm_id_2(class="form-select is-invalid") }}
-                                    <div class="invalid-feedback">{% for erro in form.obm_id_2.errors %}{{ erro }}{%
-                                        endfor %}</div>
-                                    {% else %}
-                                    {{ form.obm_id_2(class="form-select") }}
-                                    {% endif %}
-                                    {{ form.obm_id_2.label }}
-                                </div>
-                            </div>
-
-                            <hr class="my-4 text-muted opacity-25">
-                            <h6 class="fw-bold mb-2">Redefinir Senha <span class="text-muted fw-normal small">(Deixe em
-                                    branco para manter a atual)</span></h6>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.senha.errors %}
-                                    {{ form.senha(class="form-control is-invalid", placeholder="Nova Senha") }}
-                                    <div class="invalid-feedback">{% for erro in form.senha.errors %}{{ erro }}{% endfor
-                                        %}</div>
-                                    {% else %}
-                                    {{ form.senha(class="form-control", placeholder="Nova Senha") }}
-                                    {% endif %}
-                                    {{ form.senha.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {% if form.confirmar_senha.errors %}
-                                    {{ form.confirmar_senha(class="form-control is-invalid", placeholder="Confirmar
-                                    Senha") }}
-                                    <div class="invalid-feedback">{% for erro in form.confirmar_senha.errors %}{{ erro
-                                        }}{% endfor %}</div>
-                                    {% else %}
-                                    {{ form.confirmar_senha(class="form-control", placeholder="Confirmar Senha") }}
-                                    {% endif %}
-                                    {{ form.confirmar_senha.label }}
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-4 text-end">
-                                <button type="button" class="btn btn-light me-2"
-                                    id="btn-cancelar-edicao">Cancelar</button>
-                                {{ form.botao_submit_criar_conta(class="btn btn-primary px-4", value="Salvar Alterações") }}
-                            </div>
+                            {{ campo(form.nome, col='col-12', autocomplete='off') }}
+                            {{ campo(form.email, type='email', inputmode='email', autocomplete='off') }}
+                            {{ campo(form.cpf, readonly=True, ajuda='O CPF não pode ser alterado aqui.') }}
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+                    </div>
 
-<div class="modal fade" id="excluirModal" tabindex="-1" aria-labelledby="excluirModalLabel" aria-hidden="true">
+                    <div class="usr-secao">
+                        <div class="usr-secao-titulo"><i class="bi bi-building"></i>Função e lotação</div>
+                        <div class="row g-3">
+                            {{ campo(form.funcao_user_id, tipo='select',
+                                     ajuda='Trocar a função pode mudar o tipo da conta (Gestão / Militar).') }}
+                            {{ campo(form.localidade_id, tipo='select') }}
+                            {{ campo(form.obm_id_1, tipo='select') }}
+                            {{ campo(form.obm_id_2, tipo='select') }}
+                        </div>
+                    </div>
+
+                    <div class="usr-secao">
+                        <div class="usr-secao-titulo">
+                            <i class="bi bi-key"></i>Redefinir senha
+                            <small style="color: var(--app-muted)">— deixe em branco para manter a atual</small>
+                        </div>
+                        <div class="row g-3">
+                            {{ campo_senha(form.senha, 'Nova senha (6 a 20 caracteres)') }}
+                            {{ campo_senha(form.confirmar_senha, 'Repita a nova senha') }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="usr-form-footer">
+                    <a href="{{ voltar }}" class="btn usr-btn-ghost">Cancelar</a>
+                    {{ form.botao_submit_criar_conta(class="btn usr-btn-primary", value="Salvar alterações") }}
+                </div>
+            </form>
+        </section>
+    </div>
+</main>
+
+{% if usuario.id != current_user.id %}
+<div class="modal fade usr-modal" id="excluirModal" tabindex="-1" aria-labelledby="excluirModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white border-bottom-0">
-                <h5 class="modal-title" id="excluirModalLabel"><i
-                        class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="excluirModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Excluir conta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <div class="modal-body py-4 text-center">
-                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
-                <h5 class="mt-3">Você tem certeza?</h5>
-                <p class="text-muted mb-0">Esta ação excluirá permanentemente o usuário <strong>{{ usuario.nome
-                        }}</strong>. Isso não pode ser desfeito.</p>
+            <div class="modal-body">
+                <p class="mb-2">Esta ação exclui <strong>permanentemente</strong> a conta de
+                    <strong>{{ usuario.nome }}</strong> e não pode ser desfeita.</p>
+                <p class="mb-0" style="color: var(--app-muted); font-size: .9rem">
+                    Se a ideia é só impedir o acesso, prefira <em>Bloquear acesso</em>.
+                </p>
             </div>
-            <div class="modal-footer bg-light border-top-0 justify-content-center">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+            <div class="modal-footer">
+                <button type="button" class="btn usr-btn-ghost" data-bs-dismiss="modal">Cancelar</button>
                 <form method="POST" action="{{ url_for('excluir_usuario', usuario_id=usuario.id) }}" class="m-0">
-                    <button type="submit" class="btn btn-danger px-4">Sim, Excluir</button>
+                    <button type="submit" class="btn usr-btn-danger">Sim, excluir</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $(document).ready(function () {
-        // Lógica simples para mostrar/esconder o formulário de edição
-        $('#btn-editar').click(function () {
-            $('#card-formulario-edicao').fadeIn(300);
-            $('html, body').animate({
-                scrollTop: $("#card-formulario-edicao").offset().top - 20
-            }, 500);
+    (function () {
+        document.querySelectorAll('.usr-senha-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const input = document.getElementById(btn.getAttribute('data-alvo'));
+                const mostrar = input.type === 'password';
+                input.type = mostrar ? 'text' : 'password';
+                btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+                btn.querySelector('i').className = mostrar ? 'bi bi-eye-slash' : 'bi bi-eye';
+            });
         });
 
-        $('#btn-cancelar-edicao').click(function () {
-            $('#card-formulario-edicao').fadeOut(200);
+        document.addEventListener('submit', function (e) {
+            const botao = e.submitter || e.target.querySelector('[data-confirmar]');
+            const msg = botao && botao.getAttribute('data-confirmar');
+            if (msg && !window.confirm(msg)) e.preventDefault();
         });
 
-        // Se houver erros no formulário após submissão, já deixa o form aberto
-        if ($('.is-invalid').length > 0) {
-            $('#card-formulario-edicao').show();
-        }
-    });
+        // Evita salvar duas vezes com toque duplo no celular
+        const form = document.getElementById('usrFormEdicao');
+        form.addEventListener('submit', function () {
+            const salvar = form.querySelector('[type=submit]');
+            setTimeout(function () { salvar.disabled = true; }, 0);
+        });
+
+        // Se voltou com erro de validação, leva direto ao primeiro campo inválido
+        const invalido = document.querySelector('.is-invalid');
+        if (invalido) invalido.focus();
+    })();
 </script>
-
-<script src="{{ url_for('static', filename='js/usuario_detalhes_down.js') }}"></script>
 {% endblock %}

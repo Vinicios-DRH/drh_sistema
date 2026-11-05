@@ -1,0 +1,125 @@
+{# Bloco de resultados de /usuarios — também devolvido sozinho em ?parcial=1 #}
+{% macro iniciais(nome) -%}
+{%- set partes = (nome or '?').split() -%}
+{{ (partes[0][0] ~ (partes[-1][0] if partes|length > 1 else ''))|upper }}
+{%- endmacro %}
+
+{% macro cpf_fmt(u) -%}
+{%- set d = u.cpf_norm or '' -%}
+{%- if d|length == 11 -%}{{ d[0:3] }}.{{ d[3:6] }}.{{ d[6:9] }}-{{ d[9:11] }}{%- else -%}{{ u.cpf or '—' }}{%- endif -%}
+{%- endmacro %}
+
+{% macro chip_conta(tipo) -%}
+{% if tipo == 'MILITAR' %}<span class="usr-chip usr-chip-militar">Militar</span>
+{% elif tipo == 'EXTERNO' %}<span class="usr-chip usr-chip-externo">Externo</span>
+{% else %}<span class="usr-chip usr-chip-gestao">Gestão</span>{% endif %}
+{%- endmacro %}
+
+{% macro chip_status(ativo) -%}
+{% if ativo %}<span class="usr-chip usr-chip-ativo"><i class="bi bi-check-circle-fill"></i>Ativo</span>
+{% else %}<span class="usr-chip usr-chip-bloqueado"><i class="bi bi-slash-circle-fill"></i>Bloqueado</span>{% endif %}
+{%- endmacro %}
+
+{% set inicio = (pagina - 1) * por_pagina + 1 %}
+{% set fim = [pagina * por_pagina, total_filtrado]|min %}
+
+<div class="usr-info-linha" aria-live="polite">
+    {% if total_filtrado %}
+    Exibindo <strong>{{ inicio }}–{{ fim }}</strong> de <strong>{{ total_filtrado }}</strong>
+    usuário{{ 's' if total_filtrado != 1 }}{% if busca %} para “{{ busca }}”{% endif %}
+    {% else %}
+    Nenhum resultado
+    {% endif %}
+</div>
+
+{% if usuarios %}
+<div class="usr-lista-head" aria-hidden="true">
+    <span>Usuário</span>
+    <span class="usr-col-cpf">CPF</span>
+    <span>Função</span>
+    <span>Conta</span>
+    <span>Status</span>
+    <span class="text-end">Ações</span>
+</div>
+
+<ul class="usr-lista">
+    {% for u in usuarios %}
+    <li class="usr-row">
+        <a class="usr-ident usr-col-ident" href="{{ url_for('exibir_usuario', id_usuario=u.id) }}">
+            <span class="usr-avatar{{ '' if u.ativo else ' is-off' }}" aria-hidden="true">{{ iniciais(u.nome) }}</span>
+            <span class="min-w-0" style="min-width:0">
+                <span class="usr-nome">{{ u.nome or 'Sem nome' }}</span>
+                <span class="usr-email">{{ u.email or 'sem e-mail' }}</span>
+            </span>
+        </a>
+
+        <span class="usr-cpf usr-col-cpf">{{ cpf_fmt(u) }}</span>
+        <span class="usr-funcao usr-col-funcao" title="{{ u.funcao_ocupacao or '' }}">{{ u.funcao_ocupacao or '—' }}</span>
+        <span class="usr-col-conta">{{ chip_conta(u.tipo_perfil) }}</span>
+        <span class="usr-col-status">{{ chip_status(u.ativo) }}</span>
+
+        <div class="usr-meta-mobile">
+            {{ chip_status(u.ativo) }}
+            {{ chip_conta(u.tipo_perfil) }}
+            <span>{{ cpf_fmt(u) }}</span>
+            {% if u.funcao_ocupacao %}<span>· {{ u.funcao_ocupacao }}</span>{% endif %}
+        </div>
+
+        <div class="usr-acoes usr-col-acoes">
+            <a href="{{ url_for('exibir_usuario', id_usuario=u.id) }}" class="btn usr-icon-btn"
+                title="Ver / editar" aria-label="Ver ou editar {{ u.nome }}">
+                <i class="bi bi-pencil-square"></i>
+            </a>
+            <form action="{{ url_for('toggle_status_usuario', id_usuario=u.id) }}" method="POST">
+                {% if u.ativo %}
+                <button type="submit" class="btn usr-icon-btn is-danger" title="Bloquear acesso"
+                    aria-label="Bloquear {{ u.nome }}"
+                    data-confirmar="Tem certeza que deseja BLOQUEAR o acesso de {{ u.nome }}?">
+                    <i class="bi bi-person-x-fill"></i>
+                </button>
+                {% else %}
+                <button type="submit" class="btn usr-icon-btn is-success" title="Desbloquear acesso"
+                    aria-label="Desbloquear {{ u.nome }}">
+                    <i class="bi bi-person-check-fill"></i>
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="usr-vazio">
+    <i class="bi bi-search"></i>
+    {% if busca or filtro_perfil or filtro_status %}
+    Nenhum usuário corresponde aos filtros.
+    {% else %}
+    Nenhum usuário cadastrado.
+    {% endif %}
+</div>
+{% endif %}
+
+{% if total_paginas > 1 %}
+{% set base_args = dict(q=busca or None, perfil=filtro_perfil or None, status=filtro_status or None) %}
+<nav class="usr-paginacao" aria-label="Paginação">
+    <span>Página {{ pagina }} de {{ total_paginas }}</span>
+    <div class="usr-paginacao-botoes">
+        <a class="btn btn-sm usr-btn-ghost{{ ' is-disabled' if pagina <= 1 }}" data-pagina
+            href="{{ url_for('usuarios', page=1, **base_args) }}" aria-label="Primeira página">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a class="btn btn-sm usr-btn-ghost{{ ' is-disabled' if pagina <= 1 }}" data-pagina
+            href="{{ url_for('usuarios', page=pagina - 1, **base_args) }}">
+            <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+        <a class="btn btn-sm usr-btn-ghost{{ ' is-disabled' if pagina >= total_paginas }}" data-pagina
+            href="{{ url_for('usuarios', page=pagina + 1, **base_args) }}">
+            Próxima <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="btn btn-sm usr-btn-ghost{{ ' is-disabled' if pagina >= total_paginas }}" data-pagina
+            href="{{ url_for('usuarios', page=total_paginas, **base_args) }}" aria-label="Última página">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+    </div>
+</nav>
+{% endif %}

@@ -1,166 +1,175 @@
 {% extends 'base.html' %}
 
+{% block title %}Gestão de Acessos | SIGDP{% endblock %}
+
 {% block head %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
-<style>
-    .card-painel {
-        border: none;
-        border-radius: 0.75rem;
-    }
-
-    .table thead th {
-        border-bottom: 2px solid #e9ecef;
-        font-weight: 600;
-        color: #495057;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-    }
-
-    .acoes-col {
-        text-align: center;
-        width: 120px;
-    }
-
-    /* Estilo para a badge de status */
-    .status-badge {
-        font-size: 0.8rem;
-        padding: 0.35em 0.65em;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css', v='20261104') }}">
 {% endblock %}
 
 {% block body %}
-<section class="container-xl mt-4 mb-5">
+<main class="usr-page">
 
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <header class="usr-header">
         <div>
-            <h2 class="h3 mb-1 text-gray-800 fw-bold">
-                <i class="bi bi-shield-lock-fill text-primary me-2"></i>Gestão de Acessos
-            </h2>
-            <p class="text-muted mb-0">Controle de usuários, permissões e status do sistema do CBMAM.</p>
+            <h1><i class="bi bi-shield-lock-fill me-2" style="color: var(--app-primary)"></i>Gestão de Acessos</h1>
+            <p>Usuários, permissões e status de acesso ao sistema.</p>
         </div>
         <div>
-            <a href="{{ url_for('criar_conta') }}" class="btn btn-primary shadow-sm px-4 fw-semibold">
-                <i class="bi bi-person-plus-fill me-2"></i>Novo Usuário
+            <a href="{{ url_for('criar_conta') }}" class="btn usr-btn-primary">
+                <i class="bi bi-person-plus-fill"></i>Novo usuário
             </a>
         </div>
-    </div>
+    </header>
 
-    <div class="card shadow-sm card-painel">
-        <div class="card-body p-4">
-
-            <div class="table-responsive">
-                <table id="tabelaUsuarios" class="table table-hover align-middle w-100">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Nome</th>
-                            <th>CPF</th>
-                            <th>Função</th>
-                            <th>Conta</th>
-                            <th class="text-center">Status</th>
-                            <th class="acoes-col">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in usuarios %}
-                        <tr>
-                            <td class="fw-medium">{{ u.nome }}</td>
-                            <td>{{ u.cpf }}</td>
-                            <td><span class="text-muted">{{ u.funcao_ocupacao }}</span></td>
-                            <td>
-                                {% if u.tipo_perfil == 'MILITAR' %}
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Militar</span>
-                                {% elif u.tipo_perfil == 'EXTERNO' %}
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info">Externo</span>
-                                {% else %}
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Gestão</span>
-                                {% endif %}
-                            </td>
-
-                            <td class="text-center">
-                                {% if u.ativo %}
-                                <span
-                                    class="badge bg-success bg-opacity-10 text-success border border-success status-badge">
-                                    <i class="bi bi-check-circle me-1"></i>Ativo
-                                </span>
-                                {% else %}
-                                <span
-                                    class="badge bg-danger bg-opacity-10 text-danger border border-danger status-badge">
-                                    <i class="bi bi-x-circle me-1"></i>Bloqueado
-                                </span>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                <div class="d-flex justify-content-center gap-2">
-                                    <a href="{{ url_for('exibir_usuario', id_usuario=u.id) }}"
-                                        class="btn btn-sm btn-outline-primary shadow-sm" title="Detalhes do Usuário">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </a>
-
-                                    <form action="{{ url_for('toggle_status_usuario', id_usuario=u.id) }}" method="POST"
-                                        class="m-0">
-                                        {% if u.ativo %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm"
-                                            title="Bloquear Usuário"
-                                            onclick="return confirm('Tem certeza que deseja BLOQUEAR o acesso de {{ u.nome }}?');">
-                                            <i class="bi bi-person-x-fill"></i>
-                                        </button>
-                                        {% else %}
-                                        <button type="submit" class="btn btn-sm btn-outline-success shadow-sm"
-                                            title="Desbloquear Usuário">
-                                            <i class="bi bi-person-check-fill"></i>
-                                        </button>
-                                        {% endif %}
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
+    <section class="usr-resumo" aria-label="Resumo">
+        <div class="usr-resumo-item">
+            <span>Total</span>
+            <strong>{{ resumo.total }}</strong>
         </div>
-    </div>
-</section>
+        <div class="usr-resumo-item is-ok">
+            <span>Ativos</span>
+            <strong>{{ resumo.ativos }}</strong>
+        </div>
+        <div class="usr-resumo-item is-off">
+            <span>Bloqueados</span>
+            <strong>{{ resumo.bloqueados }}</strong>
+        </div>
+    </section>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <section class="usr-panel">
+        {# Funciona sem JS (GET normal); com JS a busca é ao vivo. #}
+        <form class="usr-filtros" id="usrFiltros" method="GET" action="{{ url_for('usuarios') }}" role="search">
+            <div class="usr-busca">
+                <i class="bi bi-search"></i>
+                <input type="search" name="q" id="usrBusca" class="form-control" value="{{ busca }}"
+                    placeholder="Buscar por nome, CPF, e-mail ou função" autocomplete="off"
+                    aria-label="Buscar usuário" enterkeyhint="search">
+                <button type="button" class="usr-busca-limpar{{ ' is-visible' if busca }}" id="usrLimpar"
+                    aria-label="Limpar busca"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <select name="perfil" class="form-select" aria-label="Tipo de conta">
+                <option value="" {{ 'selected' if not filtro_perfil }}>Todas as contas</option>
+                <option value="ADMIN" {{ 'selected' if filtro_perfil == 'ADMIN' }}>Gestão</option>
+                <option value="MILITAR" {{ 'selected' if filtro_perfil == 'MILITAR' }}>Militar</option>
+                <option value="EXTERNO" {{ 'selected' if filtro_perfil == 'EXTERNO' }}>Externo</option>
+            </select>
+            <select name="status" class="form-select" aria-label="Status">
+                <option value="" {{ 'selected' if not filtro_status }}>Todos os status</option>
+                <option value="ativos" {{ 'selected' if filtro_status == 'ativos' }}>Ativos</option>
+                <option value="bloqueados" {{ 'selected' if filtro_status == 'bloqueados' }}>Bloqueados</option>
+            </select>
+            <noscript><button class="btn usr-btn-primary" type="submit">Filtrar</button></noscript>
+        </form>
+
+        <div class="usr-resultados" id="usrResultados">
+            {% include 'partials/_usuarios_resultados.html' %}
+        </div>
+    </section>
+</main>
+
 <script>
-    $(document).ready(function () {
-        // Inicializa o DataTables no modo Cliente (lendo o HTML gerado pelo Flask)
-        $('#tabelaUsuarios').DataTable({
-            language: {
-                search: "",
-                searchPlaceholder: "Buscar usuário...",
-                lengthMenu: "_MENU_ por página",
-                info: "Exibindo _START_ a _END_ de _TOTAL_ usuários",
-                infoEmpty: "Nenhum usuário encontrado",
-                infoFiltered: "(filtrado de _MAX_ totais)",
-                paginate: {
-                    previous: "<i class='bi bi-chevron-left'></i>",
-                    next: "<i class='bi bi-chevron-right'></i>"
-                },
-                zeroRecords: "Nenhum usuário corresponde à busca"
-            },
-            // Desativa a ordenação na última coluna (Ações)
-            columnDefs: [
-                { orderable: false, targets: 4 }
-            ],
-            // Estilização extra para ficar com cara de painel moderno
-            initComplete: function () {
-                var $search = $('.dataTables_filter input');
-                $search.addClass('form-control shadow-sm').removeClass('form-control-sm');
+    (function () {
+        const form = document.getElementById('usrFiltros');
+        const busca = document.getElementById('usrBusca');
+        const limpar = document.getElementById('usrLimpar');
+        const alvo = document.getElementById('usrResultados');
+        const urlBase = form.getAttribute('action');
+        let timer = null;
+        let controller = null;
 
-                var $length = $('.dataTables_length select');
-                $length.addClass('form-select shadow-sm ms-2').removeClass('form-select-sm');
+        function montarParams(pagina) {
+            const params = new URLSearchParams();
+            new FormData(form).forEach(function (valor, chave) {
+                valor = String(valor).trim();
+                if (valor) params.set(chave, valor);
+            });
+            if (pagina && pagina > 1) params.set('page', pagina);
+            return params;
+        }
+
+        function carregar(url, rolar) {
+            if (controller) controller.abort();
+            controller = new AbortController();
+            alvo.classList.add('is-loading');
+
+            const u = new URL(url, window.location.origin);
+            u.searchParams.set('parcial', '1');
+
+            fetch(u.toString(), {
+                signal: controller.signal,
+                headers: { 'X-Requested-With': 'fetch' },
+                credentials: 'same-origin'
+            })
+                .then(function (r) {
+                    if (!r.ok || r.redirected) throw new Error('falha');
+                    return r.text();
+                })
+                .then(function (html) {
+                    alvo.innerHTML = html;
+                    u.searchParams.delete('parcial');
+                    // Atualiza a URL: recarregar/voltar e o redirect do
+                    // bloquear/desbloquear mantêm a busca atual.
+                    history.replaceState(null, '', u.pathname + (u.search || ''));
+                    if (rolar) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                })
+                .catch(function (e) {
+                    if (e.name !== 'AbortError') window.location.href = url;
+                })
+                .finally(function () {
+                    alvo.classList.remove('is-loading');
+                });
+        }
+
+        function buscar() {
+            const params = montarParams(1);
+            const qs = params.toString();
+            carregar(urlBase + (qs ? '?' + qs : ''), false);
+        }
+
+        busca.addEventListener('input', function () {
+            limpar.classList.toggle('is-visible', busca.value.length > 0);
+            clearTimeout(timer);
+            timer = setTimeout(buscar, 280);
+        });
+
+        limpar.addEventListener('click', function () {
+            busca.value = '';
+            limpar.classList.remove('is-visible');
+            busca.focus();
+            buscar();
+        });
+
+        form.addEventListener('change', function (e) {
+            if (e.target.tagName === 'SELECT') buscar();
+        });
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearTimeout(timer);
+            buscar();
+            busca.blur(); // fecha o teclado no celular
+        });
+
+        alvo.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-pagina]');
+            if (!link || e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+            carregar(link.href, true);
+        });
+
+        alvo.addEventListener('submit', function (e) {
+            const botao = e.submitter || e.target.querySelector('[data-confirmar]');
+            const msg = botao && botao.getAttribute('data-confirmar');
+            if (msg && !window.confirm(msg)) e.preventDefault();
+        });
+
+        // Atalho: "/" foca a busca
+        document.addEventListener('keydown', function (e) {
+            if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+                e.preventDefault();
+                busca.focus();
             }
         });
-    });
+    })();
 </script>
 {% endblock %}

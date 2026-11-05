@@ -3,7 +3,8 @@ from flask_login import login_required
 from flask import abort, request
 from flask import render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case
+from sqlalchemy.orm import joinedload
 from src.routes.helpers import somente_numeros
 from src import app, database, bcrypt
 from src.forms import (FormCriarUsuario)
@@ -114,22 +115,126 @@ def criar_conta():
     return render_template('criar_conta.html', form_criar_usuario=form_criar_usuario)
 
 
+USUARIOS_POR_PAGINA = 25
+
+
+def _escapar_like(texto):
+    return texto.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
+
 @app.route("/usuarios", methods=['GET'])
 @login_required
 def usuarios():
     if current_user.id != 1:
         abort(403)
 
-    usuarios_banco = User.query.join(FuncaoUser).add_columns(
+    busca = (request.args.get('q') or '').strip()[:100]
+    filtro_perfil = (request.args.get('perfil') or '').upper()
+    filtro_status = (request.args.get('status') or '').lower()
+    pagina = max(request.args.get('page', 1, type=int) or 1, 1)
+
+    # Só as colunas usadas na listagem; outerjoin p/ não sumir com quem
+    # está sem função atribuída.
+    consulta = database.session.query(
         User.id,
         User.nome,
         User.cpf,
+        User.cpf_norm,
+        User.email,
         User.ativo,
         User.tipo_perfil,
-        FuncaoUser.ocupacao.label('funcao_ocupacao')
-    ).order_by(User.nome.asc()).all()
+        FuncaoUser.ocupacao.label('funcao_ocupacao'),
+    ).outerjoin(FuncaoUser, User.funcao_user_id == FuncaoUser.id)
 
-    return render_template('usuarios.html', usuarios=usuarios_banco)
+    if busca:
+        # Cada palavra precisa aparecer em nome, e-mail, função ou CPF.
+        # unaccent (já usado na listagem de militares): "avila" acha "Ávila".
+        def sem_acento(coluna):
+            return func.lower(func.unaccent(func.coalesce(coluna, '')))
+
+        for palavra in busca.split():
+            termo = func.lower(func.unaccent(f"%{_escapar_like(palavra)}%"))
+            filtros = [
+                sem_acento(User.nome).like(termo, escape='\\'),
+                sem_acento(User.email).like(termo, escape='\\'),
+                sem_acento(FuncaoUser.ocupacao).like(termo, escape='\\'),
+            ]
+            digitos = somente_numeros(palavra)
+            if digitos:
+                filtros.append(User.cpf_norm.like(f"%{digitos}%"))
+                filtros.append(User.cpf.like(f"%{digitos}%"))
+            consulta = consulta.filter(or_(*filtros))
+
+    if filtro_perfil in ('ADMIN', 'MILITAR', 'EXTERNO'):
+        if filtro_perfil == 'ADMIN':
+            # Contas antigas podem estar sem tipo_perfil; a listagem sempre
+            # as tratou como "Gestão".
+            consulta = consulta.filter(or_(
+                User.tipo_perfil.is_(None),
+                User.tipo_perfil.notin_(('MILITAR', 'EXTERNO'))))
+        else:
+            consulta = consulta.filter(User.tipo_perfil == filtro_perfil)
+    else:
+        filtro_perfil = ''
+
+    if filtro_status == 'ativos':
+        consulta = consulta.filter(User.ativo.is_(True))
+    elif filtro_status == 'bloqueados':
+        consulta = consulta.filter(User.ativo.is_(False))
+    else:
+        filtro_status = ''
+
+    total_filtrado = consulta.order_by(None).count()
+    total_paginas = max((total_filtrado + USUARIOS_POR_PAGINA - 1) // USUARIOS_POR_PAGINA, 1)
+    pagina = min(pagina, total_paginas)
+
+    lista = (consulta
+             .order_by(User.nome.asc(), User.id.asc())
+             .offset((pagina - 1) * USUARIOS_POR_PAGINA)
+             .limit(USUARIOS_POR_PAGINA)
+             .all())
+
+    contexto = dict(
+        usuarios=lista,
+        busca=busca,
+        filtro_perfil=filtro_perfil,
+        filtro_status=filtro_status,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        total_filtrado=total_filtrado,
+        por_pagina=USUARIOS_POR_PAGINA,
+    )
+
+    # Busca dinâmica (fetch) só precisa do bloco de resultados.
+    if request.args.get('parcial') == '1':
+        return render_template('partials/_usuarios_resultados.html', **contexto)
+
+    total, ativos = database.session.query(
+        func.count(User.id),
+        func.coalesce(func.sum(case((User.ativo.is_(True), 1), else_=0)), 0),
+    ).one()
+    total, ativos = int(total or 0), int(ativos or 0)
+    contexto['resumo'] = {
+        'total': total,
+        'ativos': ativos,
+        'bloqueados': total - ativos,
+    }
+    return render_template('usuarios.html', **contexto)
+
+
+def _choices_formulario_usuario(form):
+    """Preenche os selects do FormCriarUsuario buscando só id/rótulo."""
+    vazio = [('', '-- Selecione uma opção --')]
+    form.funcao_user_id.choices = [
+        (f.id, f.ocupacao) for f in database.session.query(
+            FuncaoUser.id, FuncaoUser.ocupacao).order_by(FuncaoUser.ocupacao)]
+    obms = [(o.id, o.sigla) for o in database.session.query(
+        Obm.id, Obm.sigla).order_by(Obm.sigla)]
+    form.obm_id_1.choices = vazio + obms
+    form.obm_id_2.choices = vazio + obms
+    form.localidade_id.choices = vazio + [
+        (l.id, l.sigla) for l in database.session.query(
+            Localidade.id, Localidade.sigla).order_by(Localidade.sigla)]
 
 
 @app.route('/usuario/<int:id_usuario>', methods=['GET', 'POST'])
@@ -139,29 +244,19 @@ def exibir_usuario(id_usuario):
     # Trava absoluta: Só o ID 1 entra
     if current_user.id != 1:
         abort(403)
-    # Carregar o usuário diretamente
-    usuario = User.query.get_or_404(id_usuario)
 
-    # Carregar informações extras sobre a função com join para exibição na tabela
-    usuario_info = User.query \
-        .join(FuncaoUser, User.funcao_user_id == FuncaoUser.id) \
-        .add_columns(User.nome, User.cpf, User.id, User.email,
-                     FuncaoUser.ocupacao.label('funcao_ocupacao')) \
-        .filter(User.id == id_usuario) \
-        .first_or_404()
+    usuario = (User.query
+               .options(joinedload(User.funcao_user),
+                        joinedload(User.obm1),
+                        joinedload(User.obm2),
+                        joinedload(User.localidade))
+               .filter(User.id == id_usuario)
+               .first_or_404())
+    usuario_info = usuario
 
     form = FormCriarUsuario(obj=usuario)
     form.current_user_id = id_usuario
-    form.funcao_user_id.choices = [
-        (funcao.id, funcao.ocupacao) for funcao in FuncaoUser.query.all()]
-    form.obm_id_1.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                   Obm.query.all()]
-    form.obm_id_2.choices = [('', '-- Selecione uma opção --')] + [(obm.id, obm.sigla) for obm in
-                                                                   Obm.query.all()]
-    form.localidade_id.choices = [
-        ('', '-- Selecione uma opção --')
-    ] + [(localidade.id, localidade.sigla) for localidade in
-         Localidade.query.all()]
+    _choices_formulario_usuario(form)
 
     if form.validate_on_submit():
         # Trocar a função pode mudar o tipo de conta (gestão <-> militar); se
@@ -196,7 +291,9 @@ def exibir_usuario(id_usuario):
         try:
             database.session.commit()
             flash('Usuário atualizado com sucesso!', 'alert-success')
-            return redirect(url_for('perfil', id_usuario=id_usuario))
+            # /perfil só aceita o próprio usuário logado; o admin editando
+            # outra conta era jogado pra home com "sem permissão".
+            return redirect(url_for('exibir_usuario', id_usuario=id_usuario))
         except Exception as e:
             database.session.rollback()
             flash(

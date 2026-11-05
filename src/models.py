@@ -2734,3 +2734,127 @@ class HistoricoEfetivoDiario(database.Model):
     modalidade = database.relationship('Modalidade')
     viatura_diaria = database.relationship('Viaturas')
     usuario = database.relationship('User')
+
+
+# ==========================================================================
+# MOVIMENTAÇÃO DE OBM -> CONTAS DE USUÁRIO DO MILITAR
+#
+# Quando o vínculo de OBM do militar (MilitarObmFuncao, tipo 1 = OBM 1,
+# tipo 2 = OBM 2) muda, o obm_id_1/obm_id_2 das contas dele (ADMIN e
+# MILITAR) acompanha. Vale pra qualquer caminho que movimente o militar
+# (cadastro/edição, importação de planilha, cadete...), porque roda no
+# commit da sessão, não numa rota específica.
+#
+# Só mexe no slot que de fato mudou nesta transação: se o militar foi
+# movimentado só na OBM 1, o obm_id_2 da conta fica como está (chefe com
+# segunda OBM atribuída manualmente não perde o acesso por tabela).
+# Se o vínculo do slot foi encerrado sem um novo, o slot fica vazio.
+# ==========================================================================
+
+from sqlalchemy import event as _sa_event, inspect as _sa_inspect, or_ as _sa_or
+from sqlalchemy.orm import Session as _SaSession
+
+_SYNC_OBM_PENDENTE = "_sync_obm_usuario_pendente"
+_CAMPOS_MOF_MOVIMENTACAO = ("obm_id", "obm", "data_fim", "tipo", "militar_id", "militar")
+
+
+def _slots_alterados_mof(registro, novo=False, removido=False):
+    """Slots (1/2) afetados por um MilitarObmFuncao novo, alterado ou removido."""
+    if novo or removido:
+        return {registro.tipo}
+
+    estado = _sa_inspect(registro)
+    mudou = any(estado.attrs[c].history.has_changes() for c in _CAMPOS_MOF_MOVIMENTACAO)
+    if not mudou:
+        return set()
+    slots = {registro.tipo}
+    slots.update(estado.attrs.tipo.history.deleted or ())  # trocou de tipo
+    return slots
+
+
+@_sa_event.listens_for(_SaSession, "before_flush")
+def _sync_obm_coletar(session, flush_context, instances):
+    pendentes = None
+    grupos = ((session.new, True, False), (session.dirty, False, False), (session.deleted, False, True))
+    for objetos, novo, removido in grupos:
+        for obj in objetos:
+            if not isinstance(obj, MilitarObmFuncao):
+                continue
+            slots = _slots_alterados_mof(obj, novo=novo, removido=removido) & {1, 2}
+            if slots:
+                if pendentes is None:
+                    pendentes = session.info.setdefault(_SYNC_OBM_PENDENTE, [])
+                pendentes.append((obj, slots))
+
+
+def _contas_do_militar(session, militar):
+    filtros = [User.militar_id == militar.id]
+    if getattr(militar, "usuario_id", None):
+        filtros.append(User.id == militar.usuario_id)
+    cpf = re.sub(r"\D", "", militar.cpf or "")
+    if len(cpf) == 11:
+        filtros.append(User.cpf_norm == cpf)
+    return (
+        session.query(User)
+        .filter(_sa_or(*filtros))
+        .filter(_sa_or(User.tipo_perfil.is_(None), User.tipo_perfil != PERFIL_EXTERNO))
+        .all()
+    )
+
+
+def _aplicar_obm_nas_contas(session, militar_id, slots):
+    militar = session.get(Militar, militar_id)
+    if not militar:
+        return
+
+    obm_vigente = {}
+    for tipo in slots:
+        registro = (
+            session.query(MilitarObmFuncao.obm_id)
+            .filter(
+                MilitarObmFuncao.militar_id == militar_id,
+                MilitarObmFuncao.tipo == tipo,
+                MilitarObmFuncao.data_fim.is_(None),
+            )
+            .order_by(MilitarObmFuncao.id.desc())
+            .first()
+        )
+        obm_vigente[tipo] = registro.obm_id if registro else None
+
+    for conta in _contas_do_militar(session, militar):
+        if 1 in obm_vigente and conta.obm_id_1 != obm_vigente[1]:
+            conta.obm_id_1 = obm_vigente[1]
+        if 2 in obm_vigente and conta.obm_id_2 != obm_vigente[2]:
+            conta.obm_id_2 = obm_vigente[2]
+
+
+@_sa_event.listens_for(_SaSession, "before_commit")
+def _sync_obm_aplicar(session):
+    tem_mof_sujo = any(
+        isinstance(obj, MilitarObmFuncao)
+        for obj in (*session.new, *session.dirty, *session.deleted)
+    )
+    if not tem_mof_sujo and not session.info.get(_SYNC_OBM_PENDENTE):
+        return
+
+    # Garante que mudanças ainda não enviadas passem pelo before_flush
+    # (e que as consultas abaixo enxerguem o estado final).
+    session.flush()
+
+    pendentes = session.info.pop(_SYNC_OBM_PENDENTE, [])
+    por_militar = {}
+    for registro, slots in pendentes:
+        militar_id = registro.militar_id
+        if militar_id:
+            por_militar.setdefault(militar_id, set()).update(slots)
+
+    with session.no_autoflush:
+        for militar_id, slots in por_militar.items():
+            _aplicar_obm_nas_contas(session, militar_id, slots)
+    # As contas alteradas aqui são gravadas pelo próprio commit em seguida.
+
+
+@_sa_event.listens_for(_SaSession, "after_rollback")
+@_sa_event.listens_for(_SaSession, "after_soft_rollback")
+def _sync_obm_descartar(session, *args):
+    session.info.pop(_SYNC_OBM_PENDENTE, None)

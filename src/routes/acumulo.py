@@ -848,7 +848,10 @@ def prepara_geracao():
         if militar_proprio:
             rows = (db.session.query(MOF.obm_id)
                     .filter(and_(MOF.militar_id == militar_proprio.id, MOF.data_fim.is_(None)))
-                    .order_by(MOF.id.asc()).all())
+                    # Ordena pelo tipo (1 = OBM 1, 2 = OBM 2): por id, uma
+                    # movimentação na OBM 1 (vínculo novo, id maior) invertia
+                    # as duas OBMs da conta.
+                    .order_by(MOF.tipo.asc(), MOF.id.asc()).all())
             ids = [r.obm_id for r in rows]
             obm_id_1 = ids[0] if len(ids) > 0 else None
             obm_id_2 = ids[1] if len(ids) > 1 else None
@@ -1214,7 +1217,10 @@ def editar(decl_id):
         if militar_proprio:
             rows = (db.session.query(MOF.obm_id)
                     .filter(and_(MOF.militar_id == militar_proprio.id, MOF.data_fim.is_(None)))
-                    .order_by(MOF.id.asc()).all())
+                    # Ordena pelo tipo (1 = OBM 1, 2 = OBM 2): por id, uma
+                    # movimentação na OBM 1 (vínculo novo, id maior) invertia
+                    # as duas OBMs da conta.
+                    .order_by(MOF.tipo.asc(), MOF.id.asc()).all())
             ids = [r.obm_id for r in rows]
             obm_id_1 = ids[0] if len(ids) > 0 else None
             obm_id_2 = ids[1] if len(ids) > 1 else None
