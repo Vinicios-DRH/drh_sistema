@@ -107,7 +107,7 @@ pyHanko==0.26.0
 pyhanko-certvalidator==0.26.8
 PyJWT==2.10.1
 PyMatting==1.1.15
-PyMySQL==1.1.1
+PyMySQL==1.4.6
 pyparsing==3.2.1
 pypdf==5.4.0
 pyphen==0.17.2

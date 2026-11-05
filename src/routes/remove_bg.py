@@ -1,5 +1,4 @@
 from flask import Blueprint, render_template, request, send_file, jsonify
-from rembg import remove
 from PIL import Image
 from io import BytesIO
 import os
@@ -135,8 +134,9 @@ def processar_remocao_fundo():
     try:
         input_bytes = arquivo.read()
 
-        # remove fundo
-        output_bytes = remove(input_bytes)
+        # remove fundo (importação lazy para evitar travar o startup com numba/rembg)
+        from rembg import remove as rembg_remove
+        output_bytes = rembg_remove(input_bytes)
 
         # abre como RGBA
         img = Image.open(BytesIO(output_bytes)).convert("RGBA")
