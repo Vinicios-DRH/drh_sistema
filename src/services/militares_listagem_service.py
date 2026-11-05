@@ -1,3 +1,9 @@
+def _clean_digits_sql(col):
+    c = func.replace(cast(col, String), ".", "")
+    c = func.replace(c, "-", "")
+    c = func.replace(c, "/", "")
+    return func.replace(c, " ", "")
+
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -138,9 +144,9 @@ def _aplicar_busca_texto(query, search: str):
 
     if digits_like:
         filtros_busca.extend([
-            func.regexp_replace(func.coalesce(Militar.cpf, ""), r"[^0-9]", "", "g").like(digits_like),
-            func.regexp_replace(func.coalesce(Militar.rg, ""), r"[^0-9]", "", "g").like(digits_like),
-            func.regexp_replace(func.coalesce(Militar.matricula, ""), r"[^0-9]", "", "g").like(digits_like),
+            _clean_digits_sql(func.coalesce(Militar.cpf, "")).like(digits_like),
+            _clean_digits_sql(func.coalesce(Militar.rg, "")).like(digits_like),
+            _clean_digits_sql(func.coalesce(Militar.matricula, "")).like(digits_like),
         ])
 
     ids_por_doe = militares_com_doe_contendo(search)

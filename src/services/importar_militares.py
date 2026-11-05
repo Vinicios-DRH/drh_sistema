@@ -1,3 +1,9 @@
+def _clean_digits_sql(col):
+    c = func.replace(cast(col, String), ".", "")
+    c = func.replace(c, "-", "")
+    c = func.replace(c, "/", "")
+    return func.replace(c, " ", "")
+
 import io
 import re
 import json
@@ -386,8 +392,7 @@ def localizar_militar(row_data: dict):
 
     if cpf:
         m = Militar.query.filter(
-            func.regexp_replace(func.coalesce(
-                Militar.cpf, ""), r"[^0-9]", "", "g") == cpf
+            _clean_digits_sql(func.coalesce(Militar.cpf, "")) == cpf
         ).first()
         if m:
             encontrados.append(("cpf", m))

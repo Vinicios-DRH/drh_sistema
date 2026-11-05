@@ -14,10 +14,16 @@ def normaliza_matricula(valor: str) -> str:
     return re.sub(r'[^0-9A-Z]', '', valor.strip().upper())
 
 
+def _clean_digits_sql(col):
+    c = func.replace(cast(col, String), ".", "")
+    c = func.replace(c, "-", "")
+    c = func.replace(c, "/", "")
+    return func.replace(c, " ", "")
+
 def _query_por_cpf(model_cls, cpf_num: str, coluna_cpf):
     """Busca genérica por CPF, ignorando máscara/pontos/traços no BD."""
     return (model_cls.query
-            .filter(func.regexp_replace(cast(coluna_cpf, String), r'[^0-9]', '', 'g') == cpf_num)
+            .filter(_clean_digits_sql(coluna_cpf) == cpf_num)
             .first())
 
 
@@ -53,7 +59,7 @@ def get_aluno_por_user(user):
         return None
     return (
         FichaAlunos.query
-        .filter(func.regexp_replace(cast(FichaAlunos.cpf, String), r'[^0-9]', '', 'g') == cpf_num)
+        .filter(_clean_digits_sql(FichaAlunos.cpf) == cpf_num)
         .first()
     )
 

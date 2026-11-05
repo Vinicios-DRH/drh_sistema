@@ -9,6 +9,14 @@ def formatar_cpf(cpf):
     return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
 
 
+def _cpf_limpo_sql(col):
+    """Remove pontuação e espaços em branco no SQL (compatível com MySQL 5.7+, PostgreSQL e SQLite)."""
+    c = func.replace(cast(col, String), ".", "")
+    c = func.replace(c, "-", "")
+    c = func.replace(c, "/", "")
+    return func.replace(c, " ", "")
+
+
 def get_militar_por_user(user):
     """Busca Militar pelo CPF do User ignorando pontos/traços e tipo numérico."""
     if not user or not getattr(user, "cpf", None):
@@ -18,17 +26,9 @@ def get_militar_por_user(user):
     if not cpf_num:
         return None
 
-    # Compara a versão "só dígitos" do campo Militar.cpf
-    # - cast para texto: cobre caso Militar.cpf seja numeric
-    # - regexp_replace: remove qualquer coisa que não for dígito no BD
-    #
-    # Pode haver mais de um cadastro com o mesmo CPF (ex.: o antigo como FUNC.
-    # CIVIL, já inativo, e o atual como CAP). Sem ordem, o .first() devolvia
-    # qualquer um — e o PAF lia o posto do cadastro errado. Prioridade:
-    # o militar vinculado à conta, depois o ativo, depois o mais recente.
     militar_id_conta = getattr(user, "militar_id", None) or 0
     return (Militar.query
-            .filter(func.regexp_replace(cast(Militar.cpf, String), r'[^0-9]', '', 'g') == cpf_num)
+            .filter(_cpf_limpo_sql(Militar.cpf) == cpf_num)
             .order_by(
                 case((Militar.id == militar_id_conta, 0), else_=1),
                 case((Militar.inativo.is_(True), 1), else_=0),
