@@ -639,8 +639,13 @@
 {% endblock %}
 
 {% block scripts %}
+{# URL da API em href de link oculto: o app roda atrás do IIS em /sigdp e o
+   IIS só acrescenta o prefixo em atributos como href (ver nova_licenca.html). #}
+<a id="url-api-buscar-militares" href="{{ url_for('junta.buscar_militares') }}" hidden></a>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const URL_API_BUSCAR_MILITARES =
+            document.getElementById("url-api-buscar-militares").getAttribute("href");
         const busca = document.getElementById("busca_militar");
         const resultados = document.getElementById("resultados_militar");
         const militarId = document.getElementById("militar_id");
@@ -695,7 +700,7 @@
                 const req = ++ultimaBusca;
                 try {
                     const resp = await fetch(
-                        `/junta/api/militares/buscar?q=${encodeURIComponent(termo)}`);
+                        `${URL_API_BUSCAR_MILITARES}?q=${encodeURIComponent(termo)}`);
                     if (req !== ultimaBusca) return;
                     if (!resp.ok) { esconder(); return; }
                     mostrar(await resp.json());

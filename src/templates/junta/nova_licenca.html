@@ -731,7 +731,18 @@
 {% endblock %}
 
 {% block scripts %}
+{# URLs das APIs em href de links ocultos: o app roda atrás do IIS em /sigdp e
+   o IIS só acrescenta o prefixo em atributos como href. Caminho fixo dentro do
+   JavaScript ("/junta/api/...") vai para fora do sistema e dá 404. #}
+<a id="url-api-buscar-militares" href="{{ url_for('junta.buscar_militares') }}" hidden></a>
+<a id="url-api-militar-info" href="{{ url_for('junta.get_militar_info', militar_id=0) }}" hidden></a>
 <script>
+    const URL_API_BUSCAR_MILITARES =
+        document.getElementById("url-api-buscar-militares").getAttribute("href");
+    // termina em ".../militar/0"; o 0 é trocado pelo id na hora da chamada
+    const URL_API_MILITAR_INFO =
+        document.getElementById("url-api-militar-info").getAttribute("href");
+
     // Resultados válidos por tipo de inspeção, vindos do back-end
     // (services/junta_medica.RESULTADOS_POR_TIPO) pra não duplicar regra aqui.
     const RESULTADOS_POR_TIPO = {{ resultados_por_tipo | tojson }};
@@ -858,7 +869,7 @@
 
             try {
                 const resp = await fetch(
-                    `/junta/api/militares/buscar?q=${encodeURIComponent(nome)}`);
+                    `${URL_API_BUSCAR_MILITARES}?q=${encodeURIComponent(nome)}`);
 
                 // Descarta resposta de uma digitação já ultrapassada.
                 if (requisicao !== ultimaBusca) return;
@@ -873,7 +884,7 @@
 
         async function carregarMilitar(id) {
             try {
-                const resp = await fetch(`/junta/api/militar/${id}`);
+                const resp = await fetch(URL_API_MILITAR_INFO.replace(/0$/, id));
                 if (!resp.ok) return;
 
                 const data = await resp.json();
