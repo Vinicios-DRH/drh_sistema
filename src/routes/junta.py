@@ -50,7 +50,10 @@ from src.services.junta_medica import (
     TIPOS_DATA_UNICA,
     TIPOS_PONTUAIS,
 )
-from src.services.junta_bg_generator import gerar_nota_bg_docx
+from src.services.junta_bg_generator import (
+    OUTPUT_DIR as JUNTA_BG_OUTPUT_DIR,
+    gerar_nota_bg_docx,
+)
 from src.services.junta_periodos import montar_blocos_por_militar
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -1433,9 +1436,9 @@ def baixar_docx_fechamento(fechamento_id):
         flash("Este fechamento ainda não possui documento gerado.", "warning")
         return redirect(url_for("junta.listar_licencas"))
 
-    pasta = Path("src/static/junta_bg")
+    # Mesma pasta onde o gerador salva (caminho absoluto, independe do IIS).
     return send_from_directory(
-        directory=str(pasta.resolve()),
+        directory=str(JUNTA_BG_OUTPUT_DIR),
         path=fechamento.arquivo_docx,
         as_attachment=True
     )

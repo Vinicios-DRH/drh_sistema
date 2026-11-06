@@ -32,8 +32,13 @@ from src.services.junta_medica import ordem_hierarquica_militar
 
 MANAUS_TZ = ZoneInfo("America/Manaus")
 
-TEMPLATE_PATH = Path("src/template/modelo_nota_bg.docx")
-OUTPUT_DIR = Path("src/static/junta_bg")
+# Caminhos absolutos a partir da pasta `src/` (este arquivo fica em
+# src/services/). Caminho relativo ("src/template/...") depende da pasta em que
+# o processo foi iniciado — no IIS não é a raiz do projeto, e a geração da nota
+# falhava com "Package not found at 'src\template\modelo_nota_bg.docx'".
+SRC_DIR = Path(__file__).resolve().parent.parent
+TEMPLATE_PATH = SRC_DIR / "template" / "modelo_nota_bg.docx"
+OUTPUT_DIR = SRC_DIR / "static" / "junta_bg"
 
 FONTE_PADRAO = "Arial"
 TAMANHO_PADRAO = Pt(11)
@@ -671,6 +676,9 @@ def gerar_nota_bg_docx(fechamento_id: int, commit_db: bool = True) -> str:
 
     grupos = agrupar_por_secao(licencas)
 
+    if not TEMPLATE_PATH.is_file():
+        raise FileNotFoundError(
+            f"Modelo da nota BG não encontrado no servidor: {TEMPLATE_PATH}")
     doc = docx.Document(str(TEMPLATE_PATH))
 
     ano = fechamento.data_referencia.year
