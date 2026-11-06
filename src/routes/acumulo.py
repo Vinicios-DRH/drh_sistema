@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date
 from src.decorators.formatar_datas import formatar_data_sem_zero
 from src.decorators.helpers_docx import render_docx_from_template
+from src.caminhos import modelo_docx
 from sqlalchemy.sql import functions
 from sqlalchemy.orm import aliased
 from src.identificacao import get_aluno_por_user, ensure_militar_from_aluno
@@ -2345,7 +2346,7 @@ def modelo_docx(militar_id):
     }
 
     buf = render_docx_from_template(
-        "src/template/declaracao_vinculo.docx", mapping)
+        modelo_docx("declaracao_vinculo.docx"), mapping)
     filename = f"Declaracao_{(militar.nome_guerra or militar.nome_completo).replace(' ', '_')}_{ano}.docx"
 
     # >>> cabeçalhos extras p/ iOS

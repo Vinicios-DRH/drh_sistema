@@ -6,6 +6,7 @@ from flask import request
 from sqlalchemy import and_, func, or_
 
 from src import bcrypt, database
+from src.caminhos import arquivo_src
 from src.models import (
     LicencaEspecial,
     LicencaParaTratamentoDeSaude,
@@ -384,7 +385,7 @@ def dados_para_mapa():
     )
 
     # Carrega coordenadas
-    with open("src/obm_coords.json", "r", encoding="utf-8") as f:
+    with open(arquivo_src("obm_coords.json"), "r", encoding="utf-8") as f:
         coords = json.load(f)
 
     coord_map = {item["id"]: item for item in coords}

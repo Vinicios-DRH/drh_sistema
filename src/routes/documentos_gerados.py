@@ -7,6 +7,7 @@ from src import app
 from datetime import datetime
 from io import BytesIO
 from docx import Document
+from src.caminhos import modelo_docx
 from docx.shared import Pt
 from docx.oxml.ns import qn
 from src.decorators.formatar_datas import formatar_data_extenso, formatar_data_sem_zero
@@ -40,7 +41,7 @@ def gerar_le():
                    'NOME do MILITAR', 'data_inicio_pedido']
         ITALICO = ['numero_siged']
 
-        doc = Document('src/template/nota_tecnica.docx')
+        doc = Document(modelo_docx('nota_tecnica.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -109,7 +110,7 @@ def indeferimento_le():
         NEGRITO = ['nota_bg', 'POSTO/GRADUACAO', 'QUADRO',
                    'NOME do MILITAR', 'data_inicio_licenca_especial a data_fim_licenca_especial']
         ITALICO = ['numero_siged']
-        doc = Document('src/template/indeferimento_le.docx')
+        doc = Document(modelo_docx('indeferimento_le.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -182,7 +183,7 @@ def gerar_lp():
 
         ITALICO = ['numero_siged']
 
-        doc = Document('src/template/certidao_lp.docx')
+        doc = Document(modelo_docx('certidao_lp.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -260,7 +261,7 @@ def gerar_certidao_casamento():
 
         ITALICO = ['numero_siged']
 
-        doc = Document('src/template/certidao_casamento.docx')
+        doc = Document(modelo_docx('certidao_casamento.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -334,7 +335,7 @@ def gerar_certidao_obito():
 
         ITALICO = ['numero_siged']
 
-        doc = Document('src/template/certidao_obito.docx')
+        doc = Document(modelo_docx('certidao_obito.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -400,7 +401,7 @@ def certidao_tempo_servico():
         NEGRITO = ['nome_completo', 'posto_grad', 'cpf',
                    'dia_ingresso', 'mes_ingresso', 'ano_ingresso', 'data_atual']
 
-        doc = Document('src/template/declaracao_tempo_de_servico.docx')
+        doc = Document(modelo_docx('declaracao_tempo_de_servico.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -459,7 +460,7 @@ def certidao_exercicio_atv_atipica():
 
         ITALICO = ['data_atual']
 
-        doc = Document('src/template/exercicio_atividade_atipica.docx')
+        doc = Document(modelo_docx('exercicio_atividade_atipica.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -529,7 +530,7 @@ def declaracao():
         NEGRITO = ['nome_militar', 'posto_graduacao',
                    'quadro', 'cpf', 'nota_declaracao']
 
-        doc = Document('src/template/declaracao1.docx')
+        doc = Document(modelo_docx('declaracao1.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -595,7 +596,7 @@ def nota_elogio():
                    'nome_militar', 'data_doacao']
         ITALICO = ['numero_siged']
 
-        doc = Document('src/template/doacao_sangue.docx')
+        doc = Document(modelo_docx('doacao_sangue.docx'))
 
         for p in doc.paragraphs:
             texto = p.text
@@ -669,7 +670,7 @@ def portaria_gratificacao():
             'numero_processo', 'data_atual'
         ]
 
-        doc = Document('src/template/portaria_gc.docx')
+        doc = Document(modelo_docx('portaria_gc.docx'))
 
         # PERCORRER TODOS OS PARÁGRAFOS
         for p in doc.paragraphs:
