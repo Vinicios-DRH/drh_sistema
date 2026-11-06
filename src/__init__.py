@@ -65,9 +65,9 @@ def redirecionar_dominio_antigo():
     if host != DOMINIO_ANTIGO or (host_encaminhado and host_encaminhado != DOMINIO_ANTIGO):
         return
     destino = SIGDP_REDIRECT_URL + request.full_path.rstrip("?")
-    # 307 mantém o método (POST continua POST); temporário até o novo endereço
-    # estar validado, depois pode trocar para 308 (permanente).
-    return redirect(destino, code=307)
+    # 308: permanente (o navegador memoriza e vai direto pro endereço novo)
+    # e mantém o método (POST continua POST).
+    return redirect(destino, code=308)
 
 @app.before_request
 def big_brother_log_acesso():
