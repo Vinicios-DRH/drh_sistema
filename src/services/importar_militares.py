@@ -12,7 +12,7 @@ from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import String, cast, func
 
 from src import database
 from src.models import (

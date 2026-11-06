@@ -24,7 +24,7 @@ from src.services.situacoes_militares_service import (
 )
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import distinct, func, or_, and_
+from sqlalchemy import String, and_, cast, distinct, func, or_
 from decimal import Decimal, ROUND_HALF_UP
 import re
 from dateutil.relativedelta import relativedelta
