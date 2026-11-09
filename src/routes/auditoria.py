@@ -7,6 +7,18 @@ from src import app, database
 from src.models import (LogAcesso)
 from src.decorators.control import checar_ocupacao
 from datetime import datetime, timedelta
+from datetime import timezone
+from zoneinfo import ZoneInfo
+
+
+MANAUS_TZ = ZoneInfo("America/Manaus")
+
+
+def _data_acesso_manaus(data_acesso):
+    if data_acesso is None:
+        return None
+    data_utc = data_acesso.replace(tzinfo=timezone.utc)
+    return data_utc.astimezone(MANAUS_TZ)
 
 
 
@@ -29,7 +41,8 @@ def auditoria_acessos():
         return render_template(
             "auditoria_acessos.html",
             logs=logs_paginados,
-            total_logs=total_logs
+            total_logs=total_logs,
+            data_acesso_manaus=_data_acesso_manaus,
         )
     except Exception as e:
         app.logger.error(f"Erro ao carregar auditoria de acessos: {str(e)}")
@@ -43,7 +56,7 @@ def auditoria_acessos():
 def limpar_logs_acesso():
     try:
         dias = int(request.form.get('dias', 30))
-        data_corte = datetime.now() - timedelta(days=dias)
+        data_corte = datetime.utcnow() - timedelta(days=dias)
 
         # Deleta direto no banco tudo que for mais antigo que a data de corte
         apagados = LogAcesso.query.filter(
@@ -58,5 +71,4 @@ def limpar_logs_acesso():
         flash("Erro ao tentar limpar os logs.", "error")
 
     return redirect(url_for('auditoria_acessos'))
-
 

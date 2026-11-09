@@ -790,7 +790,7 @@ def salvar_paf(militar_id: int, ano: int, mes_usufruto, periodos: list, usuario_
 def dentro_da_janela_de_edicao_mensal() -> bool:
     """PAFs só podem ser alterados entre os dias 10 e 20 de cada mês
     (fora essa janela, só quem tem bypass explícito)."""
-    hoje = datetime.now().day
+    hoje = datetime.now(ZoneInfo("America/Manaus")).day
     return 10 <= hoje <= 20
 
 

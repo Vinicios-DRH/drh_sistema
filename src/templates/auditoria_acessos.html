@@ -129,13 +129,14 @@
                         </thead>
                         <tbody>
                             {% for log in logs.items %}
+                            {% set data_local = data_acesso_manaus(log.data_acesso) %}
                             <tr>
                                 <td
-                                    data-sort="{{ log.data_acesso.strftime('%Y%m%d%H%M%S') if log.data_acesso else '' }}">
-                                    <div class="fw-bold text-dark">{{ log.data_acesso.strftime('%d/%m/%Y') if
-                                        log.data_acesso else '-' }}</div>
-                                    <div class="small text-muted">{{ log.data_acesso.strftime('%H:%M:%S') if
-                                        log.data_acesso else '-' }}</div>
+                                    data-sort="{{ data_local.strftime('%Y%m%d%H%M%S') if data_local else '' }}">
+                                    <div class="fw-bold text-dark">{{ data_local.strftime('%d/%m/%Y') if
+                                        data_local else '-' }}</div>
+                                    <div class="small text-muted">{{ data_local.strftime('%H:%M:%S') if
+                                        data_local else '-' }}</div>
                                 </td>
 
                                 <td>

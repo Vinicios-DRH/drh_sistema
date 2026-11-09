@@ -2032,7 +2032,8 @@ class LogAcesso(database.Model):
     ip_address = database.Column(database.String(45))
     # Pega o navegador/celular do cara
     user_agent = database.Column(database.String(255))
-    data_acesso = database.Column(database.DateTime, default=now_manaus_naive)
+    # Guardado como UTC naive; a tela de auditoria converte para Manaus.
+    data_acesso = database.Column(database.DateTime, default=datetime.utcnow)
 
     # Relacionamento para buscar o nome do cara depois
     usuario = database.relationship('User', backref='logs_de_rota')

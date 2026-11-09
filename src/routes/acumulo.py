@@ -9,7 +9,7 @@ from sqlalchemy import case, exists, literal, or_, and_, func
 import os
 from src.formatar_cpf import get_militar_por_user
 from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, build_prefix
-from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos
+from src.models import AuditoriaDeclaracao, DocumentoMilitar, Funcao, User, database as db, Militar, PostoGrad, Obm, DeclaracaoAcumulo, MilitarObmFuncao, VinculoExterno, DraftDeclaracaoAcumulo, FichaAlunos, now_manaus_naive
 from src.decorators.control import USERS_ANALISE_VINCULO, checar_ocupacao, _is_super_user, _is_drh_like, _user_obm_ids, _militar_permitido, _can_editar_declaracao, _prazo_envio_ate, _prazo_fechado, ANO_ATUAL, _is_privilegiado, require_analise_vinculo, _usuario_ja_tem_declaracao
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date
@@ -1064,7 +1064,7 @@ def upload_assinado(militar_id):
                 decl.arquivo_declaracao_orgao = key_orgao
 
             decl.status = "pendente"
-            decl.updated_at = datetime.utcnow()
+            decl.updated_at = now_manaus_naive()
         else:
             de_status = None
             decl = DeclaracaoAcumulo(
@@ -1076,7 +1076,7 @@ def upload_assinado(militar_id):
                 arquivo_declaracao_orgao=key_orgao,
                 observacoes=observacoes or None,
                 status="pendente",
-                created_at=datetime.utcnow(),
+                created_at=now_manaus_naive(),
             )
             db.session.add(decl)
             db.session.flush()
@@ -1096,7 +1096,7 @@ def upload_assinado(militar_id):
                 para_status=decl.status,
                 motivo="Envio de documentos assinados (modelo e órgão).",
                 alterado_por_user_id=getattr(current_user, "id", None),
-                data_alteracao=datetime.utcnow()
+                data_alteracao=now_manaus_naive()
             ))
 
         # negativas: marcar "enviado_drh" (uma única vez)
@@ -1112,7 +1112,7 @@ def upload_assinado(militar_id):
                     para_status=decl.status,  # permanece 'pendente'
                     motivo="enviado_drh",
                     alterado_por_user_id=getattr(current_user, "id", None),
-                    data_alteracao=datetime.utcnow()
+                    data_alteracao=now_manaus_naive()
                 ))
 
         db.session.commit()
@@ -1832,7 +1832,7 @@ def recebimento_mudar_status(decl_id):
     # >>> NOVO: registra quem recebeu (apenas se ainda não foi registrado)
     if decl.recebido_por_user_id is None:
         decl.recebido_por_user_id = current_user.id
-        decl.recebido_em = datetime.utcnow()
+        decl.recebido_em = now_manaus_naive()
 
     # atualiza status
     decl.status = novo_status
@@ -2629,4 +2629,3 @@ def novo_generico(pessoa_tipo, pessoa_id):
         pass
 
     return redirect(url_for("acumulo.novo", militar_id=m.id))
-

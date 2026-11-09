@@ -181,6 +181,7 @@
 
 <script>
     window.PAF_ANO_VIGENTE = {{ ano_vigente | tojson }};
+    const PAF_UPDATE_URL = {{ url_for('update_paf') | tojson }};
 
     function getAnoSelecionado() {
         const el = document.getElementById('selectAno');
@@ -356,7 +357,7 @@
                 payload.append(c, el ? (el.value || '') : '');
             });
 
-            fetch('/pafs/update', {
+            fetch(PAF_UPDATE_URL, {
                 method: 'POST',
                 body: payload
             })

@@ -37,7 +37,10 @@ def _has_perm_db(codigo: str) -> bool:
 
 
 def is_super() -> bool:
-    return getattr(current_user, "funcao_user_id", None) == 6
+    if getattr(current_user, "funcao_user_id", None) == 6:
+        return True
+    ocupacao = getattr(getattr(current_user, "funcao_user", None), "ocupacao", "")
+    return (ocupacao or "").strip().upper() == "SUPER USER"
 
 
 def is_super_or_perm(codigo: str) -> bool:
