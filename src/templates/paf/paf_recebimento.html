@@ -338,6 +338,17 @@
           <a class="btn btn-outline-light" href="{{ url_for('paf.capacidade', ano=f.ano) }}">
             <i class="bi bi-sliders me-1"></i> Capacidade
           </a>
+          <form method="post" action="{{ url_for('paf.homologar_alocados') }}"
+            class="d-flex align-items-center gap-2"
+            onsubmit="return confirm('Homologar os PAFs pendentes criados a partir da data informada? Serão usadas as opções do PAF conforme a capacidade disponível.');">
+            <input type="hidden" name="ano" value="{{ f.ano }}">
+            <label class="small text-nowrap" for="data-corte-lote">Criados a partir de</label>
+            <input class="form-control form-control-sm" id="data-corte-lote" type="date"
+              name="data_corte" value="2026-11-01" required>
+            <button class="btn btn-warning text-nowrap" type="submit">
+              <i class="bi bi-check2-all me-1"></i> Homologar lote
+            </button>
+          </form>
           {% endif %}
         </div>
       </div>

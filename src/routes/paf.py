@@ -510,6 +510,66 @@ def validar(paf_id):
     return render_template("paf/paf_validar.html", paf=paf, vagas=_vagas_por_mes(ano, paf.id))
 
 
+@bp_paf.route("/recebimento/homologar-alocados", methods=["POST"])
+@login_required
+def homologar_alocados():
+    if not _pode_homologar_paf():
+        flash("Apenas a DP pode homologar.", "danger")
+        return redirect(url_for("paf.minhas"))
+
+    ano = request.form.get("ano", type=int)
+    if not ano:
+        flash("Informe um ano de referência válido.", "danger")
+        return redirect(url_for("paf.recebimento"))
+
+    data_corte_raw = request.form.get("data_corte", "")
+    try:
+        data_corte = date.fromisoformat(data_corte_raw)
+    except ValueError:
+        flash("Informe uma data de corte válida.", "danger")
+        return redirect(url_for("paf.recebimento", ano=ano or _ano_atual_manaus()))
+
+    inicio_corte = datetime.combine(
+        data_corte, datetime.min.time(), tzinfo=ZoneInfo("America/Manaus"))
+    pendentes = (
+        database.session.query(NovoPaf)
+        .join(Militar, Militar.id == NovoPaf.militar_id)
+        .filter(
+            NovoPaf.ano_referencia == ano,
+            NovoPaf.created_at >= inicio_corte,
+            NovoPaf.status.in_(STATUS_A_HOMOLOGAR),
+            Militar.inativo.isnot(True),
+        )
+        .order_by(NovoPaf.id.asc())
+        .all()
+    )
+
+    if not pendentes:
+        flash(
+            f"Nenhum PAF pendente do ano {ano} foi encontrado a partir de "
+            f"{data_corte.strftime('%d/%m/%Y')}.",
+            "warning",
+        )
+        return redirect(url_for("paf.recebimento", ano=ano, status="a_homologar"))
+
+    homologados = 0
+    sem_vaga = 0
+    for paf in pendentes:
+        if _alocar_automaticamente(paf):
+            homologados += 1
+        else:
+            paf.status = "aguardando_drh"
+            sem_vaga += 1
+
+    database.session.commit()
+    flash(
+        f"Lote concluído: {homologados} homologado(s); "
+        f"{sem_vaga} permaneceu(ram) pendente(s) por falta de vaga.",
+        "success" if sem_vaga == 0 else "warning",
+    )
+    return redirect(url_for("paf.recebimento", ano=ano, status="a_homologar"))
+
+
 @bp_paf.route("/capacidade", methods=["GET", "POST"])
 @login_required
 def capacidade():
