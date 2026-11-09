@@ -12,14 +12,19 @@ from sqlalchemy import func, desc, or_, case
 from sqlalchemy.orm import aliased
 from src.decorators.control import checar_ocupacao
 from src.decorators.docx_fill import docx_fill_template_dependentes
-from src.decorators.utils_acumulo import b2_presigned_get, b2_upload_fileobj, build_prefix_dependente, _secret_key
+from src.decorators.utils_acumulo import (
+    b2_bucket_name,
+    b2_client,
+    b2_upload_fileobj,
+    build_prefix_dependente,
+    _secret_key,
+)
 
 from src import database
 from src.models import Militar, MilitarObmFuncao, DepProcesso, DepArquivo, DepAcaoLog
 from datetime import datetime
 
 import zipfile
-import urllib.request
 
 
 bp_dep = Blueprint("dep", __name__, template_folder="templates")
@@ -563,14 +568,7 @@ def get_client_ip():
 @checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
 def drh_detalhe_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
-
-    arquivos = []
-    for a in p.arquivos:
-        url = b2_presigned_get(
-            a.object_key, expires_seconds=3600, download_name=a.nome_original or "arquivo")
-        arquivos.append({"id": a.id, "nome": a.nome_original,
-                        "url": url, "key": a.object_key})
-
+    arquivos = p.arquivos
     return render_template("dp/dep_detalhe.html", p=p, arquivos=arquivos)
 
 
@@ -584,30 +582,26 @@ def drh_download_zip(processo_id):
         flash("Nenhum arquivo anexado a este processo.", "warning")
         return redirect(url_for("dep.drh_detalhe_processo", processo_id=p.id))
 
-    # Cria o arquivo ZIP em memória para não poluir o disco do servidor
+    # Baixa pelo cliente S3 do servidor, sem depender de uma segunda requisição
+    # HTTP para a URL assinada do storage.
     memory_file = BytesIO()
-    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for a in p.arquivos:
-            # Gera URL temporária do arquivo no S3/Backblaze
-            url = b2_presigned_get(a.object_key, expires_seconds=120)
+    try:
+        s3 = b2_client()
+        with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            for a in p.arquivos:
+                obj = s3.get_object(Bucket=b2_bucket_name(), Key=a.object_key)
+                with obj["Body"] as body:
+                    data = body.read()
 
-            try:
-                # Faz o download do conteúdo do arquivo
-                with urllib.request.urlopen(url) as response:
-                    data = response.read()
-
-                    # Nome seguro (coloca o ID na frente para evitar que
-                    # 2 arquivos com o mesmo nome se sobrescrevam no ZIP)
-                    safe_name = f"{a.id}-{a.nome_original or 'arquivo'}"
-
-                    # Escreve o conteúdo dentro do ZIP
-                    zf.writestr(safe_name, data)
-            except Exception as e:
-                current_app.logger.error(
-                    "Erro ao baixar arquivo para ZIP: %s", e)
-                # Opcional: registrar um arquivo txt dentro do zip informando o erro
-                zf.writestr(
-                    f"ERRO_{a.id}.txt", f"Nao foi possivel baixar: {a.nome_original}\nErro: {e}".encode('utf-8'))
+                nome_original = os.path.basename(
+                    (a.nome_original or "arquivo").replace("\\", "/")
+                )
+                zf.writestr(f"{a.id}-{nome_original}", data)
+    except Exception:
+        current_app.logger.exception(
+            "Falha ao baixar anexos do processo de dependentes %s", p.id
+        )
+        return "Não foi possível obter os anexos do armazenamento. Tente novamente ou contate o suporte.", 502
 
     memory_file.seek(0)
 
