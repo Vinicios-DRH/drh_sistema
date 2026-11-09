@@ -215,9 +215,20 @@ def _vagas_por_mes(ano: int, excluir_paf_id: int | None = None) -> dict[int, dic
 
 
 def _travar_mes(ano: int, mes: int) -> None:
-    # Serializa quem disputa a última vaga do mesmo mês; solta no commit/rollback.
-    database.session.execute(
-        text("SELECT pg_advisory_xact_lock(:ns, :k)"), {"ns": 7230, "k": ano * 100 + mes})
+    # Serializa quem disputa a última vaga; o bloqueio é liberado no commit/rollback.
+    dialect = database.session.get_bind().dialect.name
+    if dialect == "mysql":
+        # MySQL 5.7 não oferece pg_advisory_xact_lock. A linha única por
+        # ano/mês serializa homologações quando a capacidade está cadastrada.
+        (database.session.query(PafCapacidade.id)
+         .filter_by(ano=ano, mes=mes)
+         .with_for_update()
+         .first())
+    elif dialect == "postgresql":
+        database.session.execute(
+            text("SELECT pg_advisory_xact_lock(:ns, :k)"),
+            {"ns": 7230, "k": ano * 100 + mes},
+        )
 
 
 def _tem_vaga_1a_opcao(ano: int, mes: int, excluir_paf_id: int | None = None) -> bool:
