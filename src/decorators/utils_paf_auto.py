@@ -1,9 +1,15 @@
 # utils_paf_auto.py
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
-from sqlalchemy import func, and_
+from sqlalchemy import and_, exists, func
 
-from src.models import Militar, NovoPaf, PafCapacidade, PafFeriasPlano
+from src.models import (
+    Militar,
+    MilitarObmFuncao,
+    NovoPaf,
+    PafCapacidade,
+    PafFeriasPlano,
+)
 
 # ---- Ajuste aqui se quiser outro range de meses preferenciais para o pagamento
 MESES_DEFAULT = list(range(1, 13))          # 1..12
@@ -32,9 +38,11 @@ def _capacidade_por_mes(session, ano: int):
     mes_expr = func.coalesce(NovoPaf.mes_definido, NovoPaf.opcao_1)
     usados = (
         session.query(mes_expr, func.count(NovoPaf.id))
+        .join(Militar, Militar.id == NovoPaf.militar_id)
         .filter(
             NovoPaf.ano_referencia == ano,
-            mes_expr.isnot(None)
+            mes_expr.isnot(None),
+            Militar.inativo.isnot(True),
         )
         .group_by(mes_expr)
         .all()
@@ -103,15 +111,24 @@ def _propor_plano_30(ano: int, mes_usufruto: int):
 
 def _militares_sem_envio(session, ano: int):
     """
-    Retorna lista de Militar (ou ids) que NÃO possuem nem NovoPaf nem PafFeriasPlano para o ano.
+    Retorna militares ativos com vínculo em OBM ativa e sem PAF/plano no ano.
+    A elegibilidade acompanha a base usada em /paf/recebimento.
     """
-    # subqueries
     sub_paf = session.query(NovoPaf.militar_id).filter(NovoPaf.ano_referencia == ano)
     sub_plano = session.query(PafFeriasPlano.militar_id).filter(PafFeriasPlano.ano_referencia == ano)
+    tem_vinculo_ativo = exists().where(and_(
+        MilitarObmFuncao.militar_id == Militar.id,
+        MilitarObmFuncao.data_fim.is_(None),
+    ))
 
     q = (
         session.query(Militar)
-        .filter(~Militar.id.in_(sub_paf), ~Militar.id.in_(sub_plano))
+        .filter(
+            Militar.inativo.isnot(True),
+            tem_vinculo_ativo,
+            ~Militar.id.in_(sub_paf),
+            ~Militar.id.in_(sub_plano),
+        )
         .order_by(Militar.id.asc())
     )
     return q.all()
