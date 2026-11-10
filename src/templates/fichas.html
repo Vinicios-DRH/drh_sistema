@@ -58,7 +58,7 @@
                         {% for aluno in alunos %}
                         <tr>
                             <td>
-                                <img src="{{ url_for('static', filename=aluno.foto) if aluno.foto else url_for('static', filename='img/avatar-default.png') }}"
+                                <img src="{{ url_for('foto_aluno', aluno_id=aluno.id) if aluno.foto else url_for('static', filename='img/avatar-default.png') }}"
                                     class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
                             </td>
                             <td>

@@ -8,6 +8,7 @@ import boto3
 from botocore.config import Config
 from io import BytesIO
 from uuid import uuid4
+from werkzeug.utils import secure_filename
 
 # --------- Credenciais / Config ---------
 
@@ -101,8 +102,10 @@ def b2_presigned_get(object_key: str, expires_seconds=3600, download_name: str |
     s3 = b2_client()
     params = {"Bucket": b2_bucket_name(), "Key": object_key}
     if download_name:
-        # força download com nome amigável
-        params["ResponseContentDisposition"] = f'attachment; filename="{download_name}"'
+        nome_seguro = secure_filename(download_name) or "documento"
+        params["ResponseContentDisposition"] = (
+            f'attachment; filename="{nome_seguro}"'
+        )
     return s3.generate_presigned_url("get_object", Params=params, ExpiresIn=expires_seconds)
 
 # --------- Helpers opcionais ---------

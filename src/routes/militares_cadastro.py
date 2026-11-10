@@ -186,14 +186,22 @@ def editar_militar_inativo(id):
 @app.route('/verificar-arquivos', methods=['POST'])
 @login_required
 def verificar_arquivos():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     filenames = data.get('filenames', [])
 
     existing_files = []
-    upload_folder = os.path.join(os.path.abspath(
-        os.path.dirname(__file__)), app.config["UPLOAD_FOLDER"])
+    configurado = os.path.normpath(app.config["UPLOAD_FOLDER"])
+    if os.path.isabs(configurado):
+        upload_folder = configurado
+    elif configurado == "static" or configurado.startswith(f"static{os.sep}"):
+        relativo_static = os.path.relpath(configurado, "static")
+        upload_folder = os.path.join(app.static_folder, relativo_static)
+    else:
+        upload_folder = os.path.join(app.root_path, configurado)
 
     for filename in filenames:
+        if not isinstance(filename, str):
+            continue
         file_path = os.path.join(upload_folder, secure_filename(filename))
         if os.path.exists(file_path):
             existing_files.append(filename)
@@ -593,9 +601,16 @@ def download_documento(doc_id):
         current_app.logger.exception("Falha ao abrir objeto no B2")
         abort(404)
 
+    transferencia_completa = False
+
     def stream():
+        nonlocal transferencia_completa
         try:
-            for chunk in iter(lambda: body.read(8192), b""):
+            while True:
+                chunk = body.read(8192)
+                if not chunk:
+                    transferencia_completa = True
+                    break
                 yield chunk
         finally:
             try:
@@ -605,7 +620,10 @@ def download_documento(doc_id):
 
     resp = Response(stream_with_context(stream()),
                     mimetype=doc.content_type or "application/octet-stream")
-    resp.headers["Content-Disposition"] = f'attachment; filename="{doc.nome_original}"'
+    nome_download = secure_filename(doc.nome_original or "") or f"documento-{doc.id}"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{nome_download}"'
+    if obj.get("ContentLength") is not None:
+        resp.content_length = obj["ContentLength"]
 
     # >>> pegue o app e dados que você precisa ANTES de fechar o contexto
     app = current_app._get_current_object()
@@ -614,6 +632,9 @@ def download_documento(doc_id):
 
     @resp.call_on_close
     def _cleanup(_app=app, _key=key, _doc_id=doc_id):
+        if not transferencia_completa:
+            return
+
         # reabre contexto da aplicação
         with _app.app_context():
             try:

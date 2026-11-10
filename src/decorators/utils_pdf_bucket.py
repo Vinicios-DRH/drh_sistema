@@ -6,11 +6,15 @@ integração B2 está instável — essa API já é usada em produção.
 import re
 import unicodedata
 import urllib.parse
+import logging
+import os
 
 import requests
+from werkzeug.utils import secure_filename
 
 API_BUCKET_URL = "https://www.cbm.am.gov.br/api"
-API_BUCKET_KEY = "cbmam_pdf_upload_token_2026_secured"
+API_BUCKET_KEY_ENV = "PDF_BUCKET_API_KEY"
+logger = logging.getLogger(__name__)
 
 
 def sanitizar_nome(texto):
@@ -29,36 +33,53 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
 
     Retorna (True, url_final) em caso de sucesso, ou (False, mensagem_erro).
     """
-    headers = {"X-API-Key": API_BUCKET_KEY}
+    api_key = os.getenv(API_BUCKET_KEY_ENV, "").strip()
+    if not api_key:
+        return False, f"Variável de ambiente {API_BUCKET_KEY_ENV} ausente."
 
     try:
+        nome_original = secure_filename(file_obj.filename or "")
+        extensao = os.path.splitext(nome_original)[1].lower()
+        if not nome_original or extensao != ".pdf":
+            return False, "Envie um arquivo PDF válido."
+
+        headers = {"X-API-Key": api_key}
+        nome_base = secure_filename(novo_nome or os.path.splitext(nome_original)[0])
+        if not nome_base:
+            return False, "Nome do arquivo inválido."
+
         # 1. Criar pasta (Ignora o 409 se já existir)
-        requests.post(
+        resposta_pasta = requests.post(
             f"{API_BUCKET_URL}/bucket.php?action=mkdir",
             headers={**headers, "Content-Type": "application/json"},
             json={"folder": subfolder},
             timeout=10
         )
+        if resposta_pasta.status_code not in (200, 201, 409):
+            return False, (
+                "Erro ao preparar o armazenamento "
+                f"(HTTP {resposta_pasta.status_code})."
+            )
 
         # 2. Preparar nome do arquivo
-        nome_arquivo_envio = file_obj.filename
-        if novo_nome:
-            extensao = nome_arquivo_envio.rsplit('.', 1)[-1].lower() if '.' in nome_arquivo_envio else 'pdf'
-            nome_arquivo_envio = f"{novo_nome}.{extensao}"
+        nome_arquivo_envio = f"{nome_base}.pdf"
 
         conteudo_arquivo = file_obj.read()
-        files = {'file': (nome_arquivo_envio, conteudo_arquivo, file_obj.mimetype)}
-
-        print(f"🚀 [UPLOAD INICIADO] Enviando '{nome_arquivo_envio}' para a pasta '{subfolder}'...")
+        files = {
+            "file": (
+                nome_arquivo_envio,
+                conteudo_arquivo,
+                file_obj.mimetype or "application/pdf",
+            )
+        }
 
         resposta = requests.post(
-            f"{API_BUCKET_URL}/upload_pdf.php?folder={subfolder}",
+            f"{API_BUCKET_URL}/upload_pdf.php?"
+            f"{urllib.parse.urlencode({'folder': subfolder})}",
             headers=headers,
             files=files,
             timeout=30
         )
-
-        print(f"📥 [API RESPONDEU] Status: {resposta.status_code} | Corpo: {resposta.text}")
 
         if resposta.status_code == 200:
             dados = resposta.json()
@@ -66,14 +87,18 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
                 url_final = dados.get("url")
                 if not url_final:
                     nome_arquivo_retornado = dados.get("filename")
-                    folder_encoded = urllib.parse.quote(subfolder, safe='')
-                    url_final = f"{API_BUCKET_URL}/download_pdf.php?folder={folder_encoded}&file={nome_arquivo_retornado}"
+                    if not nome_arquivo_retornado:
+                        return False, "A API não informou o arquivo enviado."
+                    url_final = (
+                        f"{API_BUCKET_URL}/download_pdf.php?"
+                        f"{urllib.parse.urlencode({'folder': subfolder, 'file': nome_arquivo_retornado})}"
+                    )
                 return True, url_final
             else:
                 return False, dados.get("message", "API retornou 200, mas success=False.")
         else:
-            return False, f"Erro HTTP {resposta.status_code}: {resposta.text}"
+            return False, f"Falha no envio do arquivo (HTTP {resposta.status_code})."
 
     except Exception as e:
-        print(f"❌ [ERRO DE CONEXÃO] {str(e)}")
+        logger.exception("Falha ao enviar PDF para o servidor de arquivos")
         return False, f"Falha de conexão: {str(e)}"

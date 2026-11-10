@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, send_file, jsonify
 from PIL import Image
 from io import BytesIO
 import os
+from werkzeug.utils import secure_filename
 
 remove_bg_bp = Blueprint("remove_bg", __name__, url_prefix="/imagens")
 
@@ -152,7 +153,8 @@ def processar_remocao_fundo():
         # aplica fundo final
         img = apply_background(img, tipo_fundo, cor_fundo)
 
-        nome_base = os.path.splitext(arquivo.filename)[0]
+        nome_original = secure_filename(arquivo.filename or "")
+        nome_base = os.path.splitext(nome_original)[0] or "imagem"
         suffix = "_sem_fundo_uhd" if modo_saida == "uhd" else "_sem_fundo"
 
         saida = BytesIO()

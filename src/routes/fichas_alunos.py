@@ -3,7 +3,8 @@ from flask_login import login_required
 from flask import abort, request
 import os
 import pandas as pd
-from flask import render_template, redirect, url_for, request, flash, send_file
+from uuid import uuid4
+from flask import render_template, redirect, url_for, request, flash, send_file, send_from_directory
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from src import app, database
@@ -15,6 +16,38 @@ from datetime import datetime, date
 from io import BytesIO
 from collections import Counter
 
+
+def _salvar_foto_aluno(file_storage):
+    nome_seguro = secure_filename(file_storage.filename or "")
+    extensao = os.path.splitext(nome_seguro)[1].lower()
+    if extensao not in {".jpg", ".jpeg", ".png"}:
+        raise ValueError("A foto deve estar no formato JPG ou PNG.")
+
+    nome_arquivo = f"{uuid4().hex}{extensao}"
+    pasta = os.path.join(app.static_folder, "uploads", "fotos")
+    os.makedirs(pasta, exist_ok=True)
+    file_storage.save(os.path.join(pasta, nome_arquivo))
+    return os.path.join("uploads", "fotos", nome_arquivo).replace(os.sep, "/")
+
+
+@app.route('/fichas/<int:aluno_id>/foto')
+def foto_aluno(aluno_id):
+    aluno = FichaAlunos.query.get_or_404(aluno_id)
+    if not aluno.foto:
+        abort(404)
+
+    nome_arquivo = secure_filename(os.path.basename(aluno.foto.replace("\\", "/")))
+    if not nome_arquivo:
+        abort(404)
+
+    pastas = (
+        os.path.join(app.static_folder, "uploads", "fotos"),
+        os.path.abspath(os.path.join(app.root_path, "..", "uploads", "fotos")),
+    )
+    for pasta in pastas:
+        if os.path.isfile(os.path.join(pasta, nome_arquivo)):
+            return send_from_directory(pasta, nome_arquivo)
+    abort(404)
 
 
 @app.route('/ficha-alunos-soldados', methods=['GET', 'POST'])
@@ -50,10 +83,7 @@ def ficha_aluno():
     if form.validate_on_submit():
         foto_filename = None
         if form.foto.data:
-            filename = secure_filename(form.foto.data.filename)
-            foto_path = os.path.join('uploads/fotos', filename)
-            form.foto.data.save(foto_path)
-            foto_filename = foto_path
+            foto_filename = _salvar_foto_aluno(form.foto.data)
 
         novo_aluno = FichaAlunos(
             nome_completo=form.nome_completo.data or 'NÃO INFORMADO',
@@ -150,7 +180,7 @@ def editar_ficha(aluno_id):
     form.comportamento.choices = [
         ('Excepcional', 'Excepcional'), ('Ótimo', 'Ótimo'), ('Bom', 'Bom'), ('Insuficiente', 'Insuficiente'), ('Mau', 'Mau')]
 
-    foto_url = url_for('static', filename=aluno.foto) if aluno.foto else url_for(
+    foto_url = url_for('foto_aluno', aluno_id=aluno.id) if aluno.foto else url_for(
         'static', filename='img/avatar-default.png')
 
     if form.validate_on_submit():
@@ -162,16 +192,7 @@ def editar_ficha(aluno_id):
 
         # Processa nova imagem se foi enviada
         if form.foto.data and form.foto.data.filename:
-            from werkzeug.utils import secure_filename
-            import os
-
-            upload_folder = os.path.join('static', 'uploads', 'fotos')
-            os.makedirs(upload_folder, exist_ok=True)
-
-            filename = secure_filename(form.foto.data.filename)
-            foto_path = os.path.join(upload_folder, filename)
-            form.foto.data.save(foto_path)
-            aluno.foto = foto_path
+            aluno.foto = _salvar_foto_aluno(form.foto.data)
         else:
             aluno.foto = foto_antiga  # mantém a antiga se nenhuma nova enviada
 

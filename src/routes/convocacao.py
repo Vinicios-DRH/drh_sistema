@@ -297,17 +297,10 @@ def controle_convocacao():
 @login_required
 def importar_convocados():
     if request.method == 'POST':
-        arquivo = request.files['arquivo']
-        if arquivo.filename.endswith('.xlsx'):
-            filename = secure_filename(arquivo.filename)
-
-            # Garante que a pasta 'uploads' existe
-            os.makedirs('uploads', exist_ok=True)
-
-            caminho = os.path.join('uploads', filename)
-            arquivo.save(caminho)
-
-            df = pd.read_excel(caminho)
+        arquivo = request.files.get('arquivo')
+        nome_arquivo = secure_filename(arquivo.filename or "") if arquivo else ""
+        if arquivo and nome_arquivo.lower().endswith('.xlsx'):
+            df = pd.read_excel(arquivo)
 
             for _, row in df.iterrows():
                 nome = NomeConvocado(
