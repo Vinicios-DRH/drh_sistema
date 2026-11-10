@@ -16,6 +16,7 @@ from src.decorators.utils_acumulo import (
     b2_bucket_name,
     b2_client,
     b2_upload_fileobj,
+    b2_delete_all_versions,
     build_prefix_dependente,
     _secret_key,
 )
@@ -418,61 +419,100 @@ def upload_post():
     key_prefix = build_prefix_dependente(int(ano), int(militar_id), protocolo)
 
     uploaded = []
-    for f in files:
+    for index, f in enumerate(files, start=1):
         if not f or not f.filename:
             continue
-        obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
+        try:
+            obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
+        except Exception:
+            current_app.logger.exception(
+                "Falha ao enviar anexo de dependente ao B2 "
+                "(protocolo=%s, arquivo=%d)",
+                protocolo,
+                index,
+            )
+            for uploaded_key, _, _ in uploaded:
+                try:
+                    b2_delete_all_versions(uploaded_key)
+                except Exception:
+                    current_app.logger.exception(
+                        "Falha ao remover anexo parcial do B2 "
+                        "(protocolo=%s)",
+                        protocolo,
+                    )
+            return (
+                "Não foi possível enviar os documentos ao armazenamento. "
+                "Tente novamente; se o erro persistir, contate o suporte.",
+                502,
+            )
         uploaded.append(
             (obj_key, f.filename, f.mimetype or "application/octet-stream"))
 
-    # ====== cria/atualiza processo por PROTOCOLO ======
-    processo = DepProcesso.query.filter_by(protocolo=protocolo).first()
+    try:
+        # ====== cria/atualiza processo por PROTOCOLO ======
+        processo = DepProcesso.query.filter_by(protocolo=protocolo).first()
 
-    if not processo:
-        processo = DepProcesso(
-            protocolo=protocolo,
-            militar_id=militar_id,
-            ano=ano,
+        if not processo:
+            processo = DepProcesso(
+                protocolo=protocolo,
+                militar_id=militar_id,
+                ano=ano,
+                status="ENVIADO",
+                enviado_em=now_manaus(),
+                enviado_ip=ip,
+                dependente_nome=dep_nome,
+                grau_parentesco=grau,
+                idade_dependente=idade,
+                dependentes_json=dependentes,
+                dependentes_qtd=len(dependentes),
+                fim_imposto_renda=fim_ir,
+                fim_cadastro_sistema=fim_cfpp,
+            )
+            database.session.add(processo)
+            database.session.flush()
 
-            status="ENVIADO",
-            enviado_em=now_manaus(),
-            enviado_ip=ip,
+        for obj_key, nome, ctype in uploaded:
+            database.session.add(DepArquivo(
+                processo_id=processo.id,
+                object_key=obj_key,
+                nome_original=nome,
+                content_type=ctype,
+                criado_em=now_manaus(),
+            ))
 
-            dependente_nome=dep_nome,
-            grau_parentesco=grau,
-            idade_dependente=idade,
-
-            dependentes_json=dependentes,          # ✅ agora existe na model/tabela
-            # ✅ agora existe na model/tabela
-            dependentes_qtd=len(dependentes),
-
-            fim_imposto_renda=fim_ir,
-            fim_cadastro_sistema=fim_cfpp,
-        )
-        database.session.add(processo)
-        database.session.flush()  # garante processo.id
-
-    # grava arquivos
-    for obj_key, nome, ctype in uploaded:
-        database.session.add(DepArquivo(
+        database.session.add(DepAcaoLog(
             processo_id=processo.id,
-            object_key=obj_key,
-            nome_original=nome,
-            content_type=ctype,
+            acao="MILITAR_ENVIOU",
+            user_id=current_user.id,
+            ip=ip,
             criado_em=now_manaus(),
+            detalhes=f"Enviou {len(uploaded)} arquivo(s).",
         ))
 
-    # log
-    database.session.add(DepAcaoLog(
-        processo_id=processo.id,
-        acao="MILITAR_ENVIOU",
-        user_id=current_user.id,
-        ip=ip,
-        criado_em=now_manaus(),
-        detalhes=f"Enviou {len(uploaded)} arquivo(s).",
-    ))
-
-    database.session.commit()
+        database.session.commit()
+    except Exception:
+        database.session.rollback()
+        current_app.logger.exception(
+            "Falha ao gravar envio de anexos de dependente no banco "
+            "(protocolo=%s, quantidade=%d)",
+            protocolo,
+            len(uploaded),
+        )
+        for uploaded_key, _, _ in uploaded:
+            try:
+                b2_delete_all_versions(uploaded_key)
+            except Exception:
+                current_app.logger.exception(
+                    "Falha ao remover anexo sem registro no banco "
+                    "(protocolo=%s)",
+                    protocolo,
+                )
+        return (
+            "Os documentos foram recebidos, mas não foi possível concluir "
+            "o registro do processo. Tente novamente; se o erro persistir, "
+            "contate o suporte.",
+            500,
+        )
 
     return render_template(
         "dependentes/upload_sucesso.html",
