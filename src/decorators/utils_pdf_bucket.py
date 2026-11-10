@@ -8,11 +8,13 @@ import unicodedata
 import urllib.parse
 import logging
 import os
+from urllib.parse import urlsplit
 
 import requests
 from werkzeug.utils import secure_filename
 
 API_BUCKET_URL = "https://www.cbm.am.gov.br/api"
+API_BUCKET_HOSTS = {"www.cbm.am.gov.br", "cbm.am.gov.br"}
 API_BUCKET_KEY_ENV = "PDF_BUCKET_API_KEY"
 logger = logging.getLogger(__name__)
 
@@ -102,3 +104,24 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
     except Exception as e:
         logger.exception("Falha ao enviar PDF para o servidor de arquivos")
         return False, f"Falha de conexão: {str(e)}"
+
+
+def baixar_pdf_do_servidor(url):
+    """Baixa um PDF da API CBMAM, aceitando apenas a URL do endpoint oficial."""
+    parsed_url = urlsplit(url or "")
+    if (
+        parsed_url.scheme != "https"
+        or parsed_url.hostname not in API_BUCKET_HOSTS
+        or parsed_url.path != "/api/download_pdf.php"
+    ):
+        raise ValueError("URL de download de PDF inválida.")
+
+    resposta = requests.get(url, timeout=(10, 60), allow_redirects=False)
+    if not 200 <= resposta.status_code < 300:
+        resposta.raise_for_status()
+        raise requests.HTTPError(
+            f"Download da API retornou HTTP {resposta.status_code}."
+        )
+    if not resposta.content.startswith(b"%PDF-"):
+        raise ValueError("A API não retornou um documento PDF válido.")
+    return resposta.content

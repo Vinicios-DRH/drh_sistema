@@ -15,10 +15,12 @@ from src.decorators.docx_fill import docx_fill_template_dependentes
 from src.decorators.utils_acumulo import (
     b2_bucket_name,
     b2_client,
-    b2_upload_fileobj,
-    b2_delete_all_versions,
-    build_prefix_dependente,
     _secret_key,
+)
+from src.decorators.utils_pdf_bucket import (
+    baixar_pdf_do_servidor,
+    sanitizar_nome,
+    upload_pdf_para_servidor,
 )
 
 from src import database
@@ -337,20 +339,42 @@ def militar_reenvio_post(processo_id):
 
     ip = get_client_ip()
 
-    key_prefix = build_prefix_dependente(p.ano, p.militar_id, p.protocolo)
-
-    for f in files:
+    subfolder = (
+        f"dependentes/{p.ano}/{p.militar_id}/{sanitizar_nome(p.protocolo)}"
+    )
+    for index, f in enumerate(files, start=1):
         if not f or not f.filename:
             continue
 
-        obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
+        nome_base = (
+            f"{sanitizar_nome(p.protocolo)}_{index}_{uuid4().hex}"
+        )
+        sucesso, resultado = upload_pdf_para_servidor(
+            f, subfolder, novo_nome=nome_base
+        )
+        if not sucesso:
+            current_app.logger.error(
+                "Falha ao enviar reanexo de dependente "
+                "(processo=%s, arquivo=%d): %s",
+                p.id,
+                index,
+                resultado,
+            )
+            flash(
+                "Não foi possível enviar os documentos ao armazenamento. "
+                "Tente novamente ou contate o suporte.",
+                "danger",
+            )
+            return redirect(
+                url_for("dep.militar_reenvio_page", processo_id=p.id)
+            )
 
         ctype = f.mimetype or "application/octet-stream"
 
         # registra arquivo no banco
         a = DepArquivo(
             processo_id=p.id,
-            object_key=obj_key,
+            object_key=resultado,
             nome_original=f.filename,
             content_type=ctype,
             criado_em=now_manaus(),
@@ -416,37 +440,33 @@ def upload_post():
         return "Nenhum arquivo enviado.", 400
 
     ip = get_client_ip()
-    key_prefix = build_prefix_dependente(int(ano), int(militar_id), protocolo)
-
     uploaded = []
     for index, f in enumerate(files, start=1):
         if not f or not f.filename:
             continue
-        try:
-            obj_key = b2_upload_fileobj(f, key_prefix=key_prefix)
-        except Exception:
-            current_app.logger.exception(
-                "Falha ao enviar anexo de dependente ao B2 "
-                "(protocolo=%s, arquivo=%d)",
+        subfolder = (
+            f"dependentes/{int(ano)}/{int(militar_id)}/"
+            f"{sanitizar_nome(protocolo)}"
+        )
+        nome_base = f"{sanitizar_nome(protocolo)}_{index}_{uuid4().hex}"
+        sucesso, resultado = upload_pdf_para_servidor(
+            f, subfolder, novo_nome=nome_base
+        )
+        if not sucesso:
+            current_app.logger.error(
+                "Falha ao enviar anexo de dependente "
+                "(protocolo=%s, arquivo=%d): %s",
                 protocolo,
                 index,
+                resultado,
             )
-            for uploaded_key, _, _ in uploaded:
-                try:
-                    b2_delete_all_versions(uploaded_key)
-                except Exception:
-                    current_app.logger.exception(
-                        "Falha ao remover anexo parcial do B2 "
-                        "(protocolo=%s)",
-                        protocolo,
-                    )
             return (
                 "Não foi possível enviar os documentos ao armazenamento. "
                 "Tente novamente; se o erro persistir, contate o suporte.",
                 502,
             )
         uploaded.append(
-            (obj_key, f.filename, f.mimetype or "application/octet-stream"))
+            (resultado, f.filename, f.mimetype or "application/pdf"))
 
     try:
         # ====== cria/atualiza processo por PROTOCOLO ======
@@ -498,15 +518,6 @@ def upload_post():
             protocolo,
             len(uploaded),
         )
-        for uploaded_key, _, _ in uploaded:
-            try:
-                b2_delete_all_versions(uploaded_key)
-            except Exception:
-                current_app.logger.exception(
-                    "Falha ao remover anexo sem registro no banco "
-                    "(protocolo=%s)",
-                    protocolo,
-                )
         return (
             "Os documentos foram recebidos, mas não foi possível concluir "
             "o registro do processo. Tente novamente; se o erro persistir, "
@@ -622,16 +633,23 @@ def drh_download_zip(processo_id):
         flash("Nenhum arquivo anexado a este processo.", "warning")
         return redirect(url_for("dep.drh_detalhe_processo", processo_id=p.id))
 
-    # Baixa pelo cliente S3 do servidor, sem depender de uma segunda requisição
-    # HTTP para a URL assinada do storage.
+    # Baixa pela API CBMAM. Registros antigos que ainda guardam chaves B2
+    # continuam compatíveis até que os processos anteriores sejam arquivados.
     memory_file = BytesIO()
     try:
-        s3 = b2_client()
+        s3 = None
         with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
             for a in p.arquivos:
-                obj = s3.get_object(Bucket=b2_bucket_name(), Key=a.object_key)
-                with obj["Body"] as body:
-                    data = body.read()
+                if (a.object_key or "").startswith("https://"):
+                    data = baixar_pdf_do_servidor(a.object_key)
+                else:
+                    if s3 is None:
+                        s3 = b2_client()
+                    obj = s3.get_object(
+                        Bucket=b2_bucket_name(), Key=a.object_key
+                    )
+                    with obj["Body"] as body:
+                        data = body.read()
 
                 nome_original = os.path.basename(
                     (a.nome_original or "arquivo").replace("\\", "/")
