@@ -640,13 +640,14 @@ def drh_download_zip(processo_id):
         s3 = None
         with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
             for a in p.arquivos:
-                if (a.object_key or "").startswith("https://"):
-                    data = baixar_pdf_do_servidor(a.object_key)
+                referencia = (a.object_key or "").strip()
+                if referencia.lower().startswith(("http://", "https://")):
+                    data = baixar_pdf_do_servidor(referencia)
                 else:
                     if s3 is None:
                         s3 = b2_client()
                     obj = s3.get_object(
-                        Bucket=b2_bucket_name(), Key=a.object_key
+                        Bucket=b2_bucket_name(), Key=referencia
                     )
                     with obj["Body"] as body:
                         data = body.read()

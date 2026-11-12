@@ -8,7 +8,7 @@ import unicodedata
 import urllib.parse
 import logging
 import os
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import requests
 from werkzeug.utils import secure_filename
@@ -95,6 +95,8 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
                         f"{API_BUCKET_URL}/download_pdf.php?"
                         f"{urllib.parse.urlencode({'folder': subfolder, 'file': nome_arquivo_retornado})}"
                     )
+                else:
+                    url_final = _normalizar_url_download(url_final)
                 return True, url_final
             else:
                 return False, dados.get("message", "API retornou 200, mas success=False.")
@@ -106,22 +108,41 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
         return False, f"Falha de conexão: {str(e)}"
 
 
-def baixar_pdf_do_servidor(url):
-    """Baixa um PDF da API CBMAM, aceitando apenas a URL do endpoint oficial."""
-    parsed_url = urlsplit(url or "")
+def _normalizar_url_download(url):
+    url = urljoin(f"{API_BUCKET_URL}/", str(url or "").strip())
+    parsed_url = urlsplit(url)
     if (
-        parsed_url.scheme != "https"
+        parsed_url.scheme not in {"http", "https"}
         or parsed_url.hostname not in API_BUCKET_HOSTS
-        or parsed_url.path != "/api/download_pdf.php"
+        or parsed_url.path not in {
+            "/api/download_pdf.php",
+            "/download_pdf.php",
+        }
     ):
-        raise ValueError("URL de download de PDF inválida.")
+        raise ValueError("A API retornou uma URL de download inválida.")
 
-    resposta = requests.get(url, timeout=(10, 60), allow_redirects=False)
+    # Links antigos da API foram gravados em HTTP; force HTTPS ao reutilizá-los.
+    return parsed_url._replace(scheme="https").geturl()
+
+
+def baixar_pdf_do_servidor(url):
+    """Baixa um PDF da API CBMAM usando a mesma credencial dos uploads."""
+    api_key = os.getenv(API_BUCKET_KEY_ENV, "").strip()
+    if not api_key:
+        raise RuntimeError(f"Variável de ambiente {API_BUCKET_KEY_ENV} ausente.")
+
+    url = _normalizar_url_download(url)
+    resposta = requests.get(
+        url,
+        headers={"X-API-Key": api_key},
+        timeout=(10, 60),
+        allow_redirects=False,
+    )
     if not 200 <= resposta.status_code < 300:
         resposta.raise_for_status()
         raise requests.HTTPError(
             f"Download da API retornou HTTP {resposta.status_code}."
         )
-    if not resposta.content.startswith(b"%PDF-"):
+    if b"%PDF-" not in resposta.content[:1024]:
         raise ValueError("A API não retornou um documento PDF válido.")
     return resposta.content
