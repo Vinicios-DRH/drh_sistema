@@ -1,14 +1,60 @@
 # utils_acumulo.py
 import os
+import time
 import uuid
 import mimetypes
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
 import boto3
+import botocore.auth
+import botocore.utils
 from botocore.config import Config
 from io import BytesIO
 from uuid import uuid4
+import requests
 from werkzeug.utils import secure_filename
+
+# --------- Ajuste automático de Clock Skew para SigV4 (Backblaze B2) ---------
+_b2_clock_offset = timedelta(0)
+_b2_clock_synced_at = 0.0
+
+
+def _patched_get_current_datetime(remove_tzinfo=True):
+    dt = datetime.now(timezone.utc) + _b2_clock_offset
+    if remove_tzinfo:
+        dt = dt.replace(tzinfo=None)
+    return dt
+
+
+botocore.auth.get_current_datetime = _patched_get_current_datetime
+botocore.utils.get_current_datetime = _patched_get_current_datetime
+
+
+def _sync_b2_clock(endpoint: str):
+    """Sincroniza o offset de relógio com o endpoint S3/B2 para evitar falhas
+    de assinatura SigV4 ('Timestamp is in the future') se o relógio do SO desalinhar."""
+    global _b2_clock_offset, _b2_clock_synced_at
+    now_mono = time.monotonic()
+    if _b2_clock_synced_at and (now_mono - _b2_clock_synced_at) < 300:
+        return
+    try:
+        resp = requests.head(endpoint, timeout=5)
+        date_hdr = resp.headers.get("Date")
+        if date_hdr:
+            server_dt = parsedate_to_datetime(date_hdr)
+            if server_dt.tzinfo is None:
+                server_dt = server_dt.replace(tzinfo=timezone.utc)
+            else:
+                server_dt = server_dt.astimezone(timezone.utc)
+            local_dt = datetime.now(timezone.utc)
+            diff = server_dt - local_dt
+            _b2_clock_offset = diff if abs(diff.total_seconds()) > 60 else timedelta(0)
+            _b2_clock_synced_at = now_mono
+    except Exception:
+        pass
+
 
 # --------- Credenciais / Config ---------
 
@@ -42,6 +88,8 @@ def b2_client():
     app_key = _required_env("B2_APP_KEY")
     region = os.getenv("B2_REGION", "").strip(
     ) or endpoint.split("//")[1].split(".")[1]
+
+    _sync_b2_clock(endpoint)
 
     cfg = Config(signature_version="s3v4", s3={"addressing_style": "path"})
     return boto3.client(

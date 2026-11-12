@@ -299,8 +299,22 @@ def militar_acompanhar():
          .order_by(desc(DepProcesso.enviado_em), desc(DepProcesso.id)))
 
     pag = q.paginate(page=page, per_page=per_page, error_out=False)
+    p_atual = pag.items[0] if pag and pag.items else None
+    arquivos = [
+        {
+            "id": a.id,
+            "nome": a.nome_original or "Arquivo",
+            "key": a.object_key or "",
+        }
+        for a in (p_atual.arquivos if p_atual else [])
+    ]
 
-    return render_template("dependentes/acompanhar_lista.html", militar=militar, pag=pag)
+    return render_template(
+        "dependentes/acompanhar_lista.html",
+        militar=militar,
+        pag=pag,
+        arquivos=arquivos,
+    )
 
 
 @bp_dep.get("/dependentes/reenvio/<int:processo_id>")
@@ -614,6 +628,22 @@ def get_client_ip():
     return request.remote_addr
 
 
+def _obter_bytes_arquivo_dependente(arquivo: DepArquivo, s3=None):
+    referencia = (arquivo.object_key or "").strip()
+    if not referencia:
+        raise ValueError(f"Arquivo {arquivo.id} sem referência de armazenamento.")
+
+    ref_lower = referencia.lower()
+    if ref_lower.startswith(("http://", "https://")) or "download_pdf.php" in ref_lower:
+        return baixar_pdf_do_servidor(referencia), s3
+
+    if s3 is None:
+        s3 = b2_client()
+    obj = s3.get_object(Bucket=b2_bucket_name(), Key=referencia)
+    with obj["Body"] as body:
+        return body.read(), s3
+
+
 @bp_dep.get("/drh/dependentes/<int:processo_id>")
 @login_required
 @checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
@@ -621,6 +651,48 @@ def drh_detalhe_processo(processo_id):
     p = DepProcesso.query.get_or_404(processo_id)
     arquivos = p.arquivos
     return render_template("dp/dep_detalhe.html", p=p, arquivos=arquivos)
+
+
+@bp_dep.get("/drh/dependentes/<int:processo_id>/arquivo/<int:arquivo_id>")
+@login_required
+@checar_ocupacao('DIRETOR DRH', 'CHEFE DRH', 'SUPER USER', 'DIRETOR', 'CHEFE', 'DRH', 'ATUALIZACAO CADASTRAL')
+def drh_download_arquivo(processo_id, arquivo_id):
+    p = DepProcesso.query.get_or_404(processo_id)
+    arquivo = DepArquivo.query.filter_by(
+        id=arquivo_id, processo_id=p.id
+    ).first_or_404()
+
+    try:
+        data, _ = _obter_bytes_arquivo_dependente(arquivo)
+    except Exception:
+        current_app.logger.exception(
+            "Falha ao baixar arquivo %s do processo de dependentes %s",
+            arquivo.id,
+            p.id,
+        )
+        return (
+            "Não foi possível obter o arquivo do armazenamento. "
+            "Tente novamente ou contate o suporte.",
+            502,
+        )
+
+    nome_original = os.path.basename(
+        (arquivo.nome_original or f"arquivo_{arquivo.id}.pdf").replace("\\", "/")
+    )
+    if not os.path.splitext(nome_original)[1]:
+        nome_original = f"{nome_original}.pdf"
+
+    forcar_download = request.args.get("download") in ("1", "true", "sim")
+    ctype = (arquivo.content_type or "").strip() or "application/pdf"
+    if data[:5] == b"%PDF-":
+        ctype = "application/pdf"
+
+    return send_file(
+        BytesIO(data),
+        as_attachment=forcar_download,
+        download_name=nome_original,
+        mimetype=ctype,
+    )
 
 
 @bp_dep.get("/drh/dependentes/<int:processo_id>/download-zip")
@@ -640,20 +712,10 @@ def drh_download_zip(processo_id):
         s3 = None
         with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
             for a in p.arquivos:
-                referencia = (a.object_key or "").strip()
-                if referencia.lower().startswith(("http://", "https://")):
-                    data = baixar_pdf_do_servidor(referencia)
-                else:
-                    if s3 is None:
-                        s3 = b2_client()
-                    obj = s3.get_object(
-                        Bucket=b2_bucket_name(), Key=referencia
-                    )
-                    with obj["Body"] as body:
-                        data = body.read()
+                data, s3 = _obter_bytes_arquivo_dependente(a, s3=s3)
 
                 nome_original = os.path.basename(
-                    (a.nome_original or "arquivo").replace("\\", "/")
+                    (a.nome_original or "arquivo.pdf").replace("\\", "/")
                 )
                 zf.writestr(f"{a.id}-{nome_original}", data)
     except Exception:

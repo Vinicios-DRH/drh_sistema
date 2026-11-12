@@ -171,10 +171,11 @@
                         <span>📎</span>
                         <div>
                             <div class="fw-semibold">Clique para escolher ou arraste e solte aqui</div>
-                            <div class="small text-muted">Você pode selecionar múltiplos arquivos.</div>
+                            <div class="small text-muted">Você pode selecionar múltiplos arquivos (Apenas formato PDF).</div>
                         </div>
                     </div>
-                    <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple required>
+                    <input id="arquivos" class="form-control d-none" type="file" name="arquivos" multiple
+                        accept=".pdf,application/pdf" required>
                 </div>
 
                 <!-- Lista de arquivos escolhidos -->

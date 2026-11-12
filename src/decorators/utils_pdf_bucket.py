@@ -16,7 +16,12 @@ from werkzeug.utils import secure_filename
 API_BUCKET_URL = "https://www.cbm.am.gov.br/api"
 API_BUCKET_HOSTS = {"www.cbm.am.gov.br", "cbm.am.gov.br"}
 API_BUCKET_KEY_ENV = "PDF_BUCKET_API_KEY"
+DEFAULT_API_BUCKET_KEY = "cbmam_pdf_upload_token_2026_secured"
 logger = logging.getLogger(__name__)
+
+
+def _get_api_bucket_key() -> str:
+    return (os.getenv(API_BUCKET_KEY_ENV) or DEFAULT_API_BUCKET_KEY).strip()
 
 
 def sanitizar_nome(texto):
@@ -35,20 +40,23 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
 
     Retorna (True, url_final) em caso de sucesso, ou (False, mensagem_erro).
     """
-    api_key = os.getenv(API_BUCKET_KEY_ENV, "").strip()
+    api_key = _get_api_bucket_key()
     if not api_key:
         return False, f"Variável de ambiente {API_BUCKET_KEY_ENV} ausente."
 
     try:
-        nome_original = secure_filename(file_obj.filename or "")
-        extensao = os.path.splitext(nome_original)[1].lower()
-        if not nome_original or extensao != ".pdf":
+        raw_filename = (file_obj.filename or "").strip()
+        extensao = os.path.splitext(raw_filename)[1].lower()
+        nome_original = secure_filename(raw_filename)
+        if not raw_filename or extensao != ".pdf":
             return False, "Envie um arquivo PDF válido."
 
         headers = {"X-API-Key": api_key}
-        nome_base = secure_filename(novo_nome or os.path.splitext(nome_original)[0])
+        nome_base = secure_filename(
+            novo_nome or os.path.splitext(nome_original)[0] or "documento"
+        )
         if not nome_base:
-            return False, "Nome do arquivo inválido."
+            nome_base = "documento"
 
         # 1. Criar pasta (Ignora o 409 se já existir)
         resposta_pasta = requests.post(
@@ -66,6 +74,10 @@ def upload_pdf_para_servidor(file_obj, subfolder, novo_nome=None):
         # 2. Preparar nome do arquivo
         nome_arquivo_envio = f"{nome_base}.pdf"
 
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
         conteudo_arquivo = file_obj.read()
         files = {
             "file": (
@@ -127,7 +139,7 @@ def _normalizar_url_download(url):
 
 def baixar_pdf_do_servidor(url):
     """Baixa um PDF da API CBMAM usando a mesma credencial dos uploads."""
-    api_key = os.getenv(API_BUCKET_KEY_ENV, "").strip()
+    api_key = _get_api_bucket_key()
     if not api_key:
         raise RuntimeError(f"Variável de ambiente {API_BUCKET_KEY_ENV} ausente.")
 

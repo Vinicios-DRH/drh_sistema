@@ -299,7 +299,7 @@
     <div class="head">
       <div>
         <div class="fw-bold">Arquivos anexados ({{ arquivos|length }})</div>
-        <div class="muted small">Links temporários (expiram). Abra e confira antes de finalizar.</div>
+        <div class="muted small">Abra individualmente para conferência ou baixe todos em formato ZIP.</div>
       </div>
       <div class="btns">
         {% if arquivos|length > 0 %}
@@ -313,6 +313,27 @@
       </div>
     </div>
 
+    {% if arquivos|length == 0 %}
+    <div class="p-4 text-center muted">Nenhum arquivo registrado neste protocolo.</div>
+    {% else %}
+    {% for a in arquivos %}
+    <div class="file-row">
+      <div style="min-width:0;">
+        <div class="file-name truncate">{{ a.nome_original or "Arquivo" }}</div>
+        <div class="file-key d-none fileKey">{{ a.object_key }}</div>
+      </div>
+      <div class="btns">
+        <a class="btn btn-sm btn-primary"
+          href="{{ url_for('dep.drh_download_arquivo', processo_id=p.id, arquivo_id=a.id) }}" target="_blank"
+          rel="noopener">Abrir</a>
+        <a class="btn btn-sm btn-outline-primary"
+          href="{{ url_for('dep.drh_download_arquivo', processo_id=p.id, arquivo_id=a.id, download=1) }}">Baixar</a>
+        <button class="btn btn-sm btn-outline-secondary" type="button"
+          onclick="copyText('{{ a.object_key|e }}')">Copiar key</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
   </div>
 
   <!-- MODAL INDEFERIR -->
