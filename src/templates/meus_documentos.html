@@ -220,7 +220,7 @@
                     <span class="badge badge-new ms-2">Novo</span>
                     {% endif %}
                   </td>
-                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') if d.criado_em else '—' }}</td>
                   <td>
                     <span class="badge badge-available">Disponível</span>
                   </td>
@@ -283,8 +283,8 @@
                 {% for d in baixados %}
                 <tr>
                   <td class="fw-semibold">{{ d.nome_original }}</td>
-                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-                  <td class="text-nowrap">{{ d.baixado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td class="text-nowrap">{{ d.criado_em.strftime('%d/%m/%Y %H:%M') if d.criado_em else '—' }}</td>
+                  <td class="text-nowrap">{{ d.baixado_em.strftime('%d/%m/%Y %H:%M') if d.baixado_em else '—' }}</td>
                   <td class="small text-truncate" style="max-width: 420px;">
                     {{ d.observacao or '—' }}
                   </td>

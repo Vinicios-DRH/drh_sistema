@@ -620,36 +620,41 @@ def download_documento(doc_id):
 
     resp = Response(stream_with_context(stream()),
                     mimetype=doc.content_type or "application/octet-stream")
-    nome_download = secure_filename(doc.nome_original or "") or f"documento-{doc.id}"
+    raw_name = (doc.nome_original or "").strip()
+    ext = os.path.splitext(raw_name)[1]
+    nome_download = secure_filename(raw_name) or f"documento-{doc.id}{ext}"
+    if ext and not nome_download.lower().endswith(ext.lower()):
+        nome_download = f"{nome_download}{ext}"
     resp.headers["Content-Disposition"] = f'attachment; filename="{nome_download}"'
     if obj.get("ContentLength") is not None:
         resp.content_length = obj["ContentLength"]
 
     # >>> pegue o app e dados que você precisa ANTES de fechar o contexto
-    app = current_app._get_current_object()
+    app_obj = current_app._get_current_object()
     key = doc.object_key
     doc_id = doc.id
 
     @resp.call_on_close
-    def _cleanup(_app=app, _key=key, _doc_id=doc_id):
+    def _cleanup(_app=app_obj, _key=key, _doc_id=doc_id):
         if not transferencia_completa:
             return
 
         # reabre contexto da aplicação
         with _app.app_context():
             try:
-                b2_delete_all_versions(_key)  # precisa permissão de delete
-            except Exception:
-                _app.logger.exception(
-                    "Falha ao deletar objeto no B2 após download")
-            try:
                 # atualiza sem manter a instância anexada
+                agora_mao = datetime.now(TZ_MANAUS).replace(tzinfo=None)
                 DocumentoMilitar.query.filter_by(id=_doc_id)\
-                    .update({"baixado_em": datetime.utcnow()})
+                    .update({"baixado_em": agora_mao})
                 database.session.commit()
             except Exception:
                 database.session.rollback()
                 _app.logger.exception("Falha ao marcar doc como baixado")
+            try:
+                b2_delete_all_versions(_key)  # precisa permissão de delete
+            except Exception:
+                _app.logger.exception(
+                    "Falha ao deletar objeto no B2 após download")
 
     return resp
 

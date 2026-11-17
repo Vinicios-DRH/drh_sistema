@@ -46,13 +46,21 @@ def _agora_manaus():
 
 
 def _pode_pegar_doc(doc: DocumentoMilitar) -> bool:
-    # Só o dono (CPF) ou alguém com poder (se quiser permitir admins):
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+    # Só o dono (CPF ou militar_id) ou alguém com poder (admins/DRH):
     if current_user.cpf == doc.destinatario_cpf:
+        return True
+    user_cpf = _somente_numeros(getattr(current_user, "cpf", ""))
+    doc_cpf = _somente_numeros(getattr(doc, "destinatario_cpf", ""))
+    if user_cpf and doc_cpf and user_cpf == doc_cpf:
+        return True
+    if getattr(current_user, "militar_id", None) and current_user.militar_id == doc.militar_id:
         return True
     # Exemplo: permitir DRH baixar em nome do usuário (opcional)
     try:
         # gambizinha pra reutilizar
-        return checar_ocupacao('DRH', 'SUPER USER')(lambda: True)() is True
+        return checar_ocupacao('DRH', 'SUPER USER', 'DIRETOR DRH', 'CHEFE DRH')(lambda: True)() is True
     except Exception:
         return False
 
@@ -667,8 +675,10 @@ def _to_manaus(dt):
     if dt is None:
         return None
     if dt.tzinfo is None:
-        # tratamos como horário local salvo sem tz
-        return MANAUS_TZ.localize(dt)
+        # tratamos como horário local salvo sem tz (compatível com ZoneInfo e pytz)
+        if hasattr(MANAUS_TZ, "localize"):
+            return MANAUS_TZ.localize(dt)
+        return dt.replace(tzinfo=MANAUS_TZ)
     return dt.astimezone(MANAUS_TZ)            # converte para Manaus
 
 
