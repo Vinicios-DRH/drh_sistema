@@ -1176,8 +1176,7 @@ class FormLicencas(FlaskForm):
     numero_bg_curso = StringField("Número do BG", validators=[Optional()])
     data_extenso_curso = StringField(
         "Data por extenso",
-        validators=[Optional()],
-        render_kw={"readonly": True}
+        validators=[Optional()]
     )
 
     # Restrições marcadas no parecer (checkboxes) — os ids vêm no request como

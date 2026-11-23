@@ -482,8 +482,8 @@
 
                     <div class="col-lg-5 d-none" id="grupo_data_extenso_curso">
                         <label class="form-label">{{ form.data_extenso_curso.label.text }}</label>
-                        {{ form.data_extenso_curso(class="form-control jm-readonly", id="data_extenso_curso",
-                        readonly=true, value=data_extenso_hoje) }}
+                        {{ form.data_extenso_curso(class="form-control", id="data_extenso_curso",
+                        placeholder="Ex.: 15 DE JANEIRO DE 2026") }}
                     </div>
 
                     <div class="col-lg-5 d-none" id="grupo_portaria">
@@ -1045,7 +1045,12 @@
 
             if (ehPontual) {
                 montarResultados(tipo);
-                dataExtensoCurso.value = dataPorExtenso(dataSessao.value);
+                const dataExtensoLivre = tipo === "PROMOCAO";
+                dataExtensoCurso.readOnly = !dataExtensoLivre;
+                dataExtensoCurso.classList.toggle("jm-readonly", !dataExtensoLivre);
+                if (!dataExtensoLivre) {
+                    dataExtensoCurso.value = dataPorExtenso(dataSessao.value);
+                }
                 dataTermino.value = "";
                 qtdDias.readOnly = false;
                 alertaInspecao.classList.add("d-none");
@@ -1147,7 +1152,9 @@
         });
 
         dataSessao.addEventListener("change", function () {
-            dataExtensoCurso.value = dataPorExtenso(this.value);
+            if (tipoLicenca.value !== "PROMOCAO") {
+                dataExtensoCurso.value = dataPorExtenso(this.value);
+            }
 
             // Conveniência: a data da licença normalmente é a da sessão.
             if (!dataInicio.value) {
@@ -1172,7 +1179,12 @@
             }
         });
 
-        tipoLicenca.addEventListener("change", calcularTerminoEStatus);
+        tipoLicenca.addEventListener("change", function () {
+            if (this.value === "PROMOCAO") {
+                dataExtensoCurso.value = "";
+            }
+            calcularTerminoEStatus();
+        });
         qtdDias.addEventListener("input", calcularTerminoEStatus);
         dataInicio.addEventListener("change", calcularTerminoEStatus);
 

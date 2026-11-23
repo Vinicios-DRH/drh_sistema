@@ -372,7 +372,11 @@ def _calcular_campos_por_tipo(form, tipo, data_sessao, status_atual):
         campos["data_inicio"] = data_sessao
         campos["data_fim"] = data_sessao
         campos["status_registro"] = resultado
-        campos["data_extenso_curso"] = data_por_extenso_maiuscula(data_sessao)
+        if tipo == "PROMOCAO":
+            campos["data_extenso_curso"] = (
+                (form.data_extenso_curso.data or "").strip() or None)
+        else:
+            campos["data_extenso_curso"] = data_por_extenso_maiuscula(data_sessao)
 
     elif tipo == "AGREGADO":
         data_inicio = form.data_inicio.data or data_sessao
