@@ -967,6 +967,19 @@ não monta URL e não libera criação de novas declarações. #}
                                 </span>
                             </a>
 
+                            <a class="hua-action-card" href="{{ url_for('pesquisa_institucional_form') }}">
+                                <span class="hua-action-icon">
+                                    <i class="bi bi-bar-chart-steps"></i>
+                                </span>
+
+                                <span>
+                                    <span class="hua-action-title">Pesquisa Institucional (LNTD)</span>
+                                    <span class="hua-action-text">
+                                        Avalie de 1 a 5 a relevância dos cursos da ESASP para o CBMAM.
+                                    </span>
+                                </span>
+                            </a>
+
                             {% if url_nova_declaracao %}
                             <a class="hua-action-card" href="{{ url_nova_declaracao }}">
                                 <span class="hua-action-icon">
@@ -1332,6 +1345,61 @@ não monta URL e não libera criação de novas declarações. #}
                                 <i class="bi bi-mortarboard"></i>
                                 Ver meus cursos
                             </a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="hua-panel mb-4">
+                    <div class="hua-panel-header">
+                        <div class="hua-panel-heading">
+                            <span class="hua-panel-heading-icon">
+                                <i class="bi bi-clipboard2-pulse"></i>
+                            </span>
+
+                            <div>
+                                <h2 class="hua-panel-title">Pesquisa Institucional (ESASP)</h2>
+                                <p class="hua-panel-subtitle">
+                                    Levantamento de Necessidades de Treinamento e Desenvolvimento (LNTD).
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if pesquisa_inst_respondida %}
+                        <span class="hua-status-pill hua-status-validado">
+                            <i class="bi bi-check2-circle"></i>
+                            Respondida
+                        </span>
+                        {% else %}
+                        <span class="hua-status-pill hua-status-pendente">
+                            <i class="bi bi-hourglass-split"></i>
+                            Disponível
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="hua-panel-body">
+                        {% if pesquisa_inst_respondida %}
+                        <div class="hua-empty">
+                            Sua avaliação foi registrada{% if pesquisa_inst_data %} em {{ pesquisa_inst_data.strftime('%d/%m/%Y às %H:%M') }}{% endif %}. Você pode revisar suas notas a qualquer momento.
+                        </div>
+                        {% else %}
+                        <div class="hua-empty">
+                            Avalie de 1 a 5 a relevância dos cursos das trilhas da ESASP para o CBMAM e sugira novos treinamentos.
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-3 d-grid gap-2">
+                            <a class="hua-panel-button w-100" href="{{ url_for('pesquisa_institucional_form') }}">
+                                <i class="bi bi-ui-checks"></i>
+                                {% if pesquisa_inst_respondida %}Revisar minha avaliação{% else %}Responder pesquisa institucional{% endif %}
+                            </a>
+                            {% if pode_ver_resultados_pesquisa %}
+                            <a class="hua-panel-button hua-panel-button-outline w-100"
+                                href="{{ url_for('pesquisa_institucional_resultados') }}">
+                                <i class="bi bi-bar-chart-fill"></i>
+                                Painel de Resultados (BM-3)
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </article>

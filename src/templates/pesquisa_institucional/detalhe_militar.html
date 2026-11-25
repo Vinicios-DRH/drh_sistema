@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  body {
+    background: linear-gradient(135deg, #0a1628 0%, #0f294a 60%, #0b3a63 100%) fixed;
+  }
+
+  .det-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px 14px 60px;
+  }
+
+  .det-card {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+
+  .nota-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.84rem;
+    color: #fff;
+  }
+
+  html[data-theme="dark"] .det-card {
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="det-wrap">
+
+  <!-- Cabeçalho do Militar -->
+  <div class="det-card p-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <span class="badge bg-primary mb-2">AVALIAÇÃO INDIVIDUAL • LNTD / ESASP {{ detalhe.resposta.ano_referencia }}</span>
+        <h1 class="h4 fw-bold mb-1">
+          {{ detalhe.posto_grad }} {{ detalhe.nome_completo }}
+        </h1>
+        <div class="text-secondary small">
+          <strong>Nome de Guerra:</strong> {{ detalhe.nome_guerra }} •
+          <strong>Matrícula:</strong> {{ detalhe.matricula }} •
+          <strong>OBM:</strong> {{ detalhe.obm_sigla }} •
+          <strong>Enviado em:</strong> {{ detalhe.atualizado_em.strftime('%d/%m/%Y às %H:%M') if detalhe.atualizado_em else '—' }}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('pesquisa_institucional_resultados', aba='militares') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Voltar à Lista de Militares
+        </a>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Resumo estatístico das notas atribuídas por este militar -->
+    <div class="row g-2 text-center">
+      <div class="col-6 col-md-2">
+        <div class="p-2 rounded-3 bg-light border">
+          <div class="fw-bold fs-5 text-dark">{{ "%.2f"|format(detalhe.media_total) }}</div>
+          <div class="small text-muted">Média Geral</div>
+        </div>
+      </div>
+      {% for n_val in [5, 4, 3, 2, 1] %}
+      <div class="col-6 col-md-2">
+        <div class="p-2 rounded-3 border" style="background: rgba(248, 250, 252, 0.9);">
+          <div class="fw-bold fs-5" style="color: {{ escala_cores[n_val] }};">
+            {{ detalhe.contagem_por_nota[n_val] }} cursos
+          </div>
+          <div class="small text-muted">Nota {{ n_val }} ({{ escala_notas[n_val] }})</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if detalhe.sugestao_cursos_nao_listados %}
+    <div class="mt-3 p-3 rounded-4 bg-warning bg-opacity-10 border border-warning">
+      <div class="fw-bold text-dark mb-1">
+        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+        Treinamentos / Cursos Não Listados Sugeridos pelo Militar:
+      </div>
+      <div class="text-dark" style="white-space: pre-wrap;">{{ detalhe.sugestao_cursos_nao_listados }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filtro rápido por nota atribuída -->
+  <div class="det-card p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="fw-bold small text-secondary">
+      <i class="bi bi-funnel-fill me-1"></i> Filtrar cursos pela nota dada por este militar:
+    </span>
+    <div class="d-flex gap-1 flex-wrap">
+      <button type="button" class="btn btn-sm btn-dark filter-nota-btn" onclick="filtrarPorNota('all', this)">
+        Todas ({{ detalhe.qtd_total }})
+      </button>
+      {% for n_val in [5, 4, 3, 2, 1] %}
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-nota-btn"
+        onclick="filtrarPorNota('{{ n_val }}', this)">
+        Nota {{ n_val }} — {{ escala_notas[n_val] }} ({{ detalhe.contagem_por_nota[n_val] }})
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Notas por Seção (a..k) -->
+  {% for sec in detalhe.secoes %}
+  <div class="det-card sec-detalhe-box">
+    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="fw-bold">
+        <span class="badge me-2" style="background: {{ sec.cor }};">{{ sec.codigo|upper }}</span>
+        {{ sec.titulo }}
+      </div>
+      <div class="small text-secondary">
+        Somatório na trilha: <strong>{{ sec.soma_secao }} pts</strong> • Média: <strong>{{ "%.2f"|format(sec.media_secao) }}</strong>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <tbody>
+          {% for c in sec.cursos_avaliados %}
+          <tr class="row-nota-item" data-nota="{{ c.nota }}">
+            <td class="ps-3 fw-semibold">{{ c.nome }}</td>
+            <td class="text-end pe-3" style="width: 260px;">
+              <span class="nota-pill" style="background: {{ c.nota_cor }};">
+                Nota {{ c.nota }} — {{ c.nota_label }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+  function filtrarPorNota(notaFiltro, btnEl) {
+    document.querySelectorAll('.filter-nota-btn').forEach(b => {
+      b.classList.remove('btn-dark');
+      b.classList.add('btn-outline-secondary');
+    });
+    btnEl.classList.remove('btn-outline-secondary');
+    btnEl.classList.add('btn-dark');
+
+    document.querySelectorAll('.sec-detalhe-box').forEach(box => {
+      let visiveis = 0;
+      box.querySelectorAll('.row-nota-item').forEach(row => {
+        const mostrar = (notaFiltro === 'all' || row.getAttribute('data-nota') === String(notaFiltro));
+        row.style.display = mostrar ? '' : 'none';
+        if (mostrar) visiveis++;
+      });
+      box.style.display = visiveis > 0 ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

@@ -96,6 +96,42 @@ def can_manage_cursos_cbmam() -> bool:
     return OBM_BM3_ID in (obm1, obm2)
 
 
+def can_view_pesquisa_institucional_resultados() -> bool:
+    """Super User e todos os militares da BM-3 (OBM 10, seja em conta de
+    chefia/diretoria ou em conta individual de militar lotado na BM-3) podem
+    visualizar o consolidado e as notas individuais da Pesquisa Institucional."""
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+
+    if is_super() or can_manage_cursos_cbmam():
+        return True
+
+    if has_perm("PESQUISA_INSTITUCIONAL_ADMIN"):
+        return True
+
+    obm1 = int(getattr(current_user, "obm_id_1", 0) or 0)
+    obm2 = int(getattr(current_user, "obm_id_2", 0) or 0)
+    if OBM_BM3_ID in (obm1, obm2):
+        return True
+
+    mid = getattr(current_user, "militar_id", None)
+    if mid:
+        from src.models import MilitarObmFuncao
+        existe_bm3 = (
+            db.session.query(MilitarObmFuncao.id)
+            .filter(
+                MilitarObmFuncao.militar_id == mid,
+                MilitarObmFuncao.obm_id == OBM_BM3_ID,
+                MilitarObmFuncao.data_fim.is_(None),
+            )
+            .first()
+        )
+        if existe_bm3:
+            return True
+
+    return False
+
+
 # Perfis que enxergam a área de autoatendimento do militar (ex.: Meus Cursos
 # CBMAM): além do ATUALIZACAO CADASTRAL (12) de sempre, também quem foi
 # promovido a CHEFE (2) de alguma OBM mas continua sendo militar e precisa

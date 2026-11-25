@@ -9,6 +9,7 @@ from src.decorators.control import has_perm, _get_pg_id_user
 from src.authz import (
     can_manage_cursos_cbmam,
     can_see_taf_panel,
+    can_view_pesquisa_institucional_resultados,
     is_super,
     is_super_or_perm,
     pode_ver_autoatendimento_militar,
@@ -210,6 +211,17 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
+    # Pesquisa Institucional (LNTD / ESASP): disponível para todos os militares
+    # com perfil ATUALIZACAO CADASTRAL (e autoatendimento militar).
+    nav.append(
+        _mk_item(
+            "Pesquisa Institucional",
+            "pesquisa_institucional_form",
+            icon="fas fa-poll-h",
+            rule=(lambda: is_super or pode_ver_autoatendimento_militar()),
+        )
+    )
+
     # Validações
     nav.append(
         _mk_group(
@@ -255,10 +267,23 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         _mk_group(
             "Cursos CBMAM (BM-3)",
             icon="fas fa-graduation-cap",
-            rule=(lambda: is_super or can_manage_cursos_cbmam()),
+            rule=(lambda: is_super or can_manage_cursos_cbmam() or can_view_pesquisa_institucional_resultados()),
             children=[
-                _mk_item("Painel administrativo", "cursos_cbmam_admin"),
-                _mk_item("Histórico", "cursos_cbmam_historico"),
+                _mk_item(
+                    "Painel administrativo",
+                    "cursos_cbmam_admin",
+                    rule=(lambda: is_super or can_manage_cursos_cbmam()),
+                ),
+                _mk_item(
+                    "Histórico",
+                    "cursos_cbmam_historico",
+                    rule=(lambda: is_super or can_manage_cursos_cbmam()),
+                ),
+                _mk_item(
+                    "Pesquisa Institucional — Resultados",
+                    "pesquisa_institucional_resultados",
+                    rule=(lambda: is_super or can_view_pesquisa_institucional_resultados()),
+                ),
             ],
         )
     )

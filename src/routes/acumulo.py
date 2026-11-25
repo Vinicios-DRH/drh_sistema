@@ -257,6 +257,24 @@ def home_atualizacao():
     militar_id_atual = militar_id
     tem_inconforme_no_ano = (kpi_decl_inconformes or 0) > 0
 
+    pesquisa_inst_respondida = False
+    pesquisa_inst_data = None
+    pode_ver_resultados_pesquisa = False
+    try:
+        from src.authz import can_view_pesquisa_institucional_resultados
+        from src.services.pesquisa_institucional_service import obter_resposta_militar
+        pode_ver_resultados_pesquisa = can_view_pesquisa_institucional_resultados()
+        resp_pi, _ = obter_resposta_militar(
+            militar.id if militar else None,
+            getattr(current_user, "id", None),
+        )
+        if resp_pi:
+            pesquisa_inst_respondida = True
+            pesquisa_inst_data = resp_pi.atualizado_em
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Erro ao verificar status da Pesquisa Institucional na home")
+
     return render_template(
         "home_atualizacao.html",
         ano_atual=ano_atual,
@@ -284,6 +302,9 @@ def home_atualizacao():
         docs_pendentes_qtd=docs_pendentes_qtd,
         cursos_cbmam_disponiveis_qtd=cursos_cbmam_disponiveis_qtd,
         cursos_cbmam_pendentes_qtd=cursos_cbmam_pendentes_qtd,
+        pesquisa_inst_respondida=pesquisa_inst_respondida,
+        pesquisa_inst_data=pesquisa_inst_data,
+        pode_ver_resultados_pesquisa=pode_ver_resultados_pesquisa,
         prazo_fechado=prazo_fechado,
         prazo_limite=prazo_limite,
         tem_inconforme_no_ano=tem_inconforme_no_ano,

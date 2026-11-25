@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  body {
+    background: linear-gradient(135deg, #0a1628 0%, #0f294a 60%, #0b3a63 100%) fixed;
+  }
+
+  .bm3-wrap {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 20px 14px 60px;
+  }
+
+  .bm3-hero {
+    background: linear-gradient(125deg, rgba(15, 23, 42, 0.95) 0%, rgba(11, 46, 79, 0.95) 65%, rgba(29, 78, 216, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    padding: 24px 26px;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    margin-bottom: 18px;
+  }
+
+  .bm3-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 992px) {
+    .bm3-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 576px) {
+    .bm3-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .bm3-kpi-card {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .bm3-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .bm3-kpi-val {
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1.1;
+    color: #0f172a;
+  }
+
+  .bm3-kpi-lbl {
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .bm3-panel {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+  }
+
+  .rank-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.88rem;
+    background: #f1f5f9;
+    color: #334155;
+  }
+
+  .rank-badge.pos-1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+  .rank-badge.pos-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+  .rank-badge.pos-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+
+  .score-sum-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-weight: 900;
+    font-size: 1rem;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+
+  .dist-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+    display: flex;
+    width: 140px;
+  }
+
+  .sec-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  html[data-theme="dark"] .bm3-kpi-card,
+  html[data-theme="dark"] .bm3-panel {
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="bm3-wrap">
+
+  <!-- Cabeçalho do Painel BM-3 / Super User -->
+  <div class="bm3-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <span class="badge bg-warning text-dark fw-bold mb-2">
+          <i class="bi bi-shield-lock-fill me-1"></i> PAINEL BM-3 & SUPER USER • LNTD / ESASP {{ ano }}
+        </span>
+        <h1 class="h3 fw-bold mb-1 text-white">
+          Consolidação da Pesquisa Institucional — Relevância de Cursos
+        </h1>
+        <p class="mb-0 text-white-50">
+          Ranking geral ordenado de forma <strong>decrescente pelo somatório de notas (1 a 5)</strong> atribuídas pelos militares, avaliações individuais e sugestões de cursos não listados.
+        </p>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('pesquisa_institucional_exportar_excel', ano=ano) }}" class="btn btn-success fw-bold">
+          <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel (.xlsx)
+        </a>
+        <a href="{{ url_for('pesquisa_institucional_form') }}" class="btn btn-outline-light">
+          <i class="bi bi-ui-checks me-1"></i> Ver Formulário
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="bm3-kpi-grid">
+    <div class="bm3-kpi-card">
+      <span class="bm3-kpi-icon bg-primary bg-opacity-10 text-primary">
+        <i class="bi bi-people-fill"></i>
+      </span>
+      <div>
+        <div class="bm3-kpi-val">{{ consolidado.total_respondentes }}</div>
+        <div class="bm3-kpi-lbl">Militares Respondentes</div>
+      </div>
+    </div>
+
+    <div class="bm3-kpi-card">
+      <span class="bm3-kpi-icon bg-success bg-opacity-10 text-success">
+        <i class="bi bi-calculator-fill"></i>
+      </span>
+      <div>
+        <div class="bm3-kpi-val">{{ consolidado.soma_global }}</div>
+        <div class="bm3-kpi-lbl">Somatório Global de Pontos</div>
+      </div>
+    </div>
+
+    <div class="bm3-kpi-card">
+      <span class="bm3-kpi-icon bg-info bg-opacity-10 text-info">
+        <i class="bi bi-star-half"></i>
+      </span>
+      <div>
+        <div class="bm3-kpi-val">{{ "%.2f"|format(consolidado.media_global) }} <small class="fs-6 text-muted">/ 5.0</small></div>
+        <div class="bm3-kpi-lbl">Média Geral ({{ consolidado.votos_global }} notas)</div>
+      </div>
+    </div>
+
+    <div class="bm3-kpi-card">
+      <span class="bm3-kpi-icon bg-warning bg-opacity-10 text-warning">
+        <i class="bi bi-lightbulb-fill"></i>
+      </span>
+      <div>
+        <div class="bm3-kpi-val">{{ consolidado.total_sugestoes }}</div>
+        <div class="bm3-kpi-lbl">Sugestões Não Listadas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Painel com Abas -->
+  <div class="bm3-panel">
+    <div class="p-3 p-md-4 border-bottom bg-light">
+      <ul class="nav nav-pills gap-2" id="bm3Tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if aba_ativa == 'ranking' %}active{% endif %} fw-bold"
+            id="tab-ranking" data-bs-toggle="tab" data-bs-target="#pane-ranking" type="button" role="tab">
+            <i class="bi bi-trophy-fill me-1"></i> 1. Ranking Consolidado (Maior Somatório)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if aba_ativa == 'trilhas' %}active{% endif %} fw-bold"
+            id="tab-trilhas" data-bs-toggle="tab" data-bs-target="#pane-trilhas" type="button" role="tab">
+            <i class="bi bi-collection-fill me-1"></i> 2. Consolidado por Trilha ESASP (a–k)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if aba_ativa == 'militares' %}active{% endif %} fw-bold"
+            id="tab-militares" data-bs-toggle="tab" data-bs-target="#pane-militares" type="button" role="tab">
+            <i class="bi bi-person-lines-fill me-1"></i> 3. Notas Individuais por Militar
+            <span class="badge bg-dark ms-1">{{ respostas_individuais|length }}</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if aba_ativa == 'sugestoes' %}active{% endif %} fw-bold"
+            id="tab-sugestoes" data-bs-toggle="tab" data-bs-target="#pane-sugestoes" type="button" role="tab">
+            <i class="bi bi-lightbulb-fill me-1"></i> 4. Cursos Não Listados Sugeridos
+            <span class="badge bg-warning text-dark ms-1">{{ sugestoes_lista|length }}</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="tab-content p-3 p-md-4">
+
+      <!-- ABA 1: RANKING CONSOLIDADO DECRESCENTE PELO SOMATÓRIO DE NOTAS -->
+      <div class="tab-pane fade {% if aba_ativa == 'ranking' %}show active{% endif %}" id="pane-ranking" role="tabpanel">
+        <form method="GET" action="{{ url_for('pesquisa_institucional_resultados') }}" class="row g-2 align-items-end mb-3">
+          <input type="hidden" name="aba" value="ranking">
+          <div class="col-12 col-md-4">
+            <label class="form-label small fw-bold text-secondary mb-1">Filtrar por Trilha Educacional (ESASP)</label>
+            <select name="secao" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="">Todas as 11 trilhas (a – k)</option>
+              {% for t in trilhas_catalogo %}
+              <option value="{{ t.codigo }}" {% if secao_filtro == t.codigo %}selected{% endif %}>
+                {{ t.codigo|upper }}. {{ t.titulo }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-5">
+            <label class="form-label small fw-bold text-secondary mb-1">Buscar curso pelo nome</label>
+            <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm"
+              placeholder="Ex.: Liderança, Power BI, Licitação, Inteligência Artificial...">
+          </div>
+          <div class="col-12 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="bi bi-search me-1"></i> Filtrar
+            </button>
+            {% if secao_filtro or busca %}
+            <a href="{{ url_for('pesquisa_institucional_resultados', aba='ranking') }}" class="btn btn-outline-secondary btn-sm">
+              Limpar
+            </a>
+            {% endif %}
+          </div>
+        </form>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 65px;">Pos.</th>
+                <th>Curso Sugerido (ESASP)</th>
+                <th>Trilha / Área</th>
+                <th class="text-center">Somatório de Notas ↓</th>
+                <th class="text-center">Média (1–5)</th>
+                <th class="text-center">Avaliações</th>
+                <th>Distribuição (5 ★ até 1 ★)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in consolidado.ranking_cursos %}
+              <tr>
+                <td>
+                  <span class="rank-badge pos-{{ item.posicao }}">
+                    {{ item.posicao }}º
+                  </span>
+                </td>
+                <td>
+                  <div class="fw-bold text-dark">{{ item.nome }}</div>
+                  <div class="small text-muted">
+                    {{ item.pct_relevante }}% avaliaram como Relevante (4) ou Muito Relevante (5)
+                  </div>
+                </td>
+                <td>
+                  <span class="sec-tag" style="background: {{ item.cor_secao }};">
+                    {{ item.secao_codigo|upper }}
+                  </span>
+                  <span class="small text-secondary ms-1">{{ item.secao_titulo }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="score-sum-pill">
+                    <i class="bi bi-award-fill"></i> {{ item.somatorio_notas }} pts
+                  </span>
+                </td>
+                <td class="text-center fw-bold">
+                  {{ "%.2f"|format(item.media_notas) }}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-secondary bg-opacity-10 text-dark border">
+                    {{ item.total_votos }}
+                  </span>
+                </td>
+                <td>
+                  {% set v = item.total_votos if item.total_votos > 0 else 1 %}
+                  <div class="dist-bar mb-1" title="5★: {{ item.qtd_5 }} | 4★: {{ item.qtd_4 }} | 3★: {{ item.qtd_3 }} | 2★: {{ item.qtd_2 }} | 1★: {{ item.qtd_1 }}">
+                    <div style="width: {{ (item.qtd_5 / v * 100)|round(1) }}%; background: #10b981;"></div>
+                    <div style="width: {{ (item.qtd_4 / v * 100)|round(1) }}%; background: #3b82f6;"></div>
+                    <div style="width: {{ (item.qtd_3 / v * 100)|round(1) }}%; background: #eab308;"></div>
+                    <div style="width: {{ (item.qtd_2 / v * 100)|round(1) }}%; background: #f97316;"></div>
+                    <div style="width: {{ (item.qtd_1 / v * 100)|round(1) }}%; background: #ef4444;"></div>
+                  </div>
+                  <div class="d-flex gap-2" style="font-size: 0.73rem; color: #64748b;">
+                    <span><b class="text-success">5:</b>{{ item.qtd_5 }}</span>
+                    <span><b class="text-primary">4:</b>{{ item.qtd_4 }}</span>
+                    <span><b class="text-warning">3:</b>{{ item.qtd_3 }}</span>
+                    <span><b style="color:#f97316;">2:</b>{{ item.qtd_2 }}</span>
+                    <span><b class="text-danger">1:</b>{{ item.qtd_1 }}</span>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ABA 2: CONSOLIDADO POR TRILHA EDUCACIONAL (a..k) -->
+      <div class="tab-pane fade {% if aba_ativa == 'trilhas' %}show active{% endif %}" id="pane-trilhas" role="tabpanel">
+        <div class="accordion" id="accTrilhas">
+          {% for sec in consolidado.secoes_consolidado %}
+          <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
+            <h2 class="accordion-header">
+              <button class="accordion-button {% if not loop.first %}collapsed{% endif %} fw-bold" type="button"
+                data-bs-toggle="collapse" data-bs-target="#colSec_{{ sec.codigo }}">
+                <span class="sec-tag me-2" style="background: {{ sec.cor }};">{{ sec.codigo|upper }}</span>
+                <span>{{ sec.titulo }}</span>
+                <span class="badge bg-primary ms-auto me-3">
+                  Somatório da Trilha: {{ sec.somatorio_secao }} pts
+                </span>
+              </button>
+            </h2>
+            <div id="colSec_{{ sec.codigo }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+              data-bs-parent="#accTrilhas">
+              <div class="accordion-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3" style="width: 75px;">Ordem</th>
+                        <th>Curso</th>
+                        <th class="text-center">Somatório ↓</th>
+                        <th class="text-center">Média</th>
+                        <th class="text-center">Nota 5</th>
+                        <th class="text-center">Nota 4</th>
+                        <th class="text-center">Nota 3</th>
+                        <th class="text-center">Nota 2</th>
+                        <th class="text-center pe-3">Nota 1</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for c in sec.cursos %}
+                      <tr>
+                        <td class="ps-3 fw-bold text-secondary">{{ loop.index }}º</td>
+                        <td class="fw-semibold">{{ c.nome }}</td>
+                        <td class="text-center fw-bold text-primary">{{ c.somatorio_notas }} pts</td>
+                        <td class="text-center">{{ "%.2f"|format(c.media_notas) }}</td>
+                        <td class="text-center text-success fw-bold">{{ c.qtd_5 }}</td>
+                        <td class="text-center text-primary">{{ c.qtd_4 }}</td>
+                        <td class="text-center text-warning">{{ c.qtd_3 }}</td>
+                        <td class="text-center">{{ c.qtd_2 }}</td>
+                        <td class="text-center text-danger pe-3">{{ c.qtd_1 }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ABA 3: AVALIAÇÕES INDIVIDUAIS POR MILITAR -->
+      <div class="tab-pane fade {% if aba_ativa == 'militares' %}show active{% endif %}" id="pane-militares" role="tabpanel">
+        <form method="GET" action="{{ url_for('pesquisa_institucional_resultados') }}" class="row g-2 align-items-end mb-3">
+          <input type="hidden" name="aba" value="militares">
+          <div class="col-12 col-md-8">
+            <label class="form-label small fw-bold text-secondary mb-1">Buscar militar por Nome, Nome de Guerra ou Matrícula</label>
+            <input type="text" name="qm" value="{{ busca_militar }}" class="form-control form-control-sm"
+              placeholder="Digite o nome ou matrícula do militar...">
+          </div>
+          <div class="col-12 col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="bi bi-search me-1"></i> Buscar Militar
+            </button>
+            {% if busca_militar %}
+            <a href="{{ url_for('pesquisa_institucional_resultados', aba='militares') }}" class="btn btn-outline-secondary btn-sm">
+              Limpar
+            </a>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if respostas_individuais %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Posto/Grad</th>
+                <th>Militar</th>
+                <th>Matrícula</th>
+                <th>OBM</th>
+                <th class="text-center">Média Atribuída</th>
+                <th>Sugestão de Curso Não Listado</th>
+                <th>Enviado em</th>
+                <th class="text-end">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in respostas_individuais %}
+              <tr>
+                <td><span class="badge bg-dark">{{ r.posto_grad }}</span></td>
+                <td>
+                  <div class="fw-bold text-dark">{{ r.nome_completo }}</div>
+                  <div class="small text-muted">Guerra: {{ r.nome_guerra }}</div>
+                </td>
+                <td>{{ r.matricula }}</td>
+                <td><span class="badge bg-secondary bg-opacity-10 text-dark border">{{ r.obm_sigla }}</span></td>
+                <td class="text-center">
+                  <span class="fw-bold text-primary">{{ "%.2f"|format(r.media_notas) }}</span>
+                  <div class="small text-muted">{{ r.soma_notas }} pts ({{ r.qtd_cursos }} cursos)</div>
+                </td>
+                <td style="max-width: 280px;">
+                  {% if r.sugestao_cursos_nao_listados %}
+                  <div class="small text-truncate text-dark" title="{{ r.sugestao_cursos_nao_listados }}">
+                    <i class="bi bi-chat-left-text-fill text-warning me-1"></i>
+                    {{ r.sugestao_cursos_nao_listados }}
+                  </div>
+                  {% else %}
+                  <span class="small text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="small text-nowrap">
+                  {{ r.atualizado_em.strftime('%d/%m/%Y %H:%M') if r.atualizado_em else '—' }}
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('pesquisa_institucional_detalhe_militar', resposta_id=r.id) }}"
+                    class="btn btn-sm btn-primary">
+                    <i class="bi bi-eye-fill me-1"></i> Ver Notas Individuais
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+          Nenhuma resposta individual encontrada para os filtros selecionados.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ABA 4: SUGESTÕES DE CURSOS NÃO LISTADOS -->
+      <div class="tab-pane fade {% if aba_ativa == 'sugestoes' %}show active{% endif %}" id="pane-sugestoes" role="tabpanel">
+        {% if sugestoes_lista %}
+        <div class="row g-3">
+          {% for r in sugestoes_lista %}
+          <div class="col-12 col-md-6">
+            <div class="card h-100 border rounded-4 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                  <div>
+                    <span class="badge bg-dark me-1">{{ r.posto_grad }}</span>
+                    <strong class="text-dark">{{ r.nome_completo }}</strong>
+                    <div class="small text-muted">
+                      Matrícula: {{ r.matricula }} • OBM: {{ r.obm_sigla }}
+                    </div>
+                  </div>
+                  <span class="small text-muted text-nowrap">
+                    {{ r.atualizado_em.strftime('%d/%m/%Y %H:%M') if r.atualizado_em else '' }}
+                  </span>
+                </div>
+
+                <div class="p-3 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-dark"
+                  style="white-space: pre-wrap;">{{ r.sugestao_cursos_nao_listados }}</div>
+
+                <div class="mt-2 text-end">
+                  <a href="{{ url_for('pesquisa_institucional_detalhe_militar', resposta_id=r.id) }}"
+                    class="btn btn-sm btn-outline-primary">
+                    Ver todas as notas deste militar →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-lightbulb fs-1 d-block mb-2"></i>
+          Nenhum militar registrou sugestões de cursos não listados até o momento.
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,808 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    --pi-bg-1: #0a1628;
+    --pi-bg-2: #0f294a;
+    --pi-card: #ffffff;
+    --pi-ink: #0f172a;
+    --pi-muted: #64748b;
+    --pi-border: #e2e8f0;
+    --pi-red: #b5121b;
+    --pi-red-dark: #8f0e15;
+    --pi-blue: #1d4ed8;
+    --pi-green: #10b981;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--pi-bg-1) 0%, var(--pi-bg-2) 60%, #0b3a63 100%) fixed;
+  }
+
+  .pi-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px 14px 90px;
+  }
+
+  /* Hero Banner */
+  .pi-hero {
+    background: linear-gradient(125deg, rgba(15, 23, 42, 0.94) 0%, rgba(11, 46, 79, 0.94) 65%, rgba(181, 18, 27, 0.88) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    padding: 24px 26px;
+    color: #f8fafc;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    margin-bottom: 18px;
+  }
+
+  .pi-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .pi-hero h1 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 10px 0 6px;
+    color: #fff;
+  }
+
+  .pi-hero p {
+    margin: 0;
+    color: rgba(248, 250, 252, 0.86);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  /* Escala Legend */
+  .pi-scale-bar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  @media (max-width: 768px) {
+    .pi-scale-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .pi-scale-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 0.83rem;
+  }
+
+  .pi-scale-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  /* Barra de progresso e navegação por seções */
+  .pi-progress-card {
+    background: rgba(255, 255, 255, 0.97);
+    color: var(--pi-ink);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+    position: sticky;
+    top: 10px;
+    z-index: 1010;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .pi-progress-track {
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 8px 0 12px;
+  }
+
+  .pi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb 0%, #10b981 100%);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+  }
+
+  .pi-sec-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .pi-sec-pill {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+
+  .pi-sec-pill:hover {
+    border-color: #2563eb;
+    color: #1d4ed8;
+  }
+
+  .pi-sec-pill.active {
+    background: #1e293b;
+    color: #fff;
+    border-color: #1e293b;
+  }
+
+  .pi-sec-pill.done {
+    background: #ecfdf5;
+    border-color: #34d399;
+    color: #065f46;
+  }
+
+  .pi-sec-pill.done.active {
+    background: #059669;
+    border-color: #059669;
+    color: #fff;
+  }
+
+  /* Cartão de Seção */
+  .pi-section-card {
+    background: #ffffff;
+    color: var(--pi-ink);
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .pi-section-header {
+    padding: 18px 22px;
+    background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--pi-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .pi-sec-letter {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: #fff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .pi-sec-title {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .pi-sec-desc {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 2px 0 0;
+  }
+
+  /* Linha de curso */
+  .pi-course-row {
+    padding: 14px 22px;
+    border-bottom: 1px solid #f1f5f9;
+    display: grid;
+    grid-template-columns: minmax(240px, 1.35fr) minmax(260px, 1fr);
+    gap: 16px;
+    align-items: center;
+    transition: background 0.15s ease;
+  }
+
+  .pi-course-row:last-child {
+    border-bottom: none;
+  }
+
+  .pi-course-row:hover {
+    background: #f8fafc;
+  }
+
+  .pi-course-row.rated {
+    background: rgba(16, 185, 129, 0.03);
+  }
+
+  .pi-course-row.unrated-error {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+  }
+
+  @media (max-width: 820px) {
+    .pi-course-row {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+  }
+
+  .pi-course-name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.96rem;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .pi-course-idx {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+  }
+
+  .pi-controls-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 820px) {
+    .pi-controls-wrap {
+      justify-content: space-between;
+    }
+  }
+
+  /* Botões rápidos 1 a 5 sincronizados com o select */
+  .pi-quick-btns {
+    display: inline-flex;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  .pi-qbtn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #334155;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .pi-qbtn:hover {
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+  }
+
+  .pi-qbtn.active[data-val="1"] { background: #ef4444; color: #fff; }
+  .pi-qbtn.active[data-val="2"] { background: #f97316; color: #fff; }
+  .pi-qbtn.active[data-val="3"] { background: #eab308; color: #fff; }
+  .pi-qbtn.active[data-val="4"] { background: #3b82f6; color: #fff; }
+  .pi-qbtn.active[data-val="5"] { background: #10b981; color: #fff; }
+
+  .pi-select {
+    min-width: 235px;
+    max-width: 265px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border-radius: 10px;
+    border-color: #cbd5e1;
+    color: #0f172a;
+    background-color: #fff;
+  }
+
+  .pi-select.has-value {
+    border-color: #10b981;
+    background-color: #f0fdf4;
+  }
+
+  /* Rodapé de navegação da seção */
+  .pi-section-footer {
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid var(--pi-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  html[data-theme="dark"] .pi-progress-card,
+  html[data-theme="dark"] .pi-section-card {
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="pi-wrap">
+
+  <!-- Cabeçalho Institucional ESASP / CBMAM -->
+  <div class="pi-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <span class="pi-hero-badge">
+          <i class="bi bi-Patch-check-fill"></i>
+          ESASP • LNTD {{ ano }} • CBMAM
+        </span>
+        <h1>Pesquisa Institucional — Trilhas de Treinamento e Capacitação</h1>
+        <p>
+          Avalie de <strong>1 a 5</strong> a relevância de cada curso sugerido pela
+          <strong>Escola de Gestão e Aperfeiçoamento do Servidor Público (ESASP)</strong>
+          para a melhoria do desempenho institucional do <strong>CBMAM</strong>.
+        </p>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        {% if pode_ver_resultados %}
+        <a href="{{ url_for('pesquisa_institucional_resultados') }}" class="btn btn-warning fw-bold">
+          <i class="bi bi-bar-chart-fill me-1"></i> Painel BM-3 / Resultados
+        </a>
+        {% endif %}
+        <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">
+          <i class="bi bi-arrow-left me-1"></i> Voltar ao Painel
+        </a>
+      </div>
+    </div>
+
+    <!-- Legenda das Notas 1 a 5 -->
+    <div class="pi-scale-bar">
+      {% for nota_num, nota_texto in escala_notas.items() %}
+      <div class="pi-scale-item">
+        <span class="pi-scale-num" style="background: {{ escala_cores[nota_num] }};">{{ nota_num }}</span>
+        <div>
+          <div class="fw-bold text-white">{{ nota_texto }}</div>
+          <div style="font-size: 0.73rem; opacity: 0.75;">Nota {{ nota_num }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if resposta_existente %}
+  <div class="alert alert-success d-flex align-items-center justify-content-between flex-wrap gap-2 rounded-4 shadow-sm mb-3">
+    <div>
+      <i class="bi bi-check-circle-fill me-2"></i>
+      <strong>Você já respondeu à Pesquisa Institucional {{ ano }}!</strong>
+      Último envio registrado em
+      <b>{{ resposta_existente.atualizado_em.strftime('%d/%m/%Y às %H:%M') if resposta_existente.atualizado_em else '—' }}</b>.
+      Você pode revisar ou atualizar suas notas abaixo a qualquer momento.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Barra fixa de progresso e navegação entre as 11 seções -->
+  <div class="pi-progress-card">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <span class="fw-bold" id="piProgressText">0 de {{ total_cursos }} cursos avaliados (0%)</span>
+        <span class="text-muted small ms-2">• Todas as notas de 1 a 5 são obrigatórias</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnToggleViewMode">
+          <i class="bi bi-view-stacked me-1"></i> Modo: Passo a Passo por Seção
+        </button>
+      </div>
+    </div>
+
+    <div class="pi-progress-track">
+      <div class="pi-progress-fill" id="piProgressBar" style="width: 0%;"></div>
+    </div>
+
+    <div class="pi-sec-pills" id="piSecPills">
+      {% for sec in trilhas %}
+      <button type="button" class="pi-sec-pill {% if loop.first %}active{% endif %}"
+        data-target-sec="{{ sec.codigo }}" onclick="irParaSecao('{{ sec.codigo }}')">
+        <span class="sec-pill-icon">{{ sec.codigo|upper }}</span>
+        <span class="d-none d-md-inline">{{ sec.titulo.split(',')[0].split(' e ')[0] }}</span>
+        <span class="badge bg-secondary bg-opacity-25 text-dark ms-1" id="pillCount_{{ sec.codigo }}">
+          0/{{ sec.cursos|length }}
+        </span>
+      </button>
+      {% endfor %}
+      <button type="button" class="pi-sec-pill" data-target-sec="extra" onclick="irParaSecao('extra')">
+        <i class="bi bi-lightbulb-fill text-warning"></i>
+        <span>Sugestão Extra</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulário Principal -->
+  <form id="formPesquisaInstitucional" method="POST" action="{{ url_for('pesquisa_institucional_form') }}" novalidate>
+
+    {% for sec in trilhas %}
+    <section class="pi-section-card" id="secao_{{ sec.codigo }}" data-sec-code="{{ sec.codigo }}"
+      {% if not loop.first %}style="display: none;"{% endif %}>
+
+      <div class="pi-section-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="pi-sec-letter" style="background: {{ sec.cor }};">
+            {{ sec.codigo }}
+          </span>
+          <div>
+            <h2 class="pi-sec-title">
+              {{ sec.codigo }}. {{ sec.titulo }}
+            </h2>
+            <p class="pi-sec-desc">
+              <i class="bi {{ sec.icone }} me-1"></i>
+              {{ sec.descricao }} ({{ sec.cursos|length }} cursos)
+            </p>
+          </div>
+        </div>
+
+        <!-- Preenchimento rápido da seção -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-lightning-charge me-1"></i> Preencher vazios desta seção
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              {% for n_val, n_lbl in escala_notas.items() %}
+              <li>
+                <button class="dropdown-item small" type="button"
+                  onclick="preencherSecao('{{ sec.codigo }}', {{ n_val }}, false)">
+                  <strong>{{ n_val }}</strong> — {{ n_lbl }} (apenas não avaliados)
+                </button>
+              </li>
+              {% endfor %}
+              <li><hr class="dropdown-divider"></li>
+              {% for n_val, n_lbl in escala_notas.items() %}
+              <li>
+                <button class="dropdown-item small text-primary" type="button"
+                  onclick="preencherSecao('{{ sec.codigo }}', {{ n_val }}, true)">
+                  Aplicar <strong>{{ n_val }} — {{ n_lbl }}</strong> em todos desta seção
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="pi-section-body">
+        {% for curso in sec.cursos %}
+        {% set nota_atual = notas_atuais.get(curso.id) %}
+        <div class="pi-course-row {% if nota_atual %}rated{% endif %}" id="row_curso_{{ curso.id }}"
+          data-sec="{{ sec.codigo }}" data-curso-id="{{ curso.id }}">
+
+          <div class="pi-course-name">
+            <span class="pi-course-idx">{{ sec.codigo }}.{{ loop.index }}</span>
+            <span>{{ curso.nome }}</span>
+          </div>
+
+          <div class="pi-controls-wrap">
+            <!-- Botões rápidos 1..5 sincronizados com o select -->
+            <div class="pi-quick-btns" role="group" aria-label="Nota rápida 1 a 5">
+              {% for n_val, n_lbl in escala_notas.items() %}
+              <button type="button"
+                class="pi-qbtn {% if nota_atual == n_val %}active{% endif %}"
+                data-curso="{{ curso.id }}"
+                data-val="{{ n_val }}"
+                title="{{ n_val }} - {{ n_lbl }}"
+                onclick="selecionarNotaRapida({{ curso.id }}, {{ n_val }})">
+                {{ n_val }}
+              </button>
+              {% endfor %}
+            </div>
+
+            <!-- Select oficial que envia o inteiro 1 a 5 no POST -->
+            <select name="nota_{{ curso.id }}"
+              id="select_curso_{{ curso.id }}"
+              class="form-select form-select-sm pi-select {% if nota_atual %}has-value{% endif %}"
+              data-sec="{{ sec.codigo }}"
+              data-curso-id="{{ curso.id }}"
+              onchange="aoMudarSelect({{ curso.id }}, this.value)"
+              required>
+              <option value="" disabled {% if not nota_atual %}selected{% endif %}>
+                Selecione a nota (1 a 5)...
+              </option>
+              {% for n_val, n_lbl in escala_notas.items() %}
+              <option value="{{ n_val }}" {% if nota_atual == n_val %}selected{% endif %}>
+                {{ n_val }} - {{ n_lbl }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="pi-section-footer">
+        <div>
+          {% if not loop.first %}
+          {% set prev_sec = trilhas[loop.index0 - 1] %}
+          <button type="button" class="btn btn-outline-secondary btn-sm btn-step-nav"
+            onclick="irParaSecao('{{ prev_sec.codigo }}')">
+            <i class="bi bi-arrow-left me-1"></i> Seção anterior ({{ prev_sec.codigo|upper }})
+          </button>
+          {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          {% if not loop.last %}
+          {% set next_sec = trilhas[loop.index0 + 1] %}
+          <button type="button" class="btn btn-primary btn-sm btn-step-nav"
+            onclick="irParaSecao('{{ next_sec.codigo }}')">
+            Próxima seção ({{ next_sec.codigo|upper }} - {{ next_sec.titulo.split(',')[0] }})
+            <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          {% else %}
+          <button type="button" class="btn btn-primary btn-sm btn-step-nav"
+            onclick="irParaSecao('extra')">
+            Ir para Sugestão de Cursos e Finalizar
+            <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+    </section>
+    {% endfor %}
+
+    <!-- Seção Final: Pergunta aberta do PDF da ESASP (Cursos não listados) -->
+    <section class="pi-section-card" id="secao_extra" data-sec-code="extra" style="display: none;">
+      <div class="pi-section-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="pi-sec-letter" style="background: #d97706;">
+            <i class="bi bi-lightbulb-fill"></i>
+          </span>
+          <div>
+            <h2 class="pi-sec-title">
+              Necessidades de Treinamento / Capacitação Não Listadas
+            </h2>
+            <p class="pi-sec-desc">
+              Espaço opcional para indicar cursos ou treinamentos relevantes ao CBMAM que não constam nas trilhas acima.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <label for="sugestao_cursos_nao_listados" class="form-label fw-bold text-dark">
+          1. Se você acredita que a necessidade de treinamento/capacitação, para o seu órgão, não foi contemplada com as áreas e cursos já descritos, por favor, descreva a necessidade de treinamento de sua instituição:
+          <span class="text-muted fw-normal">(Por favor, mencione apenas treinamentos não listados — opcional)</span>
+        </label>
+        <textarea
+          name="sugestao_cursos_nao_listados"
+          id="sugestao_cursos_nao_listados"
+          rows="4"
+          class="form-control mt-2"
+          placeholder="Ex.: Curso de Pilotagem de Drones em Operações de Incêndio e Salvamento; Curso de Perícia de Incêndio Florestal; etc.">{{ sugestao_atual }}</textarea>
+
+        <div class="alert alert-light border mt-3 mb-0 small text-secondary">
+          <i class="bi bi-info-circle me-1"></i>
+          Suas avaliações (1 a 5) e sugestões serão encaminhadas à <strong>BM-3</strong> e à administração do sistema para consolidação do Levantamento de Necessidades de Treinamento e Desenvolvimento (LNTD).
+        </div>
+      </div>
+
+      <div class="pi-section-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm btn-step-nav"
+          onclick="irParaSecao('k')">
+          <i class="bi bi-arrow-left me-1"></i> Voltar para Seção K
+        </button>
+
+        <button type="submit" class="btn btn-success fw-bold px-4" id="btnSubmitFinal">
+          <i class="bi bi-send-check-fill me-1"></i>
+          {% if resposta_existente %}Atualizar Minha Avaliação{% else %}Enviar Avaliação da Pesquisa Institucional{% endif %}
+        </button>
+      </div>
+    </section>
+
+    <!-- Botão flutuante de envio rápido quando todas as notas estiverem preenchidas -->
+    <div class="card border-0 shadow-lg rounded-4 p-3 mt-3 bg-white">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="small text-secondary" id="footerResumoStatus">
+          Preencha todas as <strong>{{ total_cursos }}</strong> avaliações para concluir o envio.
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="irParaPrimeiroPendente()">
+            <i class="bi bi-compass me-1"></i> Ir para próximo curso pendente
+          </button>
+          <button type="submit" class="btn btn-danger fw-bold px-4">
+            <i class="bi bi-check2-circle me-1"></i>
+            {% if resposta_existente %}Salvar Alterações{% else %}Finalizar e Enviar Pesquisa{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  const TOTAL_CURSOS = {{ total_cursos }};
+  let modoPassoAPasso = true;
+  let secaoAtual = 'a';
+
+  function selecionarNotaRapida(cursoId, valor) {
+    const sel = document.getElementById(`select_curso_${cursoId}`);
+    if (!sel) return;
+    sel.value = String(valor);
+    aoMudarSelect(cursoId, valor);
+  }
+
+  function aoMudarSelect(cursoId, valor) {
+    const sel = document.getElementById(`select_curso_${cursoId}`);
+    const row = document.getElementById(`row_curso_${cursoId}`);
+    const valStr = String(valor || '');
+
+    if (sel) {
+      sel.classList.toggle('has-value', valStr !== '');
+    }
+    if (row) {
+      row.classList.toggle('rated', valStr !== '');
+      row.classList.remove('unrated-error');
+    }
+
+    document.querySelectorAll(`.pi-qbtn[data-curso="${cursoId}"]`).forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-val') === valStr);
+    });
+
+    atualizarProgresso();
+  }
+
+  function preencherSecao(secCodigo, valor, sobrescreverTodos) {
+    document.querySelectorAll(`select.pi-select[data-sec="${secCodigo}"]`).forEach(sel => {
+      if (sobrescreverTodos || !sel.value) {
+        const cid = sel.getAttribute('data-curso-id');
+        sel.value = String(valor);
+        aoMudarSelect(cid, valor);
+      }
+    });
+  }
+
+  function atualizarProgresso() {
+    const selects = Array.from(document.querySelectorAll('select.pi-select'));
+    const preenchidos = selects.filter(s => s.value && s.value !== '').length;
+    const pct = TOTAL_CURSOS > 0 ? Math.round((preenchidos / TOTAL_CURSOS) * 100) : 0;
+
+    const txtEl = document.getElementById('piProgressText');
+    const barEl = document.getElementById('piProgressBar');
+    const footerEl = document.getElementById('footerResumoStatus');
+
+    if (txtEl) txtEl.textContent = `${preenchidos} de ${TOTAL_CURSOS} cursos avaliados (${pct}%)`;
+    if (barEl) barEl.style.width = `${pct}%`;
+    if (footerEl) {
+      if (preenchidos === TOTAL_CURSOS) {
+        footerEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Todos os ${TOTAL_CURSOS} cursos foram avaliados! Você já pode enviar.</span>`;
+      } else {
+        footerEl.innerHTML = `Faltam <strong>${TOTAL_CURSOS - preenchidos}</strong> curso(s) para concluir o preenchimento.`;
+      }
+    }
+
+    // Atualiza contadores por seção
+    const porSec = {};
+    selects.forEach(s => {
+      const sec = s.getAttribute('data-sec');
+      if (!porSec[sec]) porSec[sec] = { total: 0, done: 0 };
+      porSec[sec].total += 1;
+      if (s.value && s.value !== '') porSec[sec].done += 1;
+    });
+
+    Object.keys(porSec).forEach(sec => {
+      const info = porSec[sec];
+      const badge = document.getElementById(`pillCount_${sec}`);
+      const pill = document.querySelector(`.pi-sec-pill[data-target-sec="${sec}"]`);
+      if (badge) {
+        badge.textContent = info.done === info.total ? '✓' : `${info.done}/${info.total}`;
+      }
+      if (pill) {
+        pill.classList.toggle('done', info.done === info.total);
+      }
+    });
+  }
+
+  function irParaSecao(codigo) {
+    secaoAtual = codigo;
+    document.querySelectorAll('.pi-sec-pill').forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-target-sec') === codigo);
+    });
+
+    if (modoPassoAPasso) {
+      document.querySelectorAll('.pi-section-card').forEach(secEl => {
+        secEl.style.display = (secEl.getAttribute('data-sec-code') === codigo) ? 'block' : 'none';
+      });
+      window.scrollTo({ top: 140, behavior: 'smooth' });
+    } else {
+      const target = document.getElementById(`secao_${codigo}`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function irParaPrimeiroPendente() {
+    const pendente = Array.from(document.querySelectorAll('select.pi-select')).find(s => !s.value);
+    if (!pendente) {
+      irParaSecao('extra');
+      return;
+    }
+    const sec = pendente.getAttribute('data-sec');
+    const cid = pendente.getAttribute('data-curso-id');
+    irParaSecao(sec);
+    setTimeout(() => {
+      const row = document.getElementById(`row_curso_${cid}`);
+      if (row) {
+        row.classList.add('unrated-error');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      pendente.focus();
+    }, 150);
+  }
+
+  document.getElementById('btnToggleViewMode')?.addEventListener('click', function () {
+    modoPassoAPasso = !modoPassoAPasso;
+    document.querySelectorAll('.btn-step-nav').forEach(b => {
+      b.style.display = modoPassoAPasso ? '' : 'none';
+    });
+    if (modoPassoAPasso) {
+      this.innerHTML = '<i class="bi bi-view-stacked me-1"></i> Modo: Passo a Passo por Seção';
+      irParaSecao(secaoAtual);
+    } else {
+      this.innerHTML = '<i class="bi bi-list-ul me-1"></i> Modo: Todas as Seções Visíveis';
+      document.querySelectorAll('.pi-section-card').forEach(secEl => {
+        secEl.style.display = 'block';
+      });
+    }
+  });
+
+  document.getElementById('formPesquisaInstitucional')?.addEventListener('submit', function (e) {
+    const pendente = Array.from(document.querySelectorAll('select.pi-select')).find(s => !s.value);
+    if (pendente) {
+      e.preventDefault();
+      alert('Por favor, selecione uma nota de 1 a 5 para todos os cursos antes de enviar.');
+      irParaPrimeiroPendente();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', atualizarProgresso);
+</script>
+{% endblock %}

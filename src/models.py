@@ -2859,3 +2859,90 @@ def _sync_obm_aplicar(session):
 @_sa_event.listens_for(_SaSession, "after_soft_rollback")
 def _sync_obm_descartar(session, *args):
     session.info.pop(_SYNC_OBM_PENDENTE, None)
+
+
+# =========================================================
+# PESQUISA INSTITUCIONAL — LNTD / ESASP (Trilhas e Cursos)
+# =========================================================
+
+class PesquisaInstitucionalCurso(database.Model):
+    __tablename__ = "pesquisa_institucional_curso"
+
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
+    secao_codigo = database.Column(database.String(10), nullable=False, index=True)
+    secao_titulo = database.Column(database.String(180), nullable=False)
+    ordem_secao = database.Column(database.Integer, nullable=False, default=1)
+    nome = database.Column(database.String(255), nullable=False)
+    ordem_curso = database.Column(database.Integer, nullable=False, default=1)
+    ativo = database.Column(database.Boolean, nullable=False, default=True)
+
+
+class PesquisaInstitucionalResposta(database.Model):
+    __tablename__ = "pesquisa_institucional_resposta"
+
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
+    ano_referencia = database.Column(database.Integer, nullable=False, default=2026, index=True)
+    militar_id = database.Column(
+        database.Integer,
+        database.ForeignKey("militar.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    user_id = database.Column(
+        database.Integer,
+        database.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    sugestao_cursos_nao_listados = database.Column(database.Text, nullable=True)
+    ip_address = database.Column(database.String(64), nullable=True)
+    criado_em = database.Column(
+        database.DateTime,
+        nullable=False,
+        default=now_manaus_naive,
+    )
+    atualizado_em = database.Column(
+        database.DateTime,
+        nullable=False,
+        default=now_manaus_naive,
+        onupdate=now_manaus_naive,
+    )
+
+    militar = database.relationship("Militar", foreign_keys=[militar_id])
+    user = database.relationship("User", foreign_keys=[user_id])
+    avaliacoes = database.relationship(
+        "PesquisaInstitucionalAvaliacao",
+        back_populates="resposta",
+        cascade="all, delete-orphan",
+    )
+
+
+class PesquisaInstitucionalAvaliacao(database.Model):
+    __tablename__ = "pesquisa_institucional_avaliacao"
+    __table_args__ = (
+        database.UniqueConstraint(
+            "resposta_id", "curso_id", name="uq_pesq_inst_resp_curso"
+        ),
+    )
+
+    id = database.Column(database.Integer, primary_key=True, autoincrement=True)
+    resposta_id = database.Column(
+        database.Integer,
+        database.ForeignKey("pesquisa_institucional_resposta.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    curso_id = database.Column(
+        database.Integer,
+        database.ForeignKey("pesquisa_institucional_curso.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # Nota inteira de 1 a 5 (1=Irrelevante .. 5=Muito relevante)
+    nota = database.Column(database.Integer, nullable=False)
+
+    resposta = database.relationship(
+        "PesquisaInstitucionalResposta", back_populates="avaliacoes"
+    )
+    curso = database.relationship("PesquisaInstitucionalCurso")
+
