@@ -393,27 +393,17 @@ def salvar_resposta_pesquisa(
     ip_address: str | None = None,
     ano: int | None = None,
 ) -> PesquisaInstitucionalResposta:
-    """Valida e grava em envio único as notas de 1 a 5 dadas pelo militar.
-    Se o militar já respondeu no ano de referência, bloqueia novo envio."""
+    """Valida e grava (ou atualiza) as notas de 1 a 5 dadas pelo militar.
+    O militar pode avaliar quantos cursos desejar (ao menos 1 curso ou sugestão)
+    e pode reabrir/editar sua avaliação posteriormente."""
     garantir_tabelas_e_catalogo_pesquisa()
     ano = ano or ano_pesquisa_vigente()
-
-    militar_id = militar.id if militar else getattr(user, "militar_id", None)
-    user_id = getattr(user, "id", None)
-    resposta_existente, _ = obter_resposta_militar(militar_id, user_id, ano=ano)
-    if resposta_existente is not None:
-        raise ValueError(
-            "Você já respondeu à Pesquisa Institucional. O envio é único e não pode ser realizado novamente."
-        )
-
     cursos = listar_cursos_ativos()
 
-    faltantes = []
     notas_validadas: dict[int, int] = {}
     for c in cursos:
         valor = notas_por_curso.get(c.id)
-        if valor is None:
-            faltantes.append(f"{c.secao_codigo}) {c.nome}")
+        if valor is None or str(valor).strip() == "":
             continue
         try:
             nota_int = int(valor)
@@ -423,37 +413,55 @@ def salvar_resposta_pesquisa(
             raise ValueError(f"A nota do curso '{c.nome}' deve ser um número inteiro entre 1 e 5.")
         notas_validadas[c.id] = nota_int
 
-    if faltantes:
-        exemplo = ", ".join(faltantes[:3])
-        resto = f" (e mais {len(faltantes) - 3})" if len(faltantes) > 3 else ""
+    sugestao_limpa = (sugestao_texto or "").strip() or None
+    if not notas_validadas and not sugestao_limpa:
         raise ValueError(
-            f"Por favor, selecione uma nota de 1 a 5 para todos os cursos listados. "
-            f"Pendentes: {exemplo}{resto}."
+            "Selecione uma nota de 1 a 5 para ao menos 1 curso (ou preencha uma sugestão de curso não listado) antes de enviar."
         )
 
-    sugestao_limpa = (sugestao_texto or "").strip() or None
+    militar_id = militar.id if militar else getattr(user, "militar_id", None)
+    user_id = getattr(user, "id", None)
+    resposta, _ = obter_resposta_militar(militar_id, user_id, ano=ano)
     agora = now_manaus_naive()
 
-    resposta = PesquisaInstitucionalResposta(
-        ano_referencia=ano,
-        militar_id=militar_id,
-        user_id=user_id,
-        sugestao_cursos_nao_listados=sugestao_limpa,
-        ip_address=ip_address,
-        criado_em=agora,
-        atualizado_em=agora,
-    )
-    database.session.add(resposta)
-    database.session.flush()
-
-    for curso_id, nota_int in notas_validadas.items():
-        database.session.add(
-            PesquisaInstitucionalAvaliacao(
-                resposta_id=resposta.id,
-                curso_id=curso_id,
-                nota=nota_int,
-            )
+    if not resposta:
+        resposta = PesquisaInstitucionalResposta(
+            ano_referencia=ano,
+            militar_id=militar_id,
+            user_id=user_id,
+            sugestao_cursos_nao_listados=sugestao_limpa,
+            ip_address=ip_address,
+            criado_em=agora,
+            atualizado_em=agora,
         )
+        database.session.add(resposta)
+        database.session.flush()
+    else:
+        resposta.militar_id = militar_id or resposta.militar_id
+        resposta.user_id = user_id or resposta.user_id
+        resposta.sugestao_cursos_nao_listados = sugestao_limpa
+        resposta.ip_address = ip_address
+        resposta.atualizado_em = agora
+
+    existentes_por_curso = {av.curso_id: av for av in list(resposta.avaliacoes)}
+
+    # Remove avaliações de cursos que o militar tenha desmarcado na edição
+    for curso_id_antigo, av_antiga in existentes_por_curso.items():
+        if curso_id_antigo not in notas_validadas:
+            database.session.delete(av_antiga)
+
+    # Atualiza ou insere as notas selecionadas
+    for curso_id, nota_int in notas_validadas.items():
+        if curso_id in existentes_por_curso:
+            existentes_por_curso[curso_id].nota = nota_int
+        else:
+            database.session.add(
+                PesquisaInstitucionalAvaliacao(
+                    resposta_id=resposta.id,
+                    curso_id=curso_id,
+                    nota=nota_int,
+                )
+            )
 
     database.session.commit()
     return resposta
@@ -804,12 +812,14 @@ def obter_detalhe_resposta_individual(resposta_id: int) -> dict | None:
     for sec in trilhas:
         cursos_sec = []
         soma_sec = 0
+        qtd_sec = 0
         for c in sec["cursos"]:
             nota = notas_map.get(c.id)
             if nota in contagem_por_nota:
                 contagem_por_nota[nota] += 1
                 soma_total += nota
                 soma_sec += nota
+                qtd_sec += 1
                 qtd_total += 1
             cursos_sec.append(
                 {
@@ -820,12 +830,13 @@ def obter_detalhe_resposta_individual(resposta_id: int) -> dict | None:
                     "nota_cor": ESCALA_CORES.get(nota, "#64748b"),
                 }
             )
-        media_sec = round(soma_sec / len(cursos_sec), 2) if cursos_sec else 0.0
+        media_sec = round(soma_sec / qtd_sec, 2) if qtd_sec > 0 else 0.0
         secoes_detalhe.append(
             {
                 **sec,
                 "cursos_avaliados": cursos_sec,
                 "soma_secao": soma_sec,
+                "qtd_avaliados_secao": qtd_sec,
                 "media_secao": media_sec,
             }
         )

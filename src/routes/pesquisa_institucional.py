@@ -102,13 +102,7 @@ def pesquisa_institucional_form():
     )
 
     if request.method == "POST":
-        if resposta_existente is not None:
-            flash(
-                "Você já respondeu à Pesquisa Institucional. O envio é único e não pode ser realizado novamente.",
-                "alert-warning",
-            )
-            return redirect(url_for("pesquisa_institucional_form"))
-
+        era_edicao = resposta_existente is not None
         notas_enviadas: dict[int, int] = {}
         for c in cursos_ativos:
             raw_val = (request.form.get(f"nota_{c.id}") or "").strip()
@@ -128,11 +122,16 @@ def pesquisa_institucional_form():
                 ip_address=_obter_ip_cliente(),
                 ano=ano,
             )
-            flash(
-                "Sua avaliação na Pesquisa Institucional (LNTD / ESASP) foi "
-                "registrada com sucesso! Obrigado pela contribuição.",
-                "alert-success",
-            )
+            if era_edicao:
+                flash(
+                    f"Sua avaliação na Pesquisa Institucional (LNTD / ESASP) foi atualizada com sucesso ({len(notas_enviadas)} curso(s) avaliado(s))!",
+                    "alert-success",
+                )
+            else:
+                flash(
+                    f"Sua avaliação na Pesquisa Institucional (LNTD / ESASP) foi registrada com sucesso ({len(notas_enviadas)} curso(s) avaliado(s))! Obrigado pela contribuição.",
+                    "alert-success",
+                )
             return redirect(url_for("pesquisa_institucional_form"))
         except ValueError as e:
             database.session.rollback()
@@ -323,6 +322,8 @@ def pesquisa_institucional_exportar_excel():
         )
         for sec in det["secoes"]:
             for c_av in sec["cursos_avaliados"]:
+                if c_av["nota"] is None:
+                    continue
                 ws_ind.append([
                     dt_str,
                     det["posto_grad"],
@@ -332,7 +333,7 @@ def pesquisa_institucional_exportar_excel():
                     det["obm_sigla"],
                     f"{sec['codigo'].upper()} - {sec['titulo']}",
                     c_av["nome"],
-                    c_av["nota"] or "",
+                    c_av["nota"],
                     c_av["nota_label"],
                 ])
 

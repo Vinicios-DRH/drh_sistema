@@ -105,8 +105,11 @@
       <i class="bi bi-funnel-fill me-1"></i> Filtrar cursos pela nota dada por este militar:
     </span>
     <div class="d-flex gap-1 flex-wrap">
-      <button type="button" class="btn btn-sm btn-dark filter-nota-btn" onclick="filtrarPorNota('all', this)">
-        Todas ({{ detalhe.qtd_total }})
+      <button type="button" class="btn btn-sm btn-dark filter-nota-btn" onclick="filtrarPorNota('rated', this)">
+        Apenas Avaliados ({{ detalhe.qtd_total }})
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-nota-btn" onclick="filtrarPorNota('all', this)">
+        Todos do Catálogo
       </button>
       {% for n_val in [5, 4, 3, 2, 1] %}
       <button type="button" class="btn btn-sm btn-outline-secondary filter-nota-btn"
@@ -126,7 +129,9 @@
         {{ sec.titulo }}
       </div>
       <div class="small text-secondary">
-        Somatório na trilha: <strong>{{ sec.soma_secao }} pts</strong> • Média: <strong>{{ "%.2f"|format(sec.media_secao) }}</strong>
+        Avaliados: <strong>{{ sec.qtd_avaliados_secao }}/{{ sec.cursos_avaliados|length }}</strong> •
+        Somatório: <strong>{{ sec.soma_secao }} pts</strong> •
+        Média: <strong>{{ "%.2f"|format(sec.media_secao) }}</strong>
       </div>
     </div>
 
@@ -134,12 +139,16 @@
       <table class="table table-hover align-middle mb-0">
         <tbody>
           {% for c in sec.cursos_avaliados %}
-          <tr class="row-nota-item" data-nota="{{ c.nota }}">
+          <tr class="row-nota-item" data-nota="{{ c.nota if c.nota is not none else '' }}">
             <td class="ps-3 fw-semibold">{{ c.nome }}</td>
             <td class="text-end pe-3" style="width: 260px;">
+              {% if c.nota is not none %}
               <span class="nota-pill" style="background: {{ c.nota_cor }};">
                 Nota {{ c.nota }} — {{ c.nota_label }}
               </span>
+              {% else %}
+              <span class="badge bg-light text-muted border">Não avaliado</span>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -153,22 +162,36 @@
 
 <script>
   function filtrarPorNota(notaFiltro, btnEl) {
-    document.querySelectorAll('.filter-nota-btn').forEach(b => {
-      b.classList.remove('btn-dark');
-      b.classList.add('btn-outline-secondary');
-    });
-    btnEl.classList.remove('btn-outline-secondary');
-    btnEl.classList.add('btn-dark');
+    if (btnEl) {
+      document.querySelectorAll('.filter-nota-btn').forEach(b => {
+        b.classList.remove('btn-dark');
+        b.classList.add('btn-outline-secondary');
+      });
+      btnEl.classList.remove('btn-outline-secondary');
+      btnEl.classList.add('btn-dark');
+    }
 
     document.querySelectorAll('.sec-detalhe-box').forEach(box => {
       let visiveis = 0;
       box.querySelectorAll('.row-nota-item').forEach(row => {
-        const mostrar = (notaFiltro === 'all' || row.getAttribute('data-nota') === String(notaFiltro));
+        const val = row.getAttribute('data-nota') || '';
+        let mostrar = false;
+        if (notaFiltro === 'all') {
+          mostrar = true;
+        } else if (notaFiltro === 'rated') {
+          mostrar = (val !== '');
+        } else {
+          mostrar = (val === String(notaFiltro));
+        }
         row.style.display = mostrar ? '' : 'none';
         if (mostrar) visiveis++;
       });
       box.style.display = visiveis > 0 ? '' : 'none';
     });
   }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    filtrarPorNota('rated');
+  });
 </script>
 {% endblock %}
