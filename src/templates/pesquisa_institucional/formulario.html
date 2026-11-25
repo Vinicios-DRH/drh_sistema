@@ -407,15 +407,17 @@
     </div>
   </div>
 
-  {% if resposta_existente %}
+  {% set bloqueado = (resposta_existente is not none) %}
+  {% if bloqueado %}
   <div class="alert alert-success d-flex align-items-center justify-content-between flex-wrap gap-2 rounded-4 shadow-sm mb-3">
     <div>
-      <i class="bi bi-check-circle-fill me-2"></i>
-      <strong>Você já respondeu à Pesquisa Institucional {{ ano }}!</strong>
-      Último envio registrado em
-      <b>{{ resposta_existente.atualizado_em.strftime('%d/%m/%Y às %H:%M') if resposta_existente.atualizado_em else '—' }}</b>.
-      Você pode revisar ou atualizar suas notas abaixo a qualquer momento.
+      <i class="bi bi-lock-fill me-2"></i>
+      <strong>Pesquisa Concluída (Envio Único):</strong>
+      Você já respondeu à Pesquisa Institucional {{ ano }} em
+      <b>{{ resposta_existente.criado_em.strftime('%d/%m/%Y às %H:%M') if resposta_existente.criado_em else '—' }}</b>.
+      Não é possível responder novamente; suas notas estão disponíveis abaixo apenas para consulta.
     </div>
+    <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i> Resposta Registrada</span>
   </div>
   {% endif %}
 
@@ -480,6 +482,7 @@
         </div>
 
         <!-- Preenchimento rápido da seção -->
+        {% if not bloqueado %}
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -506,6 +509,7 @@
             </ul>
           </div>
         </div>
+        {% endif %}
       </div>
 
       <div class="pi-section-body">
@@ -528,7 +532,7 @@
                 data-curso="{{ curso.id }}"
                 data-val="{{ n_val }}"
                 title="{{ n_val }} - {{ n_lbl }}"
-                onclick="selecionarNotaRapida({{ curso.id }}, {{ n_val }})">
+                {% if bloqueado %}disabled{% else %}onclick="selecionarNotaRapida({{ curso.id }}, {{ n_val }})"{% endif %}>
                 {{ n_val }}
               </button>
               {% endfor %}
@@ -540,8 +544,7 @@
               class="form-select form-select-sm pi-select {% if nota_atual %}has-value{% endif %}"
               data-sec="{{ sec.codigo }}"
               data-curso-id="{{ curso.id }}"
-              onchange="aoMudarSelect({{ curso.id }}, this.value)"
-              required>
+              {% if bloqueado %}disabled{% else %}onchange="aoMudarSelect({{ curso.id }}, this.value)" required{% endif %}>
               <option value="" disabled {% if not nota_atual %}selected{% endif %}>
                 Selecione a nota (1 a 5)...
               </option>
@@ -617,6 +620,7 @@
           id="sugestao_cursos_nao_listados"
           rows="4"
           class="form-control mt-2"
+          {% if bloqueado %}readonly disabled{% endif %}
           placeholder="Ex.: Curso de Pilotagem de Drones em Operações de Incêndio e Salvamento; Curso de Perícia de Incêndio Florestal; etc.">{{ sugestao_atual }}</textarea>
 
         <div class="alert alert-light border mt-3 mb-0 small text-secondary">
@@ -631,14 +635,21 @@
           <i class="bi bi-arrow-left me-1"></i> Voltar para Seção K
         </button>
 
+        {% if not bloqueado %}
         <button type="submit" class="btn btn-success fw-bold px-4" id="btnSubmitFinal">
           <i class="bi bi-send-check-fill me-1"></i>
-          {% if resposta_existente %}Atualizar Minha Avaliação{% else %}Enviar Avaliação da Pesquisa Institucional{% endif %}
+          Enviar Avaliação da Pesquisa Institucional
         </button>
+        {% else %}
+        <span class="badge bg-success p-2">
+          <i class="bi bi-lock-fill me-1"></i> Pesquisa já respondida (envio único)
+        </span>
+        {% endif %}
       </div>
     </section>
 
     <!-- Botão flutuante de envio rápido quando todas as notas estiverem preenchidas -->
+    {% if not bloqueado %}
     <div class="card border-0 shadow-lg rounded-4 p-3 mt-3 bg-white">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="small text-secondary" id="footerResumoStatus">
@@ -650,11 +661,12 @@
           </button>
           <button type="submit" class="btn btn-danger fw-bold px-4">
             <i class="bi bi-check2-circle me-1"></i>
-            {% if resposta_existente %}Salvar Alterações{% else %}Finalizar e Enviar Pesquisa{% endif %}
+            Finalizar e Enviar Pesquisa
           </button>
         </div>
       </div>
     </div>
+    {% endif %}
 
   </form>
 </div>

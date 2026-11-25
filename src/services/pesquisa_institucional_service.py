@@ -393,9 +393,19 @@ def salvar_resposta_pesquisa(
     ip_address: str | None = None,
     ano: int | None = None,
 ) -> PesquisaInstitucionalResposta:
-    """Valida e grava (ou atualiza) as notas de 1 a 5 dadas pelo militar."""
+    """Valida e grava em envio único as notas de 1 a 5 dadas pelo militar.
+    Se o militar já respondeu no ano de referência, bloqueia novo envio."""
     garantir_tabelas_e_catalogo_pesquisa()
     ano = ano or ano_pesquisa_vigente()
+
+    militar_id = militar.id if militar else getattr(user, "militar_id", None)
+    user_id = getattr(user, "id", None)
+    resposta_existente, _ = obter_resposta_militar(militar_id, user_id, ano=ano)
+    if resposta_existente is not None:
+        raise ValueError(
+            "Você já respondeu à Pesquisa Institucional. O envio é único e não pode ser realizado novamente."
+        )
+
     cursos = listar_cursos_ativos()
 
     faltantes = []
@@ -421,44 +431,29 @@ def salvar_resposta_pesquisa(
             f"Pendentes: {exemplo}{resto}."
         )
 
-    militar_id = militar.id if militar else getattr(user, "militar_id", None)
-    user_id = getattr(user, "id", None)
-    resposta, _ = obter_resposta_militar(militar_id, user_id, ano=ano)
-
     sugestao_limpa = (sugestao_texto or "").strip() or None
     agora = now_manaus_naive()
 
-    if not resposta:
-        resposta = PesquisaInstitucionalResposta(
-            ano_referencia=ano,
-            militar_id=militar_id,
-            user_id=user_id,
-            sugestao_cursos_nao_listados=sugestao_limpa,
-            ip_address=ip_address,
-            criado_em=agora,
-            atualizado_em=agora,
-        )
-        database.session.add(resposta)
-        database.session.flush()
-    else:
-        resposta.militar_id = militar_id or resposta.militar_id
-        resposta.user_id = user_id or resposta.user_id
-        resposta.sugestao_cursos_nao_listados = sugestao_limpa
-        resposta.ip_address = ip_address
-        resposta.atualizado_em = agora
+    resposta = PesquisaInstitucionalResposta(
+        ano_referencia=ano,
+        militar_id=militar_id,
+        user_id=user_id,
+        sugestao_cursos_nao_listados=sugestao_limpa,
+        ip_address=ip_address,
+        criado_em=agora,
+        atualizado_em=agora,
+    )
+    database.session.add(resposta)
+    database.session.flush()
 
-    existentes_por_curso = {av.curso_id: av for av in resposta.avaliacoes}
     for curso_id, nota_int in notas_validadas.items():
-        if curso_id in existentes_por_curso:
-            existentes_por_curso[curso_id].nota = nota_int
-        else:
-            database.session.add(
-                PesquisaInstitucionalAvaliacao(
-                    resposta_id=resposta.id,
-                    curso_id=curso_id,
-                    nota=nota_int,
-                )
+        database.session.add(
+            PesquisaInstitucionalAvaliacao(
+                resposta_id=resposta.id,
+                curso_id=curso_id,
+                nota=nota_int,
             )
+        )
 
     database.session.commit()
     return resposta

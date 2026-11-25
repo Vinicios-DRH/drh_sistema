@@ -102,6 +102,13 @@ def pesquisa_institucional_form():
     )
 
     if request.method == "POST":
+        if resposta_existente is not None:
+            flash(
+                "Você já respondeu à Pesquisa Institucional. O envio é único e não pode ser realizado novamente.",
+                "alert-warning",
+            )
+            return redirect(url_for("pesquisa_institucional_form"))
+
         notas_enviadas: dict[int, int] = {}
         for c in cursos_ativos:
             raw_val = (request.form.get(f"nota_{c.id}") or "").strip()
