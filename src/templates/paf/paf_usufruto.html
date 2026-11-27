@@ -1,0 +1,707 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    --brand-red: #B5121B;
+    --brand-red-600: #9e1119;
+    --glass-bg: rgba(255, 255, 255, .06);
+    --glass-brd: rgba(255, 255, 255, .16);
+    --ink-200: #e8eef6;
+  }
+
+  body {
+    background: linear-gradient(135deg, #0e1726 0%, #0b2e4f 45%, #0b3a63 100%) fixed;
+  }
+
+  .usuf-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px 14px 60px;
+  }
+
+  .usuf-header {
+    background: linear-gradient(125deg, rgba(15, 23, 42, .94) 0%, rgba(11, 46, 79, .94) 65%, rgba(181, 18, 27, .88) 100%);
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 20px;
+    padding: 22px 24px;
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .28);
+    margin-bottom: 18px;
+  }
+
+  .usuf-card {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, .08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .16);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+
+  .mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .mod-option {
+    border: 2px solid #cbd5e1;
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s ease;
+  }
+
+  .mod-option:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+
+  .mod-option.active {
+    border-color: #1d4ed8;
+    background: #dbeafe;
+    color: #1e3a8a;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, .15);
+  }
+
+  .mod-option .mod-title {
+    font-weight: 900;
+    font-size: 1.05rem;
+  }
+
+  .mod-option .mod-sub {
+    font-size: .78rem;
+    color: #475569;
+  }
+
+  .periodo-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 18px;
+    background: #f8fafc;
+    margin-bottom: 14px;
+    transition: border-color .15s ease;
+  }
+
+  .periodo-box.valid-period {
+    border-color: #34d399;
+    background: #f0fdf4;
+  }
+
+  .periodo-box.invalid-period {
+    border-color: #f87171;
+    background: #fef2f2;
+  }
+
+  .periodo-num-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #0f172a;
+    color: #fff;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+  }
+
+  html[data-theme="dark"] .usuf-card {
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+{% set meses_full = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] %}
+<div class="usuf-wrap">
+
+  <!-- Cabeçalho -->
+  <div class="usuf-header">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <img src="{{ url_for('static', filename='img/logobm.png') }}" width="56" height="56" class="rounded" alt="CBMAM">
+        <div>
+          <span class="badge bg-warning text-dark fw-bold mb-1">
+            <i class="bi bi-calendar2-range-fill me-1"></i> PLANO ANUAL DE FÉRIAS • USUFRUTO {{ ano }}
+          </span>
+          <h1 class="h4 fw-bold m-0 text-white">Solicitação de Datas de Usufruto — PAF {{ ano }}</h1>
+          <div class="small text-white-50 mt-1">
+            {{ militar.posto_grad.sigla if militar and militar.posto_grad else '' }}
+            {{ militar.nome_completo if militar else '' }}
+            {% if militar and militar.matricula %} · Matrícula: {{ militar.matricula }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('paf.minhas', ano=ano) }}" class="btn btn-outline-light">
+          <i class="bi bi-card-list me-1"></i> Minhas Solicitações
+        </a>
+        <a href="{{ url_for('home_atualizacao') }}" class="btn btn-outline-light">
+          <i class="bi bi-arrow-left me-1"></i> Painel Inicial
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta de Status quando já existe solicitação -->
+  {% if plano %}
+  {% set st_plano = (plano.status or 'pendente')|lower %}
+  {% if st_plano in ['indeferido', 'indeferido_chefe', 'reprovado_chefe'] %}
+  <div class="alert alert-danger rounded-4 shadow-sm mb-3">
+    <div class="fw-bold">
+      <i class="bi bi-exclamation-octagon-fill me-1"></i>
+      Sua solicitação anterior foi INDEFERIDA pela chefia.
+    </div>
+    {% if plano.motivo_indeferimento %}
+    <div class="mt-1"><strong>Motivo informado pela chefia:</strong> {{ plano.motivo_indeferimento }}</div>
+    {% endif %}
+    <div class="small mt-1">
+      Altere as datas abaixo conforme orientação da sua chefia e clique em <strong>Reenviar para Validação da Chefia</strong>.
+    </div>
+  </div>
+  {% elif st_plano in ['aprovado_chefe', 'aprovado', 'validado'] %}
+  <div class="alert alert-success rounded-4 shadow-sm mb-3">
+    <i class="bi bi-check-circle-fill me-1"></i>
+    <strong>Suas datas de usufruto do PAF {{ ano }} já foram VALIDADAS pela sua chefia!</strong>
+    {% if plano.avaliado_em %}
+    Validado em {{ plano.avaliado_em.strftime('%d/%m/%Y às %H:%M') }}.
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="alert alert-warning rounded-4 shadow-sm mb-3">
+    <i class="bi bi-hourglass-split me-1"></i>
+    <strong>Solicitação enviada e aguardando validação da sua chefia.</strong>
+    Enquanto a chefia ainda não validou, você pode ajustar suas datas abaixo se precisar.
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+
+      <!-- Card 1: Resumo do Mês de Pagamento já cadastrado no PAF -->
+      <div class="usuf-card p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <div class="text-uppercase small fw-bold text-secondary">1. Mês de Pagamento do PAF {{ ano }}</div>
+            <div class="h5 fw-bold m-0 mt-1 text-dark">
+              {% if novo_paf %}
+                {% if novo_paf.mes_definido %}
+                  <span class="text-success"><i class="bi bi-patch-check-fill me-1"></i>{{ mes_pag_nome }}</span>
+                  <span class="badge bg-success ms-1">Homologado pela DP</span>
+                {% else %}
+                  <span class="text-primary"><i class="bi bi-calendar-check me-1"></i>1ª Opção: {{ mes_pag_nome }}</span>
+                  <span class="badge bg-warning text-dark ms-1">Aguardando Homologação DP</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">Nenhum mês de pagamento registrado para {{ ano }}</span>
+              {% endif %}
+            </div>
+            {% if novo_paf %}
+            <div class="small text-secondary mt-1">
+              Opções de pagamento enviadas:
+              <b>1ª:</b> {{ meses_pt[novo_paf.opcao_1] if novo_paf.opcao_1 else '—' }} ·
+              <b>2ª:</b> {{ meses_pt[novo_paf.opcao_2] if novo_paf.opcao_2 else '—' }} ·
+              <b>3ª:</b> {{ meses_pt[novo_paf.opcao_3] if novo_paf.opcao_3 else '—' }}
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="text-end">
+            <span class="badge bg-dark fs-6 px-3 py-2">
+              <i class="bi bi-sun-fill text-warning me-1"></i>
+              Direito: {{ direito_dias }} dias em {{ ano }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Formulário de Escolha das Datas de Usufruto -->
+      <form class="usuf-card p-3 p-md-4" method="POST" action="{{ url_for('paf.usufruto', ano=ano) }}" id="formUsufruto">
+        <input type="hidden" name="ano" value="{{ ano }}">
+        <input type="hidden" name="modalidade" id="inputModalidade" value="{{ modalidade_atual }}">
+
+        <div class="mb-3">
+          <div class="text-uppercase small fw-bold text-secondary">2. Forma de Parcelamento das Férias ({{ direito_dias }} dias)</div>
+          {% if direito_dias == 40 %}
+          <div class="alert alert-info mt-2 mb-0 small">
+            <i class="bi bi-radiation me-1"></i>
+            <strong>Regra de 40 dias (Raio-X):</strong> Suas férias são obrigatoriamente divididas em
+            <strong>2 períodos de 20 dias (20 + 20)</strong>, com intervalo mínimo de <strong>6 meses</strong> entre o início do 1º e do 2º período, ambos concluídos até 31/12/{{ ano }}.
+          </div>
+          {% else %}
+          <p class="small text-secondary mb-2">
+            Escolha como deseja dividir os seus <strong>30 dias de férias</strong> durante o ano de <strong>{{ ano }}</strong> (de 01/01/{{ ano }} até 31/12/{{ ano }}):
+          </p>
+          <div class="mod-grid" id="gridModalidades">
+            {% set opcoes_mod = [
+              ('30', '30 dias', '1 período corrido'),
+              ('15-15', '15 + 15 dias', '2 períodos de 15d'),
+              ('10-20', '10 + 20 dias', '1º de 10d e 2º de 20d'),
+              ('20-10', '20 + 10 dias', '1º de 20d e 2º de 10d'),
+              ('10-10-10', '10 + 10 + 10', '3 períodos de 10d')
+            ] %}
+            {% for cod, titulo, sub in opcoes_mod %}
+            <div class="mod-option {% if modalidade_atual == cod %}active{% endif %}"
+              data-mod="{{ cod }}"
+              onclick="{% if pode_editar %}selecionarModalidade('{{ cod }}'){% endif %}">
+              <div class="mod-title">{{ titulo }}</div>
+              <div class="mod-sub">{{ sub }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <hr class="my-3">
+
+        <div class="text-uppercase small fw-bold text-secondary mb-2">
+          3. Defina o Mês de Usufruto e a Data de Início de cada Período ({{ ano }})
+        </div>
+
+        <!-- 1º PERÍODO -->
+        <div class="periodo-box" id="boxPeriodo1">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="periodo-num-badge">1º</span>
+              <strong>1º Período de Férias</strong>
+            </div>
+            <span class="badge bg-primary" id="badgeDias1">30 dias</span>
+          </div>
+
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-bold">Mês de Usufruto (1º Período)</label>
+              <select class="form-select" id="mes_usufruto_1" name="mes_usufruto_1" {% if not pode_editar %}disabled{% endif %} required>
+                <option value="">Selecione o mês...</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if plano and plano.mes_usufruto_p1 == m %}selected{% endif %}>
+                  {{ meses_full[m-1] }} / {{ ano }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-2">
+              <label class="form-label small fw-bold">Qtd. Dias</label>
+              <input type="number" class="form-control bg-white fw-bold" id="qtd_dias_1" name="qtd_dias_1"
+                value="{{ plano.qtd_dias_p1 if plano and plano.qtd_dias_p1 else (20 if direito_dias == 40 else 30) }}" readonly>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Início</label>
+              <input type="date" class="form-control" id="inicio_1" name="inicio_1"
+                value="{{ plano.inicio_p1.strftime('%Y-%m-%d') if plano and plano.inicio_p1 else '' }}"
+                min="{{ ano }}-01-01" max="{{ ano }}-12-31" {% if not pode_editar %}disabled{% endif %} required>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Término (automático)</label>
+              <input type="date" class="form-control bg-light" id="fim_1"
+                value="{{ plano.fim_p1.strftime('%Y-%m-%d') if plano and plano.fim_p1 else '' }}" readonly>
+            </div>
+          </div>
+          <div class="small text-danger mt-2 d-none" id="erroPeriodo1"></div>
+        </div>
+
+        <!-- 2º PERÍODO -->
+        <div class="periodo-box" id="boxPeriodo2">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="periodo-num-badge">2º</span>
+              <strong>2º Período de Férias</strong>
+            </div>
+            <span class="badge bg-primary" id="badgeDias2">15 dias</span>
+          </div>
+
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-bold">Mês de Usufruto (2º Período)</label>
+              <select class="form-select" id="mes_usufruto_2" name="mes_usufruto_2" {% if not pode_editar %}disabled{% endif %}>
+                <option value="">Selecione o mês...</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if plano and plano.mes_usufruto_p2 == m %}selected{% endif %}>
+                  {{ meses_full[m-1] }} / {{ ano }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-2">
+              <label class="form-label small fw-bold">Qtd. Dias</label>
+              <input type="number" class="form-control bg-white fw-bold" id="qtd_dias_2" name="qtd_dias_2"
+                value="{{ plano.qtd_dias_p2 if plano and plano.qtd_dias_p2 else '' }}" readonly>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Início</label>
+              <input type="date" class="form-control" id="inicio_2" name="inicio_2"
+                value="{{ plano.inicio_p2.strftime('%Y-%m-%d') if plano and plano.inicio_p2 else '' }}"
+                min="{{ ano }}-01-01" max="{{ ano }}-12-31" {% if not pode_editar %}disabled{% endif %}>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Término (automático)</label>
+              <input type="date" class="form-control bg-light" id="fim_2"
+                value="{{ plano.fim_p2.strftime('%Y-%m-%d') if plano and plano.fim_p2 else '' }}" readonly>
+            </div>
+          </div>
+          <div class="small text-danger mt-2 d-none" id="erroPeriodo2"></div>
+        </div>
+
+        <!-- 3º PERÍODO -->
+        <div class="periodo-box" id="boxPeriodo3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="periodo-num-badge">3º</span>
+              <strong>3º Período de Férias</strong>
+            </div>
+            <span class="badge bg-primary" id="badgeDias3">10 dias</span>
+          </div>
+
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-bold">Mês de Usufruto (3º Período)</label>
+              <select class="form-select" id="mes_usufruto_3" name="mes_usufruto_3" {% if not pode_editar %}disabled{% endif %}>
+                <option value="">Selecione o mês...</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if plano and plano.mes_usufruto_p3 == m %}selected{% endif %}>
+                  {{ meses_full[m-1] }} / {{ ano }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12 col-md-2">
+              <label class="form-label small fw-bold">Qtd. Dias</label>
+              <input type="number" class="form-control bg-white fw-bold" id="qtd_dias_3" name="qtd_dias_3"
+                value="{{ plano.qtd_dias_p3 if plano and plano.qtd_dias_p3 else '' }}" readonly>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Início</label>
+              <input type="date" class="form-control" id="inicio_3" name="inicio_3"
+                value="{{ plano.inicio_p3.strftime('%Y-%m-%d') if plano and plano.inicio_p3 else '' }}"
+                min="{{ ano }}-01-01" max="{{ ano }}-12-31" {% if not pode_editar %}disabled{% endif %}>
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-bold">Data de Término (automático)</label>
+              <input type="date" class="form-control bg-light" id="fim_3"
+                value="{{ plano.fim_p3.strftime('%Y-%m-%d') if plano and plano.fim_p3 else '' }}" readonly>
+            </div>
+          </div>
+          <div class="small text-danger mt-2 d-none" id="erroPeriodo3"></div>
+        </div>
+
+        <!-- Observação opcional do militar -->
+        <div class="mt-3">
+          <label class="form-label small fw-bold">Observação para a Chefia (opcional)</label>
+          <textarea class="form-control" name="observacao_militar" rows="2"
+            placeholder="Caso necessário, informe alguma observação para conhecimento do seu chefe..."
+            {% if not pode_editar %}disabled{% endif %}>{{ plano.observacao_militar if plano and plano.observacao_militar else '' }}</textarea>
+        </div>
+
+        <div id="alertaErroGeral" class="alert alert-danger mt-3 d-none"></div>
+
+        {% if pode_editar %}
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{{ url_for('paf.minhas', ano=ano) }}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-danger fw-bold px-4" id="btnSalvarUsufruto">
+            <i class="bi bi-send-check-fill me-1"></i>
+            {% if plano %}Atualizar e Reenviar para Validação da Chefia{% else %}Enviar Datas de Usufruto para a Chefia{% endif %}
+          </button>
+        </div>
+        {% endif %}
+      </form>
+
+    </div>
+
+    <!-- Coluna Lateral: Regras e Resumo em Tempo Real -->
+    <div class="col-12 col-lg-4">
+      <div class="usuf-card p-3 p-md-4">
+        <h2 class="h6 fw-bold mb-2">
+          <i class="bi bi-shield-check text-primary me-1"></i> Regras de Usufruto do PAF {{ ano }}
+        </h2>
+        <ul class="small text-secondary ps-3 mb-3" style="line-height: 1.6;">
+          <li>Todas as férias devem iniciar a partir de <strong>01/01/{{ ano }}</strong> e terminar no máximo até <strong>31/12/{{ ano }}</strong> (não é permitido ultrapassar 31 de dezembro).</li>
+          {% if direito_dias == 40 %}
+          <li><strong>Militares com 40 dias (Raio-X):</strong> obrigatoriamente <strong>2 períodos de 20 dias (20 + 20)</strong>, com intervalo mínimo de <strong>6 meses</strong> entre o 1º e o 2º período.</li>
+          {% else %}
+          <li><strong>Opções de parcelamento (30 dias):</strong> <code>30 dias</code>, <code>15 + 15</code>, <code>10 + 20</code>, <code>20 + 10</code> ou <code>10 + 10 + 10</code>.</li>
+          {% endif %}
+          <li><strong>Ordem cronológica obrigatória:</strong>
+            <ul class="ps-3 mt-1">
+              <li>O 1º período deve terminar antes do início do 2º período.</li>
+              <li>O 2º período não pode ser anterior ao 1º nem posterior ao 3º.</li>
+              <li>O 3º período deve iniciar após o término do 2º período.</li>
+            </ul>
+          </li>
+          <li>Após o envio, sua solicitação ficará disponível no <strong>Painel da Chefia</strong> da sua OBM para validação ou indeferimento.</li>
+          <li>Caso a chefia indefira, você poderá alterar as datas aqui e reenviar.</li>
+        </ul>
+
+        <hr>
+
+        <div class="small fw-bold text-uppercase text-secondary mb-2">Resumo dos Períodos Escolhidos</div>
+        <div id="resumoPeriodosLateral" class="small"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const ANO_PAF = {{ ano }};
+  const DIREITO_DIAS = {{ direito_dias }};
+  const PODE_EDITAR = {{ pode_editar|tojson }};
+  const MESES_NOMES = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const MAPA_MODALIDADES = {
+    '30': [30],
+    '15-15': [15, 15],
+    '10-20': [10, 20],
+    '20-10': [20, 10],
+    '10-10-10': [10, 10, 10],
+    '20-20': [20, 20]
+  };
+
+  const pad = n => String(n).padStart(2, '0');
+  const ultimoDiaMes = (ano, mes) => new Date(ano, mes, 0).getDate();
+
+  function addDaysISO(iso, days) {
+    if (!iso || !days) return '';
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + Number(days) - 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function addMonthsISO(iso, months) {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    const diaOriginal = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    while (d.getDate() < diaOriginal) {
+      d.setDate(d.getDate() - 1);
+    }
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function fmtBR(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function selecionarModalidade(cod) {
+    if (DIREITO_DIAS === 40) cod = '20-20';
+    const inputMod = document.getElementById('inputModalidade');
+    if (inputMod) inputMod.value = cod;
+
+    document.querySelectorAll('.mod-option').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-mod') === cod);
+    });
+
+    const diasArr = MAPA_MODALIDADES[cod] || [30];
+    [1, 2, 3].forEach(idx => {
+      const box = document.getElementById(`boxPeriodo${idx}`);
+      const qtdEl = document.getElementById(`qtd_dias_${idx}`);
+      const badgeEl = document.getElementById(`badgeDias${idx}`);
+      const mesEl = document.getElementById(`mes_usufruto_${idx}`);
+      const iniEl = document.getElementById(`inicio_${idx}`);
+      const fimEl = document.getElementById(`fim_${idx}`);
+
+      const dias = diasArr[idx - 1] || 0;
+      if (dias > 0) {
+        box.classList.remove('d-none');
+        qtdEl.value = dias;
+        badgeEl.textContent = `${dias} dias`;
+        if (PODE_EDITAR) {
+          mesEl.required = true;
+          iniEl.required = true;
+        }
+      } else {
+        box.classList.add('d-none');
+        qtdEl.value = '';
+        mesEl.value = '';
+        iniEl.value = '';
+        fimEl.value = '';
+        mesEl.required = false;
+        iniEl.required = false;
+      }
+    });
+
+    recalcularEValidar();
+  }
+
+  function aoMudarMes(idx) {
+    const mesEl = document.getElementById(`mes_usufruto_${idx}`);
+    const iniEl = document.getElementById(`inicio_${idx}`);
+    if (!mesEl || !iniEl) return;
+
+    const m = parseInt(mesEl.value || 0);
+    if (m >= 1 && m <= 12) {
+      const minMes = `${ANO_PAF}-${pad(m)}-01`;
+      const maxMes = `${ANO_PAF}-${pad(m)}-${pad(ultimoDiaMes(ANO_PAF, m))}`;
+      iniEl.min = minMes;
+      iniEl.max = maxMes;
+
+      if (iniEl.value) {
+        const mesData = parseInt(iniEl.value.split('-')[1] || 0);
+        if (mesData !== m) {
+          iniEl.value = minMes;
+        }
+      } else {
+        iniEl.value = minMes;
+      }
+    } else {
+      iniEl.min = `${ANO_PAF}-01-01`;
+      iniEl.max = `${ANO_PAF}-12-31`;
+    }
+    recalcularEValidar();
+  }
+
+  function aoMudarDataInicio(idx) {
+    const mesEl = document.getElementById(`mes_usufruto_${idx}`);
+    const iniEl = document.getElementById(`inicio_${idx}`);
+    if (iniEl && iniEl.value && mesEl) {
+      const partes = iniEl.value.split('-');
+      if (partes.length === 3) {
+        const m = parseInt(partes[1], 10);
+        if (m >= 1 && m <= 12) {
+          mesEl.value = String(m);
+        }
+      }
+    }
+    recalcularEValidar();
+  }
+
+  function recalcularEValidar() {
+    const cod = DIREITO_DIAS === 40 ? '20-20' : (document.getElementById('inputModalidade')?.value || '30');
+    const diasArr = MAPA_MODALIDADES[cod] || [30];
+    const qtdAtivos = diasArr.length;
+
+    const dados = [];
+    let temErro = false;
+    let msgGeral = '';
+
+    for (let idx = 1; idx <= 3; idx++) {
+      const box = document.getElementById(`boxPeriodo${idx}`);
+      const errEl = document.getElementById(`erroPeriodo${idx}`);
+      const qtdEl = document.getElementById(`qtd_dias_${idx}`);
+      const mesEl = document.getElementById(`mes_usufruto_${idx}`);
+      const iniEl = document.getElementById(`inicio_${idx}`);
+      const fimEl = document.getElementById(`fim_${idx}`);
+
+      errEl.classList.add('d-none');
+      errEl.textContent = '';
+      box.classList.remove('valid-period', 'invalid-period');
+
+      if (idx > qtdAtivos) continue;
+
+      const qtd = parseInt(qtdEl.value || 0);
+      const mes = parseInt(mesEl.value || 0);
+      const ini = iniEl.value || '';
+      const fim = (ini && qtd) ? addDaysISO(ini, qtd) : '';
+      fimEl.value = fim;
+
+      let erroLocal = '';
+      if (ini) {
+        if (ini < `${ANO_PAF}-01-01` || ini > `${ANO_PAF}-12-31`) {
+          erroLocal = `A data de início deve estar dentro do ano de ${ANO_PAF}.`;
+        } else if (fim > `${ANO_PAF}-12-31`) {
+          erroLocal = `O término (${fmtBR(fim)}) ultrapassa 31/12/${ANO_PAF}. Antecipe a data de início.`;
+        } else if (mes && parseInt(ini.split('-')[1], 10) !== mes) {
+          erroLocal = `A data de início (${fmtBR(ini)}) não corresponde ao mês selecionado (${MESES_NOMES[mes]}).`;
+        }
+      }
+
+      dados.push({ idx, qtd, mes, ini, fim, erroLocal });
+    }
+
+    // Validação de ordem cronológica entre os períodos
+    if (dados.length >= 2 && dados[0].ini && dados[0].fim && dados[1].ini) {
+      if (dados[1].ini <= dados[0].ini) {
+        dados[1].erroLocal = 'O 2º período não pode começar antes ou no mesmo dia do 1º período.';
+      } else if (dados[1].ini <= dados[0].fim) {
+        dados[1].erroLocal = `O 2º período (${fmtBR(dados[1].ini)}) deve começar após o término do 1º período (${fmtBR(dados[0].fim)}).`;
+      } else if (DIREITO_DIAS === 40) {
+        const min6m = addMonthsISO(dados[0].ini, 6);
+        if (dados[1].ini < min6m) {
+          dados[1].erroLocal = `Para 40 dias (20+20), é obrigatório intervalo de 6 meses: o 2º período deve começar a partir de ${fmtBR(min6m)}.`;
+        }
+      }
+    }
+
+    if (dados.length === 3 && dados[1].ini && dados[1].fim && dados[2].ini) {
+      if (dados[2].ini <= dados[1].ini || (dados[0].ini && dados[2].ini <= dados[0].ini)) {
+        dados[2].erroLocal = 'O 3º período não pode começar antes do 1º ou do 2º período.';
+      } else if (dados[2].ini <= dados[1].fim) {
+        dados[2].erroLocal = `O 3º período (${fmtBR(dados[2].ini)}) deve começar após o término do 2º período (${fmtBR(dados[1].fim)}).`;
+      }
+    }
+
+    // Renderiza status visual e resumo lateral
+    const resumoHtml = [];
+    dados.forEach(d => {
+      const box = document.getElementById(`boxPeriodo${d.idx}`);
+      const errEl = document.getElementById(`erroPeriodo${d.idx}`);
+      if (d.erroLocal) {
+        temErro = true;
+        errEl.textContent = d.erroLocal;
+        errEl.classList.remove('d-none');
+        box.classList.add('invalid-period');
+        if (!msgGeral) msgGeral = d.erroLocal;
+      } else if (d.ini && d.fim && d.mes) {
+        box.classList.add('valid-period');
+      }
+
+      resumoHtml.push(`
+        <div class="p-2 rounded-3 border mb-2 ${d.erroLocal ? 'border-danger bg-danger bg-opacity-10' : (d.ini ? 'border-success bg-success bg-opacity-10' : 'bg-light')}">
+          <div class="fw-bold">${d.idx}º Período (${d.qtd} dias)</div>
+          <div class="text-secondary">Mês: <b>${d.mes ? MESES_NOMES[d.mes] : '—'}</b></div>
+          <div class="text-secondary">Período: <b>${fmtBR(d.ini)}</b> a <b>${fmtBR(d.fim)}</b></div>
+        </div>
+      `);
+    });
+
+    const resumoEl = document.getElementById('resumoPeriodosLateral');
+    if (resumoEl) resumoEl.innerHTML = resumoHtml.join('');
+
+    const alertaGeral = document.getElementById('alertaErroGeral');
+    if (alertaGeral) {
+      if (temErro) {
+        alertaGeral.textContent = msgGeral;
+        alertaGeral.classList.remove('d-none');
+      } else {
+        alertaGeral.classList.add('d-none');
+      }
+    }
+
+    return !temErro && dados.every(d => d.ini && d.fim && d.mes);
+  }
+
+  [1, 2, 3].forEach(idx => {
+    document.getElementById(`mes_usufruto_${idx}`)?.addEventListener('change', () => aoMudarMes(idx));
+    document.getElementById(`inicio_${idx}`)?.addEventListener('change', () => aoMudarDataInicio(idx));
+  });
+
+  document.getElementById('formUsufruto')?.addEventListener('submit', function (e) {
+    if (!recalcularEValidar()) {
+      e.preventDefault();
+      alert('Verifique os períodos preenchidos: confira se todas as datas foram informadas em ordem cronológica e dentro de 01/01/' + ANO_PAF + ' a 31/12/' + ANO_PAF + '.');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    selecionarModalidade('{{ modalidade_atual }}');
+  });
+</script>
+{% endblock %}

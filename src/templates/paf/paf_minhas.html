@@ -116,16 +116,17 @@
             </div>
           </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
           <a class="btn btn-outline-light" href="{{ url_for('home_atualizacao') }}"><i class="bi bi-arrow-left"></i>
             Voltar</a>
-          <!-- mantém como link, mas o JS intercepta se já enviou -->
+          <a class="btn btn-warning fw-bold" href="{{ url_for('paf.usufruto', ano=ano) }}">
+            <i class="bi bi-calendar2-range me-1"></i>
+            {% if plano %}Minhas Datas de Usufruto{% else %}Solicitar Datas de Usufruto{% endif %}
+          </a>
           {% if solicitacao_aberta %}
           <a class="btn btn-primary" id="btn-novo-paf" href="{{ url_for('paf.novo', ano=ano) }}">
             <i class="bi bi-plus-lg me-1"></i> Novo PAF
           </a>
-          {% else %}
-          <span class="badge text-bg-secondary align-self-center">Período de solicitação encerrado</span>
           {% endif %}
         </div>
       </div>
@@ -197,6 +198,99 @@
         </div>
         {% else %}
         <div class="small-muted">Você ainda não enviou PAF este ano.</div>
+        {% endif %}
+      </div>
+
+      <!-- Card: Datas de Usufruto das Férias (PafFeriasPlano) -->
+      <div class="glass-card p-3 p-md-4 mt-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <div>
+            <h2 class="h6 m-0">
+              <i class="bi bi-calendar3-week me-1"></i>
+              Datas de Usufruto das Férias — {{ ano }} ({{ direito_dias|default(30) }} dias)
+            </h2>
+            <div class="small-muted">Períodos solicitados para gozo das férias em {{ ano }}.</div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            {% if plano %}
+              {% set st_pl = (plano.status or 'pendente')|lower %}
+              {% if st_pl in ['aprovado_chefe', 'aprovado', 'validado'] %}
+                <span class="badge text-bg-success"><i class="bi bi-check2-circle me-1"></i>Validado pela Chefia</span>
+              {% elif st_pl in ['indeferido', 'indeferido_chefe', 'reprovado_chefe'] %}
+                <span class="badge text-bg-danger"><i class="bi bi-x-circle me-1"></i>Indeferido pela Chefia</span>
+              {% else %}
+                <span class="badge text-bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Aguardando Validação da Chefia</span>
+              {% endif %}
+            {% endif %}
+
+            {% if pode_editar_plano|default(true) %}
+            <a href="{{ url_for('paf.usufruto', ano=ano) }}" class="btn btn-sm btn-warning fw-bold">
+              <i class="bi bi-pencil-square me-1"></i>
+              {% if plano %}Alterar / Reenviar Datas{% else %}Preencher Datas de Usufruto{% endif %}
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if plano %}
+          {% set st_pl = (plano.status or 'pendente')|lower %}
+          {% if st_pl in ['indeferido', 'indeferido_chefe', 'reprovado_chefe'] %}
+          <div class="alert alert-danger py-2 px-3 mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <strong>Solicitação indeferida pela chefia.</strong>
+            {% if plano.motivo_indeferimento %}Motivo: <b>{{ plano.motivo_indeferimento }}</b>.{% endif %}
+            Clique em <strong>Alterar / Reenviar Datas</strong> para ajustar seus períodos.
+          </div>
+          {% endif %}
+
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+                <div class="small-muted mb-1">1º Período ({{ mes_nome(plano.mes_usufruto_p1) }})</div>
+                <div class="fw-bold"><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p1 or '—' }} dias</div>
+                <div class="small mt-1">
+                  {{ plano.inicio_p1.strftime('%d/%m/%Y') if plano.inicio_p1 else '—' }} a
+                  {{ plano.fim_p1.strftime('%d/%m/%Y') if plano.fim_p1 else '—' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+                <div class="small-muted mb-1">2º Período ({{ mes_nome(plano.mes_usufruto_p2) }})</div>
+                {% if plano.qtd_dias_p2 and plano.inicio_p2 %}
+                <div class="fw-bold"><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p2 }} dias</div>
+                <div class="small mt-1">
+                  {{ plano.inicio_p2.strftime('%d/%m/%Y') }} a
+                  {{ plano.fim_p2.strftime('%d/%m/%Y') if plano.fim_p2 else '—' }}
+                </div>
+                {% else %}
+                <div class="small-muted mt-2">Não utilizado</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="p-3 rounded border h-100" style="border-color:var(--glass-brd)">
+                <div class="small-muted mb-1">3º Período ({{ mes_nome(plano.mes_usufruto_p3) }})</div>
+                {% if plano.qtd_dias_p3 and plano.inicio_p3 %}
+                <div class="fw-bold"><i class="bi bi-sun me-1"></i>{{ plano.qtd_dias_p3 }} dias</div>
+                <div class="small mt-1">
+                  {{ plano.inicio_p3.strftime('%d/%m/%Y') }} a
+                  {{ plano.fim_p3.strftime('%d/%m/%Y') if plano.fim_p3 else '—' }}
+                </div>
+                {% else %}
+                <div class="small-muted mt-2">Não utilizado</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="small-muted">
+            Você ainda não cadastrou suas datas de usufruto para {{ ano }}.
+            <a href="{{ url_for('paf.usufruto', ano=ano) }}" class="text-warning fw-bold ms-1">Clique aqui para escolher seus períodos →</a>
+          </div>
         {% endif %}
       </div>
   </div>

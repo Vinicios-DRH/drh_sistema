@@ -6,7 +6,26 @@ from flask_login import login_required, current_user
 from sqlalchemy import case, exists, func, and_, literal, or_, select, text, literal_column
 from src import database
 from src.formatar_cpf import get_militar_por_user
-from src.services.paf_service import PAF_SOLICITACAO_ABERTA, conta_envia_paf, pode_enviar_paf, pode_homologar_paf
+from src.services.paf_service import (
+    MILITARES_40_DIAS_IDS,
+    PAF_SOLICITACAO_ABERTA,
+    calcular_direito_dias_ferias,
+    conta_envia_paf,
+    pode_enviar_paf,
+    pode_homologar_paf,
+)
+from src.services.paf_usufruto_service import (
+    MESES_NOMES,
+    MODALIDADES_30_DIAS,
+    avaliar_plano_usufruto_chefia,
+    consultar_painel_chefia_usufruto,
+    detectar_modalidade_plano,
+    garantir_colunas_paf_ferias_plano,
+    militar_pode_editar_plano,
+    obter_paf_e_plano_do_militar,
+    usuario_eh_chefe_ou_gestor_paf,
+    validar_e_salvar_plano_usufruto,
+)
 from src.models import MilitarObmFuncao, NovoPaf, Obm, PafCapacidade, Militar, PafFeriasPlano, PostoGrad, User
 from src.utils.utils import registrar_log_download
 from zoneinfo import ZoneInfo
@@ -315,17 +334,6 @@ def novo():
         flash("Não foi possível localizar seus dados.", "danger")
         return redirect(url_for("home"))
 
-    # conta ATUALIZACAO CADASTRAL ou de comando + posto liberado na etapa atual; vale pro GET e pro POST
-    if not pode_enviar_paf(current_user, militar):
-        if not PAF_SOLICITACAO_ABERTA:
-            flash("O período de solicitação do PAF está encerrado.", "warning")
-        elif not conta_envia_paf(current_user):
-            flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) "
-                  "ou pela conta de chefe/diretor/comandante.", "warning")
-        else:
-            flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
-        return redirect(url_for("home"))
-
     ano = request.values.get("ano", type=int) or _ano_atual_manaus()
 
     # checagem: já existe PAF deste militar neste ano?
@@ -335,10 +343,19 @@ def novo():
         .exists()
     ).scalar()
 
-    if ja_tem:
-        flash(
-            "Você já enviou um PAF para este ano. Não é possível enviar outro.", "warning")
-        return redirect(url_for("paf.minhas", ano=ano))
+    if ja_tem or not PAF_SOLICITACAO_ABERTA:
+        # Quando o mês de pagamento já foi enviado (ou a fase de mês de pagamento
+        # já encerrou), direciona direto para a solicitação das datas de usufruto!
+        return redirect(url_for("paf.usufruto", ano=ano))
+
+    # conta ATUALIZACAO CADASTRAL ou de comando + posto liberado na etapa atual; vale pro GET e pro POST
+    if not pode_enviar_paf(current_user, militar):
+        if not conta_envia_paf(current_user):
+            flash("O PAF deve ser enviado pela sua conta pessoal (Atualização Cadastral) "
+                  "ou pela conta de chefe/diretor/comandante.", "warning")
+        else:
+            flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
+        return redirect(url_for("home"))
 
     if request.method == "POST":
         o1 = request.form.get("opcao_1", type=int)
@@ -399,15 +416,7 @@ def minhas():
         return redirect(url_for("home"))
 
     ano = request.args.get("ano", type=int) or _ano_atual_manaus()
-
-    # quem ainda não foi liberado só entra se já tiver PAF no ano (ex.: corrigir um reprovado)
-    ja_tem = database.session.query(NovoPaf.id).filter_by(militar_id=militar.id, ano_referencia=ano).first()
-    if not (pode_enviar_paf(current_user, militar) or ja_tem):
-        if not PAF_SOLICITACAO_ABERTA:
-            flash("O período de solicitação do PAF está encerrado.", "warning")
-        else:
-            flash("O preenchimento do PAF ainda não foi liberado para o seu posto/graduação.", "warning")
-        return redirect(url_for("home"))
+    garantir_colunas_paf_ferias_plano()
 
     # opções (NovoPaf)
     pafs = (database.session.query(NovoPaf)
@@ -415,11 +424,177 @@ def minhas():
             .order_by(NovoPaf.created_at.desc())
             .all())
 
+    _, plano = obter_paf_e_plano_do_militar(militar.id, ano)
+    direito_dias = calcular_direito_dias_ferias(militar)
+    pode_editar_plano = militar_pode_editar_plano(plano)
+
     return render_template(
         "paf/paf_minhas.html",
-        pafs=pafs, ano=ano, militar=militar,
+        pafs=pafs,
+        plano=plano,
+        direito_dias=direito_dias,
+        pode_editar_plano=pode_editar_plano,
+        ano=ano,
+        militar=militar,
         solicitacao_aberta=pode_enviar_paf(current_user, militar),
     )
+
+
+@bp_paf.route("/usufruto", methods=["GET", "POST"])
+@login_required
+def usufruto():
+    """Solicitação e atualização das datas de usufruto das férias do PAF
+    (30 dias parceláveis em até 3 períodos ou 40 dias em 20+20 com 6 meses)."""
+    militar = get_militar_por_user(current_user)
+    if not militar:
+        flash("Não foi possível localizar seus dados de militar.", "danger")
+        return redirect(url_for("home"))
+
+    if militar.inativo:
+        flash("Militares inativos não realizam solicitação de usufruto do PAF.", "warning")
+        return redirect(url_for("home"))
+
+    ano = request.values.get("ano", type=int) or _ano_atual_manaus()
+    novo_paf, plano = obter_paf_e_plano_do_militar(militar.id, ano)
+    direito_dias = calcular_direito_dias_ferias(militar)
+    pode_editar = militar_pode_editar_plano(plano)
+    modalidade_atual = detectar_modalidade_plano(plano, direito_dias)
+
+    if request.method == "POST":
+        if not pode_editar:
+            flash(
+                "Suas datas de usufruto já foram validadas pela chefia e não podem ser alteradas.",
+                "warning",
+            )
+            return redirect(url_for("paf.minhas", ano=ano))
+
+        modalidade_form = (request.form.get("modalidade") or "").strip()
+        observacao_militar = (request.form.get("observacao_militar") or "").strip()
+
+        periodos_input = []
+        for idx in (1, 2, 3):
+            mes_u = request.form.get(f"mes_usufruto_{idx}", type=int)
+            qtd_d = request.form.get(f"qtd_dias_{idx}", type=int)
+            ini_s = (request.form.get(f"inicio_{idx}") or "").strip()
+            if qtd_d or ini_s or mes_u:
+                periodos_input.append(
+                    {
+                        "mes_usufruto": mes_u,
+                        "qtd_dias": qtd_d,
+                        "inicio": ini_s,
+                    }
+                )
+
+        try:
+            validar_e_salvar_plano_usufruto(
+                militar=militar,
+                usuario_id=current_user.id,
+                ano=ano,
+                modalidade=modalidade_form,
+                periodos_input=periodos_input,
+                observacao_militar=observacao_militar,
+            )
+            flash(
+                f"Datas de usufruto do PAF {ano} enviadas com sucesso para validação da sua chefia!",
+                "success",
+            )
+            return redirect(url_for("paf.minhas", ano=ano))
+        except ValueError as e:
+            database.session.rollback()
+            flash(str(e), "danger")
+        except Exception as e:
+            database.session.rollback()
+            current_app.logger.exception("Erro ao salvar plano de usufruto do PAF")
+            flash(f"Erro ao salvar solicitação de usufruto: {e}", "danger")
+
+    mes_pag_num = (novo_paf.mes_definido or novo_paf.opcao_1) if novo_paf else None
+    mes_pag_nome = MESES_PT[mes_pag_num] if (mes_pag_num and 1 <= mes_pag_num <= 12) else "Não definido"
+
+    return render_template(
+        "paf/paf_usufruto.html",
+        militar=militar,
+        ano=ano,
+        novo_paf=novo_paf,
+        plano=plano,
+        direito_dias=direito_dias,
+        pode_editar=pode_editar,
+        modalidade_atual=modalidade_atual,
+        mes_pag_num=mes_pag_num,
+        mes_pag_nome=mes_pag_nome,
+        meses_pt=MESES_PT,
+    )
+
+
+@bp_paf.route("/chefia-usufruto", methods=["GET"])
+@login_required
+def chefia_usufruto():
+    """Painel da chefia para validar ou indeferir as datas de usufruto dos
+    militares da sua OBM e visualizar os gráficos de concentração mensal."""
+    if not usuario_eh_chefe_ou_gestor_paf(current_user):
+        flash("Acesso restrito a Chefes, Diretores, Comandantes e DRH.", "danger")
+        return redirect(url_for("home"))
+
+    ano = request.args.get("ano", type=int) or _ano_atual_manaus()
+    obm_id = request.args.get("obm_id", type=int)
+    status_filtro = (request.args.get("status") or "todos").strip().lower()
+    busca = (request.args.get("q") or "").strip()
+
+    painel = consultar_painel_chefia_usufruto(
+        user=current_user,
+        ano=ano,
+        obm_id_filtro=obm_id,
+        status_filtro=status_filtro,
+        busca=busca,
+    )
+
+    return render_template(
+        "paf/paf_chefia_usufruto.html",
+        ano=ano,
+        obm_id_filtro=obm_id,
+        status_filtro=status_filtro,
+        busca=busca,
+        painel=painel,
+        meses_pt=MESES_PT,
+    )
+
+
+@bp_paf.route("/chefia-usufruto/avaliar/<int:plano_id>", methods=["POST"])
+@login_required
+def avaliar_usufruto_chefia(plano_id: int):
+    if not usuario_eh_chefe_ou_gestor_paf(current_user):
+        flash("Sem permissão para avaliar solicitações de usufruto.", "danger")
+        return redirect(url_for("home"))
+
+    acao = (request.form.get("acao") or "").strip().lower()
+    motivo = (request.form.get("motivo") or "").strip()
+
+    try:
+        plano = avaliar_plano_usufruto_chefia(
+            plano_id=plano_id,
+            chefe_user=current_user,
+            acao=acao,
+            motivo=motivo,
+        )
+        nome_mil = plano.militar.nome_completo if plano.militar else f"Militar #{plano.militar_id}"
+        if acao in ("aprovar", "validar"):
+            flash(f"Férias de {nome_mil} validadas com sucesso!", "success")
+        else:
+            flash(
+                f"Solicitação de {nome_mil} indeferida. O militar já pode ajustar e reenviar as datas.",
+                "warning",
+            )
+    except PermissionError as e:
+        database.session.rollback()
+        flash(str(e), "danger")
+    except ValueError as e:
+        database.session.rollback()
+        flash(str(e), "warning")
+    except Exception as e:
+        database.session.rollback()
+        current_app.logger.exception("Erro ao avaliar usufruto na chefia")
+        flash(f"Erro ao processar avaliação: {e}", "danger")
+
+    return redirect(request.referrer or url_for("paf.chefia_usufruto"))
 
 
 @bp_paf.route("/aprovar/<int:paf_id>", methods=["POST"])

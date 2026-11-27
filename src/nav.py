@@ -139,6 +139,20 @@ def _is_visible(node: Dict[str, Any]) -> bool:
     return True
 
 
+def _rule_paf_usufruto() -> bool:
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+    from src.services.paf_service import conta_envia_paf
+    return conta_envia_paf(current_user) or _is_super()
+
+
+def _rule_paf_chefia_usufruto() -> bool:
+    if not getattr(current_user, "is_authenticated", False):
+        return False
+    from src.services.paf_usufruto_service import usuario_eh_chefe_ou_gestor_paf
+    return usuario_eh_chefe_ou_gestor_paf(current_user)
+
+
 def pode_ver_ferias_super() -> bool:
     return is_super_or_perm("NAV_FERIAS_SUPER")
 
@@ -288,15 +302,28 @@ def build_nav(militar_id_atual: Optional[int] = None) -> List[Dict[str, Any]]:
         )
     )
 
-    # Plano Anual de Férias (Solicitante)
+    # Plano Anual de Férias (Solicitante e Validação da Chefia)
     nav.append(
         _mk_group(
             "Plano Anual de Férias",
-            icon="fas fa-user-friends",
-            rule=(lambda: pode_paf or pode_paf_minhas),
+            icon="fas fa-calendar-alt",
+            rule=(lambda: _rule_paf_usufruto() or _rule_paf_chefia_usufruto() or pode_paf or pode_paf_minhas),
             children=[
-                _mk_item("Solicitação", "paf.novo", rule=(lambda: pode_paf)),
-                _mk_item("Minhas Solicitações", "paf.minhas"),
+                _mk_item(
+                    "Solicitar Datas de Usufruto",
+                    "paf.usufruto",
+                    rule=_rule_paf_usufruto,
+                ),
+                _mk_item(
+                    "Minhas Solicitações",
+                    "paf.minhas",
+                    rule=_rule_paf_usufruto,
+                ),
+                _mk_item(
+                    "Validação da Chefia (Usufruto)",
+                    "paf.chefia_usufruto",
+                    rule=_rule_paf_chefia_usufruto,
+                ),
             ],
         )
     )

@@ -1637,13 +1637,21 @@ class PafFeriasPlano(database.Model):
     mes_usufruto_p3 = database.Column(database.SmallInteger, nullable=True)
 
     status = database.Column(database.String(
-        30), default='enviado')  # opcional
+        30), default='pendente')  # pendente / aprovado_chefe / indeferido
+    motivo_indeferimento = database.Column(database.Text, nullable=True)
+    observacao_militar = database.Column(database.Text, nullable=True)
+    avaliado_por_user_id = database.Column(
+        database.Integer, database.ForeignKey('user.id'), nullable=True)
+    avaliado_em = database.Column(database.DateTime, nullable=True)
+
     created_at = database.Column(
         database.DateTime, default=lambda: datetime.now(ZoneInfo("America/Manaus")))
     updated_at = database.Column(database.DateTime, default=lambda: datetime.now(
         ZoneInfo("America/Manaus")), onupdate=lambda: datetime.now(ZoneInfo("America/Manaus")))
 
+    militar = database.relationship('Militar', foreign_keys=[militar_id])
     usuario = database.relationship('User', foreign_keys=[usuario_id])
+    avaliado_por = database.relationship('User', foreign_keys=[avaliado_por_user_id])
 
 
 def get_client_ip():

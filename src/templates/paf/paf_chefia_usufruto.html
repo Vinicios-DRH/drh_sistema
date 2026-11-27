@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body {
+    background: linear-gradient(135deg, #0a1628 0%, #0f294a 60%, #0b3a63 100%) fixed;
+  }
+
+  .chef-wrap {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 20px 14px 60px;
+  }
+
+  .chef-hero {
+    background: linear-gradient(125deg, rgba(15, 23, 42, .95) 0%, rgba(11, 46, 79, .95) 65%, rgba(29, 78, 216, .9) 100%);
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 20px;
+    padding: 22px 26px;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .28);
+    margin-bottom: 18px;
+  }
+
+  .chef-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 992px) {
+    .chef-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .chef-kpi-card {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 16px;
+    padding: 15px 16px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .14);
+    border: 1px solid rgba(15, 23, 42, .08);
+    text-decoration: none;
+    transition: transform .15s ease;
+    display: block;
+  }
+
+  .chef-kpi-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .chef-kpi-val {
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .chef-kpi-lbl {
+    font-size: .8rem;
+    color: #64748b;
+    font-weight: 700;
+    margin-top: 3px;
+  }
+
+  .chef-panel {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .16);
+    border: 1px solid rgba(15, 23, 42, .08);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+
+  .per-chip {
+    display: inline-block;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: .78rem;
+    margin: 2px 0;
+  }
+
+  html[data-theme="dark"] .chef-kpi-card,
+  html[data-theme="dark"] .chef-panel {
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="chef-wrap">
+
+  <!-- Cabeçalho -->
+  <div class="chef-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <span class="badge bg-warning text-dark fw-bold mb-1">
+          <i class="bi bi-diagram-3-fill me-1"></i> PAINEL DA CHEFIA • VALIDAÇÃO DE FÉRIAS (PAF {{ ano }})
+        </span>
+        <h1 class="h3 fw-bold m-0 text-white">Validação de Datas de Usufruto e Concentração Mensal do Efetivo</h1>
+        <p class="mb-0 text-white-50 small mt-1">
+          Acompanhe os meses em que seu efetivo mais solicitou férias e valide ou indefira as datas de usufruto de cada militar.
+        </p>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('exibir_ferias_chefe') }}" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-table me-1"></i> Tabela Geral da OBM
+        </a>
+        <a href="{{ url_for('paf.usufruto', ano=ano) }}" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-calendar-plus me-1"></i> Meu Próprio Usufruto
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards KPI (clicáveis para filtrar) -->
+  <div class="chef-kpi-grid">
+    <a class="chef-kpi-card" href="{{ url_for('paf.chefia_usufruto', ano=ano, obm_id=obm_id_filtro, status='todos') }}">
+      <div class="chef-kpi-val text-dark">{{ painel.kpi.total_efetivo }}</div>
+      <div class="chef-kpi-lbl">Efetivo Total na(s) OBM(s)</div>
+    </a>
+
+    <a class="chef-kpi-card" href="{{ url_for('paf.chefia_usufruto', ano=ano, obm_id=obm_id_filtro, status='pendente') }}">
+      <div class="chef-kpi-val text-warning">{{ painel.kpi.pendentes }}</div>
+      <div class="chef-kpi-lbl">Aguardando Validação da Chefia</div>
+    </a>
+
+    <a class="chef-kpi-card" href="{{ url_for('paf.chefia_usufruto', ano=ano, obm_id=obm_id_filtro, status='aprovado') }}">
+      <div class="chef-kpi-val text-success">{{ painel.kpi.aprovados }}</div>
+      <div class="chef-kpi-lbl">Validados pela Chefia</div>
+    </a>
+
+    <a class="chef-kpi-card" href="{{ url_for('paf.chefia_usufruto', ano=ano, obm_id=obm_id_filtro, status='indeferido') }}">
+      <div class="chef-kpi-val text-danger">{{ painel.kpi.indeferidos }}</div>
+      <div class="chef-kpi-lbl">Indeferidos (Aguardando Correção)</div>
+    </a>
+
+    <a class="chef-kpi-card" href="{{ url_for('paf.chefia_usufruto', ano=ano, obm_id=obm_id_filtro, status='nao_enviou') }}">
+      <div class="chef-kpi-val text-secondary">{{ painel.kpi.nao_enviaram }}</div>
+      <div class="chef-kpi-lbl">Ainda Não Enviaram Datas</div>
+    </a>
+  </div>
+
+  <!-- Gráficos de Concentração de Férias por Mês -->
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-lg-8">
+      <div class="chef-panel p-3 p-md-4 h-100">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div>
+            <h2 class="h6 fw-bold m-0">
+              <i class="bi bi-bar-chart-line-fill text-primary me-1"></i>
+              Concentração de Férias do Efetivo por Mês ({{ ano }})
+            </h2>
+            <div class="small text-secondary">
+              Quantidade de militares/períodos programados em cada mês (Validados vs Aguardando Validação).
+            </div>
+          </div>
+        </div>
+        <div style="height: 270px;">
+          <canvas id="chartFeriasMes"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="chef-panel p-3 p-md-4 h-100">
+        <h2 class="h6 fw-bold m-0 mb-1">
+          <i class="bi bi-calendar3 text-primary me-1"></i>
+          Resumo Mensal do Efetivo ({{ ano }})
+        </h2>
+        <div class="small text-secondary mb-2">Meses com maior concentração de saída para férias:</div>
+
+        <div class="table-responsive" style="max-height: 255px; overflow-y: auto;">
+          <table class="table table-sm table-hover align-middle mb-0 small">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th>Mês</th>
+                <th class="text-center">Militares</th>
+                <th class="text-center">Validados</th>
+                <th class="text-center">Pendentes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for gm in painel.grafico_meses %}
+              <tr>
+                <td class="fw-bold">{{ gm.mes_nome }}</td>
+                <td class="text-center">
+                  <span class="badge {% if gm.militares_distintos > 0 %}bg-primary{% else %}bg-light text-muted border{% endif %}">
+                    {{ gm.militares_distintos }}
+                  </span>
+                </td>
+                <td class="text-center text-success fw-bold">{{ gm.aprovados }}</td>
+                <td class="text-center text-warning fw-bold">{{ gm.pendentes }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros e Tabela de Validação da Chefia -->
+  <div class="chef-panel p-3 p-md-4">
+    <form method="GET" action="{{ url_for('paf.chefia_usufruto') }}" class="row g-2 align-items-end mb-3">
+      <input type="hidden" name="ano" value="{{ ano }}">
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small fw-bold text-secondary mb-1">OBM</label>
+        <select name="obm_id" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Todas as minhas OBMs ({{ painel.obms_disponiveis|length }})</option>
+          {% for o in painel.obms_disponiveis %}
+          <option value="{{ o.id }}" {% if obm_id_filtro == o.id %}selected{% endif %}>{{ o.sigla }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small fw-bold text-secondary mb-1">Status da Solicitação</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="todos" {% if status_filtro == 'todos' %}selected{% endif %}>Todos os status</option>
+          <option value="pendente" {% if status_filtro == 'pendente' %}selected{% endif %}>Aguardando validação</option>
+          <option value="aprovado" {% if status_filtro == 'aprovado' %}selected{% endif %}>Validados pela chefia</option>
+          <option value="indeferido" {% if status_filtro == 'indeferido' %}selected{% endif %}>Indeferidos</option>
+          <option value="nao_enviou" {% if status_filtro == 'nao_enviou' %}selected{% endif %}>Ainda não enviaram</option>
+        </select>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label class="form-label small fw-bold text-secondary mb-1">Buscar militar (Nome, Guerra ou Matrícula)</label>
+        <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm"
+          placeholder="Digite o nome ou matrícula...">
+      </div>
+
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+          <i class="bi bi-funnel-fill me-1"></i> Filtrar
+        </button>
+        {% if obm_id_filtro or status_filtro != 'todos' or busca %}
+        <a href="{{ url_for('paf.chefia_usufruto', ano=ano) }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Militar</th>
+            <th>OBM</th>
+            <th>Mês Pagamento</th>
+            <th>Parcelamento</th>
+            <th>Períodos Solicitados (Datas de Usufruto {{ ano }})</th>
+            <th>Status</th>
+            <th class="text-end" style="min-width: 200px;">Decisão da Chefia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in painel.itens %}
+          {% set m = item.militar %}
+          {% set pl = item.plano %}
+          <tr>
+            <td>
+              <span class="badge bg-dark me-1">{{ item.pg_sigla }}</span>
+              <strong class="text-dark">{{ m.nome_completo }}</strong>
+              <div class="small text-muted">
+                Matr.: {{ m.matricula or '—' }}
+                {% if item.direito_dias == 40 %}
+                · <span class="badge bg-info text-dark">40 dias (Raio-X)</span>
+                {% endif %}
+              </div>
+            </td>
+            <td><span class="badge bg-secondary bg-opacity-10 text-dark border">{{ item.obm_sigla }}</span></td>
+            <td>
+              <span class="fw-semibold">{{ item.mes_pagamento_nome }}</span>
+              {% if item.mes_pagamento_homologado %}
+              <div class="small text-success"><i class="bi bi-check2-circle"></i> Homologado DP</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if pl %}
+              <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                {{ item.modalidade }} ({{ pl.direito_total_dias }}d)
+              </span>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if pl %}
+                <div class="per-chip">
+                  <b>1º ({{ pl.qtd_dias_p1 }}d - {{ meses_pt[pl.mes_usufruto_p1] if pl.mes_usufruto_p1 else '' }}):</b>
+                  {{ pl.inicio_p1.strftime('%d/%m/%Y') if pl.inicio_p1 else '—' }} a {{ pl.fim_p1.strftime('%d/%m/%Y') if pl.fim_p1 else '—' }}
+                </div>
+                {% if pl.qtd_dias_p2 and pl.inicio_p2 %}
+                <div class="per-chip">
+                  <b>2º ({{ pl.qtd_dias_p2 }}d - {{ meses_pt[pl.mes_usufruto_p2] if pl.mes_usufruto_p2 else '' }}):</b>
+                  {{ pl.inicio_p2.strftime('%d/%m/%Y') }} a {{ pl.fim_p2.strftime('%d/%m/%Y') if pl.fim_p2 else '—' }}
+                </div>
+                {% endif %}
+                {% if pl.qtd_dias_p3 and pl.inicio_p3 %}
+                <div class="per-chip">
+                  <b>3º ({{ pl.qtd_dias_p3 }}d - {{ meses_pt[pl.mes_usufruto_p3] if pl.mes_usufruto_p3 else '' }}):</b>
+                  {{ pl.inicio_p3.strftime('%d/%m/%Y') }} a {{ pl.fim_p3.strftime('%d/%m/%Y') if pl.fim_p3 else '—' }}
+                </div>
+                {% endif %}
+                {% if pl.observacao_militar %}
+                <div class="small text-secondary mt-1">
+                  <i class="bi bi-chat-left-text me-1"></i><em>Obs. militar: {{ pl.observacao_militar }}</em>
+                </div>
+                {% endif %}
+              {% else %}
+                <span class="text-muted small">Militar ainda não preencheu as datas de usufruto.</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if item.cat_status == 'aprovado' %}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Validado</span>
+              {% elif item.cat_status == 'indeferido' %}
+                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Indeferido</span>
+                {% if pl and pl.motivo_indeferimento %}
+                <div class="small text-danger mt-1" style="max-width: 220px;">Motivo: {{ pl.motivo_indeferimento }}</div>
+                {% endif %}
+              {% elif item.cat_status == 'pendente' %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Aguardando Chefia</span>
+              {% else %}
+                <span class="badge bg-secondary">Não enviou</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if pl %}
+              <div class="d-inline-flex gap-1">
+                {% if item.cat_status != 'aprovado' %}
+                <form method="POST" action="{{ url_for('paf.avaliar_usufruto_chefia', plano_id=pl.id) }}" class="d-inline">
+                  <input type="hidden" name="acao" value="aprovar">
+                  <button type="submit" class="btn btn-sm btn-success fw-bold" title="Validar datas de usufruto">
+                    <i class="bi bi-check-lg me-1"></i> Validar
+                  </button>
+                </form>
+                {% endif %}
+
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                  onclick="abrirModalIndeferir({{ pl.id }}, '{{ item.pg_sigla }} {{ m.nome_completo|e }}')">
+                  <i class="bi bi-x-circle me-1"></i> Indeferir
+                </button>
+              </div>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              Nenhum militar encontrado com os filtros selecionados.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de Indeferimento com Motivo -->
+<div class="modal fade" id="modalIndeferirUsufruto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="POST" id="formIndeferirUsufruto">
+      <input type="hidden" name="acao" value="indeferir">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-danger">
+          <i class="bi bi-x-octagon-fill me-1"></i> Indeferir Datas de Usufruto
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-secondary mb-2">
+          Militar: <strong id="nomeMilitarModal" class="text-dark"></strong>
+        </p>
+        <label class="form-label fw-bold small">Motivo do indeferimento / Orientação para ajuste</label>
+        <textarea name="motivo" id="inputMotivoIndeferir" rows="3" class="form-control"
+          placeholder="Ex.: Conflito de escala no mês de julho; favor escolher outro período..." required></textarea>
+        <div class="form-text">
+          O militar verá este motivo em sua tela e ficará liberado para atualizar e reenviar as datas.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger fw-bold">Confirmar Indeferimento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const DADOS_MESES = {{ painel.grafico_meses|tojson }};
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('chartFeriasMes');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: DADOS_MESES.map(m => m.mes_curto),
+        datasets: [
+          {
+            label: 'Períodos Validados pela Chefia',
+            data: DADOS_MESES.map(m => m.aprovados),
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          },
+          {
+            label: 'Aguardando Validação',
+            data: DADOS_MESES.map(m => m.pendentes),
+            backgroundColor: '#f59e0b',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              afterBody: function (items) {
+                const idx = items[0]?.dataIndex;
+                const info = DADOS_MESES[idx];
+                if (!info || !info.nomes || !info.nomes.length) return '';
+                return '\nMilitares no mês:\n• ' + info.nomes.slice(0, 8).join('\n• ') +
+                  (info.nomes.length > 8 ? `\n(+${info.nomes.length - 8} mais)` : '');
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  });
+
+  function abrirModalIndeferir(planoId, nomeMilitar) {
+    const form = document.getElementById('formIndeferirUsufruto');
+    const lbl = document.getElementById('nomeMilitarModal');
+    const txt = document.getElementById('inputMotivoIndeferir');
+    form.action = "{{ url_for('paf.avaliar_usufruto_chefia', plano_id=0) }}".replace('/0', '/' + planoId);
+    lbl.textContent = nomeMilitar;
+    txt.value = '';
+    const modal = new bootstrap.Modal(document.getElementById('modalIndeferirUsufruto'));
+    modal.show();
+  }
+</script>
+{% endblock %}
